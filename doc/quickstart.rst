@@ -394,7 +394,7 @@ accessed by vertex or edge descriptors, or the graph itself, as such:
     eprop_dict = g.new_edge_property("object")                # Arbitrary python object.
     eprop_dict[g.edges().next()] = {"foo": "bar", "gnu": 42}  # In this case, a dict.
 
-    gprop_bool = g.new_edge_property("bool")                  # Boolean
+    gprop_bool = g.new_graph_property("bool")                  # Boolean
     gprop_bool[g] = True
 
 Property maps with scalar value types can also be accessed as a
