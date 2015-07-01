@@ -1315,7 +1315,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                                              multigraph=(l > 0 and g.num_vertices() < sparse_thresh) or multigraph,
                                              sequential=sequential,
                                              parallel=parallel,
-                                             verbose=verbose,
+                                             verbose=verbose != False,
                                              checkpoint=chkp,
                                              minimize_state=minimize_state.minimize_state)
             ba = array(bstate.b.fa)
