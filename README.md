@@ -1,12 +1,12 @@
-graph-tool --- an efficient python module for analysis of graphs
+graph-tool -- an efficient python module for analysis of graphs
 ================================================================
 
 graph-tool is an efficient python module for manipulation and
 statistical analysis of graphs. It contains several general graph
-measurements data structures and algorithms, such as degree or
-properties distributions, degree or properties correlations,
-clustering, graph filtering, interactive graph layout, random graph
-generation, detection of community structure, and more.
+measurements, data structures and algorithms, such as vertex and edge
+properties, online graph filtering, nearest neighbour statistics,
+clustering, interactive graph layout, random graph generation, detection
+of community structure, and more.
 
 Contrary to most other python modules with similar functionality, the
 core data structures and algorithms are implemented in C++, making
@@ -41,8 +41,8 @@ instructions.
 
 Note that recent versions of GCC (4.8 or above) or clang, with good
 c++11 support, are required for compilation. Due to the heavy use of
-template metaprogramming techniques, *relatively large amounts of RAM
-are required during compilation*. You have been warned!  For this
+template metaprogramming techniques, **relatively large amounts of RAM
+are required during compilation**. You have been warned!  For this
 reason, pre-compiled packages are available in the website.
 
 More information about graph-tool
