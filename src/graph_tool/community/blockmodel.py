@@ -1039,7 +1039,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
             nsampler.append(state.nsampler)
             ncavity_sampler.append(state.nsampler)
         else:
-            if kwargs.get("unweighted_merge", False):
+            if not kwargs.get("unweighted_merge", False):
                 emask = state.mrs
             else:
                 emask = state.mrs.copy()
