@@ -2371,12 +2371,13 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
 
         cleanup_cache(b_cache, min_B, max_B)
 
-        if f_max > f_mid > f_min:
-            max_B = mid_B
-            mid_B = get_mid(min_B, mid_B)
-        elif f_max < f_mid < f_min:
-            min_B = mid_B
-            mid_B = get_mid(mid_B, max_B)
+        if f_mid > f_min or f_mid > f_max:
+            if f_min < f_max:
+                max_B = mid_B
+                mid_B = get_mid(min_B, mid_B)
+            else:
+                min_B = mid_B
+                mid_B = get_mid(mid_B, max_B)
         else:
             break
 
