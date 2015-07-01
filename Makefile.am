@@ -4,12 +4,10 @@ SUBDIRS = src
 
 graphtooldocdir = ${PACKAGE_DOC_DIR}
 nobase_dist_graphtooldoc_DATA = \
-	README\
+	README.md\
 	COPYING\
 	AUTHORS\
 	INSTALL\
-	NEWS\
-	TODO\
 	src/boost-workaround/LICENSE_1_0.txt\
 	doc/centrality.rst \
 	doc/correlations.rst \
