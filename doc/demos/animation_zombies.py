@@ -135,7 +135,7 @@ def update_state():
 
     # The following will force the re-drawing of the graph, and issue a
     # re-drawing of the GTK window.
-    win.graph.regenerate_surface(lazy=False)
+    win.graph.regenerate_surface()
     win.graph.queue_draw()
 
     # if doing an offscreen animation, dump frame to disk

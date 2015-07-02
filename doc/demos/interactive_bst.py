@@ -59,7 +59,7 @@ def update_bfs(widget, event):
             if e is not None:
                 ecolor[e] = orange
                 vcolor[v] = vcolor[w] = orange
-    widget.regenerate_surface(lazy=False)
+    widget.regenerate_surface()
     widget.queue_draw()
 
     if offscreen:
