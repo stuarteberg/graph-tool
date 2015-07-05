@@ -2451,7 +2451,7 @@ template <class Graph, class Vprop, class VVprop, class VLprop,
           class Eprop, class RNG, class BlockState, class MEntries>
 void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
                 Vprop wr, Vprop b, VLprop cv, VVprop vmap, Vprop clabel,
-                vector<int>& vlist, bool deg_corr, bool dense, bool multigraph,
+                vector<int64_t>& vlist, bool deg_corr, bool dense, bool multigraph,
                 double beta, Eprop eweight, Vprop vweight, Graph& g,
                 bool sequential, bool parallel, bool random_move, double c,
                 size_t nmerges, Vprop merge_map, size_t niter, size_t B,

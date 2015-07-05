@@ -50,7 +50,9 @@ struct move_sweep_overlap_dispatch
 {
     move_sweep_overlap_dispatch(Eprop eweight, Vprop vweight,
                                 boost::any egroups, VEprop esrcpos,
-                                VEprop etgtpos, Vprop label, vector<int>& vlist,
+                                VEprop etgtpos, Vprop label,
+                                vector<int64_t>& vlist,
+                                vector<int64_t>& target_blocks,
                                 bool deg_corr, bool dense, bool multigraph,
                                 bool parallel_edges, double beta,
                                 bool sequential, bool parallel,
@@ -63,7 +65,7 @@ struct move_sweep_overlap_dispatch
                                 GraphInterface& bgi)
 
         : eweight(eweight), vweight(vweight), oegroups(egroups), esrcpos(esrcpos),
-          etgtpos(etgtpos), label(label), vlist(vlist),
+          etgtpos(etgtpos), label(label), vlist(vlist), target_blocks(target_blocks),
           deg_corr(deg_corr), dense(dense), multigraph(multigraph),
           parallel_edges(parallel_edges), beta(beta), sequential(sequential),
           parallel(parallel), random_move(random_move), c(c),
@@ -80,7 +82,8 @@ struct move_sweep_overlap_dispatch
     VEprop etgtpos;
     Vprop label;
     size_t n;
-    vector<int>& vlist;
+    vector<int64_t>& vlist;
+    vector<int64_t>& target_blocks;
     bool deg_corr;
     bool dense;
     bool multigraph;
@@ -209,42 +212,60 @@ struct move_sweep_overlap_dispatch
         vector<decltype(state)> states = {state};
         vector<SingleEntrySet<Graph>> m_entries(1);
 
-        if (nmerges == 0)
+        if (target_blocks.empty())
         {
-            if (!node_coherent)
+            if (nmerges == 0)
             {
-                move_sweep_overlap(states, m_entries, overlap_stats,
-                                   wr.get_unchecked(num_vertices(bg)),
-                                   b.get_unchecked(num_vertices(g)), cv,
-                                   vmap, label.get_unchecked(num_vertices(bg)),
-                                   vlist, deg_corr, dense, multigraph, beta,
-                                   vweight.get_unchecked(num_vertices(g)), g,
-                                   sequential, parallel, random_move, c, niter,
-                                   num_vertices(bg), verbose, rng, S, nmoves);
+                if (!node_coherent)
+                {
+                    move_sweep_overlap(states, m_entries, overlap_stats,
+                                       wr.get_unchecked(num_vertices(bg)),
+                                       b.get_unchecked(num_vertices(g)), cv,
+                                       vmap, label.get_unchecked(num_vertices(bg)),
+                                       vlist, deg_corr, dense, multigraph, beta,
+                                       vweight.get_unchecked(num_vertices(g)), g,
+                                       sequential, parallel, random_move, c, niter,
+                                       num_vertices(bg), verbose, rng, S, nmoves);
+                }
+                else
+                {
+                    vector<EntrySet<Graph>> m_entries(1, EntrySet<Graph>(num_vertices(bg)));
+                    coherent_move_sweep_overlap(states, m_entries, overlap_stats,
+                                                wr.get_unchecked(num_vertices(bg)),
+                                                b.get_unchecked(num_vertices(g)), cv,
+                                                vmap, label.get_unchecked(num_vertices(bg)),
+                                                vlist, deg_corr, dense, multigraph, beta,
+                                                vweight.get_unchecked(num_vertices(g)), g,
+                                                sequential,  random_move, c,
+                                                false, niter,
+                                                num_vertices(bg), rng, S, nmoves);
+                }
             }
             else
             {
-                vector<EntrySet<Graph>> m_entries(1, EntrySet<Graph>(num_vertices(bg)));
-                coherent_move_sweep_overlap(states, m_entries, overlap_stats,
-                                            wr.get_unchecked(num_vertices(bg)),
-                                            b.get_unchecked(num_vertices(g)), cv,
-                                            vmap, label.get_unchecked(num_vertices(bg)),
-                                            vlist, deg_corr, dense, multigraph, beta,
-                                            vweight.get_unchecked(num_vertices(g)), g,
-                                            sequential,  random_move, c,
-                                            false, niter,
-                                            num_vertices(bg), rng, S, nmoves);
+                merge_sweep_overlap(states, m_entries, overlap_stats,
+                                    wr.get_unchecked(num_vertices(bg)),
+                                    b.get_unchecked(num_vertices(g)), ce, cv, vmap,
+                                    label.get_unchecked(num_vertices(bg)), vlist,
+                                    deg_corr, dense, multigraph, g, random_move,
+                                    false, nmerges, niter,
+                                    num_vertices(bg), rng, S, nmoves);
             }
         }
         else
         {
-            merge_sweep_overlap(states, m_entries, overlap_stats,
-                                wr.get_unchecked(num_vertices(bg)),
-                                b.get_unchecked(num_vertices(g)), ce, cv, vmap,
-                                label.get_unchecked(num_vertices(bg)), vlist,
-                                deg_corr, dense, multigraph, g, random_move,
-                                false, nmerges, niter,
-                                num_vertices(bg), rng, S, nmoves);
+            half_edge_neighbour_policy<Graph> npolicy(g);
+            auto ub = b.get_unchecked(num_vertices(g));
+            for (size_t i = 0; i < vlist.size(); ++i)
+            {
+                size_t v = vlist[i];
+                size_t s = target_blocks[i];
+                S += virtual_move(v, s, ub, cv, vmap, states, m_entries,
+                                  dense, deg_corr, multigraph, npolicy);
+                move_vertex(v, s, ub, cv, vmap, deg_corr, states,
+                            not random_move, npolicy);
+                nmoves++;
+            }
         }
     }
 };
@@ -255,7 +276,8 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                       boost::any sampler, boost::any cavity_sampler,
                       boost::any omrs, boost::any omrp, boost::any omrm,
                       boost::any owr, boost::any ob, boost::any olabel,
-                      vector<int>& vlist, bool deg_corr, bool dense,
+                      vector<int64_t>& vlist, vector<int64_t>& target_blocks,
+                      bool deg_corr, bool dense,
                       bool multigraph, bool parallel_edges, boost::any oeweight,
                       boost::any ovweight, boost::any oegroups,
                       boost::any oesrcpos, boost::any oetgtpos, double beta,
@@ -295,9 +317,9 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_overlap_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
-                        label, vlist, deg_corr, dense, multigraph, parallel_edges,
-                        beta, sequential, parallel, random_move, c, node_coherent,
-                        verbose, gi.GetMaxEdgeIndex(), nmerges,
+                        label, vlist, target_blocks, deg_corr, dense, multigraph,
+                        parallel_edges, beta, sequential, parallel, random_move,
+                        c, node_coherent, verbose, gi.GetMaxEdgeIndex(), nmerges,
                         niter, merge_map, overlap_stats, partition_stats, rng, S,
                         nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,

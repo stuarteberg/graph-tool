@@ -823,8 +823,8 @@ def get_akc(B, I, N=float("inf"), directed=False):
 
 def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                multigraph=False, node_coherent=False, confine_layers=False,
-               sequential=True, parallel=False, vertices=None, verbose=False,
-               **kwargs):
+               sequential=True, parallel=False, vertices=None,
+               target_groups=None, verbose=False, **kwargs):
     r"""Performs a Markov chain Monte Carlo sweep on the network, to sample the block partition according to a probability :math:`\propto e^{-\beta \mathcal{S}_{t/c}}`, where :math:`\mathcal{S}_{t/c}` is the blockmodel entropy.
 
     Parameters
@@ -875,6 +875,9 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
     vertices : ``list of ints`` (optional, default: ``None``)
         A list of vertices which will be attempted to be moved. If ``None``, all
         vertices will be attempted.
+    target_blocks : ``list of ints`` (optional, default: ``None``)
+        A list of groups to which the corresponding vertices will to be forcibly
+        moved. If ``None``, the standard MCMC rules will be applied.
     verbose : ``bool`` (optional, default: ``False``)
         If ``True``, verbose information is displayed.
 
@@ -995,15 +998,25 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
         return 0., 0
 
     if vertices is not None:
-        vlist = libcommunity.get_vector(len(vertices))
-        vlist.a = vertices
-        vertices = vlist
+        temp = libcommunity.get_vector(len(vertices))
+        temp.a = vertices
+        vertices = temp
         state.sweep_vertices = vertices
-
-    if state.sweep_vertices is None:
+    elif (state.sweep_vertices is None or
+          len(state.sweep_vertices.a) < state.g.num_vertices()):
         vertices = libcommunity.get_vector(state.g.num_vertices())
         vertices.a = state.g.vertex_index.copy("int").fa
         state.sweep_vertices = vertices
+
+    if target_blocks is not None:
+        temp = libcommunity.get_vector(len(target_blocks))
+        temp.a = target_blocks
+        target_blocks = temp
+        if len(target_blocks) != len(state.sweep_vertices):
+            raise ValueError("'target_blocks' must have the same length as 'vertices'")
+    else:
+        target_blocks = libcommunity.get_vector(0)
+
 
     random_move = c == float("inf")
 
@@ -1084,6 +1097,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                      _prop("v", state.g, state.b),
                                                      _prop("v", state.bg, bclabel),
                                                      state.sweep_vertices,
+                                                     target_blocks,
                                                      state.deg_corr, dense, multigraph,
                                                      _prop("e", state.g, state.eweight),
                                                      _prop("v", state.g, state.vweight),
@@ -1111,6 +1125,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                              _prop("v", state.g, state.b),
                                                              _prop("v", state.bg, bclabel),
                                                              state.sweep_vertices,
+                                                             target_blocks,
                                                              state.deg_corr, dense, multigraph,
                                                              multigraph,
                                                              _prop("e", state.g, state.eweight),
@@ -1159,7 +1174,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                      [state.master for state in states],
                                                      [state.slave for state in states],
                                                      _prop("v", None, bclabel),
-                                                     main_state.sweep_vertices,
+                                                     [main_state.sweep_vertices, target_blocks],
                                                      main_state.deg_corr, dense, multigraph,
                                                      [_prop("e", state.g, state.eweight) for state in states],
                                                      [_prop("v", state.g, state.vweight) for state in states],

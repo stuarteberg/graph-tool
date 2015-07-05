@@ -196,16 +196,16 @@ struct move_sweep_dispatch
 {
     move_sweep_dispatch(Eprop eweight, Vprop vweight, boost::any egroups,
                         VEprop esrcpos, VEprop etgtpos, Vprop label,
-                        vector<int>& vlist, bool deg_corr, bool dense,
-                        bool multigraph, double beta, bool sequential,
-                        bool parallel, bool random_move, double c, bool verbose,
-                        size_t max_edge_index, size_t nmerges, size_t niter,
-                        Vprop merge_map, partition_stats_t& partition_stats,
-                        rng_t& rng, double& S, size_t& nmoves,
-                        GraphInterface& bgi)
+                        vector<int64_t>& vlist, vector<int64_t>& target_list,
+                        bool deg_corr, bool dense, bool multigraph, double beta,
+                        bool sequential, bool parallel, bool random_move,
+                        double c, bool verbose, size_t max_edge_index,
+                        size_t nmerges, size_t niter, Vprop merge_map,
+                        partition_stats_t& partition_stats, rng_t& rng,
+                        double& S, size_t& nmoves, GraphInterface& bgi)
 
         : eweight(eweight), vweight(vweight), oegroups(egroups), esrcpos(esrcpos),
-          etgtpos(etgtpos), label(label), vlist(vlist),
+          etgtpos(etgtpos), label(label), vlist(vlist), target_list(target_list), 
           deg_corr(deg_corr), dense(dense), multigraph(multigraph), beta(beta),
           sequential(sequential), parallel(parallel), random_move(random_move),
           c(c), verbose(verbose), max_edge_index(max_edge_index),
@@ -221,7 +221,8 @@ struct move_sweep_dispatch
     VEprop etgtpos;
     Vprop label;
     size_t n;
-    vector<int>& vlist;
+    vector<int64_t>& vlist;
+    vector<int64_t>& target_list;
     bool deg_corr;
     bool dense;
     bool multigraph;
@@ -358,19 +359,36 @@ struct move_sweep_dispatch
         vector<decltype(state)> states = {state};
         vector<EntrySet<Graph>> m_entries = {EntrySet<Graph>(num_vertices(bg))};
 
-        move_sweep(states, m_entries,
-                   wr.get_unchecked(num_vertices(bg)),
-                   b.get_unchecked(num_vertices(g)),
-                   cv, vmap,
-                   label.get_unchecked(num_vertices(bg)), vlist, deg_corr,
-                   dense, multigraph, beta,
-                   eweight.get_unchecked(max_edge_index),
-                   vweight.get_unchecked(num_vertices(g)),
-                   g, sequential, parallel, random_move, c,
-                   nmerges,
-                   merge_map.get_unchecked(num_vertices(g)),
-                   niter, num_vertices(bg),
-                   verbose, rng, S, nmoves);
+        if (target_list.empty())
+        {
+            move_sweep(states, m_entries,
+                       wr.get_unchecked(num_vertices(bg)),
+                       b.get_unchecked(num_vertices(g)),
+                       cv, vmap,
+                       label.get_unchecked(num_vertices(bg)), vlist, deg_corr,
+                       dense, multigraph, beta,
+                       eweight.get_unchecked(max_edge_index),
+                       vweight.get_unchecked(num_vertices(g)),
+                       g, sequential, parallel, random_move, c,
+                       nmerges,
+                       merge_map.get_unchecked(num_vertices(g)),
+                       niter, num_vertices(bg),
+                       verbose, rng, S, nmoves);
+        }
+        else
+        {
+            auto ub = b.get_unchecked(num_vertices(g));
+            for (size_t i = 0; i < vlist.size(); ++i)
+            {
+                size_t v = vlist[i];
+                size_t s = target_list[i];
+                S += virtual_move(v, s, ub, cv, vmap, states, m_entries,
+                                  dense, deg_corr, multigraph);
+                move_vertex(v, s, ub, cv, vmap, deg_corr, states,
+                            not random_move);
+                nmoves++;
+            }
+        }
     }
 };
 
@@ -380,7 +398,8 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                                     boost::any cavity_sampler, boost::any omrs,
                                     boost::any omrp, boost::any omrm,
                                     boost::any owr, boost::any ob,
-                                    boost::any olabel, vector<int>& vlist,
+                                    boost::any olabel, vector<int64_t>& vlist,
+                                    vector<int64_t>& target_list,
                                     bool deg_corr, bool dense, bool multigraph,
                                     boost::any oeweight, boost::any ovweight,
                                     boost::any oegroups, boost::any oesrcpos,
@@ -421,8 +440,8 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
-                        label, vlist, deg_corr, dense, multigraph, beta,
-                        sequential, parallel, random_move, c, verbose,
+                        label, vlist,  target_list, deg_corr, dense, multigraph,
+                        beta, sequential, parallel, random_move, c, verbose,
                         gi.GetMaxEdgeIndex(), nmerges, niter, merge_map,
                         partition_stats, rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,
@@ -645,9 +664,9 @@ double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
 }
 
 
-vector<int32_t> get_vector(size_t n)
+vector<int64_t> get_vector(size_t n)
 {
-    return vector<int32_t>(n);
+    return vector<int64_t>(n);
 }
 
 template <class Value>
