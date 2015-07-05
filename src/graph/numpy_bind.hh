@@ -29,10 +29,6 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
-#if NPY_API_VERSION < 0x00000007
-#include "numpy_bind_old.hh"
-#else
-
 #include <boost/array.hpp>
 #define BOOST_DISABLE_ASSERTS
 #include <boost/multi_array.hpp>
@@ -210,5 +206,4 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
 
 }
 
-#endif
 #endif // NUMPY_BIND_HH

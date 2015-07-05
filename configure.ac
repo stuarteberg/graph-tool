@@ -14,6 +14,7 @@ AC_SUBST(GRAPH_TOOL_VERSION_MAJOR)
 AC_SUBST(GRAPH_TOOL_VERSION_MINOR)
 AC_SUBST(GRAPH_TOOL_VERSION_MICRO)
 
+AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR(src)
 AM_INIT_AUTOMAKE([foreign])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -31,7 +32,6 @@ AC_HEADER_STDC
 AC_DISABLE_STATIC
 LT_INIT
 AC_PROG_INSTALL
-AC_CANONICAL_TARGET
 
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
@@ -264,7 +264,10 @@ AC_CHECK_HEADER([${NUMPY_DIR}/numpy/arrayobject.h],
                 [CPPFLAGS="${CPPFLAGS} -I${NUMPY_DIR}"],
                 [AC_MSG_ERROR([Numpy extension header not found])],
                 [#include "Python.h"])
-
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h" #include "${NUMPY_DIR}/numpy/arrayobject.h" #if NPY_API_VERSION < 0x00000007 #error #endif]])],
+                  [],
+                  [AC_MSG_ERROR([Numpy is too old. Version 1.7 or above is required.])])
+  
 dnl scipy
 AX_PYTHON_MODULE(scipy, fatal)
 dnl [SCIPY_DIR="${PYTHON_SITE_PKG}/scipy"]
