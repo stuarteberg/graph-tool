@@ -981,7 +981,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                                      kwargs.get("ecmap", default_cm))
         fit_area = fit_view if fit_view != True else 0.95
         return interactive_window(g, pos, vprops, eprops, vorder, eorder,
-                                  nodesfirst, fit_area=fit_area, **kwargs)
+                                  nodesfirst, geometry=output_size,
+                                  fit_area=fit_area, **kwargs)
     else:
         if isinstance(output, str):
             out, auto_fmt = open_file(output, mode="wb")
