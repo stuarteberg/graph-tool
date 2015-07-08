@@ -824,7 +824,7 @@ def get_akc(B, I, N=float("inf"), directed=False):
 def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                multigraph=False, node_coherent=False, confine_layers=False,
                sequential=True, parallel=False, vertices=None,
-               target_groups=None, verbose=False, **kwargs):
+               target_blocks=None, verbose=False, **kwargs):
     r"""Performs a Markov chain Monte Carlo sweep on the network, to sample the block partition according to a probability :math:`\propto e^{-\beta \mathcal{S}_{t/c}}`, where :math:`\mathcal{S}_{t/c}` is the blockmodel entropy.
 
     Parameters
