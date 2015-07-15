@@ -25,17 +25,8 @@
 
 #include "graph_blockmodel.hh"
 
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_set)
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
-
 namespace graph_tool
 {
-#ifdef HAVE_SPARSEHASH
-using google::dense_hash_set;
-using google::dense_hash_map;
-#endif
 
 using namespace boost;
 
@@ -359,12 +350,7 @@ public:
     bool is_enabled() const { return _enabled; }
 
 
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_map<pair<size_t, size_t>, int,
-                           std::hash<pair<size_t, size_t>>> phist_t;
-#else
-    typedef unordered_map<pair<size_t, size_t>, int> phist_t;
-#endif
+    typedef gt_hash_map<pair<size_t, size_t>, int> phist_t;
 
     const vector<phist_t>& get_parallel_bundles() { return _parallel_bundles; }
     const vector<int>& get_mi() { return _mi; }
@@ -374,11 +360,7 @@ private:
     vvmap_t _half_edges;     // half-edges to each node
     vimap_t _node_index;     // node to each half edges
 
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_map<size_t, deg_t, std::hash<size_t>> node_map_t;
-#else
-    typedef unordered_map<size_t, deg_t> node_map_t;
-#endif
+    typedef gt_hash_map<size_t, deg_t> node_map_t;
 
     vector<node_map_t> _block_nodes; // nodes (and degrees) in each block
 
@@ -405,47 +387,24 @@ struct overlap_partition_stats_t
 
     typedef vector<int> bv_t;
 
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_map<bv_t, size_t, std::hash<bv_t>> bhist_t;
-    typedef dense_hash_map<cdeg_t, size_t, std::hash<cdeg_t>> cdeg_hist_t;
+    typedef gt_hash_map<bv_t, size_t> bhist_t;
+    typedef gt_hash_map<cdeg_t, size_t, std::hash<cdeg_t>> cdeg_hist_t;
 
-    typedef dense_hash_map<bv_t, cdeg_hist_t, std::hash<bv_t>> deg_hist_t;
+    typedef gt_hash_map<bv_t, cdeg_hist_t> deg_hist_t;
 
-    typedef dense_hash_map<bv_t, vector<size_t>, std::hash<bv_t>> ebhist_t;
-#else
-    typedef unordered_map<bv_t, size_t> bhist_t;
-    typedef unordered_map<cdeg_t, size_t, std::hash<cdeg_t>> cdeg_hist_t;
+    typedef gt_hash_map<bv_t, vector<size_t>> ebhist_t;
 
-    typedef unordered_map<bv_t, cdeg_hist_t> deg_hist_t;
-
-    typedef unordered_map<bv_t, vector<size_t>> ebhist_t;
-#endif
-
-    typedef unordered_map<int, int> dmap_t;
+    typedef gt_hash_map<int, int> dmap_t;
 
     overlap_partition_stats_t() : _enabled(false) {}
 
     template <class Graph, class Vprop, class Eprop>
     overlap_partition_stats_t(Graph& g, Vprop b, overlap_stats_t& overlap_stats,
                               Eprop eweight, size_t N, size_t B, bool edges_dl)
-        : _enabled(true), _N(N), _B(B), _D(0),
-          _dhist(B + 1), _r_count(B), _bhist(N), _emhist(B), _ephist(B),
-          _embhist(N), _epbhist(N), _deg_hist(N), _bvs(N), _nbvs(N), _degs(N),
-          _ndegs(N), _deg_delta(B), _edges_dl(edges_dl)
+        : _enabled(true), _N(N), _B(B), _D(0), _dhist(B + 1), _r_count(B),
+          _bvs(N), _nbvs(N), _degs(N), _ndegs(N), _deg_delta(B),
+          _edges_dl(edges_dl)
     {
-#ifdef HAVE_SPARSEHASH
-        bv_t empty = {numeric_limits<int>::max()};
-        bv_t deleted = {numeric_limits<int>::max() - 1};
-        _bhist.set_empty_key(empty);
-        _bhist.set_deleted_key(deleted);
-        _deg_hist.set_empty_key(empty);
-        _deg_hist.set_deleted_key(deleted);
-        _embhist.set_empty_key(empty);
-        _embhist.set_deleted_key(deleted);
-        _epbhist.set_empty_key(empty);
-        _epbhist.set_deleted_key(deleted);
-#endif
-
         dmap_t in_hist, out_hist;
         for (size_t v = 0; v < N; ++v)
         {
@@ -473,18 +432,6 @@ struct overlap_partition_stats_t
             _ndegs[v].reserve(cdeg.size() * 2);
 
             auto & cdh = _deg_hist[bv];
-#ifdef HAVE_SPARSEHASH
-            if (cdh.empty())
-            {
-                cdeg_t empty = {deg_t(numeric_limits<int>::max(),
-                                      numeric_limits<int>::max())};
-                cdeg_t deleted = {deg_t(numeric_limits<int>::max() - 1,
-                                        numeric_limits<int>::max() - 1)};
-                cdh.set_empty_key(empty);
-                cdh.set_deleted_key(deleted);
-            }
-
-#endif
             cdh[cdeg]++;
 
             size_t d = bv.size();
@@ -1017,15 +964,8 @@ struct overlap_partition_stats_t
             S_b += lbinom_fast(_r_count[s] + _ephist[s] - 1, _ephist[s]);
         }
 
-#ifdef HAVE_SPARSEHASH
-        dense_hash_map<size_t, pair<int, int>, std::hash<size_t>> deg_delta;
-        dense_hash_map<size_t, int, std::hash<size_t>> r_count_delta;
-        deg_delta.set_empty_key(numeric_limits<size_t>::max());
-        r_count_delta.set_empty_key(numeric_limits<size_t>::max());
-#else
-        unordered_map<size_t, pair<int, int>> deg_delta;
-        unordered_map<size_t, int> r_count_delta;
-#endif
+        gt_hash_map<size_t, pair<int, int>> deg_delta;
+        gt_hash_map<size_t, int> r_count_delta;
 
         if (bv != n_bv)
         {
@@ -1171,17 +1111,6 @@ struct overlap_partition_stats_t
         _ephist[r] -= kout;
 
         auto& hist = _deg_hist[n_bv];
-#ifdef HAVE_SPARSEHASH
-        if (hist.empty())
-        {
-            cdeg_t empty = {deg_t(numeric_limits<int>::max(),
-                                  numeric_limits<int>::max())};
-            cdeg_t deleted = {deg_t(numeric_limits<int>::max() - 1,
-                                    numeric_limits<int>::max() - 1)};
-            hist.set_empty_key(empty);
-            hist.set_deleted_key(deleted);
-        }
-#endif
         hist[n_deg] += 1;
         auto& n_bmh = _embhist[n_bv];
         auto& n_bph = _epbhist[n_bv];

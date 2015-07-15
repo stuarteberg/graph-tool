@@ -603,11 +603,7 @@ struct get_deg_entropy_term_overlap
     void operator()(Graph& g, Vprop b, overlap_stats_t& overlap_stats, size_t N,
                     double& S) const
     {
-#ifdef HAVE_SPARSEHASH
-        typedef dense_hash_map<int, int, std::hash<int>> map_t;
-#else
-        typedef unordered_map<int, int> map_t;
-#endif
+        typedef gt_hash_map<int, int> map_t;
 
         map_t in_hist, out_hist;
 

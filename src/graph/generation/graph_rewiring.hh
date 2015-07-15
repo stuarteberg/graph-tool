@@ -18,12 +18,9 @@
 #ifndef GRAPH_REWIRING_HH
 #define GRAPH_REWIRING_HH
 
-#include <unordered_set>
 #include <tuple>
-
-#include <boost/functional/hash.hpp>
-
 #include <iostream>
+#include <boost/functional/hash.hpp>
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -32,9 +29,7 @@
 
 #include "random.hh"
 
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -450,15 +445,6 @@ public:
     {
         if (!parallel_edges)
         {
-            typename graph_traits<Graph>::vertex_iterator v, v_end;
-            for (tie(v, v_end) = boost::vertices(g); v != v_end; ++v)
-            {
-    #ifdef HAVE_SPARSEHASH
-                _nmap[*v].set_empty_key(get_null_key<size_t>()());
-                _nmap[*v].set_deleted_key(get_null_key<size_t>()() - 1);
-    #endif
-            }
-
             for (size_t i = 0; i < edges.size(); ++i)
                 add_count(source(edges[i], g), target(edges[i], g), _nmap, g);
         }
@@ -526,11 +512,7 @@ protected:
     vector<edge_t>& _edges;
     rng_t& _rng;
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<size_t, size_t, std::hash<size_t>> nmapv_t;
-#else
-    typedef unordered_map<size_t, size_t> nmapv_t;
-#endif
+    typedef gt_hash_map<size_t, size_t> nmapv_t;
     typedef typename property_map_type::apply<nmapv_t,
                                               typename property_map<Graph, vertex_index_t>::type>
         ::type::unchecked_t nmap_t;
@@ -613,10 +595,6 @@ public:
                              bool, rng_t& rng, bool parallel_edges)
         : base_t(g, edge_index, edges, rng, parallel_edges), _blockdeg(blockdeg), _g(g)
     {
-#ifdef HAVE_SPARSEHASH
-        _edges_by_target.set_empty_key(get_null_key<deg_t>()());
-#endif
-
         for (size_t ei = 0; ei < base_t::_edges.size(); ++ei)
         {
             // For undirected graphs, there is no difference between source and
@@ -665,16 +643,9 @@ public:
 private:
     BlockDeg _blockdeg;
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<deg_t,
-                                   vector<pair<size_t, bool>>,
-                                   std::hash<deg_t>>
+    typedef gt_hash_map<deg_t,
+                        vector<pair<size_t, bool>>>
         edges_by_end_deg_t;
-#else
-    typedef std::unordered_map<deg_t,
-                               vector<pair<size_t, bool>>>
-        edges_by_end_deg_t;
-#endif
 
     edges_by_end_deg_t _edges_by_target;
 
@@ -713,9 +684,6 @@ public:
         : base_t(g, edge_index, edges, rng, parallel_edges), _g(g), _corr_prob(corr_prob),
           _blockdeg(blockdeg)
     {
-#ifdef HAVE_SPARSEHASH
-        _probs.set_empty_key(get_null_key<pair<deg_t, deg_t>>()());
-#endif
         if (cache)
         {
             // cache probabilities
@@ -822,13 +790,7 @@ private:
     BlockDeg _blockdeg;
 
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<pair<deg_t, deg_t>, double,
-                                   std::hash<pair<deg_t, deg_t>>> prob_map_t;
-#else
-    typedef std::unordered_map<pair<deg_t, deg_t>, double> prob_map_t;
-#endif
-
+    typedef gt_hash_map<pair<deg_t, deg_t>, double> prob_map_t;
     prob_map_t _probs;
 };
 
@@ -863,15 +825,6 @@ public:
         : base_t(g, edge_index, edges, rng, parallel_edges), _g(g),
           _corr_prob(corr_prob), _blockdeg(blockdeg)
     {
-
-#ifdef HAVE_SPARSEHASH
-        _probs.set_empty_key(get_null_key<pair<deg_t, deg_t>>()());
-        _sampler.set_empty_key(get_null_key<deg_t>()());
-        _in_edges.set_empty_key(get_null_key<deg_t>()());
-        _out_edges.set_empty_key(get_null_key<deg_t>()());
-        _sprob.set_empty_key(get_null_key<deg_t>()());
-#endif
-
         _in_pos.resize(base_t::_edges.size());
         if (!is_directed::apply<Graph>::type::value)
             _out_pos.resize(base_t::_edges.size());
@@ -925,9 +878,6 @@ public:
 
                 auto& ps = _sprob[*s_iter];
 
-#ifdef HAVE_SPARSEHASH
-                ps.set_empty_key(get_null_key<deg_t>()());
-#endif
                 for (size_t i = 0; i < items.size(); ++i)
                 {
                     double er = 0;
@@ -971,10 +921,6 @@ public:
                 }
 
                 auto& pr = _sprob[s];
-
-#ifdef HAVE_SPARSEHASH
-                pr.set_empty_key(get_null_key<deg_t>()());
-#endif
 
                 for (size_t i = 0; i < iter->second.size(); ++i)
                 {
@@ -1180,42 +1126,19 @@ private:
     CorrProb _corr_prob;
     BlockDeg _blockdeg;
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<deg_t, Sampler<deg_t, boost::mpl::false_>*,
-                                   std::hash<deg_t>> sampler_map_t;
-#else
-    typedef std::unordered_map<deg_t, Sampler<deg_t, boost::mpl::false_>*> sampler_map_t;
-#endif
+    typedef gt_hash_map<deg_t, Sampler<deg_t, boost::mpl::false_>*> sampler_map_t;
 
     sampler_map_t _sampler;
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<deg_t,
-                                   google::dense_hash_map<deg_t, double,
-                                                          std::hash<deg_t>>,
-                                   std::hash<deg_t>> sprob_map_t;
-#else
-    typedef std::unordered_map<deg_t, std::unordered_map<deg_t, double>> sprob_map_t;
-#endif
+    typedef gt_hash_map<deg_t, std::unordered_map<deg_t, double>> sprob_map_t;
 
     sprob_map_t _sprob;
 
-
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<pair<deg_t, deg_t>, double,
-                                   std::hash<pair<deg_t, deg_t>>> prob_map_t;
-#else
-    typedef std::unordered_map<pair<deg_t, deg_t>, double> prob_map_t;
-#endif
+    typedef gt_hash_map<pair<deg_t, deg_t>, double> prob_map_t;
 
     prob_map_t _probs;
 
-#ifdef HAVE_SPARSEHASH
-    typedef google::dense_hash_map<deg_t, vector<size_t>,
-                                   std::hash<deg_t>> edge_map_t;
-#else
-    typedef std::unordered_map<deg_t, vector<size_t>> edge_map_t;
-#endif
+    typedef gt_hash_map<deg_t, vector<size_t>> edge_map_t;
 
     edge_map_t _in_edges;
     edge_map_t _out_edges;
@@ -1243,11 +1166,6 @@ public:
         : _g(g), _edge_index(edge_index), _edges(edges), _corr_prob(corr_prob),
           _blockdeg(blockdeg), _rng(rng), _sampler(nullptr)
     {
-
-#ifdef HAVE_SPARSEHASH
-        _vertices.set_empty_key(get_null_key<deg_t>()());
-#endif
-
         typename graph_traits<Graph>::vertex_iterator v, v_end;
         for (tie(v, v_end) = vertices(_g); v != v_end; ++v)
         {
@@ -1347,12 +1265,7 @@ private:
     BlockDeg _blockdeg;
     rng_t& _rng;
 
-#ifdef HAVE_SPARSEHASH
-    google::dense_hash_map<deg_t, vector<vertex_t>,
-                           std::hash<deg_t>> _vertices;
-#else
-    std::unordered_map<deg_t, vector<vertex_t>> _vertices;
-#endif
+    gt_hash_map<deg_t, vector<vertex_t>> _vertices;
 
     vector<pair<deg_t, deg_t> > _items;
     Sampler<pair<deg_t, deg_t> >* _sampler;

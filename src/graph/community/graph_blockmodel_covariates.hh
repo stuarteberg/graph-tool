@@ -23,24 +23,14 @@
 #include <queue>
 #include <boost/math/special_functions/zeta.hpp>
 #include <boost/functional/hash.hpp>
-
-#include "config.h"
-#include <unordered_set>
-#include <unordered_map>
 #include <tuple>
 
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_set)
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include "config.h"
+
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
-
-#ifdef HAVE_SPARSEHASH
-using google::dense_hash_set;
-using google::dense_hash_map;
-#endif
 
 using namespace boost;
 
@@ -104,17 +94,7 @@ struct split_graph
                 size_t u_r;
 
                 if (block_map.size() <= l + 1)
-                {
-                    size_t n = block_map.size();
                     block_map.resize(l + 2);
-#ifdef HAVE_SPARSEHASH
-                    for (size_t i = n; i < block_map.size(); ++i)
-                    {
-                        block_map[i].set_empty_key(numeric_limits<size_t>::max());
-                        block_map[i].set_deleted_key(numeric_limits<size_t>::max() - 1);
-                    }
-#endif
-                }
                 auto& bmap = block_map[l + 1];
                 auto riter = bmap.find(r);
                 if (riter == bmap.end())
@@ -150,12 +130,7 @@ struct split_graph
     }
 };
 
-#ifdef HAVE_SPARSEHASH
-    typedef vector<dense_hash_map<size_t, size_t, std::hash<size_t>>> bmap_t;
-#else
-    typedef vector<unordered_map<size_t, size_t>> bmap_t;
-#endif
-
+typedef vector<gt_hash_map<size_t, size_t>> bmap_t;
 
 template <class BlockState>
 size_t get_block_map(BlockState& state, typename bmap_t::value_type& bmap,

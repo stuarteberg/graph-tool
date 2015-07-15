@@ -18,12 +18,7 @@
 #ifndef GRAPH_PARALLEL_HH
 #define GRAPH_PARALLEL_HH
 
-#include <unordered_map>
-
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
-
+#include "hash_map_wrap.hh"
 #include "graph_util.hh"
 
 namespace graph_tool
@@ -50,15 +45,8 @@ struct label_parallel_edges
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
 
-#ifdef HAVE_SPARSEHASH
-            google::dense_hash_map<vertex_t, edge_t, std::hash<vertex_t>> vset;
-            vset.set_empty_key(graph_traits<Graph>::null_vertex());
-            google::dense_hash_map<size_t, bool, std::hash<size_t>> self_loops;
-            self_loops.set_empty_key(numeric_limits<size_t>::max());
-#else
-            unordered_map<vertex_t, edge_t> vset;
-            unordered_map<size_t, bool> self_loops;
-#endif
+            gt_hash_map<vertex_t, edge_t> vset;
+            gt_hash_map<size_t, bool> self_loops;
 
             typename graph_traits<Graph>::out_edge_iterator e, e_end;
             for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)

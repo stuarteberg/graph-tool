@@ -31,10 +31,7 @@
 #include <array>
 #include <chrono>
 
-#include <unordered_map>
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include "hash_map_wrap.hh"
 
 #include <cairommconfig.h>
 #include <cairomm/context.h>
@@ -46,10 +43,6 @@
 using namespace std;
 using namespace boost;
 using namespace graph_tool;
-
-#ifdef HAVE_SPARSEHASH
-using google::dense_hash_map;
-#endif
 
 enum vertex_attr_t {
     VERTEX_SHAPE = 100,
@@ -128,11 +121,7 @@ enum edge_marker_t {
 
 typedef pair<double, double> pos_t;
 typedef std::tuple<double, double, double, double> color_t;
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_map<int, boost::any, std::hash<int>> attrs_t;
-#else
-    typedef std::unordered_map<int, boost::any> attrs_t;
-#endif
+typedef gt_hash_map<int, boost::any> attrs_t;
 
 typedef boost::mpl::map42<
     boost::mpl::pair<boost::mpl::int_<VERTEX_SHAPE>, vertex_shape_t>,
@@ -824,12 +813,12 @@ public:
         boost::python::object osrc = _attrs.template get<boost::python::object>(VERTEX_SURFACE);
         if (osrc == boost::python::object())
         {
+            pw =_attrs.template get<double>(VERTEX_PENWIDTH);
+            pw = get_user_dist(cr, pw);
+            cr.set_line_width(pw);
+
             if (!outline)
             {
-                pw =_attrs.template get<double>(VERTEX_PENWIDTH);
-                pw = get_user_dist(cr, pw);
-                cr.set_line_width(pw);
-
                 color = _attrs.template get<color_t>(VERTEX_COLOR);
                 cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
                                    get<3>(color));

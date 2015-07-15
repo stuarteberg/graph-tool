@@ -18,11 +18,7 @@
 #ifndef GRAPH_COMMUNITY_NETWORK_HH
 #define GRAPH_COMMUNITY_NETWORK_HH
 
-#include <unordered_map>
-
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include "hash_map_wrap.hh"
 
 #include <iostream>
 #include <iomanip>
@@ -50,17 +46,12 @@ struct get_community_network_vertices
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-#ifdef HAVE_SPARSEHASH
-        google::dense_hash_map<s_type, vertex_t, std::hash<s_type> > comms;
-        comms.set_empty_key(numeric_limits<s_type>::max());
-#else
-        std::unordered_map<s_type, vertex_t, std::hash<s_type> > comms;
-#endif
+        gt_hash_map<s_type, vertex_t, std::hash<s_type> > comms;
+
         // create vertices
-        typename graph_traits<Graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
+        for (auto vi : vertices_range(g))
         {
-            s_type s = get(s_map, *vi);
+            s_type s = get(s_map, vi);
             typeof(comms.begin()) iter = comms.find(s);
             cvertex_t v;
             if (iter == comms.end())
@@ -75,7 +66,7 @@ struct get_community_network_vertices
             {
                 v = iter->second;
             }
-            put(vertex_count, v, get(vertex_count, v) + get(vweight, *vi));
+            put(vertex_count, v, get(vertex_count, v) + get(vweight, vi));
         }
     }
 
@@ -116,37 +107,22 @@ struct get_community_network_edges
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-#ifdef HAVE_SPARSEHASH
-        typedef google::dense_hash_map<s_type, vertex_t, std::hash<s_type> > comms_t;
-        comms_t comms(num_vertices(cg));
-        comms.set_empty_key(numeric_limits<s_type>::max());
-        typedef google::dense_hash_map<cvertex_t, cedge_t, std::hash<cvertex_t>> ecomms_t;
-#else
-        typedef std::unordered_map<s_type, vertex_t, std::hash<s_type> > comms_t;
-        comms_t comms(num_vertices(cg));
-        typedef std::unordered_map<cvertex_t, cedge_t> ecomms_t;
-#endif
+        typedef gt_hash_map<s_type, vertex_t, std::hash<s_type> > comms_t;
+        comms_t comms;
+        typedef gt_hash_map<cvertex_t, cedge_t> ecomms_t;
 
         auto index_map = get(vertex_index_t(), cg);
         unchecked_vector_property_map<ecomms_t, decltype(index_map)>
             comm_edges(index_map, num_vertices(cg));
 
-        typename graph_traits<CommunityGraph>::vertex_iterator v, v_end;
-        for (tie(v, v_end) = vertices(cg); v != v_end; ++v)
-        {
-            comms[cs_map[*v]] = *v;
-#ifdef HAVE_SPARSEHASH
-            comm_edges[*v].set_empty_key(numeric_limits<cvertex_t>::max());
-#endif
-        }
-
+        for (auto v : vertices_range(cg))
+            comms[cs_map[v]] = v;
 
         // create edges
-        typename graph_traits<Graph>::edge_iterator e, e_end;
-        for (tie(e, e_end) = edges(g); e != e_end; ++e)
+        for (auto e : edges_range(g))
         {
-            cvertex_t cs = comms[get(s_map, source(*e, g))];
-            cvertex_t ct = comms[get(s_map, target(*e, g))];
+            cvertex_t cs = comms[get(s_map, source(e, g))];
+            cvertex_t ct = comms[get(s_map, target(e, g))];
             if (ct == cs && !self_loops)
                 continue;
             cedge_t ce;
@@ -157,7 +133,7 @@ struct get_community_network_edges
             }
             else
             {
-                typeof(comm_edges[cs].begin()) iter = comm_edges[cs].find(ct);
+                auto iter = comm_edges[cs].find(ct);
                 if (iter != comm_edges[cs].end())
                 {
                     ce = iter->second;
@@ -184,7 +160,7 @@ struct get_community_network_edges
                     }
                 }
             }
-            put(edge_count, ce, get(edge_count, ce) + get(eweight, *e));
+            put(edge_count, ce, get(edge_count, ce) + get(eweight, e));
         }
     }
 };
@@ -241,9 +217,8 @@ struct get_weighted_vertex_property
     void operator()(const Graph& g, VertexWeightMap vweight, Vprop vprop,
                     Vprop temp) const
     {
-        typename graph_traits<Graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
-            temp[*vi] = vprop[*vi] * get(vweight, *vi);
+        for (auto vi : vertices_range(g))
+            temp[vi] = vprop[vi] * get(vweight, vi);
     }
 };
 
@@ -259,21 +234,15 @@ struct get_vertex_community_property_sum
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-#ifdef HAVE_SPARSEHASH
-        google::dense_hash_map<s_type, vertex_t, std::hash<s_type> > comms(num_vertices(cg));
-        comms.set_empty_key(numeric_limits<s_type>::max());
-#else
-        std::unordered_map<s_type, vertex_t, std::hash<s_type> > comms(num_vertices(cg));
-#endif
-        typename graph_traits<CommunityGraph>::vertex_iterator v, v_end;
-        for (tie(v, v_end) = vertices(cg); v != v_end; ++v)
-            comms[cs_map[*v]] = *v;
+        gt_hash_map<s_type, vertex_t> comms;
 
-        typename graph_traits<Graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
+        for (auto v : vertices_range(cg))
+            comms[cs_map[v]] = v;
+
+        for (auto v : vertices_range(g))
         {
-            s_type s = get(s_map, *vi);
-            cvprop[comms[s]] += vprop[*vi];
+            s_type s = get(s_map, v);
+            cvprop[comms[s]] += vprop[v];
         }
     }
 };
@@ -284,9 +253,8 @@ struct get_weighted_edge_property
     void operator()(const Graph& g, EdgeWeightMap eweight, Eprop eprop,
                     Eprop temp) const
     {
-        typename graph_traits<Graph>::edge_iterator ei, ei_end;
-        for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei)
-            temp[*ei] = eprop[*ei] * get(eweight, *ei);
+        for (auto e : edges_range(g))
+            temp[e] = eprop[e] * get(eweight, e);
     }
 };
 
@@ -306,43 +274,27 @@ struct get_edge_community_property_sum
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-#ifdef HAVE_SPARSEHASH
-        google::dense_hash_map<s_type, vertex_t, std::hash<s_type> > comms(num_vertices(cg));
-        comms.set_empty_key(numeric_limits<s_type>::max());
-#else
-        std::unordered_map<s_type, vertex_t, std::hash<s_type> > comms(num_vertices(cg));
-#endif
-        typename graph_traits<CommunityGraph>::vertex_iterator v, v_end;
-        for (tie(v, v_end) = vertices(cg); v != v_end; ++v)
-            comms[cs_map[*v]] = *v;
+        gt_hash_map<s_type, vertex_t> comms;
 
-#ifdef HAVE_SPARSEHASH
-        google::dense_hash_map<pair<size_t, size_t>, cedge_t,
-                               std::hash<pair<size_t, size_t> > >
-             comm_edges(num_vertices(cg));
-        comm_edges.set_empty_key(make_pair(numeric_limits<size_t>::max(),
-                                           numeric_limits<size_t>::max()));
-#else
-        std::unordered_map<pair<size_t, size_t>, cedge_t>
-            comm_edges(num_vertices(cg));
-#endif
+        for (auto v : vertices_range(cg))
+            comms[cs_map[v]] = v;
 
-        typename graph_traits<CommunityGraph>::edge_iterator e, e_end;
-        for (tie(e, e_end) = edges(cg); e != e_end; ++e)
+        gt_hash_map<pair<size_t, size_t>, cedge_t> comm_edges;
+
+        for (auto e : edges_range(cg))
         {
-            cvertex_t cs = comms[get(cs_map, source(*e, cg))];
-            cvertex_t ct = comms[get(cs_map, target(*e, cg))];
-            comm_edges[make_pair(cs, ct)] = *e;
+            cvertex_t cs = comms[get(cs_map, source(e, cg))];
+            cvertex_t ct = comms[get(cs_map, target(e, cg))];
+            comm_edges[make_pair(cs, ct)] = e;
         }
 
-        typename graph_traits<Graph>::edge_iterator ei, ei_end;
-        for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei)
+        for (auto e : edges_range(g))
         {
-            cvertex_t cs = comms[get(s_map, source(*ei, g))];
-            cvertex_t ct = comms[get(s_map, target(*ei, g))];
+            cvertex_t cs = comms[get(s_map, source(e, g))];
+            cvertex_t ct = comms[get(s_map, target(e, g))];
             if (cs == ct && !self_loops)
                 continue;
-            ceprop[comm_edges[make_pair(cs, ct)]] += eprop[*ei];
+            ceprop[comm_edges[make_pair(cs, ct)]] += eprop[e];
         }
     }
 };

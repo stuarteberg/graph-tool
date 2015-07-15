@@ -20,12 +20,8 @@
 
 #include "config.h"
 
-#include <unordered_set>
+#include "hash_map_wrap.hh"
 #include <boost/mpl/if.hpp>
-
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_set)
-#endif
 
 #ifndef __clang__
 #include <ext/numeric>
@@ -42,12 +38,6 @@ namespace graph_tool
 {
 using namespace boost;
 
-#ifdef HAVE_SPARSEHASH
-using google::dense_hash_set;
-#else
-using std::unordered_set;
-#endif
-
 // calculates the number of triangles to which v belongs
 template <class Graph>
 pair<int,int>
@@ -55,18 +45,11 @@ get_triangles(typename graph_traits<Graph>::vertex_descriptor v, const Graph &g)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_set<vertex_t, std::hash<vertex_t>> set_t;
-#else
-    typedef unordered_set<vertex_t> set_t;
-#endif
+    typedef gt_hash_set<vertex_t> set_t;
 
     set_t neighbour_set;
 
-#ifdef HAVE_SPARSEHASH
-     neighbour_set.set_empty_key(numeric_limits<vertex_t>::max());
-     neighbour_set.resize(out_degree(v, g));
-#endif
+    neighbour_set.resize(out_degree(v, g));
 
     size_t triangles = 0;
 

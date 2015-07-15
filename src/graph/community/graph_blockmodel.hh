@@ -18,21 +18,16 @@
 #ifndef GRAPH_BLOCKMODEL_HH
 #define GRAPH_BLOCKMODEL_HH
 
+#include "config.h"
+
 #include <cmath>
 #include <iostream>
 #include <queue>
 #include <boost/math/special_functions/zeta.hpp>
 #include <boost/functional/hash.hpp>
-
-#include "config.h"
-#include <unordered_set>
-#include <unordered_map>
 #include <tuple>
 
-#ifdef HAVE_SPARSEHASH
-#include SPARSEHASH_INCLUDE(dense_hash_set)
-#include SPARSEHASH_INCLUDE(dense_hash_map)
-#endif
+#include "hash_map_wrap.hh"
 
 #include "../generation/sampler.hh"
 #include "../generation/dynamic_sampler.hh"
@@ -46,11 +41,6 @@ double spence(double);
 
 namespace graph_tool
 {
-
-#ifdef HAVE_SPARSEHASH
-using google::dense_hash_set;
-using google::dense_hash_map;
-#endif
 
 using namespace boost;
 
@@ -382,11 +372,7 @@ class partition_stats_t
 {
 public:
 
-#ifdef HAVE_SPARSEHASH
-    typedef dense_hash_map<pair<size_t,size_t>, int, std::hash<pair<size_t,size_t>>> map_t;
-#else
-    typedef unordered_map<pair<size_t,size_t>, int> map_t;
-#endif
+    typedef gt_hash_map<pair<size_t,size_t>, int> map_t;
 
     partition_stats_t() : _enabled(false) {}
 
@@ -396,17 +382,6 @@ public:
         : _enabled(true), _N(N), _E(0), _B(B), _hist(B), _total(B), _ep(B),
           _em(B), _edges_dl(edges_dl)
     {
-
-#ifdef HAVE_SPARSEHASH
-        for (size_t r = 0; r < B; ++r)
-        {
-            _hist[r].set_empty_key(make_pair(numeric_limits<size_t>::max(),
-                                             numeric_limits<size_t>::max()));
-            _hist[r].set_deleted_key(make_pair(numeric_limits<size_t>::max() - 1,
-                                               numeric_limits<size_t>::max() - 1));
-        }
-#endif
-
         for (auto v : vertices_range(g))
         {
             auto r = b[v];
@@ -719,12 +694,8 @@ struct get_ehash_t
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-#ifdef HAVE_SPARSEHASH
-        typedef dense_hash_map<vertex_t, edge_t, std::hash<vertex_t>> map_t;
-#else
-        typedef unordered_map<vertex_t, edge_t> map_t;
-#endif
-        typedef vector<map_t> type;
+        typedef gt_hash_map<vertex_t, edge_t> ehash_t;
+        typedef std::vector<ehash_t> type;
     };
 };
 
@@ -782,25 +753,11 @@ struct create_ehash
     void operator()(Graph& g, boost::any& oemap) const
     {
         typedef typename get_ehash_t::apply<Graph>::type emat_t;
-        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-
         emat_t emat(num_vertices(g));
-
-#ifdef HAVE_SPARSEHASH
-        for (auto v : vertices_range(g))
-        {
-            emat[v].set_empty_key(numeric_limits<vertex_t>::max());
-            emat[v].set_deleted_key(numeric_limits<vertex_t>::max() - 1);
-        }
-#endif
 
         for (auto e : edges_range(g))
             put_me(source(e, g), target(e, g), e, emat, g);
 
-#ifdef HAVE_SPARSEHASH
-        for (auto v : vertices_range(g))
-            emat[v].resize(0);
-#endif
         oemap = emat;
     }
 };

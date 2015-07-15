@@ -56,6 +56,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_python_interface.hh \
     graph_selectors.hh \
     graph_util.hh \
+    hash_map_wrap.hh \
     histogram.hh \
     mpl_nested_loop.hh \
     numpy_bind.hh \
