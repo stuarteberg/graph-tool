@@ -27,6 +27,7 @@
 
 #include "histogram.hh"
 #include "numpy_bind.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -137,8 +138,8 @@ struct get_distance_histogram
                         DistanceMap dist_map, no_weightS) const
         {
             typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-            typedef unordered_map<vertex_t,default_color_type,
-                                  DescriptorHash<VertexIndex> > cmap_t;
+            typedef gt_hash_map<vertex_t,default_color_type,
+                                DescriptorHash<VertexIndex> > cmap_t;
             cmap_t cmap(0, DescriptorHash<VertexIndex>(vertex_index));
             InitializedPropertyMap<cmap_t>
                 color_map(cmap, color_traits<default_color_type>::white());

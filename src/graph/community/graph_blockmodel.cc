@@ -687,7 +687,7 @@ void vector_continuous_map(boost::python::object ovals)
 {
 
     multi_array_ref<Value,1> vals = get_array<Value,1>(ovals);
-    unordered_map<Value, size_t> map;
+    gt_hash_map<Value, size_t> map;
 
     for (size_t i = 0; i < vals.size(); ++i)
     {

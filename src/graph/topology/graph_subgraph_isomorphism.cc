@@ -24,8 +24,6 @@
 
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
-#include <unordered_map>
-
 using namespace graph_tool;
 using namespace boost;
 

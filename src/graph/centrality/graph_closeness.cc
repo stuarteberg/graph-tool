@@ -23,6 +23,7 @@
 #include "graph_closeness.hh"
 
 #include <functional>
+#include <boost/python.hpp>
 
 using namespace std;
 using namespace graph_tool;

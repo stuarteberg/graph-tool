@@ -18,7 +18,6 @@
 #ifndef GRAPH_GENERATION_HH
 #define GRAPH_GENERATION_HH
 
-#include <unordered_map>
 #include <tuple>
 #include <boost/functional/hash.hpp>
 #include <map>
@@ -27,6 +26,7 @@
 
 #include "graph_util.hh"
 #include "random.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -465,7 +465,7 @@ struct gen_graph
         set<deg_t, cmp_in<greater<size_t> > > targets;
 
         // vertices with a given degree
-        unordered_map<deg_t, vector<size_t>> vset;
+        gt_hash_map<deg_t, vector<size_t>> vset;
 
         size_t num_e = 0;
         for (size_t i = 0; i < vertices.size();  ++i)

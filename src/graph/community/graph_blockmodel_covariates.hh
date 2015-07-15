@@ -42,7 +42,7 @@ struct ec_hist
     void operator()(Graph&g, const EVMap& ev, EMap& ec) const
     {
         typedef typename property_traits<EVMap>::value_type val_t;
-        unordered_map<val_t, size_t> ehist;
+        gt_hash_map<val_t, size_t> ehist;
         for (auto e : edges_range(g))
         {
             auto iter = ehist.find(ev[e]);
@@ -76,7 +76,7 @@ struct split_graph
                     std::vector<std::reference_wrapper<VMap>>& block_rmap,
                     std::vector<std::reference_wrapper<VMap>>& uvmap) const
     {
-        std::vector<unordered_map<size_t, size_t>> vhmap(num_vertices(g));
+        std::vector<gt_hash_map<size_t, size_t>> vhmap(num_vertices(g));
 
         auto get_v = [&] (size_t v, size_t l) -> size_t
         {

@@ -20,6 +20,7 @@
 #include "graph_properties.hh"
 #include "graph_selectors.hh"
 #include "numpy_bind.hh"
+#include "hash_map_wrap.hh"
 
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
@@ -83,7 +84,7 @@ class bfs_max_multiple_targets_visitor:
 public:
     bfs_max_multiple_targets_visitor(DistMap dist_map, PredMap pred,
                                      size_t max_dist,
-                                     std::unordered_set<std::size_t> target)
+                                     gt_hash_set<std::size_t> target)
         : _dist_map(dist_map), _pred(pred), _max_dist(max_dist), _target(target),
           _dist(0) {}
 
@@ -124,7 +125,7 @@ private:
     DistMap _dist_map;
     PredMap _pred;
     size_t _max_dist;
-    std::unordered_set<std::size_t> _target;
+    gt_hash_set<std::size_t> _target;
     size_t _dist;
 };
 
@@ -166,7 +167,7 @@ class djk_max_multiple_targets_visitor:
 public:
     djk_max_multiple_targets_visitor(DistMap dist_map,
                                      typename property_traits<DistMap>::value_type max_dist, 
-                                     std::unordered_set<std::size_t> target)
+                                     gt_hash_set<std::size_t> target)
         : _dist_map(dist_map), _max_dist(max_dist), _target(target) {}
 
 
@@ -190,7 +191,7 @@ public:
 private:
     DistMap _dist_map;
     typename property_traits<DistMap>::value_type _max_dist;
-    std::unordered_set<std::size_t> _target;
+    gt_hash_set<std::size_t> _target;
 };
 
 
@@ -205,8 +206,8 @@ struct do_bfs_search
         typedef typename property_traits<DistMap>::value_type dist_t;
 
         auto target_list = get_array<int64_t, 1>(otarget_list);
-        std::unordered_set<std::size_t> tgt(target_list.begin(),
-                                            target_list.end());
+        gt_hash_set<std::size_t> tgt(target_list.begin(),
+                                     target_list.end());
 
         dist_t max_d = (max_dist > 0) ?
             max_dist : numeric_limits<dist_t>::max();
@@ -263,8 +264,8 @@ struct do_djk_search
         dist_t max_d = (max_dist > 0) ?
         max_dist : numeric_limits<dist_t>::max();
 
-        std::unordered_set<std::size_t> tgt(target_list.begin(),
-                                            target_list.end());
+        gt_hash_set<std::size_t> tgt(target_list.begin(),
+                                     target_list.end());
 
         int i, N = num_vertices(g);
         #pragma omp parallel for default(shared) private(i) \

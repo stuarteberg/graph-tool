@@ -19,12 +19,12 @@
 #define GRAPH_MOTIFS_HH
 
 #include <boost/graph/isomorphism.hpp>
-#include <unordered_set>
 #include <boost/functional/hash.hpp>
 #include <algorithm>
 #include <vector>
 
 #include "random.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -313,9 +313,9 @@ struct get_all_motifs
             any_cast<std::vector<graph_sg_t>&>(list);
 
         // this hashes subgraphs according to their signature
-        std::unordered_map<std::vector<size_t>,
-                           std::vector<pair<size_t, graph_sg_t> >,
-                           std::hash<std::vector<size_t>>> sub_list;
+        gt_hash_map<std::vector<size_t>,
+                    std::vector<pair<size_t, graph_sg_t> >,
+                    std::hash<std::vector<size_t>>> sub_list;
         std::vector<size_t> sig; // current signature
 
         for (size_t i = 0; i < subgraph_list.size(); ++i)

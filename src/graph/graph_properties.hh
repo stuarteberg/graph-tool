@@ -21,8 +21,6 @@
 #include <typeinfo>
 #include <string>
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
 #include <memory>
 #include <random>
 #include <functional>
@@ -46,6 +44,7 @@
 
 #include "graph.hh"
 #include "graph_exceptions.hh"
+#include "hash_map_wrap.hh"
 
 // this file provides general functions for manipulating graph properties
 
@@ -528,7 +527,7 @@ class HashedDescriptorMap
 {
 public:
     typedef DescriptorHash<IndexMap> hashfc_t;
-    typedef unordered_map<typename IndexMap::key_type,Value,hashfc_t>
+    typedef gt_hash_map<typename IndexMap::key_type,Value,hashfc_t>
         map_t;
     typedef boost::associative_property_map<map_t> prop_map_t;
 

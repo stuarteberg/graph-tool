@@ -23,12 +23,12 @@
 #ifndef GRAPH_TRIANGULATION_HH
 #define GRAPH_TRIANGULATION_HH
 
-#include <unordered_set>
 #include <tuple>
 
 #include <boost/functional/hash.hpp>
 
 #include "graph_util.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -106,7 +106,7 @@ struct get_triangulation
     template <class Graph, class Points, class PosMap>
     void operator()(Graph& g, Points& points, PosMap pos) const
     {
-        typedef std::unordered_map
+        typedef gt_hash_map
             <typename Triang::Vertex,
              typename graph_traits<Graph>::vertex_descriptor,
              hash_point> vertex_map_t;

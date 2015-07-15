@@ -21,8 +21,7 @@
 #include "graph_filtering.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
-
-#include <unordered_set>
+#include "hash_map_wrap.hh"
 
 #include <boost/mpl/for_each.hpp>
 
@@ -163,7 +162,7 @@ struct do_infect_vertex_property
         typedef typename property_traits<PropertyMap>::value_type val_t;
         bool all = false;
 
-        std::unordered_set<val_t, std::hash<val_t> > vals;
+        gt_hash_set<val_t> vals;
         if (oval == boost::python::object())
         {
             all = true;
@@ -264,7 +263,7 @@ struct do_perfect_vhash
     {
         typedef typename property_traits<VertexPropertyMap>::value_type val_t;
         typedef typename property_traits<HashProp>::value_type hash_t;
-        typedef unordered_map<val_t, hash_t> dict_t;
+        typedef gt_hash_map<val_t, hash_t> dict_t;
 
         if (adict.empty())
             adict = dict_t();
@@ -303,7 +302,7 @@ struct do_perfect_ehash
     {
         typedef typename property_traits<EdgePropertyMap>::value_type val_t;
         typedef typename property_traits<HashProp>::value_type hash_t;
-        typedef unordered_map<val_t, hash_t> dict_t;
+        typedef gt_hash_map<val_t, hash_t> dict_t;
 
         if (adict.empty())
             adict = dict_t();

@@ -18,7 +18,6 @@
 #ifndef GRAPH_COMMUNITY_HH
 #define GRAPH_COMMUNITY_HH
 
-#include <unordered_set>
 #include <tuple>
 #include <iostream>
 #include <fstream>
@@ -30,15 +29,13 @@
 #include "graph_util.hh"
 #include "graph_properties.hh"
 #include "random.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
 
 using namespace std;
 using namespace boost;
-
-using std::unordered_map;
-using std::unordered_set;
 
 // computes the community structure through a spin glass system with
 // simulated annealing
@@ -74,7 +71,7 @@ struct get_communities
         double Tmin = Tinterval.first;
         double Tmax = Tinterval.second;
 
-        unordered_map<size_t, size_t> Ns; // spin histogram
+        gt_hash_map<size_t, size_t> Ns; // spin histogram
         CommunityMap temp_s(vertex_index, num_vertices(g));
 
         // init spins from [0,N-1] and global info
@@ -120,7 +117,7 @@ struct get_communities
                     new_s = sample_spin(rng);
                 }
 
-                unordered_map<size_t, double> ns; // number of neighbours with a
+                gt_hash_map<size_t, double> ns; // number of neighbours with a
                                                   // given spin 's' (weighted)
 
                 // neighborhood spins info
@@ -221,7 +218,7 @@ struct get_communities
         }
 
         // rename spins, starting from zero
-        unordered_map<size_t,size_t> spins;
+        gt_hash_map<size_t,size_t> spins;
         for (tie(vi,vi_end) = vertices(g); vi != vi_end; ++vi)
         {
             if (spins.find(s[*vi]) == spins.end())
@@ -270,7 +267,7 @@ public:
 
 private:
     double _p;
-    unordered_map<size_t,size_t> _Ns;
+    gt_hash_map<size_t,size_t> _Ns;
 };
 
 template <class Graph, class CommunityMap>
@@ -308,7 +305,7 @@ public:
 private:
     const Graph& _g;
     size_t _K;
-    unordered_map<size_t,size_t> _Ks;
+    gt_hash_map<size_t,size_t> _Ks;
 };
 
 template <class Graph, class CommunityMap>
@@ -317,7 +314,7 @@ class NNKSCorr
 public:
     NNKSCorr(const Graph &g, CommunityMap s): _g(g)
     {
-        unordered_set<size_t> spins;
+        gt_hash_set<size_t> spins;
 
         typename graph_traits<Graph>::vertex_iterator v,v_end;
         for (tie(v,v_end) = vertices(_g); v != v_end; ++v)
@@ -387,9 +384,9 @@ public:
                 continue;
             if (_Pkk.find(k1)->second.find(k2) == _Pkk.find(k1)->second.end())
                 continue;
-            unordered_map<size_t,double>& NNks_k1 = _NNks[k1];
+            gt_hash_map<size_t,double>& NNks_k1 = _NNks[k1];
             double Pk1k2 = _Pkk[k1][k2];
-            unordered_map<size_t,size_t>& Nksk2 = _Nks[k2];
+            gt_hash_map<size_t,size_t>& Nksk2 = _Nks[k2];
             double Nk2 = _Nk[k2];
             NNks_k1[old_s] -=  k1*Pk1k2 * Nksk2[old_s]/Nk2;
             if (NNks_k1[old_s] == 0.0)
@@ -413,9 +410,9 @@ public:
                 continue;
             if (_Pkk.find(k1)->second.find(k2) == _Pkk.find(k1)->second.end())
                 continue;
-            unordered_map<size_t,double>& NNks_k1 = _NNks[k1];
+            gt_hash_map<size_t,double>& NNks_k1 = _NNks[k1];
             double Pk1k2 = _Pkk[k1][k2];
-            unordered_map<size_t,size_t>& Nksk2 = _Nks[k2];
+            gt_hash_map<size_t,size_t>& Nksk2 = _Nks[k2];
             double Nk2 = _Nk[k2];
             NNks_k1[old_s] +=  k1*Pk1k2 * Nksk2[old_s]/Nk2;
             if (NNks_k1[old_s] == 0.0)
@@ -427,7 +424,7 @@ public:
 
     double operator()(size_t k, size_t s) const
     {
-        const unordered_map<size_t,double>& nnks = _NNks.find(k)->second;
+        const gt_hash_map<size_t,double>& nnks = _NNks.find(k)->second;
         const typeof(nnks.begin()) iter = nnks.find(s);
         if (iter != nnks.end())
             return iter->second;
@@ -437,10 +434,10 @@ public:
 private:
     const Graph& _g;
     vector<size_t> _degs;
-    unordered_map<size_t,size_t> _Nk;
-    unordered_map<size_t,unordered_map<size_t,double> > _Pkk;
-    unordered_map<size_t,unordered_map<size_t,size_t> > _Nks;
-    unordered_map<size_t,unordered_map<size_t,double> > _NNks;
+    gt_hash_map<size_t,size_t> _Nk;
+    gt_hash_map<size_t,gt_hash_map<size_t,double> > _Pkk;
+    gt_hash_map<size_t,gt_hash_map<size_t,size_t> > _Nks;
+    gt_hash_map<size_t,gt_hash_map<size_t,double> > _NNks;
 };
 
 enum comm_corr_t

@@ -691,7 +691,7 @@ public:
 
             if (_probs.empty())
             {
-                std::unordered_set<deg_t> deg_set;
+                gt_hash_set<deg_t> deg_set;
                 for (size_t ei = 0; ei < base_t::_edges.size(); ++ei)
                 {
                     edge_t& e = base_t::_edges[ei];
@@ -829,7 +829,7 @@ public:
         if (!is_directed::apply<Graph>::type::value)
             _out_pos.resize(base_t::_edges.size());
 
-        std::unordered_set<deg_t> deg_set;
+        gt_hash_set<deg_t> deg_set;
         for (size_t ei = 0; ei < base_t::_edges.size(); ++ei)
         {
             edge_t& e = base_t::_edges[ei];
@@ -893,8 +893,8 @@ public:
         }
         else
         {
-            std::unordered_map<deg_t, vector<double>> sprobs;
-            std::unordered_map<deg_t, vector<deg_t>> sitems;
+            gt_hash_map<deg_t, vector<double>> sprobs;
+            gt_hash_map<deg_t, vector<deg_t>> sitems;
             for (auto iter = _probs.begin(); iter != _probs.end(); ++iter)
             {
                 deg_t s = iter->first.first;
@@ -1130,7 +1130,7 @@ private:
 
     sampler_map_t _sampler;
 
-    typedef gt_hash_map<deg_t, std::unordered_map<deg_t, double>> sprob_map_t;
+    typedef gt_hash_map<deg_t, gt_hash_map<deg_t, double>> sprob_map_t;
 
     sprob_map_t _sprob;
 
@@ -1173,7 +1173,7 @@ public:
             _vertices[d].push_back(*v);
         }
 
-        std::unordered_map<pair<deg_t, deg_t>, double> probs;
+        gt_hash_map<pair<deg_t, deg_t>, double> probs;
         _corr_prob.get_probs(probs);
 
         vector<double> dprobs;

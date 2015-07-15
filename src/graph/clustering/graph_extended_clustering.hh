@@ -20,7 +20,7 @@
 #ifndef GRAPH_EXTENDED_CLUSTERING_HH
 #define GRAPH_EXTENDED_CLUSTERING_HH
 
-#include <unordered_set>
+#include "hash_map_wrap.hh"
 
 #include <boost/graph/breadth_first_search.hpp>
 
@@ -134,7 +134,7 @@ struct get_extended_clustering
             fg_t fg(g, keep_all(), filter_t(v));
 
             typedef DescriptorHash<IndexMap> hasher_t;
-            typedef std::unordered_set<vertex_t,hasher_t> neighbour_set_t;
+            typedef gt_hash_set<vertex_t,hasher_t> neighbour_set_t;
             neighbour_set_t neighbours(0, hasher_t(vertex_index));
             neighbour_set_t targets(0, hasher_t(vertex_index));
             typename neighbour_set_t::iterator ni, ti;
@@ -161,14 +161,14 @@ struct get_extended_clustering
             // And now we setup and start the BFS bonanza
             for (ni = neighbours.begin(); ni != neighbours.end(); ++ni)
             {
-                typedef std::unordered_map<vertex_t,size_t,
-                                           DescriptorHash<IndexMap> > dmap_t;
+                typedef gt_hash_map<vertex_t,size_t,
+                                    DescriptorHash<IndexMap> > dmap_t;
                 dmap_t dmap(0, DescriptorHash<IndexMap>(vertex_index));
                 InitializedPropertyMap<dmap_t>
                     distance_map(dmap, numeric_limits<size_t>::max());
 
-                typedef std::unordered_map<vertex_t,default_color_type,
-                                           DescriptorHash<IndexMap> > cmap_t;
+                typedef gt_hash_map<vertex_t,default_color_type,
+                                    DescriptorHash<IndexMap> > cmap_t;
                 cmap_t cmap(0, DescriptorHash<IndexMap>(vertex_index));
                 InitializedPropertyMap<cmap_t>
                     color_map(cmap, color_traits<default_color_type>::white());

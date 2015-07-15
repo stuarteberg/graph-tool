@@ -23,7 +23,7 @@
 #include "graph_util.hh"
 #include "random.hh"
 
-#include <unordered_set>
+#include "hash_map_wrap.hh"
 
 #include <map>
 #include <iostream>
@@ -61,8 +61,7 @@ struct get_price
         if (probs.empty() || probs.rbegin()->first <= 0)
             throw GraphException("Cannot connect edges: probabilities are <= 0!");
 
-        std::unordered_set<typename graph_traits<Graph>::vertex_descriptor>
-            visited;
+        gt_hash_set<typename graph_traits<Graph>::vertex_descriptor> visited;
         for (size_t i = 0; i < N; ++i)
         {
             visited.clear();

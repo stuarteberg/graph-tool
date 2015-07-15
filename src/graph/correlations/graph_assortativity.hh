@@ -18,10 +18,9 @@
 #ifndef GRAPH_ASSORTATIVITY_HH
 #define GRAPH_ASSORTATIVITY_HH
 
-#include <unordered_map>
-
 #include "shared_map.hh"
 #include "graph_util.hh"
+#include "hash_map_wrap.hh"
 
 namespace graph_tool
 {
@@ -46,7 +45,7 @@ struct get_assortativity_coefficient
         count_t e_kk = 0;
 
         typedef typename DegreeSelector::value_type val_t;
-        typedef unordered_map<val_t, count_t> map_t;
+        typedef gt_hash_map<val_t, count_t> map_t;
         map_t a, b;
 
         SharedMap<map_t> sa(a), sb(b);

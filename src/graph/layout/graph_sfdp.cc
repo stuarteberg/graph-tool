@@ -24,6 +24,7 @@
 
 #include "graph_sfdp.hh"
 #include "random.hh"
+#include "hash_map_wrap.hh"
 
 using namespace std;
 using namespace boost;
@@ -96,7 +97,7 @@ struct do_propagate_pos
         typedef typename pos_t::value_type val_t;
 
         uniform_real_distribution<val_t> noise(-delta, delta);
-        unordered_map<c_t, pos_t> cmap(num_vertices(*cg));
+        gt_hash_map<c_t, pos_t> cmap;
 
         for (auto v : vertices_range(*cg))
             cmap[cvmap[v]] = cpos[v];
@@ -132,7 +133,6 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                             <int32_t,
                              GraphInterface::vertex_index_map_t>::type>::type
         vmaps_t;
-
 
     run_action<>()
         (gi, std::bind(do_propagate_pos(),

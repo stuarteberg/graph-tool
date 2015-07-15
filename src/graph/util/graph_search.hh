@@ -20,8 +20,7 @@
 
 #include "graph_python_interface.hh"
 #include "graph_util.hh"
-
-#include <unordered_set>
+#include "hash_map_wrap.hh"
 
 #ifdef USING_OPENMP
 #include <omp.h>
@@ -112,7 +111,7 @@ struct find_edges
         range.first = python::extract<value_type>(prange[0]);
         range.second = python::extract<value_type>(prange[1]);
 
-        std::unordered_set<size_t> edge_set;
+        gt_hash_set<size_t> edge_set;
 
         #ifdef USING_OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();

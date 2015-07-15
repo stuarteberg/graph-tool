@@ -260,7 +260,7 @@ struct entropy_parallel_edges
         auto get_node = [](size_t i) {return i;};
         for (auto v : vertices_range(g))
         {
-            unordered_map<decltype(v), int> us;
+            gt_hash_map<decltype(v), int> us;
             for (auto e : out_edges_range(v, g))
             {
                 auto u = target(e, g);
@@ -1911,7 +1911,7 @@ void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight, Graph&
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
 
-    unordered_map<vertex_t, vector<edge_t>> ns_u, ns_v;
+    gt_hash_map<vertex_t, vector<edge_t>> ns_u, ns_v;
     for(auto e : out_edges_range(u, g))
         ns_u[target(e, g)].push_back(e);
     for(auto e : out_edges_range(v, g))
@@ -2154,7 +2154,7 @@ double virtual_move(const Vec& vs, size_t s, Vprop& b, VLprop& cv, VVprop& vmap,
     if (s == size_t(b[vs[0]]))
         return 0;
 
-    unordered_map<int, vector<size_t>> us;
+    gt_hash_map<int, vector<size_t>> us;
     for (size_t i = 0; i < vs.size(); ++i)
     {
         size_t v = vs[i];
@@ -2200,7 +2200,7 @@ double virtual_move(const Vec& vs, size_t s, Vprop& b, VLprop& cv, VVprop& vmap,
 
             if (multigraph && !dense && state.overlap_stats.is_enabled())
             {
-                std::unordered_map<int, size_t> bundles;
+                gt_hash_map<int, size_t> bundles;
                 auto& mi = state.overlap_stats.get_mi();
                 for (auto w : iter.second)
                 {
@@ -2333,7 +2333,7 @@ void move_vertex(const Vec& vs, size_t s, Vprop& b, VLprop& cv, VVprop& vmap,
     if (s == r)
         return;
 
-    unordered_map<int, vector<size_t>> us;
+    gt_hash_map<int, vector<size_t>> us;
     for (size_t i = 0; i < vs.size(); ++i)
     {
         auto& ls = cv[vs[i]];
@@ -2443,7 +2443,7 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
     }
 
     // used only if merging
-    std::unordered_set<vertex_t> past_moves;
+    gt_hash_set<vertex_t> past_moves;
     vector<pair<vertex_t, double> > best_move;
     if (nmerges > 0 || parallel)
         best_move.resize(num_vertices(g), make_pair(vertex_t(0), numeric_limits<double>::max()));

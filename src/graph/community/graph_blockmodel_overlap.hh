@@ -19,8 +19,6 @@
 #define GRAPH_BLOCKMODEL_OVERLAP_HH
 
 #include "config.h"
-#include <unordered_set>
-#include <unordered_map>
 #include <tuple>
 
 #include "graph_blockmodel.hh"
@@ -96,7 +94,7 @@ public:
         {
             auto& he = half_edges[i];
 
-            unordered_map<size_t, vector<size_t>> out_us;
+            gt_hash_map<size_t, vector<size_t>> out_us;
             for (auto u : he)
             {
                 auto w = _out_neighbours[u];
@@ -1760,7 +1758,7 @@ void merge_sweep_overlap(vector<BlockState>& states,
     Vprop best_move = b.copy();
     vector<double> best_move_dS;
     vector<vector<vertex_t>> groups(B);
-    vector<unordered_map<size_t, vector<size_t>>> bundles(B);
+    vector<gt_hash_map<size_t, vector<size_t>>> bundles(B);
     best_move_dS.resize(B, numeric_limits<double>::max());
 
     std::shuffle(vlist.begin(), vlist.end(), rng);
