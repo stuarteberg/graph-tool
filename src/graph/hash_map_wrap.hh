@@ -32,13 +32,12 @@
 #endif
 
 template <class Key>
-struct no_empty_key : std::exception {};
-
-template <class Key>
 struct empty_key
 {
     static Key get()
     {
+        static_assert(std::is_arithmetic<Key>::value,
+                      "no default empty key for sparsehash!");
         return dispatch(typename std::is_arithmetic<Key>::type());
     }
 
@@ -49,7 +48,8 @@ struct empty_key
 
     static Key dispatch(std::integral_constant<bool, false>)
     {
-        throw no_empty_key<Key>();
+        assert(false);
+        return Key();
     }
 };
 
@@ -83,15 +83,23 @@ struct empty_key<std::tuple<Val, Vals...>>
     }
 };
 
+template <>
+struct empty_key<std::tuple<>>
+{
+    static std::tuple<> get()
+    {
+        return std::tuple<>();
+    }
+};
 
-template <class Key>
-struct no_deleted_key : std::exception {};
 
 template <class Key>
 struct deleted_key
 {
     static Key get()
     {
+        static_assert(std::is_arithmetic<Key>::value,
+                      "no default deleted key for sparsehash!");
         return dispatch(typename std::is_arithmetic<Key>::type());
     }
 
@@ -105,7 +113,8 @@ struct deleted_key
 
     static Key dispatch(std::integral_constant<bool, false>)
     {
-        throw no_deleted_key<Key>();
+        assert(false);
+        return Key();
     }
 };
 
@@ -136,6 +145,15 @@ struct deleted_key<std::tuple<Val, Vals...>>
     {
         std::tuple<Val> t = std::make_tuple(deleted_key<Val>::get());
         return std::tuple_cat(t, deleted_key<std::tuple<Vals...>>::get());
+    }
+};
+
+template <>
+struct deleted_key<std::tuple<>>
+{
+    static std::tuple<> get()
+    {
+        return std::tuple<>();
     }
 };
 
