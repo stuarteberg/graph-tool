@@ -399,9 +399,10 @@ struct overlap_partition_stats_t
     template <class Graph, class Vprop, class Eprop>
     overlap_partition_stats_t(Graph& g, Vprop b, overlap_stats_t& overlap_stats,
                               Eprop eweight, size_t N, size_t B, bool edges_dl)
-        : _enabled(true), _N(N), _B(B), _D(0), _dhist(B + 1), _r_count(B),
-          _bvs(N), _nbvs(N), _degs(N), _ndegs(N), _deg_delta(B),
-          _edges_dl(edges_dl)
+        : _enabled(true), _N(N), _B(B), _D(0),
+          _dhist(B + 1), _r_count(B), _bhist(N), _emhist(B), _ephist(B),
+          _embhist(N), _epbhist(N), _deg_hist(N), _bvs(N), _nbvs(N), _degs(N),
+          _ndegs(N), _deg_delta(B), _edges_dl(edges_dl)
     {
         dmap_t in_hist, out_hist;
         for (size_t v = 0; v < N; ++v)
