@@ -46,7 +46,7 @@ struct get_community_network_vertices
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-        gt_hash_map<s_type, vertex_t, std::hash<s_type> > comms;
+        unordered_map<s_type, vertex_t> comms;
 
         // create vertices
         for (auto vi : vertices_range(g))
@@ -107,9 +107,9 @@ struct get_community_network_edges
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-        typedef gt_hash_map<s_type, vertex_t, std::hash<s_type> > comms_t;
+        typedef unordered_map<s_type, vertex_t> comms_t;
         comms_t comms;
-        typedef gt_hash_map<cvertex_t, cedge_t> ecomms_t;
+        typedef unordered_map<cvertex_t, cedge_t> ecomms_t;
 
         auto index_map = get(vertex_index_t(), cg);
         unchecked_vector_property_map<ecomms_t, decltype(index_map)>
@@ -234,7 +234,7 @@ struct get_vertex_community_property_sum
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-        gt_hash_map<s_type, vertex_t> comms;
+        unordered_map<s_type, vertex_t> comms;
 
         for (auto v : vertices_range(cg))
             comms[cs_map[v]] = v;
@@ -274,7 +274,7 @@ struct get_edge_community_property_sum
         typedef typename boost::property_traits<CommunityMap>::value_type
             s_type;
 
-        gt_hash_map<s_type, vertex_t> comms;
+        unordered_map<s_type, vertex_t> comms;
 
         for (auto v : vertices_range(cg))
             comms[cs_map[v]] = v;

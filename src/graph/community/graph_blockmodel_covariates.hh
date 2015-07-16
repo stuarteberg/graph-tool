@@ -42,7 +42,7 @@ struct ec_hist
     void operator()(Graph&g, const EVMap& ev, EMap& ec) const
     {
         typedef typename property_traits<EVMap>::value_type val_t;
-        gt_hash_map<val_t, size_t> ehist;
+        unordered_map<val_t, size_t> ehist;
         for (auto e : edges_range(g))
         {
             auto iter = ehist.find(ev[e]);

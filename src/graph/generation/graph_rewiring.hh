@@ -643,8 +643,8 @@ public:
 private:
     BlockDeg _blockdeg;
 
-    typedef gt_hash_map<deg_t,
-                        vector<pair<size_t, bool>>>
+    typedef std::unordered_map<deg_t,
+                          vector<pair<size_t, bool>>>
         edges_by_end_deg_t;
 
     edges_by_end_deg_t _edges_by_target;
@@ -691,7 +691,7 @@ public:
 
             if (_probs.empty())
             {
-                gt_hash_set<deg_t> deg_set;
+                std::unordered_set<deg_t> deg_set;
                 for (size_t ei = 0; ei < base_t::_edges.size(); ++ei)
                 {
                     edge_t& e = base_t::_edges[ei];
@@ -790,7 +790,7 @@ private:
     BlockDeg _blockdeg;
 
 
-    typedef gt_hash_map<pair<deg_t, deg_t>, double> prob_map_t;
+    typedef std::unordered_map<pair<deg_t, deg_t>, double> prob_map_t;
     prob_map_t _probs;
 };
 
@@ -829,7 +829,7 @@ public:
         if (!is_directed::apply<Graph>::type::value)
             _out_pos.resize(base_t::_edges.size());
 
-        gt_hash_set<deg_t> deg_set;
+        std::unordered_set<deg_t> deg_set;
         for (size_t ei = 0; ei < base_t::_edges.size(); ++ei)
         {
             edge_t& e = base_t::_edges[ei];
@@ -893,8 +893,8 @@ public:
         }
         else
         {
-            gt_hash_map<deg_t, vector<double>> sprobs;
-            gt_hash_map<deg_t, vector<deg_t>> sitems;
+            std::unordered_map<deg_t, vector<double>> sprobs;
+            std::unordered_map<deg_t, vector<deg_t>> sitems;
             for (auto iter = _probs.begin(); iter != _probs.end(); ++iter)
             {
                 deg_t s = iter->first.first;
@@ -1126,19 +1126,19 @@ private:
     CorrProb _corr_prob;
     BlockDeg _blockdeg;
 
-    typedef gt_hash_map<deg_t, Sampler<deg_t, boost::mpl::false_>*> sampler_map_t;
+    typedef std::unordered_map<deg_t, Sampler<deg_t, boost::mpl::false_>*> sampler_map_t;
 
     sampler_map_t _sampler;
 
-    typedef gt_hash_map<deg_t, gt_hash_map<deg_t, double>> sprob_map_t;
+    typedef std::unordered_map<deg_t, std::unordered_map<deg_t, double>> sprob_map_t;
 
     sprob_map_t _sprob;
 
-    typedef gt_hash_map<pair<deg_t, deg_t>, double> prob_map_t;
+    typedef std::unordered_map<pair<deg_t, deg_t>, double> prob_map_t;
 
     prob_map_t _probs;
 
-    typedef gt_hash_map<deg_t, vector<size_t>> edge_map_t;
+    typedef std::unordered_map<deg_t, vector<size_t>> edge_map_t;
 
     edge_map_t _in_edges;
     edge_map_t _out_edges;
@@ -1173,7 +1173,7 @@ public:
             _vertices[d].push_back(*v);
         }
 
-        gt_hash_map<pair<deg_t, deg_t>, double> probs;
+        std::unordered_map<pair<deg_t, deg_t>, double> probs;
         _corr_prob.get_probs(probs);
 
         vector<double> dprobs;
@@ -1265,7 +1265,7 @@ private:
     BlockDeg _blockdeg;
     rng_t& _rng;
 
-    gt_hash_map<deg_t, vector<vertex_t>> _vertices;
+    std::unordered_map<deg_t, vector<vertex_t>> _vertices;
 
     vector<pair<deg_t, deg_t> > _items;
     Sampler<pair<deg_t, deg_t> >* _sampler;

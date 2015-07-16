@@ -300,5 +300,4 @@ public:
 
 };
 
-
 #endif // HASH_MAP_WRAP_HH

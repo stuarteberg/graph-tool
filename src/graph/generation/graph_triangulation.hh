@@ -106,7 +106,7 @@ struct get_triangulation
     template <class Graph, class Points, class PosMap>
     void operator()(Graph& g, Points& points, PosMap pos) const
     {
-        typedef gt_hash_map
+        typedef std::unordered_map
             <typename Triang::Vertex,
              typename graph_traits<Graph>::vertex_descriptor,
              hash_point> vertex_map_t;

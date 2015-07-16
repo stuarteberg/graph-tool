@@ -527,7 +527,7 @@ class HashedDescriptorMap
 {
 public:
     typedef DescriptorHash<IndexMap> hashfc_t;
-    typedef gt_hash_map<typename IndexMap::key_type,Value,hashfc_t>
+    typedef unordered_map<typename IndexMap::key_type,Value,hashfc_t>
         map_t;
     typedef boost::associative_property_map<map_t> prop_map_t;
 
