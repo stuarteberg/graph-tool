@@ -1087,10 +1087,10 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
             g1.properties[(p.key_type(), name)] = p
         if not include:
             for name, p in gprops[0]:
-                g1.graph_properties[name] = p.copy()
+                g1.graph_properties[name] = g1.own_property(p.copy())
         for name, p in gprops[1]:
             if name not in g1.graph_properties:
-                g1.graph_properties[name] = p.copy()
+                g1.graph_properties[name] = g1.own_property(p.copy())
         n_props = []
 
     if len(n_props) > 0:
