@@ -203,6 +203,11 @@ public:
 #else
         : base_t(il, n, hf, eql, alloc) { }
 #endif
+
+#ifndef HAVE_SPARSEHASH
+    void resize(size_t n) { base_t::reserve(n); }
+#endif
+
 };
 
 template<class Key,
@@ -270,6 +275,11 @@ public:
 #else
         : base_t(il, n, hf, eql, alloc) { }
 #endif
+
+#ifndef HAVE_SPARSEHASH
+    void resize(size_t n) { base_t::reserve(n); }
+#endif
+
 };
 
 
