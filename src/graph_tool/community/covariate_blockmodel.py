@@ -171,7 +171,9 @@ class CovariateBlockState(BlockState):
                                  self.bmap,
                                  [_prop("v", u, u.vp["brmap"]) for u in self.gs],
                                  [_prop("v", u, u.vp["vmap"]) for u in self.gs])
-
+        if self.g.get_vertex_filter()[0] is not None:
+            for u in self.gs:
+                u.set_vertex_filter(u.new_vertex_property("bool", True))
         if not self.layers:
             total_state.master = True
             total_state.slave = False
