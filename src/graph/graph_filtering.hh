@@ -141,24 +141,23 @@ class MaskFilter
 public:
     typedef typename boost::property_traits<DescriptorProperty>::value_type value_t;
     MaskFilter(){}
-    MaskFilter(DescriptorProperty filtered_property, bool invert)
-        : _filtered_property(filtered_property), _invert(invert) {}
+    MaskFilter(const DescriptorProperty& filtered_property, bool invert)
+        : _filtered_property(&filtered_property), _invert(invert) {}
 
     template <class Descriptor>
     __attribute__((always_inline)) inline bool operator() (Descriptor&& d) const
     {
         // ignore if masked
 
-        return get(_filtered_property, std::forward<Descriptor>(d)) ^ _invert;
+        return get(*_filtered_property, std::forward<Descriptor>(d)) ^ _invert;
 
-        // TODO: This is a critical section. It will be called for every vertex
-        //       or edge in the graph, every time they're iterated
-        //       through. Therefore, it must be guaranteed this is as optimized
-        //       as possible.
+        // This is a critical section. It will be called for every vertex
+        // or edge in the graph, every time they're iterated
+        // through.
     }
 
 private:
-    DescriptorProperty _filtered_property;
+    const DescriptorProperty* _filtered_property;
     bool _invert;
 };
 
