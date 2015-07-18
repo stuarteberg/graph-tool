@@ -1321,7 +1321,9 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None):
     else:
         beta = beta.copy("double")
 
-    libgraph_tool_draw.get_cts(u._Graph__graph, tu._Graph__graph,
+    tu = GraphView(tu, skip_vfilt=True)
+    libgraph_tool_draw.get_cts(u._Graph__graph,
+                               tu._Graph__graph,
                                _prop("v", tu, tpos),
                                _prop("e", u, beta),
                                _prop("e", u, cts))
@@ -1540,21 +1542,22 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
             vorder = None
         if pos is not None:
             x, y = ungroup_vector_property(pos, [0, 1])
-            x.a -= x.a.mean()
-            y.a -= y.a.mean()
+            x.fa -= x.fa.mean()
+            y.fa -= y.fa.mean()
             angle = g.new_vertex_property("double")
-            angle.a = (numpy.arctan2(y.a, x.a) + 2 * numpy.pi) % (2 * numpy.pi)
+            angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
             vorder = angle
-        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1),
+        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1,
+                                                   use_index=False),
                                   rel_order=vorder)
     elif layout == "sfdp":
         if pos is None:
             tpos = sfdp_layout(t)
         else:
             x, y = ungroup_vector_property(pos, [0, 1])
-            x.a -= x.a.mean()
-            y.a -= y.a.mean()
-            K = numpy.sqrt(x.a.std() + y.a.std()) / 10
+            x.fa -= x.fa.mean()
+            y.fa -= y.fa.mean()
+            K = numpy.sqrt(x.fa.std() + y.fa.std()) / 10
             tpos = t.new_vertex_property("vector<double>")
             for v in t.vertices():
                 if int(v) < g.num_vertices():
@@ -1562,7 +1565,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                 else:
                     tpos[v] = [0, 0]
             pin = t.new_vertex_property("bool")
-            pin.a[:g.num_vertices()] = True
+            pin.a[:g.num_vertices(True)] = True
             tpos = sfdp_layout(t, K=K, pos=tpos, pin=pin, multilevel=False)
     else:
         tpos = t.own_property(layout)
@@ -1612,7 +1615,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
             val = edge_color
             clrs = [g.new_edge_property("double") for i in range(4)]
             for i in range(4):
-                clrs[i].a = val[i]
+                clrs[i].fa = val[i]
             edge_color = group_vector_property(clrs)
     else:
         z = g.new_edge_property("double", 0)
@@ -1643,7 +1646,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     tlabels = t.new_vertex_property("string")
 
     t_orig = t
-    t = GraphView(t, vfilt=lambda v: int(v) >= g.num_vertices())
+    t = GraphView(t, vfilt=lambda v: int(v) >= g.num_vertices(True))
     if verbose:
         print("joining graphs")
     props = [(pos, tpos),
@@ -1655,7 +1658,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
              (args.get("edge_text", g.new_edge_property("string")).copy("string"),
               edge_labels),
              (g.vertex_index, tb),
-             (vlabels, tlabels)]
+             (vlabels, tlabels),
+             (b, None)]
 
     # propagate all other properties in args
     arg_pos = {}
@@ -1677,7 +1681,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     elabels = props[6]
     tb = props[7]
     vertex_text = props[8]
-    b = u.own_property(b)
+    b = props[9]
 
     for a, v in arg_pos.items():
         args[a] = props[v]
@@ -1695,15 +1699,15 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         vsize = prop_to_size(u.degree_property_map("total"), 5, 20)
 
     if "vertex_size" in args:
-        vsize.a[:g.num_vertices()] = args["vertex_size"].a[:g.num_vertices()]
+        vsize.a[:g.num_vertices()] = args["vertex_size"].fa[:g.num_vertices()]
         del args["vertex_size"]
 
     if vsize is not None:
         vsize.a[g.num_vertices():] = vsize.a[g.num_vertices():].mean() * hsize_scale * 1.5
 
         ems = epw.copy()
-        ems.a *= 2.75
-        ems.a[g.num_edges():] = numpy.sqrt(vsize.a[g.num_vertices():].mean() * hsize_scale * 1.5) * 2
+        ems.fa *= 2.75
+        ems.a[g.num_edges():] = numpy.sqrt(vsize.fa[g.num_vertices():].mean() * hsize_scale * 1.5) * 2
 
         vsize.a[:g.num_vertices()] *= vsize_scale
 
@@ -1809,12 +1813,13 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                                no_main=True)
         if key_id == ord('r'):
             x, y = ungroup_vector_property(pos, [0, 1])
-            x.a -= x.a.mean()
-            y.a -= y.a.mean()
+            x.fa -= x.fa.mean()
+            y.fa -= y.fa.mean()
             angle = gg.new_vertex_property("double")
-            angle.a = (numpy.arctan2(y.a, x.a) + 2 * numpy.pi) % (2 * numpy.pi)
+            angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
             tpos = radial_tree_layout(t_orig,
-                                      root=t_orig.vertex(t_orig.num_vertices() - 1),
+                                      root=t_orig.vertex(t_orig.num_vertices() - 1,
+                                                         use_index=False),
                                       rel_order=angle)
             gg.copy_property(tpos, pos)
             update_cts(widget, gg, picked, pos, vprops, eprops)

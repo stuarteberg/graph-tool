@@ -1722,7 +1722,13 @@ def get_hierarchy_tree(state, empty_branches=True):
 
     t = Graph()
 
-    t.add_vertex(g.num_vertices())
+    if g.get_vertex_filter()[0] is None:
+        t.add_vertex(g.num_vertices())
+    else:
+        t.add_vertex(g.num_vertices(ignore_filter=True))
+        filt = g.get_vertex_filter()
+        t.set_vertex_filter(t.own_property(filt[0].copy()),
+                            filt[1])
     label = t.vertex_index.copy("int")
 
     order = t.own_property(g.degree_property_map("total").copy())
@@ -1738,15 +1744,19 @@ def get_hierarchy_tree(state, empty_branches=True):
         for e in s.edges():
             if e.source() == e.target():
                 count[e] /= 2
-        vs = [t.vertex(vi) for vi in range(pos, t.num_vertices())]
-        vs = sorted(vs, key=lambda v: (s.vertex(int(v) - pos).out_degree(count) + 
-                                       s.vertex(int(v) - pos).in_degree(count)))
+        vs = []
+        pvs = {}
+        for vi in range(pos, t.num_vertices()):
+            vs.append(t.vertex(vi, use_index=False))
+            pvs[vs[-1]] = vi - pos
+        vs = sorted(vs, key=lambda v: (s.vertex(pvs[v]).out_degree(count) + 
+                                       s.vertex(pvs[v]).in_degree(count)))
         for vi, v in enumerate(vs):
             order[v] = vi
 
         for vi, v in enumerate(g.vertices()):
-            w = t.vertex(vi + last_pos)
-            u = t.vertex(b[v] + pos)
+            w = t.vertex(vi + last_pos, use_index=False)
+            u = t.vertex(b[v] + pos, use_index=False)
             t.add_edge(u, w)
 
         last_pos = pos
@@ -1759,7 +1769,7 @@ def get_hierarchy_tree(state, empty_branches=True):
         vmask = t.new_vertex_property("bool")
         vmask.a = True
         for vi in range(state.g.num_vertices(), t.num_vertices()):
-            v = t.vertex(vi)
+            v = t.vertex(vi, use_index=False)
             if v.out_degree() == 0:
                 vmask[v] = False
                 while v.in_degree() > 0:

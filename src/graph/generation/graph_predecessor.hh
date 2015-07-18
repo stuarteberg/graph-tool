@@ -29,37 +29,26 @@ using namespace boost;
 
 struct get_predecessor_graph
 {
-    template <class Graph, class IndexMap, class PredGraph, class PredMap>
-    void operator()(Graph& g, IndexMap vertex_index, PredGraph& pg,
-                    PredMap pred_map) const
+    template <class Graph, class PredGraph, class PredMap>
+    void operator()(Graph& g, PredGraph& pg, PredMap pred_map) const
     {
-        unchecked_vector_property_map<size_t,IndexMap>
-            index_map(vertex_index, num_vertices(g));
-
-        size_t count = 0;
-        typename graph_traits<Graph>::vertex_iterator v,v_end;
-        for (tie(v,v_end) = vertices(g); v != v_end; ++v)
-        {
-            index_map[*v] = count++;
+        while (num_vertices(pg) < num_vertices(g))
             add_vertex(pg);
-        }
 
-        for (tie(v,v_end) = vertices(g); v != v_end; ++v)
+        for (auto v : vertices_range(g))
         {
-            size_t pred_i = get(pred_map, *v);
+            auto pred_i = get(pred_map, v);
             if (pred_i >= num_vertices(g))
                 continue;
 
-            typename graph_traits<Graph>::vertex_descriptor pred =
-                vertex(pred_i, g);
+            auto pred = vertex(pred_i, g);
             if (pred == graph_traits<Graph>::null_vertex())
                 continue;
 
-            if (pred != *v)
+            if (pred != v)
             {
-                typename graph_traits<PredGraph>::vertex_descriptor s, t;
-                s = vertex(index_map[pred], pg);
-                t = vertex(index_map[*v], pg);
+                auto s = vertex(pred, pg);
+                auto t = vertex(v, pg);
                 add_edge(s, t, pg);
             }
         }

@@ -154,8 +154,7 @@ void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
             t_root.push_back(u);
     }
     path = s_root;
-    for (typeof(t_root.rbegin()) iter = t_root.rbegin();
-         iter != t_root.rend(); ++iter)
+    for (auto iter = t_root.rbegin(); iter != t_root.rend(); ++iter)
         path.push_back(*iter);
 }
 

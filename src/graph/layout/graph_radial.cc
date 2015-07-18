@@ -42,20 +42,20 @@ struct do_get_radial
 
         if (!weighted)
         {
-            typename graph_traits<Graph>::vertex_iterator v, v_end;
-            for(tie(v, v_end) = vertices(g); v != v_end; ++v)
-                count[*v] = 1;
+            for (auto v : vertices_range(g))
+                count[v] = 1;
         }
         else
         {
             deque<vertex_t> q;
-            typename graph_traits<Graph>::vertex_iterator v, v_end;
-            for(tie(v, v_end) = vertices(g); v != v_end; ++v)
-                if (out_degree(*v, g) == 0)
+            for (auto v : vertices_range(g))
+            {
+                if (out_degree(v, g) == 0)
                 {
-                    q.push_back(*v);
-                    count[*v] = 1;
+                    q.push_back(v);
+                    count[v] = 1;
                 }
+            }
 
             typedef property_map_type::apply<uint8_t, GraphInterface::vertex_index_map_t>::type
                 vmark_t;
@@ -65,10 +65,9 @@ struct do_get_radial
             {
                 vertex_t v = q.front();
                 q.pop_front();
-                typename graph_traits<Graph>::in_edge_iterator e, e_end;
-                for(tie(e, e_end) = in_edges(v, g); e != e_end; ++e)
+                for (auto e : in_edges_range(v, g))
                 {
-                    vertex_t w = source(*e, g);
+                    vertex_t w = source(e, g);
                     count[w] += count[v];
                     if (!mark[w])
                     {
@@ -93,10 +92,9 @@ struct do_get_radial
             for (size_t i = 0; i < last_layer.size(); ++i)
             {
                 vertex_t v = last_layer[i];
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for(tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                for (auto e : out_edges_range(v, g))
                 {
-                    vertex_t w = target(*e, g);
+                    vertex_t w = target(e, g);
                     new_layer.push_back(w);
 
                     if (int(layers.size()) - 1 == int(level[w]))
@@ -133,15 +131,14 @@ struct do_get_radial
             {
                 vertex_t v = vs[j];
                 d_sum = 0;
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for(tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                for (auto e : out_edges_range(v, g))
                 {
-                    vertex_t w = target(*e, g);
+                    vertex_t w = target(e, g);
                     d_sum += count[w];
                 }
-                for(tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                for (auto e : out_edges_range(v, g))
                 {
-                    vertex_t w = target(*e, g);
+                    vertex_t w = target(e, g);
                     angle[v] += angle[w] * count[w] / d_sum;
                 }
                 double d = level[v] * r;
