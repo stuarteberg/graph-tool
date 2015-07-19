@@ -2396,6 +2396,9 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
         else:
             break
 
+        if max_B - mid_B <= 1:
+            break
+
     # Fibonacci search
     while True:
         if max_B - mid_B > mid_B - min_B:
