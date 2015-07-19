@@ -1224,18 +1224,22 @@ def pmap(prop, value_map):
     """Maps all the values of `prop` to the values given by `value_map`, which
     is indexed by the values of `prop`."""
     if isinstance(prop, PropertyMap):
-        prop = prop.a
+        a = prop.fa
+    else:
+        a = prop
     if isinstance(value_map, PropertyMap):
         value_map = value_map.a
-    if prop.max() >= len(value_map):
-        raise ValueError("value map is not large enough! %s, %s" % (prop.max(),
+    if a.max() >= len(value_map):
+        raise ValueError("value map is not large enough! %s, %s" % (a.max(),
                                                                     len(value_map)))
-    if prop.dtype != value_map.dtype:
-        value_map = array(value_map, dtype=prop.dtype)
-    if prop.dtype == "int64":
-        libcommunity.vector_map64(prop, value_map)
+    if a.dtype != value_map.dtype:
+        value_map = array(value_map, dtype=a.dtype)
+    if a.dtype == "int64":
+        libcommunity.vector_map64(a, value_map)
     else:
-        libcommunity.vector_map(prop, value_map)
+        libcommunity.vector_map(a, value_map)
+    if isinstance(prop, PropertyMap):
+        prop.fa = a
 
 def reverse_map(prop, value_map):
     """Modify `value_map` such that the positions indexed by the values in `prop`
@@ -1243,31 +1247,39 @@ def reverse_map(prop, value_map):
     if isinstance(prop, PropertyMap):
         prop = prop.a
     if isinstance(value_map, PropertyMap):
-        value_map = value_map.a
-    if prop.max() >= len(value_map):
-        raise ValueError("value map is not large enough! (%d, %d)" % (prop.max(), len(value_map)))
-    if prop.dtype != value_map.dtype:
-        prop = array(prop, dtype=value_map.dtype)
-    if value_map.dtype == "int64":
-        libcommunity.vector_rmap64(prop, value_map)
+        a = value_map.fa
     else:
-        libcommunity.vector_rmap(prop, value_map)
+        a = value_map
+    if prop.max() >= len(a):
+        raise ValueError("value map is not large enough! (%d, %d)" % (prop.max(), len(a)))
+    if prop.dtype != a.dtype:
+        prop = array(prop, dtype=a.dtype)
+    if a.dtype == "int64":
+        libcommunity.vector_rmap64(prop, a)
+    else:
+        libcommunity.vector_rmap(prop, a)
+    if isinstance(value_map, PropertyMap):
+        value_map.fa = a
 
 def continuous_map(prop):
     """Remap the values of ``prop`` in the continuous range :math:`[0, N-1]`."""
     if isinstance(prop, PropertyMap):
-        prop = prop.a
-    if prop.max() < len(prop):
-        rmap = -ones(len(prop), dtype=prop.dtype)
-        if prop.dtype == "int64":
-            libcommunity.vector_map64(prop, rmap)
-        else:
-            libcommunity.vector_map(prop, rmap)
+        a = prop.fa
     else:
-        if prop.dtype == "int64":
-            libcommunity.vector_continuous_map64(prop)
+        a = prop
+    if a.max() < len(a):
+        rmap = -ones(len(a), dtype=a.dtype)
+        if a.dtype == "int64":
+            libcommunity.vector_map64(a, rmap)
         else:
-            libcommunity.vector_continuous_map(prop)
+            libcommunity.vector_map(a, rmap)
+    else:
+        if a.dtype == "int64":
+            libcommunity.vector_continuous_map64(a)
+        else:
+            libcommunity.vector_continuous_map(a)
+    if isinstance(prop, PropertyMap):
+        prop.fa = a
 
 def greedy_shrink(state, B, **kwargs):
     if B > state.B:
