@@ -1932,27 +1932,32 @@ class Graph(object):
         if tgt is None:
             tgt = self.new_property(src.key_type(),
                                     (src.value_type()
-                                     if value_type == None else value_type))
+                                     if value_type is None else value_type))
             ret = tgt
         else:
             ret = None
 
         if src.key_type() != tgt.key_type():
-            raise ValueError("source and target properties must have the same" +
-                             " key type")
+            raise ValueError("source and target properties must have the same key type")
 
-        u = self if g is None else g
-        g = GraphView(u, directed=True, reversed=u.is_reversed(),
-                      skip_properties=True)
+        if g is None:
+            g = self
 
-        if src.key_type() == "v":
-            self.__graph.CopyVertexProperty(g.__graph, _prop("v", g, src),
-                                            _prop("v", self, tgt))
-        elif src.key_type() == "e":
-            self.__graph.CopyEdgeProperty(g.__graph, _prop("e", g, src),
-                                            _prop("e", self, tgt))
-        else:
-            tgt[self] = src[g]
+        is_directed = g.is_directed()
+        try:
+            g.set_directed(True)
+            if src.key_type() == "v":
+                self.__graph.CopyVertexProperty(g.__graph,
+                                                _prop("v", g, src),
+                                                _prop("v", self, tgt))
+            elif src.key_type() == "e":
+                self.__graph.CopyEdgeProperty(g.__graph,
+                                              _prop("e", g, src),
+                                              _prop("e", self, tgt))
+            else:
+                tgt[self] = src[g]
+        finally:
+            g.set_directed(is_directed)
         return ret
 
     # degree property map
@@ -2169,7 +2174,7 @@ class Graph(object):
         if prop is not None and prop.value_type() != "bool":
             raise ValueError("filter property map must have 'bool' type")
 
-        vfilt = prop
+        vfilt = self.own_property(prop) if prop is not None else prop
         efilt = None
 
         eprop = self.get_edge_filter()
@@ -2202,7 +2207,7 @@ class Graph(object):
         if prop is not None and prop.value_type() != "bool":
             raise ValueError("filter property map must have 'bool' type")
 
-        efilt = prop
+        efilt = self.own_property(prop) if prop is not None else prop
         vfilt = None
 
         vprop = self.get_vertex_filter()
@@ -2467,35 +2472,51 @@ class GraphView(Graph):
         if not skip_vfilt:
             vf = g.get_vertex_filter()
             if vf[0] is not None:
-                self.set_vertex_filter(vf[0], vf[1])
+                self.set_vertex_filter(vf[0].copy(), vf[1])
         if not skip_efilt:
             ef = g.get_edge_filter()
             if ef[0] is not None:
-                self.set_edge_filter(ef[0], ef[1])
+                self.set_edge_filter(ef[0].copy(), ef[1])
 
         if vfilt is not None:
-            if type(vfilt) is PropertyMap:
-                self.set_vertex_filter(vfilt)
-            else:
+            if type(vfilt) is not PropertyMap:
                 vmap = self.new_vertex_property("bool")
                 if issubclass(type(vfilt), numpy.ndarray):
                     vmap.fa = vfilt
                 else:
                     for v in g.vertices():
                         vmap[v] = vfilt(v)
-                self.set_vertex_filter(vmap)
+                vfilt = vmap
+            vfilt = self.own_property(vfilt)
+            vf = self.get_vertex_filter()
+            if vf[0] is not None:
+                if not vf[1]:
+                    vf[0].a = numpy.logical_and(vfilt.a, vf[0].a)
+                else:
+                    vf[0].a = numpy.logical_and(vfilt.a, numpy.logical_not(vf[0].a))
+                self.set_vertex_filter(vf[0])
+            else:
+                self.set_vertex_filter(vfilt)
 
         if efilt is not None:
-            if type(efilt) is PropertyMap:
-                self.set_edge_filter(efilt)
-            else:
+            if type(efilt) is not PropertyMap:
                 emap = self.new_edge_property("bool")
                 if issubclass(type(efilt), numpy.ndarray):
                     emap.fa = efilt
                 else:
                     for e in g.edges():
                         emap[e] = efilt(e)
-                self.set_edge_filter(emap)
+                efilt = emap
+            efilt = self.own_property(efilt)
+            ef = self.get_edge_filter()
+            if ef[0] is not None:
+                if not ef[1]:
+                    ef[0].a = numpy.logical_and(efilt.a, ef[0].a)
+                else:
+                    ef[0].a = numpy.logical_and(efilt.a, numpy.logical_not(ef[0].a))
+                self.set_edge_filter(ef[0])
+            else:
+                self.set_edge_filter(efilt)
 
         if directed is not None:
             self.set_directed(directed)
