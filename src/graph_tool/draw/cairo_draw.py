@@ -276,7 +276,7 @@ def _convert(attr, val, cmap):
             if val.value_type() in ["vector<int32_t>", "vector<int64_t>", "vector<bool>"]:
                 g = val.get_graph()
                 new_val = g.new_vertex_property("vector<double>")
-                rg = [float("inf"), -float("inf")]
+                rg = [numpy.inf, -numpy.inf]
                 for v in g.vertices():
                     for x in val[v]:
                         rg[0] = min(x, rg[0])

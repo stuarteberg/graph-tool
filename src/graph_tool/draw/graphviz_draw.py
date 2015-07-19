@@ -29,6 +29,7 @@ import ctypes
 import ctypes.util
 import tempfile
 from .. import PropertyMap, group_vector_property, ungroup_vector_property
+import numpy
 import numpy.random
 import copy
 
@@ -381,7 +382,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
         # normalize color properties
         if (isinstance(vcolor, PropertyMap) and
             vcolor.value_type() != "string"):
-            minmax = [float("inf"), -float("inf")]
+            minmax = [numpy.inf, -numpy.inf]
             for v in g.vertices():
                 c = vcolor[v]
                 minmax[0] = min(c, minmax[0])
@@ -395,7 +396,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
 
         if (isinstance(ecolor, PropertyMap) and
             ecolor.value_type() != "string"):
-            minmax = [float("inf"), -float("inf")]
+            minmax = [numpy.inf, -numpy.inf]
             for e in g.edges():
                 c = ecolor[e]
                 minmax[0] = min(c, minmax[0])

@@ -765,7 +765,7 @@ def get_max_B(N, E, directed=False):
         B = 1
     return min(N, max(int(ceil(B)), 2))
 
-def get_akc(B, I, N=float("inf"), directed=False):
+def get_akc(B, I, N=numpy.inf, directed=False):
     r"""Return the minimum value of the average degree of the network, so that some block structure with :math:`B` blocks can be detected, according to the minimum description length criterion.
 
     This is obtained by solving
@@ -808,7 +808,7 @@ def get_akc(B, I, N=float("inf"), directed=False):
        Phys. Rev. Lett. 110, 148701 (2013), :doi:`10.1103/PhysRevLett.110.148701`, :arxiv:`1212.4794`.
 
     """
-    if N != float("inf"):
+    if N != numpy.inf:
         if directed:
             get_dl = lambda ak: model_entropy(B, N, N * ak, directed) / N * ak - N * ak * I
         else:
@@ -1018,7 +1018,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
         target_blocks = libcommunity.get_vector(0)
 
 
-    random_move = c == float("inf")
+    random_move = c == numpy.inf
 
     bclabel = state.get_bclabel()
 
@@ -1026,7 +1026,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
         merge_map = state.g.vertex_index.copy("int")
 
     if nmerges > 0:
-        beta = float("inf")
+        beta = numpy.inf
 
     nsampler = []
     ncavity_sampler = []
@@ -1300,10 +1300,10 @@ def greedy_shrink(state, B, **kwargs):
         assert curr_B == (state.wr.a > 0).sum(), (curr_B, (state.wr.a > 0).sum())
 
     unweighted = False
-    kwargs["c"] = 0 if not random else float("inf")
+    kwargs["c"] = 0 if not random else numpy.inf
     kwargs["dl"] = False
     while curr_B > B:
-        dS, nmoves = mcmc_sweep(state, beta=float("inf"),
+        dS, nmoves = mcmc_sweep(state, beta=numpy.inf,
                                 niter=kwargs["nmerge_sweeps"],
                                 nmerges=curr_B - B,
                                 merge_map=merge_map,
@@ -1324,7 +1324,7 @@ def greedy_shrink(state, B, **kwargs):
             if not unweighted:
                 unweighted = True
             else:
-                kwargs["c"] = float("inf")
+                kwargs["c"] = numpy.inf
                 random = True
 
     if _bm_test():
@@ -1396,10 +1396,10 @@ def unilevel_minimize(state, nsweeps=10, adaptive_sweeps=True, epsilon=0,
             print("Performing sweeps for beta = ∞, B=%d (N=%d)..." % \
                   (state.B, state.g.num_vertices()))
 
-        delta, nmoves = mcmc_sweep(state, beta=float("inf"), niter=nsweeps,
+        delta, nmoves = mcmc_sweep(state, beta=numpy.inf, niter=nsweeps,
                                    **kwargs)
         if state.overlap:
-            ds, nm = mcmc_sweep(state, niter=nsweeps, beta=float("inf"),
+            ds, nm = mcmc_sweep(state, niter=nsweeps, beta=numpy.inf,
                                 node_coherent=True, **kwargs)
             delta += ds
             nmoves += nm
@@ -1446,7 +1446,7 @@ def unilevel_minimize(state, nsweeps=10, adaptive_sweeps=True, epsilon=0,
 
             delta, nmoves = mcmc_sweep(state, beta=beta, **kwargs)
 
-            if state.overlap and beta == float("inf"):
+            if state.overlap and beta == numpy.inf:
                 ds, nm = mcmc_sweep(state, beta=beta, node_coherent=True, **kwargs)
                 delta += ds
                 nmoves += nm
@@ -1481,11 +1481,11 @@ def unilevel_minimize(state, nsweeps=10, adaptive_sweeps=True, epsilon=0,
         total_nmoves = 0
         deltaS = 0
         while count <= nsweeps:
-            delta, nmoves = mcmc_sweep(state, niter=nsweeps, beta=float("inf"),
+            delta, nmoves = mcmc_sweep(state, niter=nsweeps, beta=numpy.inf,
                                        **kwargs)
 
             if state.overlap:
-                ds, nm = mcmc_sweep(state, niter=nsweeps, beta=float("inf"),
+                ds, nm = mcmc_sweep(state, niter=nsweeps, beta=numpy.inf,
                                     node_coherent=True, **kwargs)
                 delta += ds
                 nmoves += nm
@@ -2355,7 +2355,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
 
     def cleanup_cache(b_cache, B_min, B_max):
         best_B = None
-        min_dl = float("inf")
+        min_dl = numpy.inf
         for Bi in b_cache.keys():
             if b_cache[Bi][0] <= min_dl:
                 min_dl = b_cache[Bi][0]
@@ -2416,7 +2416,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
             print("Bisect at", x, "with L=%g" % f_x)
 
         if max_B - mid_B <= 1:
-            min_dl = float(inf)
+            min_dl = numpy.inf
             best_B = None
             for Bi in b_cache.keys():
                 if Bi < B_lims[0] or Bi > B_lims[1]:
@@ -2745,7 +2745,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
        >>> for i in range(1000):        # remove part of the transient
        ...     ds, nmoves = gt.mcmc_sweep(state)
        >>> for i in range(1000):
-       ...     ds, nmoves = gt.mcmc_sweep(state, beta=float("inf"))
+       ...     ds, nmoves = gt.mcmc_sweep(state, beta=np.inf)
        >>> b = state.get_blocks()
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=b, vertex_shape=b, output="polbooks_blocks_B5.pdf")
        <...>

@@ -20,6 +20,8 @@
 
 from __future__ import division, absolute_import, print_function
 
+import numpy
+
 from .. import GraphView, PropertyMap, ungroup_vector_property,\
      group_vector_property, _prop
 from .cairo_draw import *
@@ -93,7 +95,7 @@ class VertexMatrix(object):
     def get_closest(self, pos):
         pos = np.array(pos)
         box = self.get_box(pos)
-        dist = float("inf")
+        dist = numpy.inf
         clst = None
         for i in range(-1, 2):
             for j in range(-1, 2):

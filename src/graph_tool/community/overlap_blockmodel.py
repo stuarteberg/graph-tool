@@ -755,7 +755,7 @@ def get_block_edge_gradient(g, be, cmap=None):
         cmap = default_cm
 
     cp = g.new_edge_property("vector<double>")
-    rg = [float("inf"), -float("inf")]
+    rg = [numpy.inf, -numpy.inf]
     for e in g.edges():
         s, t = be[e]
         rg[0] = min(s, rg[0])
