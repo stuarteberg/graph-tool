@@ -1718,17 +1718,34 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     vcolor = args.get("vertex_color", None)
     vertex_color = u.new_vertex_property("vector<double>")
     vertex_border_color = u.new_vertex_property("vector<double>")
+    max_vc = None
+    max_bvc = None
     for v in u.vertices():
         if isinstance(vfcolor, PropertyMap):
-            vertex_color[v] = vfcolor[v]
-        elif vcolor is not None:
-            vertex_color[v] = vfcolor
+            if vfcolor.value_type == "vector<double>":
+                vertex_color[v] = vfcolor[v]
+            elif vfcolor.value_type == "string":
+                vertex_color[v] = matplotlib.colors.ColorConverter().to_rgba(vfcolor[v])
+            else:
+                if max_vc is None:
+                    max_vc = vfcolor.fa.max()
+                vertex_color[v] = vcmap(vfcolor[v] / max_vc)
+        elif vfcolor is not None:
+            vertex_color[v] = matplotlib.colors.ColorConverter().to_rgba(vfcolor)
         else:
             vertex_color[v] = vcmap(b[v] / (B - 1) if B > 1 else 0)
+
         if isinstance(vcolor, PropertyMap):
-            vertex_border_color[v] = vcolor[v]
+            if vcolor.value_type == "vector<double>":
+                vertex_border_color[v] = vcolor[v]
+            elif vcolor.value_type == "string":
+                vertex_border_color[v] = matplotlib.colors.ColorConverter().to_rgba(vcolor[v])
+            else:
+                if max_vc is None:
+                    max_vc = vcolor.fa.max()
+                vertex_border_color[v] = vcmap(vcolor[v] / max_vc)
         elif vcolor is not None:
-            vertex_border_color[v] = vcolor
+            vertex_border_color[v] = matplotlib.colors.ColorConverter().to_rgba(vcolor)
         else:
             vertex_border_color[v] = colorConverter.to_rgba("#babdb6", 1)
 
