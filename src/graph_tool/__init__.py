@@ -1944,8 +1944,12 @@ class Graph(object):
             g = self
 
         is_directed = g.is_directed()
+        efilt = g.get_edge_filter()
+        vfilt = g.get_vertex_filter()
         try:
             g.set_directed(True)
+            g.set_edge_filter(None)
+            g.set_vertex_filter(None)
             if src.key_type() == "v":
                 self.__graph.CopyVertexProperty(g.__graph,
                                                 _prop("v", g, src),
@@ -1958,6 +1962,8 @@ class Graph(object):
                 tgt[self] = src[g]
         finally:
             g.set_directed(is_directed)
+            g.set_edge_filter(efilt[0], efilt[1])
+            g.set_vertex_filter(vfilt[0], vfilt[1])
         return ret
 
     # degree property map
