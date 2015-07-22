@@ -112,6 +112,7 @@ import weakref
 import copy
 import textwrap
 import io
+import collections
 
 if sys.version_info < (3,):
     import StringIO
@@ -2487,7 +2488,7 @@ class GraphView(Graph):
         if vfilt is not None:
             if type(vfilt) is not PropertyMap:
                 vmap = self.new_vertex_property("bool")
-                if issubclass(type(vfilt), numpy.ndarray):
+                if isinstance(vfilt, collections.Iterable):
                     vmap.fa = vfilt
                 else:
                     for v in g.vertices():
@@ -2507,7 +2508,7 @@ class GraphView(Graph):
         if efilt is not None:
             if type(efilt) is not PropertyMap:
                 emap = self.new_edge_property("bool")
-                if issubclass(type(efilt), numpy.ndarray):
+                if isinstance(efilt, collections.Iterable):
                     emap.fa = efilt
                 else:
                     for e in g.edges():
