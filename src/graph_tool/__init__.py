@@ -267,6 +267,11 @@ def terminal_size():
         struct.pack('HHHH', 0, 0, 0, 0)))
     return w, h
 
+try:
+    libcore.mod_info("wrong")
+except BaseException as e:
+    ArgumentError = type(e)
+
 ################################################################################
 # Property Maps
 ################################################################################
@@ -421,6 +426,22 @@ class PropertyMap(object):
         else:
             return key
 
+    def __key_convert(self, k):
+        if self.key_type() == "e":
+            try:
+                k = (int(k[0]), int(k[1]))
+            except:
+                raise ArgumentError
+            key = self.__g().edge(k[0], k[1])
+            if key is None:
+                raise ValueError("Nonexistent edge: %s" % str(k))
+        elif self.key_type() == "v":
+            try:
+                key = int(k)
+            except:
+                raise ArgumentError
+            key = self.__g().vertex(key)
+        return key
 
     def __register_map(self):
         for g in [self.__g(), self.__base_g()]:
@@ -436,14 +457,44 @@ class PropertyMap(object):
         self.__unregister_map()
 
     def __getitem__(self, k):
-        return self.__map[self.__key_trans(k)]
+        k = self.__key_trans(k)
+        try:
+            return self.__map[k]
+        except ArgumentError:
+            try:
+                k = self.__key_convert(k)
+                return self.__map[k]
+            except ArgumentError:
+                if self.key_type() == "e":
+                    kt = "Edge"
+                elif self.key_type() == "v":
+                    kt = "Vertex"
+                else:
+                    kt = "Graph"
+                raise ValueError("invalid key '%s' of type '%s', wanted type: %s" % (str(k), str(type(k)), kt) )
 
     def __setitem__(self, k, v):
         key = self.__key_trans(k)
         try:
-            self.__map[key] = v
-        except TypeError:
-            self.__map[key] = _convert(self, v)
+            try:
+                self.__map[key] = v
+            except TypeError:
+                self.__map[key] = _convert(self, v)
+        except ArgumentError:
+            try:
+                key = self.__key_convert(key)
+                try:
+                    self.__map[key] = v
+                except TypeError:
+                    self.__map[key] = _convert(self, v)
+            except ArgumentError:
+                if self.key_type() == "e":
+                    kt = "Edge"
+                elif self.key_type() == "v":
+                    kt = "Vertex"
+                else:
+                    kt = "Graph"
+                raise ValueError("invalid key '%s' of type '%s', wanted type: %s" % (str(k), str(type(k)), kt) )
 
     def __repr__(self):
         # provide some more useful information
