@@ -585,13 +585,15 @@ void do_collect_vertex_marginals(GraphInterface& gi, boost::any ob,
 
 struct get_deg_entropy_term
 {
-    template <class Graph>
-    void operator()(Graph& g, double& S) const
+    template <class Graph, class Emap, class VImap>
+    void operator()(Graph& g, Emap eweight, VImap ignore_degrees, double& S) const
     {
         for(auto v : vertices_range(g))
         {
-            S -= lgamma_fast(out_degree(v, g) + 1);
-            S -= lgamma_fast(in_degreeS()(v, g) + 1);
+            if (ignore_degrees[v])
+                continue;
+            S -= lgamma_fast(out_degreeS()(v, g, eweight) + 1);
+            S -= lgamma_fast(in_degreeS()(v, g, eweight) + 1);
         }
     }
 };
@@ -633,11 +635,18 @@ struct get_deg_entropy_term_overlap
 };
 
 double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
-                               overlap_stats_t& overlap_stats, size_t N)
+                               overlap_stats_t& overlap_stats, size_t N,
+                               boost::any aeweight, boost::any aignore_degrees)
 {
     typedef property_map_type::apply<int32_t,
                                      GraphInterface::vertex_index_map_t>::type
         vmap_t;
+    typedef property_map_type::apply<int32_t,
+                                     GraphInterface::edge_index_map_t>::type
+        emap_t;
+    typedef property_map_type::apply<uint8_t,
+                                     GraphInterface::vertex_index_map_t>::type
+        vimap_t;
 
     double S = 0;
 
@@ -651,9 +660,12 @@ double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
     }
     else
     {
+        emap_t eweight = any_cast<emap_t>(aeweight);
+        vimap_t ignore_degrees = any_cast<vimap_t>(aignore_degrees);
         run_action<>()
             (gi, std::bind(get_deg_entropy_term(),
-                           placeholders::_1, std::ref(S)))();
+                           placeholders::_1, eweight, ignore_degrees,
+                           std::ref(S)))();
     }
 
     return S;
@@ -721,17 +733,20 @@ python::tuple python_get_mu_l(double N, double E, double epsilon=1e-8)
 
 struct get_partition_stats
 {
-    template <class Graph, class Vprop, class Eprop>
+    template <class Graph, class Vprop, class Eprop, class Mprop>
     void operator()(Graph& g, Vprop b, Eprop eweight, size_t N, size_t B,
-                    bool edges_dl, partition_stats_t& partition_stats) const
+                    bool edges_dl, partition_stats_t& partition_stats,
+                    Mprop ignore_degrees) const
     {
-        partition_stats = partition_stats_t(g, b, eweight, N, B, edges_dl);
+        partition_stats = partition_stats_t(g, b, eweight, N, B, edges_dl,
+                                            ignore_degrees);
     }
 };
 
 partition_stats_t
 do_get_partition_stats(GraphInterface& gi, boost::any ob, boost::any aeweight,
-                       size_t N, size_t B, bool edges_dl)
+                       size_t N, size_t B, bool edges_dl,
+                       boost::any aignore_degrees)
 {
     typedef property_map_type::apply<int32_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -739,15 +754,19 @@ do_get_partition_stats(GraphInterface& gi, boost::any ob, boost::any aeweight,
     typedef property_map_type::apply<int32_t,
                                      GraphInterface::edge_index_map_t>::type
         emap_t;
+    typedef property_map_type::apply<uint8_t,
+                                     GraphInterface::vertex_index_map_t>::type
+        mvmap_t;
 
     partition_stats_t partition_stats;
 
     vmap_t b = any_cast<vmap_t>(ob);
     emap_t eweight = any_cast<emap_t>(aeweight);
+    mvmap_t ignore_degrees = any_cast<mvmap_t>(aignore_degrees);
 
     run_action<>()(gi, std::bind(get_partition_stats(),
                                  placeholders::_1, b, eweight, N, B, edges_dl,
-                                 std::ref(partition_stats)))();
+                                 std::ref(partition_stats), ignore_degrees))();
     return partition_stats;
 }
 

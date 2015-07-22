@@ -376,21 +376,27 @@ public:
 
     partition_stats_t() : _enabled(false) {}
 
-    template <class Graph, class Vprop, class Eprop>
+    template <class Graph, class Vprop, class Eprop, class Mprop>
     partition_stats_t(Graph& g, Vprop b, Eprop eweight, size_t N, size_t B,
-                      bool edges_dl)
+                      bool edges_dl, Mprop ignore_degree)
         : _enabled(true), _N(N), _E(0), _B(B), _hist(B), _total(B), _ep(B),
-          _em(B), _edges_dl(edges_dl)
+          _em(B), _edges_dl(edges_dl), _ignore_degree(N, false)
     {
         for (auto v : vertices_range(g))
         {
             auto r = b[v];
             size_t kin = in_degreeS()(v, g, eweight);
             size_t kout = out_degreeS()(v, g, eweight);
-            _hist[r][make_pair(kin, kout)]++;
+            if (v >= _ignore_degree.size())
+                _ignore_degree.resize(v + 1, false);
+            _ignore_degree[v] = ignore_degree[v];
+            if (!_ignore_degree[v])
+            {
+                _hist[r][make_pair(kin, kout)]++;
+                _em[r] += kin;
+                _ep[r] += kout;
+            }
             _total[r]++;
-            _em[r] += kin;
-            _ep[r] += kout;
             _E += kout;
         }
 
@@ -418,6 +424,9 @@ public:
         double S = 0;
         for (size_t r = 0; r < _B; ++r)
         {
+            if (_ep[r] + _em[r] == 0)
+                continue;
+
             if (ent)
             {
                 for (auto& k_c : _hist[r])
@@ -504,7 +513,7 @@ public:
     double get_delta_deg_dl(size_t v, size_t r, size_t nr, EWeight& eweight,
                             OStats&, Graph& g)
     {
-        if (r == nr)
+        if (r == nr || _ignore_degree[v])
             return 0;
 
         double S_b = 0, S_a = 0;
@@ -530,7 +539,6 @@ public:
 
         S_b += get_Sr(r,  0) + get_Sr(nr, 0);
         S_a += get_Sr(r, -1) + get_Sr(nr, 1);
-
 
         auto get_Sk = [&](size_t s, pair<size_t, size_t>& deg, int delta) -> double
             {
@@ -565,7 +573,7 @@ public:
         if (_total[nr] == 1)
             _actual_B++;
 
-        if (deg_corr)
+        if (deg_corr && !_ignore_degree[v])
         {
             if (kin + kout == 0)
             {
@@ -599,6 +607,7 @@ private:
     vector<int> _ep;
     vector<int> _em;
     bool _edges_dl;
+    vector<bool> _ignore_degree;
 };
 
 // ===============================

@@ -581,8 +581,8 @@ class OverlapBlockState(BlockState):
             if self.deg_corr:
                 S += libcommunity.deg_entropy_term(self.g._Graph__graph,
                                                    _prop("v", self.g, self.b),
-                                                   self.overlap_stats,
-                                                   self.N)
+                                                   self.overlap_stats, self.N,
+                                                   libcore.any(), libcore.any())
             if self.deg_corr:
                 S -= E
             else:

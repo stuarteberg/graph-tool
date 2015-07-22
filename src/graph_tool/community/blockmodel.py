@@ -194,6 +194,9 @@ class BlockState(object):
         self.max_BE = max_BE
 
         self.overlap = False
+        self.ignore_degrees = kwargs.get("ignore_degrees", None)
+        if self.ignore_degrees is None:
+            self.ignore_degrees = g.new_vertex_property("bool", False)
 
         # used by mcmc_sweep()
         self.egroups = None
@@ -233,7 +236,8 @@ class BlockState(object):
                                                                      _prop("v", self.g, self.b),
                                                                      _prop("e", self.g, self.eweight),
                                                                      self.N, self.B,
-                                                                     edges_dl)
+                                                                     edges_dl,
+                                                                     _prop("v", self.g, self.ignore_degrees))
         else:
             self.partition_stats = libcommunity.partition_stats()
 
@@ -253,7 +257,8 @@ class BlockState(object):
                                B=(self.B if b is None else None) if B is None else B,
                                clabel=self.clabel if clabel is None else clabel,
                                deg_corr=self.deg_corr if deg_corr is None else deg_corr,
-                               max_BE=self.max_BE)
+                               max_BE=self.max_BE,
+                               ignore_degrees=self.ignore_degrees)
         else:
             state = OverlapBlockState(self.g,
                                       b=b if b is not None else self.b,
@@ -281,7 +286,8 @@ class BlockState(object):
                      B=self.B,
                      clabel=self.clabel,
                      deg_corr=self.deg_corr,
-                     max_BE=self.max_BE)
+                     max_BE=self.max_BE,
+                     ignore_degrees=self.ignore_degrees)
         return state
 
     def __setstate__(self, state):
@@ -549,7 +555,9 @@ class BlockState(object):
                     S += libcommunity.deg_entropy_term(self.g._Graph__graph,
                                                        libcore.any(),
                                                        self.overlap_stats,
-                                                       self.N)
+                                                       self.N,
+                                                       _prop("e", self.g, self.eweight),
+                                                       _prop("v", self.g, self.ignore_degrees))
 
                 if multigraph:
                     S += libcommunity.entropy_parallel(self.g._Graph__graph,
@@ -2181,6 +2189,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
     nested_overlap = kwargs.get("nested_overlap", False)
     nonoverlap_compare = kwargs.get("nonoverlap_compare", False)
     dl_ent = kwargs.get("dl_ent", False)
+    ignore_degrees = kwargs.get("ignore_degrees", None)
 
     if minimize_state is None:
         minimize_state = MinimizeState()
@@ -2289,7 +2298,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
             else:
                 state = BlockState(g, B=g.num_vertices(), deg_corr=deg_corr,
                                    vweight=vweight, eweight=eweight, clabel=clabel,
-                                   max_BE=max_BE)
+                                   max_BE=max_BE, ignore_degrees=ignore_degrees)
 
         else:
             if overlap:

@@ -78,7 +78,7 @@ class NestedBlockState(object):
 
     def __init__(self, g, eweight=None, vweight=None, ec=None, bs=None, Bs=None,
                  deg_corr=True, overlap=False, layers=False, clabel=None,
-                 max_BE=1000):
+                 max_BE=1000, **kwargs):
         L = len(Bs) if Bs is not None else len(bs)
         self.g = cg = g
         self.vweight = vcount = vweight
@@ -90,6 +90,7 @@ class NestedBlockState(object):
         self.overlap = overlap
         self.deg_corr = deg_corr
         self.clabel = clabel if clabel is not None else g.new_vertex_property("int")
+        self.ignore_degrees = kwargs.get("ignore_degrees", None)
 
         for l in range(L):
             Bl = Bs[l] if Bs is not None else None
@@ -117,7 +118,8 @@ class NestedBlockState(object):
                                            vweight=vcount,
                                            deg_corr=deg_corr != False,
                                            #clabel=self.clabel,
-                                           max_BE=max_BE)
+                                           max_BE=max_BE,
+                                           ignore_degrees=self.ignore_degrees)
                 else:
                     state = CovariateBlockState(g, B=Bl, b=bl,
                                                 ec=ec,
@@ -742,7 +744,8 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                  ##exaustive=g.num_vertices() <= 100,
                                  #minimize_state=minimize_state.minimize_state, >>>>>> HERE <<<<<
                                  checkpoint=checkpoint,
-                                 dl_ent=dl_ent)
+                                 dl_ent=dl_ent,
+                                 ignore_degrees=state.ignore_degrees if l == 0 else None)
 
     if _bm_test():
         assert (res.clabel.a == cclabel.a).all(), (res.clabel.a, cclabel.a)
@@ -1240,6 +1243,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
     """
 
     dl_ent = kwargs.get("dl_ent", False)
+    ignore_degrees = kwargs.get("ignore_degrees", None)
 
     if minimize_state is None:
         minimize_state = NestedMinimizeState()
@@ -1247,7 +1251,8 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
 
     state = NestedBlockState(g, ec=ec, layers=layers, eweight=eweight,
                              vweight=vweight, Bs=[1], deg_corr=deg_corr,
-                             overlap=overlap, clabel=clabel)
+                             overlap=overlap, clabel=clabel,
+                             ignore_degrees=ignore_degrees)
 
     chkp = get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent)
 
@@ -1274,7 +1279,8 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                                             eweight=ecount,
                                             deg_corr=deg_corr != False,
                                             #clabel=clabel,
-                                            max_BE=max_BE)
+                                            max_BE=max_BE,
+                                            ignore_degrees=ignore_degrees)
                 else:
                     if overlap:
                         if confine_layers:
@@ -1570,6 +1576,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
     """
 
     dl_ent = kwargs.get("dl_ent", False)
+    ignore_degrees = kwargs.get("ignore_degrees", None)
 
     if minimize_state is None:
         minimize_state = NestedMinimizeState()
@@ -1659,12 +1666,13 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
                                   sequential=sequential,
                                   parallel=parallel,
                                   checkpoint=checkpoint,
-                                  minimize_state=minimize_state, dl_ent=dl_ent)
+                                  minimize_state=minimize_state, dl_ent=dl_ent,
+                                  ignore_degrees=ignore_degrees)
     else:
         state = NestedBlockState(g, ec=ec, layers=layers, bs=bs,
                                  deg_corr=deg_corr, overlap=overlap,
                                  eweight=eweight, vweight=vweight,
-                                 clabel=clabel)
+                                 clabel=clabel, ignore_degrees=ignore_degrees)
 
     minimize_state.sync(state)
 
