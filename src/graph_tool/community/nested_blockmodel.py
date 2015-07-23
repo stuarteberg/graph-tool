@@ -158,11 +158,13 @@ class NestedBlockState(object):
              " degree corrected," if self.deg_corr else "",
              str(self.g), len(self.levels), str([(s.N, s.B) for s in self.levels]), id(self))
 
-    def copy(self, ec=None, layers=None, deg_corr=None, overlap=None, clabel=None):
+    def copy(self, g=None, bs=None, ec=None, layers=None, deg_corr=None,
+             overlap=None, clabel=None):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor.."""
 
-        bs = [s.b.a for s in self.levels]
+        if bs is None:
+            bs = [s.b.a for s in self.levels]
         if overlap is None:
             overlap = self.overlap
         elif self.overlap and not overlap:
@@ -174,8 +176,8 @@ class NestedBlockState(object):
             deg_corr = self.deg_corr
         if layers is None:
             layers = self.layers
-        return NestedBlockState(self.g, self.eweight, self.vweight,
-                                self.ec if ec is None else ec, bs,
+        return NestedBlockState(self.g if g is None else g, self.eweight,
+                                self.vweight, self.ec if ec is None else ec, bs,
                                 layers=layers, deg_corr=deg_corr,
                                 overlap=overlap, clabel=clabel,
                                 max_BE=self.levels[0].max_BE)

@@ -468,11 +468,11 @@ class CovariateBlockState(BlockState):
         self.__init__(**state)
         return state
 
-    def copy(self, b=None, B=None, deg_corr=None, clabel=None, overlap=None,
-             layers=None, ec=None):
+    def copy(self, g=None, b=None, B=None, deg_corr=None, clabel=None,
+             overlap=None, layers=None, ec=None):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
-        state = CovariateBlockState(self.g,
+        state = CovariateBlockState(self.g if g is None else g,
                                     ec=self.ec if ec is None else ec,
                                     eweight=self.eweight,
                                     vweight=self.vweight,
