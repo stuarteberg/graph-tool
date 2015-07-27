@@ -243,7 +243,8 @@ class BlockState(object):
 
 
 
-    def copy(self, g=None, b=None, B=None, deg_corr=None, clabel=None, overlap=False):
+    def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
+             deg_corr=None, clabel=None, overlap=False):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor. If ``overlap=True`` an
          instance of :class:`~graph_tool.community.OverlapBlockState` is
@@ -251,8 +252,8 @@ class BlockState(object):
 
         if not overlap:
             state = BlockState(self.g if g is None else g,
-                               eweight=self.eweight,
-                               vweight=self.vweight,
+                               eweight=self.eweight if eweight is None else eweight,
+                               vweight=self.vweight if vweight is None else vweight,
                                b=self.b.copy() if b is None else b,
                                B=(self.B if b is None else None) if B is None else B,
                                clabel=self.clabel if clabel is None else clabel,

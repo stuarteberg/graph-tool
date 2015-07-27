@@ -254,15 +254,16 @@ class OverlapBlockState(BlockState):
             self.partition_stats = libcommunity.overlap_partition_stats()
 
 
-    def copy(self, g=None, b=None, B=None, deg_corr=None, clabel=None, overlap=True):
+    def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
+             deg_corr=None, clabel=None, overlap=True):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor. If ``overlap=False`` an
          instance of :class:`~graph_tool.community.BlockState` is returned."""
 
         if overlap:
             state = OverlapBlockState(self.g if g is None else g,
-                                      eweight=self.eweight,
-                                      vweight=self.vweight,
+                                      eweight=self.eweight if eweight is None else eweight,
+                                      vweight=self.vweight if vweight is None else vweight,
                                       b=self.b if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
                                       clabel=self.clabel.a if clabel is None else clabel,
