@@ -33,13 +33,15 @@ AC_DISABLE_STATIC
 LT_INIT
 AC_PROG_INSTALL
 
+AX_CXX_COMPILE_STDCXX_11([ext],[mandatory])
+
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
 
 dnl Checks for options
 
 dnl Turn debugging on or off
-AC_MSG_CHECKING(whether to enable debug info...)
+AC_MSG_CHECKING(whether to enable debug info)
 
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug],[compile debug information [default=disabled] ])],
         if test $enableval = yes; then
@@ -54,15 +56,6 @@ AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug],[compile debug informati
         [CXXFLAGS="${CXXFLAGS} -DNDEBUG"]
         [AC_MSG_RESULT(no)]
         )
-
-dnl enable c++11
-old_cxxflags="$CXXFLAGS"
-[CXXFLAGS="${CXXFLAGS} -std=gnu++11"]
-AC_MSG_CHECKING([whether C++ compiler supports -std=gnu++11])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])],
-    [AC_MSG_RESULT([no])]
-    [CXXFLAGS="${old_cxxflags} -std=gnu++0x"])
 
 dnl set template depth
 [CXXFLAGS="${CXXFLAGS} -ftemplate-depth-250"]
@@ -88,7 +81,7 @@ AC_ARG_ENABLE([inline], [AS_HELP_STRING([--disable-inline],[disable inline funct
 
 AM_CONDITIONAL(NO_INLINE, test $NO_INLINE = yes)
 
-AC_MSG_CHECKING(whether to enable optimizations...)
+AC_MSG_CHECKING(whether to enable optimizations)
 
 AC_ARG_ENABLE([optimization], [AS_HELP_STRING([--disable-optimization],[disable optimization [default=enabled] ])],
         if test $enableval = no; then
@@ -102,7 +95,7 @@ AC_ARG_ENABLE([optimization], [AS_HELP_STRING([--disable-optimization],[disable 
         [AC_MSG_RESULT(yes)]
         )
 
-AC_MSG_CHECKING(whether to enable symbol visibility manipulation...)
+AC_MSG_CHECKING(whether to enable symbol visibility manipulation)
 
 AC_ARG_ENABLE([visibility], [AS_HELP_STRING([--disable-visibility],[disable symbol visibility manipulation [default=enabled] ])],
         if test $enableval = yes; then
@@ -133,7 +126,7 @@ AC_ARG_ENABLE([visibility], [AS_HELP_STRING([--disable-visibility],[disable symb
 
 [USING_OPENMP=yes]
 [OPENMP_LDFLAGS=""]
-AC_MSG_CHECKING(whether to enable parallel algorithms with openmp...)
+AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
 AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--enable-openmp],[enable openmp [default=disabled] ])],
         if test $enableval = yes; then
            [AC_MSG_RESULT(yes)]
@@ -152,7 +145,7 @@ AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--enable-openmp],[enable openmp [defaul
 AC_SUBST(OPENMP_LDFLAGS)
 
 [USING_CAIRO=yes]
-AC_MSG_CHECKING(whether to enable cairo drawing...)
+AC_MSG_CHECKING(whether to enable cairo drawing)
 AC_ARG_ENABLE([cairo], [AS_HELP_STRING([--disable-cairo],[disable cairo drawing [default=enabled] ])],
         if test $enableval = no; then
            [USING_CAIRO=no]
@@ -238,7 +231,7 @@ AC_CHECK_LIB(CGAL,main)
 [CGAL_LIBADD="-lCGAL -lgmp"]
 AC_SUBST(CGAL_LIBADD)
 [CGAL_FLAGS="-frounding-math"]
-AC_MSG_CHECKING(whether to cgal debbuging with valgrind...)
+AC_MSG_CHECKING(whether to cgal debbuging with valgrind)
 AC_ARG_ENABLE([cgal-valgrind], [AS_HELP_STRING([--enable-cgal-valgrind],[enable CGAL valgrind debugging [default=disabled] ])],
         if test $enableval = yes; then
            [AC_MSG_RESULT(yes)]
@@ -316,7 +309,7 @@ AC_ARG_WITH([sparsehash-prefix], [AS_HELP_STRING([--with-sparsehash-prefix=prefi
             [SPARSEHASH_PREFIX=$withval])
 
 [USING_SPARSEHASH=yes]
-AC_MSG_CHECKING(whether to enable sparsehash...)
+AC_MSG_CHECKING(whether to enable sparsehash)
 AC_ARG_ENABLE([sparsehash], [AS_HELP_STRING([--disable-sparsehash],[disable use of google's sparsehash [default=enabled] ])],
         if test $enableval = no; then
            [USING_SPARSEHASH=no]
