@@ -206,7 +206,7 @@ class OverlapBlockState(BlockState):
                 if _bm_test():
                     assert len(clabel.a) < self.g.num_vertices()
                 self.clabel = self.node_index.copy()
-                pmap(self.clabel, clabel)
+                pmap(self.clabel, clabel.copy("int"))
             else:
                 # if clabel is an array, we will assume it constraints the *half-edges*
                 self.clabel = self.g.new_vertex_property("int")

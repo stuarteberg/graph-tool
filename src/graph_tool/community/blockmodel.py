@@ -181,7 +181,7 @@ class BlockState(object):
 
         if clabel is not None:
             if isinstance(clabel, PropertyMap):
-                self.clabel = self.g.own_property(clabel.copy())
+                self.clabel = self.g.own_property(clabel.copy("int"))
             else:
                 self.clabel = self.g.new_vertex_property("int")
                 self.clabel.a = clabel
