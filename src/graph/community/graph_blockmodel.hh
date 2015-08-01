@@ -54,7 +54,6 @@ public:
     typedef Key key_type;
     typedef boost::readable_property_map_tag category;
 
-    inline __attribute__((always_inline))
     const value_type operator[](const key_type& c) const { return {c}; }
 };
 
@@ -73,7 +72,6 @@ extern vector<double> __xlogx_cache;
 extern vector<double> __lgamma_cache;
 
 template <class Type>
-__attribute__((always_inline))
 inline double safelog(Type x)
 {
     if (x == 0)
@@ -81,7 +79,6 @@ inline double safelog(Type x)
     return log(x);
 }
 
-__attribute__((always_inline))
 inline double safelog(size_t x)
 {
     if (x >= __safelog_cache.size())
@@ -93,7 +90,6 @@ inline double safelog(size_t x)
     return __safelog_cache[x];
 }
 
-__attribute__((always_inline))
 inline double xlogx(size_t x)
 {
     if (x >= __xlogx_cache.size())
@@ -101,7 +97,6 @@ inline double xlogx(size_t x)
     return __xlogx_cache[x];
 }
 
-__attribute__((always_inline))
 inline double lgamma_fast(size_t x)
 {
     if (x >= __lgamma_cache.size())
@@ -179,7 +174,6 @@ double get_xi_fast(NType N, EType E)
 
 // "edge" term of the entropy
 template <class Graph>
-__attribute__((always_inline))
 inline double eterm(size_t r, size_t s, size_t mrs, const Graph&)
 {
     if (!is_directed::apply<Graph>::type::value && r == s)
@@ -281,7 +275,6 @@ struct entropy_parallel_edges
 // Warning: lgamma(x) is not thread-safe! However, since in the context of this
 // program the outputs should _always_ be positive, this can be overlooked.
 
-__attribute__((always_inline))
 inline double lbinom(double N, double k)
 {
     if (N == 0 || k == 0 || k > N)
@@ -289,7 +282,6 @@ inline double lbinom(double N, double k)
     return (lgamma(N + 1) - lgamma(k + 1)) - lgamma(N - k + 1);
 }
 
-__attribute__((always_inline))
 inline double lbinom_fast(int N, int k)
 {
     if (N == 0 || k == 0 || k > N)
@@ -297,7 +289,6 @@ inline double lbinom_fast(int N, int k)
     return lgamma_fast(N + 1) - lgamma_fast(N - k + 1) - lgamma_fast(k + 1);
 }
 
-__attribute__((always_inline))
 inline double lbinom_careful(double N, double k)
 {
     if (N == 0 || k == 0 || k >= N)
@@ -319,7 +310,6 @@ inline double lbinom_careful(double N, double k)
 
 // "edge" term of the entropy
 template <class Graph>
-__attribute__((always_inline))
 inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
                           double wr_s, bool multigraph, const Graph&)
 {
@@ -471,28 +461,40 @@ public:
     }
 
     template <class Graph, class OStats>
-    double get_delta_dl(size_t, size_t r, size_t nr, OStats&, Graph&)
+    double get_delta_dl(size_t v, size_t r, size_t nr, OStats&, Graph&g)
     {
         if (r == nr)
             return 0;
 
+        double dS = 0;
+        dS += get_delta_dl_remove(v, r, g, false, 0, 0);
+        dS += get_delta_dl_add(v, nr, g, false, 0, 0);
+        return dS;
+    }
+
+    template <class Graph>
+    double get_delta_dl_remove(size_t, size_t r, Graph&, bool conservative,
+                               size_t kin, size_t kout)
+    {
         double S_b = 0, S_a = 0;
-        S_b += -lgamma_fast(_total[r] + 1) - lgamma_fast(_total[nr] + 1);
-        S_a += -lgamma_fast(_total[r]    ) - lgamma_fast(_total[nr] + 2);
+        S_b += -lgamma_fast(_total[r] + 1);
+        S_a += -lgamma_fast(_total[r]    );
 
         int dB = 0;
         if (_total[r] == 1)
             dB--;
-        if (_total[nr] == 0)
-            dB++;
 
         if (dB != 0)
         {
             S_b += lbinom(_actual_B + _N - 1, _N);
-            S_a += lbinom(_actual_B + dB + _N - 1, _N);
+            if (conservative)
+                S_a += lbinom(_actual_B + dB + _N - 2, _N - 1);
+            else
+                S_a += lbinom(_actual_B + dB + _N - 1, _N);
 
             if (_edges_dl)
             {
+                int dE = (conservative) ? -(kin + kout) : 0;
                 auto get_x = [](size_t B) -> size_t
                 {
                     if (is_directed::apply<Graph>::type::value)
@@ -502,7 +504,46 @@ public:
                 };
 
                 S_b += lbinom(get_x(_actual_B) + _E - 1, _E);
-                S_a += lbinom(get_x(_actual_B + dB) + _E - 1, _E);
+                S_a += lbinom(get_x(_actual_B + dB) + _E + dE - 1, _E + dE);
+            }
+        }
+
+        return S_a - S_b;
+    }
+
+    template <class Graph>
+    double get_delta_dl_add(size_t, size_t r, Graph&, bool conservative,
+                            size_t kin, size_t kout)
+    {
+        double S_b = 0, S_a = 0;
+        S_b += -lgamma_fast(_total[r] + 1);
+        S_a += -lgamma_fast(_total[r] + 2);
+
+        int dB = 0;
+        if (_total[r] == 0)
+            dB++;
+
+        if (dB != 0)
+        {
+            S_b += lbinom(_actual_B + _N - 1, _N);
+            if (conservative)
+                S_a += lbinom(_actual_B + dB + _N, _N + 1);
+            else
+                S_a += lbinom(_actual_B + dB + _N - 1, _N);
+
+            if (_edges_dl)
+            {
+                int dE = (conservative) ? (kin + kout) : 0;
+                auto get_x = [](size_t B) -> size_t
+                {
+                    if (is_directed::apply<Graph>::type::value)
+                        return B * B;
+                    else
+                        return (B * (B + 1)) / 2;
+                };
+
+                S_b += lbinom(get_x(_actual_B) + _E - 1, _E);
+                S_a += lbinom(get_x(_actual_B + dB) + _E + dE - 1, _E + dE);
             }
         }
 
@@ -515,44 +556,84 @@ public:
     {
         if (r == nr || _ignore_degree[v])
             return 0;
-
-        double S_b = 0, S_a = 0;
-
         int kin = in_degreeS()(v, g, eweight);
         int kout = out_degreeS()(v, g, eweight);
 
-        auto get_Se = [&](size_t s, int delta, int kin, int kout) -> double
-            {
-                double S = 0;
-                S += get_xi_fast(_total[s] + delta, _em[s] + kin);
-                S += get_xi_fast(_total[s] + delta, _ep[s] + kout);
-                return S;
-            };
+        double dS = 0;
+        dS += get_delta_deg_dl_remove(v, r, eweight, g, kin, kout);
+        dS += get_delta_deg_dl_add(v, nr, eweight, g, kin, kout);
+        return dS;
+    }
 
-        S_b += get_Se(r,  0,    0,     0) + get_Se(nr, 0,   0,    0);
-        S_a += get_Se(r, -1, -kin, -kout) + get_Se(nr, 1, kin, kout);
+    double get_Se (size_t s, int delta, int kin, int kout)
+    {
+        double S = 0;
+        S += get_xi_fast(_total[s] + delta, _em[s] + kin);
+        S += get_xi_fast(_total[s] + delta, _ep[s] + kout);
+        return S;
+    };
 
-        auto get_Sr = [&](size_t s, int delta) -> double
-            {
-                return lgamma_fast(_total[s] + delta + 1);
-            };
+    double get_Sr(size_t s, int delta)
+    {
+        return lgamma_fast(_total[s] + delta + 1);
+    };
 
-        S_b += get_Sr(r,  0) + get_Sr(nr, 0);
-        S_a += get_Sr(r, -1) + get_Sr(nr, 1);
+    double get_Sk(size_t s, pair<size_t, size_t>& deg, int delta)
+    {
+        size_t nd = 0;
+        auto iter = _hist[s].find(deg);
+        if (iter != _hist[s].end())
+            nd = iter->second;
 
-        auto get_Sk = [&](size_t s, pair<size_t, size_t>& deg, int delta) -> double
-            {
-                size_t nd = 0;
-                auto iter = _hist[s].find(deg);
-                if (iter != _hist[s].end())
-                    nd = iter->second;
+        return -lgamma_fast(nd + delta + 1);
+    };
 
-                return -lgamma_fast(nd + delta + 1);
-            };
+    template <class Graph, class EWeight>
+    double get_delta_deg_dl_remove(size_t v, size_t r, EWeight& eweight,
+                                   Graph& g, size_t kin, size_t kout)
+    {
+        double S_b = 0, S_a = 0;
+
+        if (kin + kout == 0)
+        {
+            kin = in_degreeS()(v, g, eweight);
+            kout = out_degreeS()(v, g, eweight);
+        }
+
+        S_b += get_Se(r,  0,    0,     0);
+        S_a += get_Se(r, -1, -kin, -kout);
+
+        S_b += get_Sr(r,  0);
+        S_a += get_Sr(r, -1);
 
         auto deg = make_pair(size_t(kin), size_t(kout));
-        S_b += get_Sk(r, deg,  0) + get_Sk(nr, deg, 0);
-        S_a += get_Sk(r, deg, -1) + get_Sk(nr, deg, 1);
+        S_b += get_Sk(r, deg,  0);
+        S_a += get_Sk(r, deg, -1);
+
+        return S_a - S_b;
+    }
+
+    template <class Graph, class EWeight>
+    double get_delta_deg_dl_add(size_t v, size_t nr, EWeight& eweight, Graph& g,
+                                size_t kin, size_t kout)
+    {
+        double S_b = 0, S_a = 0;
+
+        if (kin + kout == 0)
+        {
+            kin = in_degreeS()(v, g, eweight);
+            kout = out_degreeS()(v, g, eweight);
+        }
+
+        S_b += get_Se(nr, 0,   0,    0);
+        S_a += get_Se(nr, 1, kin, kout);
+
+        S_b += get_Sr(nr, 0);
+        S_a += get_Sr(nr, 1);
+
+        auto deg = make_pair(size_t(kin), size_t(kout));
+        S_b += get_Sk(nr, deg, 0);
+        S_a += get_Sk(nr, deg, 1);
 
         return S_a - S_b;
     }
@@ -564,14 +645,50 @@ public:
     {
         if (r == nr)
             return;
+        if (deg_corr && !_ignore_degree[v])
+        {
+            if (kin + kout == 0)
+            {
+                kin = in_degreeS()(v, g, eweight);
+                kout = out_degreeS()(v, g, eweight);
+            }
+        }
+        remove_vertex(v, r, deg_corr, g, eweight, kin, kout);
+        add_vertex(v, nr, deg_corr, g, eweight, kin, kout);
+    }
 
-        _total[r]--;
+    template <class Graph, class EWeight>
+    void add_vertex(size_t v, size_t nr, bool deg_corr, Graph& g,
+                    EWeight& eweight, size_t kin = 0, size_t kout = 0)
+    {
         _total[nr]++;
+
+        if (_total[nr] == 1)
+            _actual_B++;
+
+        if (deg_corr && !_ignore_degree[v])
+        {
+            if (kin + kout == 0)
+            {
+                kin = in_degreeS()(v, g, eweight);
+                kout = out_degreeS()(v, g, eweight);
+            }
+            auto deg = make_pair(kin, kout);
+            _hist[nr][deg]++;
+            _em[nr] += deg.first;
+            _ep[nr] += deg.second;
+        }
+        _N++;
+    }
+
+    template <class Graph, class EWeight>
+    void remove_vertex(size_t v, size_t r, bool deg_corr, Graph& g,
+                       EWeight& eweight, size_t kin = 0, size_t kout = 0)
+    {
+        _total[r]--;
 
         if (_total[r] == 0)
             _actual_B--;
-        if (_total[nr] == 1)
-            _actual_B++;
 
         if (deg_corr && !_ignore_degree[v])
         {
@@ -585,12 +702,10 @@ public:
             iter->second--;
             if (iter->second == 0)
                 _hist[r].erase(iter);
-            _hist[nr][deg]++;
             _em[r] -= deg.first;
             _ep[r] -= deg.second;
-            _em[nr] += deg.first;
-            _ep[nr] += deg.second;
         }
+        _N--;
     }
 
     bool is_enabled() { return _enabled; }
@@ -653,7 +768,6 @@ struct create_emat
 };
 
 template <class Graph>
-inline __attribute__((always_inline))
 pair<typename graph_traits<Graph>::edge_descriptor, bool>
 get_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
@@ -663,7 +777,6 @@ get_me(typename graph_traits<Graph>::vertex_descriptor r,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
 void
 put_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
@@ -676,7 +789,6 @@ put_me(typename graph_traits<Graph>::vertex_descriptor r,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
 void
 remove_me(typename graph_traits<Graph>::vertex_descriptor r,
           typename graph_traits<Graph>::vertex_descriptor s,
@@ -710,7 +822,6 @@ struct get_ehash_t
 
 
 template<class Graph>
-inline __attribute__((always_inline))
 pair<typename graph_traits<Graph>::edge_descriptor, bool>
 get_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
@@ -720,12 +831,11 @@ get_me(typename graph_traits<Graph>::vertex_descriptor r,
     const auto& map = ehash[r];
     auto iter = map.find(s);
     if (iter == map.end())
-        return (make_pair(typename graph_traits<Graph>::edge_descriptor(), false));
+        return make_pair(typename graph_traits<Graph>::edge_descriptor(), false);
     return make_pair(iter->second, true);
 }
 
 template<class Graph>
-inline __attribute__((always_inline))
 void
 put_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
@@ -740,7 +850,6 @@ put_me(typename graph_traits<Graph>::vertex_descriptor r,
 }
 
 template<class Graph>
-inline __attribute__((always_inline))
 void
 remove_me(typename graph_traits<Graph>::vertex_descriptor r,
           typename graph_traits<Graph>::vertex_descriptor s,
@@ -772,7 +881,6 @@ struct create_ehash
 };
 
 template <class Vertex, class Eprop, class Emat, class BGraph>
-__attribute__((always_inline))
 inline size_t get_mrs(Vertex r, Vertex s, const Eprop& mrs, Emat& emat,
                       BGraph& bg)
 {
@@ -1053,8 +1161,7 @@ void move_vertex(size_t v, size_t nr, Eprop& mrs, Vprop& mrp, Vprop& mrm,
 
 
 template <class Type1, class Type2, class Graph>
-__attribute__((always_inline))
-inline pair<Type1,Type2> make_ordered_pair(const Type1& v1, const Type2& v2, const Graph&)
+pair<Type1,Type2> make_ordered_pair(const Type1& v1, const Type2& v2, const Graph&)
 {
     if (!is_directed::apply<Graph>::type::value)
     {
@@ -1086,13 +1193,11 @@ public:
         _delta.reserve(B);
     }
 
-    __attribute__((always_inline))
     void set_move(size_t r, size_t nr)
     {
         _rnr = make_pair(r, nr);
     }
 
-    __attribute__((always_inline))
     void insert_delta(size_t r, size_t s, int delta, bool source)
     {
         if (s == _rnr.first || s == _rnr.second)
@@ -1125,7 +1230,6 @@ public:
         }
     }
 
-    __attribute__((always_inline))
     int get_delta(size_t t, size_t s)
     {
         if (is_directed::apply<Graph>::type::value)
@@ -1145,7 +1249,6 @@ public:
         return 0;
     }
 
-    __attribute__((always_inline))
     int get_delta_target(size_t r, size_t s)
     {
         vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
@@ -1155,7 +1258,6 @@ public:
             return _delta[field[s]];
     }
 
-    __attribute__((always_inline))
     int get_delta_source(size_t s, size_t r)
     {
         vector<size_t>& field = (_rnr.first == r) ? _r_field_s : _nr_field_s;
@@ -1165,7 +1267,6 @@ public:
             return _delta[field[s]];
     }
 
-    __attribute__((always_inline))
     void clear()
     {
         for (size_t i = 0; i < _entries.size(); ++i)
@@ -1210,7 +1311,7 @@ template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
           class MEntries,  class NPolicy = standard_neighbours_policy,
           class IL = is_loop_nop>
 void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
-                  BGraph&, MEntries& m_entries,
+                  BGraph& bg, MEntries& m_entries,
                   const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
@@ -1218,6 +1319,18 @@ void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
 
     m_entries.set_move(r, nr);
 
+    remove_entries(v, r, b, eweights, g, bg, m_entries, npolicy, is_loop);
+    add_entries(v, nr, b, eweights, g, bg, m_entries, npolicy, is_loop);
+}
+
+template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
+          class MEntries,  class NPolicy = standard_neighbours_policy,
+          class IL = is_loop_nop>
+void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, Graph& g,
+                    BGraph&, MEntries& m_entries,
+                    const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
+{
+    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     int self_weight = 0;
     for (auto e : npolicy.get_out_edges(v, g))
     {
@@ -1230,19 +1343,13 @@ void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
 
         if (u == v || is_loop(v))
         {
-            s = nr;
             if (!is_directed::apply<Graph>::type::value)
                 self_weight += ew;
         }
-
-        m_entries.insert_delta(nr, s, +ew, false);
     }
 
     if (self_weight > 0 && self_weight % 2 == 0)
-    {
         m_entries.insert_delta(r,   r,  self_weight / 2, false);
-        m_entries.insert_delta(nr, nr, -self_weight / 2, false);
-    }
 
     for (auto e : npolicy.get_in_edges(v, g))
     {
@@ -1253,9 +1360,49 @@ void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
         int ew = eweights[e];
 
         m_entries.insert_delta(r,  s, -ew, true);
+    }
+}
+
+template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
+          class MEntries,  class NPolicy = standard_neighbours_policy,
+          class IL = is_loop_nop>
+void add_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
+                 BGraph&, MEntries& m_entries,
+                 const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
+{
+    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+    int self_weight = 0;
+    for (auto e : npolicy.get_out_edges(v, g))
+    {
+        vertex_t u = target(e, g);
+        vertex_t s = b[u];
+        int ew = eweights[e];
+        //assert(ew > 0);
+
+        if (u == v || is_loop(v))
+        {
+            s = nr;
+            if (!is_directed::apply<Graph>::type::value)
+                self_weight += ew;
+        }
+
+        m_entries.insert_delta(nr, s, +ew, false);
+    }
+
+    if (self_weight > 0 && self_weight % 2 == 0)
+        m_entries.insert_delta(nr, nr, -self_weight / 2, false);
+
+    for (auto e : npolicy.get_in_edges(v, g))
+    {
+        vertex_t u = source(e, g);
+        if (u == v)
+            continue;
+        vertex_t s = b[u];
+        int ew = eweights[e];
         m_entries.insert_delta(nr, s, +ew, true);
     }
 }
+
 
 // obtain the entropy difference given a set of entries in the e_rs matrix
 template <class MEntries, class Eprop, class BGraph, class EMat>
@@ -1913,7 +2060,8 @@ get_move_prob(Vertex v, Vertex r, Vertex s, double c, Vprop& b, MEprop& mrs,
 
 // merge vertex u into v
 template <class Graph, class Eprop, class Vprop>
-void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight, Graph& g)
+void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight,
+                    Graph& g)
 {
     auto eweight = eweight_u.get_checked();
 

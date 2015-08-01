@@ -1248,7 +1248,6 @@ public:
 
     void set_move(size_t, size_t) {}
 
-    __attribute__((always_inline))
     void insert_delta(size_t r, size_t s, int delta, bool source)
     {
         if (source)
@@ -1262,7 +1261,6 @@ public:
         ++_pos;
     }
 
-    __attribute__((always_inline))
     int get_delta(size_t t, size_t s)
     {
         if (make_pair(t, s) == _entries[0])
