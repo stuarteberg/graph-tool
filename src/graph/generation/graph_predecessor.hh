@@ -37,11 +37,11 @@ struct get_predecessor_graph
 
         for (auto v : vertices_range(g))
         {
-            auto pred_i = get(pred_map, v);
+            size_t pred_i = get(pred_map, v);
             if (pred_i >= num_vertices(g))
                 continue;
 
-            auto pred = vertex(pred_i, g);
+            size_t pred = vertex(pred_i, g);
             if (pred == graph_traits<Graph>::null_vertex())
                 continue;
 
