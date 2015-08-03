@@ -279,13 +279,13 @@ struct get_edge_community_property_sum
         for (auto v : vertices_range(cg))
             comms[cs_map[v]] = v;
 
-        gt_hash_map<pair<size_t, size_t>, cedge_t> comm_edges;
+        gt_hash_map<pair<size_t, size_t>, vector<cedge_t>> comm_edges;
 
         for (auto e : edges_range(cg))
         {
             cvertex_t cs = comms[get(cs_map, source(e, cg))];
             cvertex_t ct = comms[get(cs_map, target(e, cg))];
-            comm_edges[make_pair(cs, ct)] = e;
+            comm_edges[make_pair(cs, ct)].push_back(e);
         }
 
         for (auto e : edges_range(g))
@@ -294,7 +294,9 @@ struct get_edge_community_property_sum
             cvertex_t ct = comms[get(s_map, target(e, g))];
             if (cs == ct && !self_loops)
                 continue;
-            ceprop[comm_edges[make_pair(cs, ct)]] += eprop[e];
+            auto& ces = comm_edges[make_pair(cs, ct)];
+            ceprop[ces.back()] += eprop[e];
+            ces.pop_back();
         }
     }
 };
