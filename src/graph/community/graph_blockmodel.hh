@@ -829,7 +829,7 @@ get_me(typename graph_traits<Graph>::vertex_descriptor r,
 {
     assert(r < ehash.size());
     const auto& map = ehash[r];
-    auto iter = map.find(s);
+    const auto& iter = map.find(s);
     if (iter == map.end())
         return make_pair(typename graph_traits<Graph>::edge_descriptor(), false);
     return make_pair(iter->second, true);
