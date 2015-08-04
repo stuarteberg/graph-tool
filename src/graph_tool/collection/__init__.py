@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-``graph_tool.collection`` - Dataset collection
+"""``graph_tool.collection`` - Dataset collection
 ----------------------------------------------
 
 This module contains an assortment of useful networks.
@@ -32,6 +31,17 @@ This module contains an assortment of useful networks.
     description for each graph is given in the :data:`descriptions` dictionary,
     or alternatively in the ``"description"`` graph property which accompanies
     each graph object.
+
+
+.. data:: konect_data
+
+    Dictionary containing :class:`~graph_tool.Graph` objects, indexed by the
+    name of the graph, fetched from the `Koblenz Network Collection
+    <http://konect.uni-koblenz.de/>`_. See the website for a list of available
+    data. The key of the dictionary must correspond to the name of the file
+    minus the ``.tar.bz2`` part.  This is a "lazy" dictionary, i.e. it only
+    downloads the graphs from the web when the items are accessed for the first
+    time.
 
 Examples
 ========
@@ -244,6 +254,7 @@ Examples
 
 Contents
 ++++++++
+
 """
 
 from __future__ import division, absolute_import, print_function
@@ -255,7 +266,7 @@ import os.path
 import textwrap
 from .. import load_graph
 
-__all__ = ["data", "descriptions", "get_data_path"]
+__all__ = ["data", "descriptions", "get_data_path", "konect_data"]
 
 base_dir = os.path.dirname(__file__)
 
@@ -323,3 +334,5 @@ def _print_table():
         for line in d[1:]:
             print(" " * 57 + line)
     print("===================  ===========  ===========  ========  ================================================")
+
+from . konect import *
