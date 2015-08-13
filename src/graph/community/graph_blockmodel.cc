@@ -590,10 +590,12 @@ struct get_deg_entropy_term
     {
         for(auto v : vertices_range(g))
         {
-            if (ignore_degrees[v])
+            if (ignore_degrees[v] == 1)
+                continue;
+            S -= lgamma_fast(in_degreeS()(v, g, eweight) + 1);
+            if (ignore_degrees[v] == 2)
                 continue;
             S -= lgamma_fast(out_degreeS()(v, g, eweight) + 1);
-            S -= lgamma_fast(in_degreeS()(v, g, eweight) + 1);
         }
     }
 };

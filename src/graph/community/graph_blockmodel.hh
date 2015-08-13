@@ -367,27 +367,29 @@ public:
     partition_stats_t() : _enabled(false) {}
 
     template <class Graph, class Vprop, class Eprop, class Mprop>
-    partition_stats_t(Graph& g, Vprop b, Eprop eweight, size_t N, size_t B,
-                      bool edges_dl, Mprop ignore_degree)
+    partition_stats_t(Graph& g, Vprop b, const Eprop& eweight, size_t N,
+                      size_t B, bool edges_dl, const Mprop& ignore_degree)
         : _enabled(true), _N(N), _E(0), _B(B), _hist(B), _total(B), _ep(B),
-          _em(B), _edges_dl(edges_dl), _ignore_degree(N, false)
+          _em(B), _edges_dl(edges_dl), _ignore_degree(N, 0)
     {
         for (auto v : vertices_range(g))
         {
             auto r = b[v];
             size_t kin = in_degreeS()(v, g, eweight);
             size_t kout = out_degreeS()(v, g, eweight);
+            _E += kout;
             if (v >= _ignore_degree.size())
-                _ignore_degree.resize(v + 1, false);
+                _ignore_degree.resize(v + 1, 0);
             _ignore_degree[v] = ignore_degree[v];
-            if (!_ignore_degree[v])
+            if (_ignore_degree[v] == 2)
+                kout = 0;
+            if (_ignore_degree[v] != 1)
             {
                 _hist[r][make_pair(kin, kout)]++;
                 _em[r] += kin;
                 _ep[r] += kout;
             }
             _total[r]++;
-            _E += kout;
         }
 
         if (!is_directed::apply<Graph>::type::value)
@@ -554,10 +556,10 @@ public:
     double get_delta_deg_dl(size_t v, size_t r, size_t nr, EWeight& eweight,
                             OStats&, Graph& g)
     {
-        if (r == nr || _ignore_degree[v])
+        if (r == nr || _ignore_degree[v] == 1)
             return 0;
         int kin = in_degreeS()(v, g, eweight);
-        int kout = out_degreeS()(v, g, eweight);
+        int kout = (_ignore_degree[v] == 2) ? 0 : out_degreeS()(v, g, eweight);
 
         double dS = 0;
         dS += get_delta_deg_dl_remove(v, r, eweight, g, kin, kout);
@@ -597,7 +599,7 @@ public:
         if (kin + kout == 0)
         {
             kin = in_degreeS()(v, g, eweight);
-            kout = out_degreeS()(v, g, eweight);
+            kout = (_ignore_degree[v] == 2) ? 0 : out_degreeS()(v, g, eweight);
         }
 
         S_b += get_Se(r,  0,    0,     0);
@@ -606,7 +608,7 @@ public:
         S_b += get_Sr(r,  0);
         S_a += get_Sr(r, -1);
 
-        auto deg = make_pair(size_t(kin), size_t(kout));
+        auto deg = make_pair(kin, kout);
         S_b += get_Sk(r, deg,  0);
         S_a += get_Sk(r, deg, -1);
 
@@ -622,7 +624,7 @@ public:
         if (kin + kout == 0)
         {
             kin = in_degreeS()(v, g, eweight);
-            kout = out_degreeS()(v, g, eweight);
+            kout = (_ignore_degree[v] == 2) ? 0 : out_degreeS()(v, g, eweight);
         }
 
         S_b += get_Se(nr, 0,   0,    0);
@@ -631,7 +633,7 @@ public:
         S_b += get_Sr(nr, 0);
         S_a += get_Sr(nr, 1);
 
-        auto deg = make_pair(size_t(kin), size_t(kout));
+        auto deg = make_pair(kin, kout);
         S_b += get_Sk(nr, deg, 0);
         S_a += get_Sk(nr, deg, 1);
 
@@ -645,13 +647,15 @@ public:
     {
         if (r == nr)
             return;
-        if (deg_corr && !_ignore_degree[v])
+        if (deg_corr && _ignore_degree[v] != 1)
         {
             if (kin + kout == 0)
             {
                 kin = in_degreeS()(v, g, eweight);
                 kout = out_degreeS()(v, g, eweight);
             }
+            if (_ignore_degree[v] == 2)
+                kout = 0;
         }
         remove_vertex(v, r, deg_corr, g, eweight, kin, kout);
         add_vertex(v, nr, deg_corr, g, eweight, kin, kout);
@@ -666,13 +670,15 @@ public:
         if (_total[nr] == 1)
             _actual_B++;
 
-        if (deg_corr && !_ignore_degree[v])
+        if (deg_corr && _ignore_degree[v] != 1)
         {
             if (kin + kout == 0)
             {
                 kin = in_degreeS()(v, g, eweight);
                 kout = out_degreeS()(v, g, eweight);
             }
+            if (_ignore_degree[v] == 2)
+                kout = 0;
             auto deg = make_pair(kin, kout);
             _hist[nr][deg]++;
             _em[nr] += deg.first;
@@ -690,13 +696,15 @@ public:
         if (_total[r] == 0)
             _actual_B--;
 
-        if (deg_corr && !_ignore_degree[v])
+        if (deg_corr && _ignore_degree[v] != 1)
         {
             if (kin + kout == 0)
             {
                 kin = in_degreeS()(v, g, eweight);
                 kout = out_degreeS()(v, g, eweight);
             }
+            if (_ignore_degree[v] == 2)
+                kout = 0;
             auto deg = make_pair(kin, kout);
             auto iter = _hist[r].find(deg);
             iter->second--;
@@ -722,7 +730,7 @@ private:
     vector<int> _ep;
     vector<int> _em;
     bool _edges_dl;
-    vector<bool> _ignore_degree;
+    vector<uint8_t> _ignore_degree;
 };
 
 // ===============================
