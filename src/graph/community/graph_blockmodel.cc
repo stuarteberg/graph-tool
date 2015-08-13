@@ -609,11 +609,6 @@ struct get_deg_entropy_term_overlap
 
         map_t in_hist, out_hist;
 
-#ifdef HAVE_SPARSEHASH
-        in_hist.set_empty_key(numeric_limits<int>::max());
-        out_hist.set_empty_key(numeric_limits<int>::max());
-#endif
-
         for (size_t v = 0; v < N; ++v)
         {
             in_hist.clear();
