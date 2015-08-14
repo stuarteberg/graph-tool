@@ -159,7 +159,7 @@ class NestedBlockState(object):
              str(self.g), len(self.levels), str([(s.N, s.B) for s in self.levels]), id(self))
 
     def copy(self, g=None, eweight=None, vweight=None, bs=None, ec=None,
-             layers=None, deg_corr=None, overlap=None, clabel=None):
+             layers=None, deg_corr=None, overlap=None, clabel=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor.."""
 
@@ -182,7 +182,9 @@ class NestedBlockState(object):
                                 self.ec if ec is None else ec, bs,
                                 layers=layers, deg_corr=deg_corr,
                                 overlap=overlap, clabel=clabel,
-                                max_BE=self.levels[0].max_BE)
+                                max_BE=self.levels[0].max_BE,
+                                ignore_degrees=kwargs.pop("ignore_degrees", self.ignore_degrees),
+                                **kwargs)
 
     def __getstate__(self):
         state = dict(g=self.g,
@@ -193,7 +195,8 @@ class NestedBlockState(object):
                      bs=[array(s.b.a) for s in self.levels],
                      clabel=self.clabel,
                      deg_corr=self.deg_corr,
-                     max_BE=self.levels[0].max_BE)
+                     max_BE=self.levels[0].max_BE,
+                     ignore_degrees=self.ignore_degrees)
         return state
 
     def __setstate__(self, state):
