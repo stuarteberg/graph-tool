@@ -206,23 +206,6 @@ class BlockState(object):
         self.partition_stats = libcommunity.partition_stats()
         self.edges_dl = False
 
-        # computation cache
-        E = g.num_edges()
-        N = g.num_vertices()
-        libcommunity.init_safelog(int(5 * max(E, N)))
-        libcommunity.init_xlogx(int(5 * max(E, N)))
-        libcommunity.init_lgamma(int(3 * max(E, N)))
-
-    def __del__(self):
-        try:
-            BlockState._state_ref_count -= 1
-            if BlockState._state_ref_count == 0:
-                libcommunity.clear_safelog()
-                libcommunity.clear_xlogx()
-                libcommunity.clear_lgamma()
-        except (ValueError, AttributeError, TypeError):
-            pass
-
     def __repr__(self):
         return "<BlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
             (self.B, " degree corrected," if self.deg_corr else "", str(self.g),
@@ -1211,6 +1194,10 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                 state.egroups = None
         if covariate and nmoves > 0:
             main_state._CovariateBlockState__bg = None
+
+        libcommunity.clear_safelog()
+        libcommunity.clear_xlogx()
+        libcommunity.clear_lgamma()
 
     if _bm_test():
         assert main_state._BlockState__check_clabel(), "clabel invalidated!"

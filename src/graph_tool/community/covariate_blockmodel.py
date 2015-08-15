@@ -212,12 +212,6 @@ class CovariateBlockState(BlockState):
         if _bm_test():
             assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
 
-        # computation cache
-        libcommunity.init_safelog(int(5 * max(self.E, self.N)))
-        libcommunity.init_xlogx(int(5 * max(self.E, self.N)))
-        libcommunity.init_lgamma(int(3 * max(self.E, self.N)))
-
-
     def __get_base_u(self, u):
         node_index = u.vp["vmap"].copy("int64_t")
         pmap(node_index, self.total_state.node_index)

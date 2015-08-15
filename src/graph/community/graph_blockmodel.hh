@@ -71,6 +71,8 @@ extern vector<double> __safelog_cache;
 extern vector<double> __xlogx_cache;
 extern vector<double> __lgamma_cache;
 
+void init_safelog(size_t x);
+
 template <class Type>
 inline double safelog(Type x)
 {
@@ -82,25 +84,27 @@ inline double safelog(Type x)
 inline double safelog(size_t x)
 {
     if (x >= __safelog_cache.size())
-    {
-        if (x == 0)
-            return 0;
-        return log(x);
-    }
+        init_safelog(x);
     return __safelog_cache[x];
 }
 
+void init_xlogx(size_t x);
+
 inline double xlogx(size_t x)
 {
+    //return x * safelog(x);
     if (x >= __xlogx_cache.size())
-        return x * safelog(x);
+        init_xlogx(x);
     return __xlogx_cache[x];
 }
 
+void init_lgamma(size_t x);
+
 inline double lgamma_fast(size_t x)
 {
+    //return lgamma(x);
     if (x >= __lgamma_cache.size())
-        return lgamma(x);
+        init_lgamma(x);
     return __lgamma_cache[x];
 }
 
@@ -745,7 +749,7 @@ struct get_emat_t
     template <class Graph>
     struct apply
     {
-        typedef multi_array<pair<typename graph_traits<Graph>::edge_descriptor, bool>, 2> type;
+        typedef multi_array<typename graph_traits<Graph>::edge_descriptor, 2> type;
     };
 };
 
@@ -759,16 +763,13 @@ struct create_emat
         size_t B = num_vertices(g);
         emat_t emat(boost::extents[B][B]);
 
-        for (size_t i = 0; i < B; ++i)
-            for (size_t j = 0; j < B; ++j)
-                emat[i][j].second = false;
         for (auto e : edges_range(g))
         {
             if (source(e, g) >= B || target(e, g) >= B)
                 throw GraphException("incorrect number of blocks when creating emat!");
-            emat[source(e, g)][target(e, g)] = make_pair(e, true);
+            emat[source(e, g)][target(e, g)] = e;
             if (!is_directed::apply<Graph>::type::value)
-                emat[target(e, g)][source(e, g)] = make_pair(e, true);
+                emat[target(e, g)][source(e, g)] = e;
         }
 
         oemap = emat;
@@ -776,7 +777,7 @@ struct create_emat
 };
 
 template <class Graph>
-pair<typename graph_traits<Graph>::edge_descriptor, bool>
+const typename graph_traits<Graph>::edge_descriptor&
 get_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
        const typename get_emat_t::apply<Graph>::type& emat, const Graph&)
@@ -791,9 +792,9 @@ put_me(typename graph_traits<Graph>::vertex_descriptor r,
        const typename graph_traits<Graph>::edge_descriptor& e,
        typename get_emat_t::apply<Graph>::type& emat, const Graph&)
 {
-    emat[r][s] = make_pair(e, true);
+    emat[r][s] = e;
     if (!is_directed::apply<Graph>::type::value && r != s)
-        emat[s][r] = make_pair(e, true);
+        emat[s][r] = e;
 }
 
 template <class Graph>
@@ -806,9 +807,9 @@ remove_me(typename graph_traits<Graph>::vertex_descriptor r,
 {
     if (!delete_edge)
     {
-        emat[r][s].second = false;
+        emat[r][s] = typename graph_traits<Graph>::edge_descriptor();
         if (!is_directed::apply<Graph>::type::value && r != s)
-            emat[s][r].second = false;
+            emat[s][r] = typename graph_traits<Graph>::edge_descriptor();
     }
 }
 
@@ -830,17 +831,18 @@ struct get_ehash_t
 
 
 template<class Graph>
-pair<typename graph_traits<Graph>::edge_descriptor, bool>
+const typename graph_traits<Graph>::edge_descriptor&
 get_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
        const typename get_ehash_t::apply<Graph>::type& ehash, const Graph&)
 {
+    static typename graph_traits<Graph>::edge_descriptor null_edge;
     assert(r < ehash.size());
     const auto& map = ehash[r];
     const auto& iter = map.find(s);
     if (iter == map.end())
-        return make_pair(typename graph_traits<Graph>::edge_descriptor(), false);
-    return make_pair(iter->second, true);
+        return null_edge;
+    return iter->second;
 }
 
 template<class Graph>
@@ -889,13 +891,12 @@ struct create_ehash
 };
 
 template <class Vertex, class Eprop, class Emat, class BGraph>
-inline size_t get_mrs(Vertex r, Vertex s, const Eprop& mrs, Emat& emat,
+inline size_t get_mrs(Vertex r, Vertex s, const Eprop& mrs, const Emat& emat,
                       BGraph& bg)
 {
-    const pair<typename graph_traits<BGraph>::edge_descriptor, bool> me =
-        get_me(r, s, emat, bg);
-    if (me.second)
-        return mrs[me.first];
+    const auto& me = get_me(r, s, emat, bg);
+    if (me != typename graph_traits<BGraph>::edge_descriptor())
+        return mrs[me];
     else
         return 0;
 }
@@ -951,7 +952,7 @@ void remove_vertex(size_t v, Eprop& mrs, Vprop& mrp, Vprop& mrm, Vprop& wr,
         //     throw GraphException("no edge? " + lexical_cast<string>(r) +
         //                          " " + lexical_cast<string>(s));
 
-        auto me = get_me(r, s, emat, bg).first;
+        const auto& me = get_me(r, s, emat, bg);
 
         size_t ew = eweight[e];
         if (u == v && !is_directed::apply<Graph>::type::value)
@@ -975,7 +976,7 @@ void remove_vertex(size_t v, Eprop& mrs, Vprop& mrp, Vprop& mrm, Vprop& wr,
     if (self_weight > 0)
     {
         assert(self_weight % 2 == 0);
-        auto me = get_me(r, r, emat, bg).first;
+        const auto& me = get_me(r, r, emat, bg);
         mrs[me] -= self_weight / 2;
         mrp[r] -= self_weight / 2;
         mrm[r] -= self_weight / 2;
@@ -995,8 +996,7 @@ void remove_vertex(size_t v, Eprop& mrs, Vprop& mrp, Vprop& mrm, Vprop& wr,
         //     throw GraphException("no edge? " + lexical_cast<string>(s) +
         //                          " " + lexical_cast<string>(r));
 
-        typename graph_traits<BGraph>::edge_descriptor me =
-            get_me(s, r, emat, bg).first;
+        const auto& me = get_me(s, r, emat, bg);
 
         size_t ew = eweight[e];
         mrs[me] -= ew;
@@ -1041,17 +1041,14 @@ void add_vertex(size_t v, size_t r, Eprop& mrs, Vprop& mrp, Vprop& mrm,
         else
             s = r;
 
-        typename graph_traits<BGraph>::edge_descriptor me;
+        auto me = get_me(r, s, emat, bg);
 
-        auto mep = get_me(r, s, emat, bg);
-
-        if (!mep.second)
+        if (me == typename graph_traits<BGraph>::edge_descriptor())
         {
-            mep = add_edge(r, s, bg);
-            put_me(r, s, mep.first, emat, bg);
-            mrs[mep.first] = 0;
+            me = add_edge(r, s, bg).first;
+            put_me(r, s, me, emat, bg);
+            mrs[me] = 0;
         }
-        me = mep.first;
 
         size_t ew = eweight[e];
 
@@ -1070,7 +1067,7 @@ void add_vertex(size_t v, size_t r, Eprop& mrs, Vprop& mrp, Vprop& mrm,
     if (self_weight > 0)
     {
         assert(self_weight % 2 == 0);
-        auto me = get_me(r, r, emat, bg).first;
+        const auto& me = get_me(r, r, emat, bg);
         mrs[me] += self_weight / 2;
         mrp[r] += self_weight / 2;
         mrm[r] += self_weight / 2;
@@ -1085,18 +1082,14 @@ void add_vertex(size_t v, size_t r, Eprop& mrs, Vprop& mrp, Vprop& mrm,
 
         vertex_t s = b[u];
 
-        typename graph_traits<BGraph>::edge_descriptor me;
-        pair<typename graph_traits<BGraph>::edge_descriptor, bool> mep =
-                get_me(s, r, emat, bg);
+        auto me = get_me(s, r, emat, bg);
 
-
-        if (!mep.second)
+        if (me == typename graph_traits<BGraph>::edge_descriptor())
         {
-            mep = add_edge(s, r, bg);
-            put_me(s, r, mep.first, emat, bg);
-            mrs[mep.first] = 0;
+            me = add_edge(s, r, bg).first;
+            put_me(s, r, me, emat, bg);
+            mrs[me] = 0;
         }
-        me = mep.first;
 
         size_t ew = eweight[e];
 

@@ -226,11 +226,6 @@ class OverlapBlockState(BlockState):
         self.partition_stats = libcommunity.overlap_partition_stats()
         self.edges_dl = False
 
-        # computation cache
-        libcommunity.init_safelog(int(5 * max(self.E, self.N)))
-        libcommunity.init_xlogx(int(5 * max(self.E, self.N)))
-        libcommunity.init_lgamma(int(3 * max(self.E, self.N)))
-
     def __del__(self):
         try:
             BlockState.__del__(self)
