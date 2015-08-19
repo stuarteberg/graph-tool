@@ -214,23 +214,20 @@ class OverlapBlockState(BlockState):
         else:
             self.clabel = self.g.new_vertex_property("int")
 
-        self.emat = None
         if max_BE is None:
             max_BE = 1000
         self.max_BE = max_BE
 
+        self.clear_cache()
+
+    def clear_cache(self):
         # used by mcmc_sweep()
         self.egroups = None
         self.nsampler = None
         self.sweep_vertices = None
         self.partition_stats = libcommunity.overlap_partition_stats()
         self.edges_dl = False
-
-    def __del__(self):
-        try:
-            BlockState.__del__(self)
-        except (TypeError, AttributeError):
-            pass
+        self.emat = None
 
     def __repr__(self):
         return "<OverlapBlockState object with %d blocks,%s for graph %s, at 0x%x>" % \

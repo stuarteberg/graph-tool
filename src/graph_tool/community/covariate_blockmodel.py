@@ -194,6 +194,13 @@ class CovariateBlockState(BlockState):
                 assert state.mrs.fa.sum() == state.eweight.fa.sum(), ("inconsistent mrs!", l)
 
 
+        self.clear_cache()
+
+        if _bm_test():
+            assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
+
+
+    def clear_cache(self):
         self.__bg = None
         self.__mrs = None
         self.__bec = None
@@ -202,15 +209,14 @@ class CovariateBlockState(BlockState):
         #self.wr = self.__dummy_bg.own_property(total_state.wr)
         self.wr = total_state.wr
 
+        for s in self.states:
+            s.clear_cache()
+
+        self.total_state.clear_cache()
+
         self.sweep_vertices = total_state.sweep_vertices
         self.emat = None
-
         self.overlap_stats = self.total_state.overlap_stats
-
-        self.__layer_entropy = None
-
-        if _bm_test():
-            assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
 
     def __get_base_u(self, u):
         node_index = u.vp["vmap"].copy("int64_t")

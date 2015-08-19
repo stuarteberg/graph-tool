@@ -198,6 +198,9 @@ class BlockState(object):
         if self.ignore_degrees is None:
             self.ignore_degrees = g.new_vertex_property("bool", False)
 
+        self.clear_cache()
+
+    def clear_cache(self):
         # used by mcmc_sweep()
         self.egroups = None
         self.nsampler = None
@@ -205,6 +208,7 @@ class BlockState(object):
         self.overlap_stats = libcommunity.overlap_stats()
         self.partition_stats = libcommunity.partition_stats()
         self.edges_dl = False
+        self.emat = None
 
     def __repr__(self):
         return "<BlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
@@ -350,13 +354,6 @@ class BlockState(object):
         self.nsampler = libcommunity.init_neighbour_sampler(self.g._Graph__graph,
                                                             _prop("e", self.g, self.eweight),
                                                             True, empty)
-
-    def __cleanup_bg(self):
-        emask = self.bg.new_edge_property("bool")
-        emask.a = self.mrs.a[:len(emask.a)] > 0
-        self.bg.set_edge_filter(emask)
-        self.bg.purge_edges()
-        self.emat = None
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -1528,6 +1525,8 @@ def unilevel_minimize(state, nsweeps=10, adaptive_sweeps=True, epsilon=0,
             print("... performed %d sweeps with %d vertex moves (dS = %g)" % (niter, total_nmoves, deltaS))
 
         bi = state.b
+
+    state.clear_cache()
 
     return t_dS, t_nmoves
 
