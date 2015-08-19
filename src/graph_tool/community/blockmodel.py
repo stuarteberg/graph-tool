@@ -225,13 +225,24 @@ class BlockState(object):
             self.partition_stats = libcommunity.partition_stats()
 
 
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        g = self.g.copy()
+        eweight = g.own_property(self.eweight.copy())
+        vweight = g.own_property(self.vweight.copy())
+        clabel = g.own_property(self.clabel.copy())
+        b = g.own_property(self.b.copy())
+        return self.copy(g=g, eweight=eweight, vweight=vweight, b=b,
+                         clabel=clabel)
 
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
              deg_corr=None, clabel=None, overlap=False, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor. If ``overlap=True`` an
          instance of :class:`~graph_tool.community.OverlapBlockState` is
-         returned."""
+         returned. This is by default a shallow copy."""
 
         if not overlap:
             state = BlockState(self.g if g is None else g,

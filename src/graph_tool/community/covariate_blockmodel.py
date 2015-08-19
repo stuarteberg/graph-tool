@@ -462,6 +462,26 @@ class CovariateBlockState(BlockState):
         self.__init__(**state)
         return state
 
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        if not self.overlap:
+            g = self.g.copy()
+            eweight = g.own_property(self.eweight.copy())
+            vweight = g.own_property(self.vweight.copy())
+            clabel = g.own_property(self.clabel.copy())
+            b = g.own_property(self.b.copy())
+            ec = g.own_property(self.ec.copy())
+            return self.copy(g=g, ec=ec, eweight=eweight, vweight=vweight, b=b,
+                             clabel=clabel)
+        else:
+            g = self.base_g.copy()
+            clabel = self.clabel
+            b = self.b
+            ec = g.own_property(self.base_ec.copy())
+            return self.copy(g=g, ec=ec, b=b.fa, clabel=clabel.fa)
+
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
              deg_corr=None, clabel=None, overlap=None, layers=None, ec=None):
         r"""Copies the block state. The parameters override the state properties, and

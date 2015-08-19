@@ -158,6 +158,20 @@ class NestedBlockState(object):
              " degree corrected," if self.deg_corr else "",
              str(self.g), len(self.levels), str([(s.N, s.B) for s in self.levels]), id(self))
 
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        g = self.g.copy()
+        eweight = g.own_property(self.eweight.copy()) if self.eweight is not None else None
+        vweight = g.own_property(self.vweight.copy()) if self.vweight is not None else None
+        clabel = g.own_property(self.clabel.copy())  if self.clabel is not None else None
+        ec = g.own_property(self.ec.copy()) if self.ec is not None else None
+        bstack = self.get_bstack()
+        return self.copy(g=g, eweight=eweight, vweight=vweight, clabel=clabel,
+                         ec=ec, bs=[s.vp.b.a for s in bstack])
+
     def copy(self, g=None, eweight=None, vweight=None, bs=None, ec=None,
              layers=None, deg_corr=None, overlap=None, clabel=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
