@@ -27,22 +27,21 @@ namespace graph_tool
 
 using namespace boost;
 
-template <class Graph, class Weight, class EdgeSelector>
+template <class Graph, class Weight>
 typename property_traits<Weight>::value_type
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           Weight w, EdgeSelector)
+           const Weight& w)
 {
     typename property_traits<Weight>::value_type sum = 0;
-    typename EdgeSelector::type e, e_end;
-    for(tie(e, e_end) = EdgeSelector::get_edges(v, g); e != e_end; ++e)
-        sum += get(w, *e);
+    for(const auto& e : out_edges_range(v, g))
+        sum += get(w, e);
     return sum;
 }
 
-template <class Graph, class EdgeSelector>
-double
+template <class Graph>
+size_t
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           ConstantPropertyMap<double, GraphInterface::edge_t> w, out_edge_iteratorS<Graph>)
+           const ConstantPropertyMap<size_t, GraphInterface::edge_t>&)
 {
     return out_degreeS()(v, g);
 }
@@ -58,12 +57,12 @@ struct get_transition
         int pos = 0;
         for (auto v: vertices_range(g))
         {
-            double k = sum_degree(g, v, weight, out_edge_iteratorS<Graph>());
+            auto k = sum_degree(g, v, weight);
             for (const auto& e: out_edges_range(v, g))
             {
-                data[pos] = weight[e] / k;
-                i[pos] = get(index, source(e, g));
-                j[pos] = get(index, target(e, g));
+                data[pos] = double(weight[e]) / k;
+                j[pos] = get(index, source(e, g));
+                i[pos] = get(index, target(e, g));
                 ++pos;
             }
         }

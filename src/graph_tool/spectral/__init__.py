@@ -446,7 +446,7 @@ def transition(g, weight=None, index=None):
     .. note::
 
         For directed graphs the definition above means that the entry
-        :math:`T_{i,j}` corresponds to the directed edge :math:`j\to
+        :math:`T_{ij}` corresponds to the directed edge :math:`j\to
         i`. Although this is a typical definition in network and graph theory
         literature, many also use the transpose of this matrix.
 
@@ -499,9 +499,6 @@ def transition(g, weight=None, index=None):
     data = numpy.zeros(E, dtype="double")
     i = numpy.zeros(E, dtype="int32")
     j = numpy.zeros(E, dtype="int32")
-
-    if g.is_directed():
-        g = GraphView(g, reversed=True, skip_properties=True)
 
     libgraph_tool_spectral.transition(g._Graph__graph, _prop("v", g, index),
                                       _prop("e", g, weight), data, i, j)
