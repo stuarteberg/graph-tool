@@ -1225,7 +1225,7 @@ def pmap(prop, value_map):
     else:
         a = prop
     if isinstance(value_map, PropertyMap):
-        value_map = value_map.a
+        value_map = value_map.fa
     if a.max() >= len(value_map):
         raise ValueError("value map is not large enough! %s, %s" % (a.max(),
                                                                     len(value_map)))
@@ -1242,7 +1242,7 @@ def reverse_map(prop, value_map):
     """Modify `value_map` such that the positions indexed by the values in `prop`
     correspond to their index in `prop`."""
     if isinstance(prop, PropertyMap):
-        prop = prop.a
+        prop = prop.fa
     if isinstance(value_map, PropertyMap):
         a = value_map.fa
     else:
