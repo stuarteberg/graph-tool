@@ -1213,56 +1213,167 @@ def perfect_prop_hash(props, htype="int32_t"):
 
     return hprops
 
-class PropertyDict(dict):
+
+
+class InternalPropertyDict(dict):
+    """Internal dictionary of property maps. It only accepts string keys and
+    :class:`PropertyMap` instances as values."""
+
+    def __init__(self, g):
+        self.g = weakref.ref(g)
+        dict.__init__(self)
+
+    @_require("key", tuple)
+    @_require("val", PropertyMap)
+    def __setitem__(self, key, val):
+        t, k = key
+        self.__set_property(t, k, val)
+
+    @_limit_args({"t": ["v", "e", "g"]})
+    @_require("key", str)
+    def __set_property(self, t, key, v):
+        dict.__setitem__(self, (t, key), v)
+
+    @_require("key", tuple)
+    def __delitem__(self, key):
+        dict.__delitem__(self, key)
+
+    @_require("key", tuple)
+    def setdefault(self, key, default=None):
+        if not isinstance(default, PropertyMap):
+            raise ValueError("default parameter must be of type PropertyMap, not: %s" % type(default))
+        v = self.get(key, None)
+        if v is None:
+            self[key] = v = default
+        return v
+
+    if sys.version_info < (3,):
+        def update(self, *args, **kwargs):
+            temp = dict(*args, **kwargs)
+            for k, v in temp.iteritems():
+                self[k] = v
+    else:
+        def update(self, *args, **kwargs):
+            temp = dict(*args, **kwargs)
+            for k, v in temp.items():
+                self[k] = v
+
+
+class PropertyDict():
     """Wrapper for the dict of vertex, graph or edge properties, which sets the
     value on the property map when changed in the dict.
 
     For convenience, the dictionary entries are also available via attributes.
-
-    .. note::
-
-        The class is only an one-way proxy to the internally-kept properties. If
-        you modify this object, the change will be propagated to the internal
-        dictionary, but not vice-versa. Keep this in mind if you intend to keep
-        a copy of the class instance.
     """
-    def __init__(self, g, old, get_func, set_func, del_func):
-        dict.__init__(self)
-        dict.update(self, old)
-        super(PropertyDict, self).__setattr__("g", g)
-        super(PropertyDict, self).__setattr__("get_func", get_func)
-        super(PropertyDict, self).__setattr__("set_func", set_func)
-        super(PropertyDict, self).__setattr__("del_func", del_func)
+    def __init__(self, properties, t):
+        super(PropertyDict, self).__setattr__("properties", properties)
+        super(PropertyDict, self).__setattr__("t", t)
+
+    def __contains__(self, key):
+        return (self.t, key) in self.properties
 
     def __getitem__(self, key):
-        if self.get_func != None:
-            val = self.get_func(self.g, key)
-            dict.__setitem__(self, key, val)
-            return val
-        else:
-            raise KeyError("Property dict cannot be gotten")
+        if self.t == "g":
+            p = self.properties[(self.t, key)]
+            return p[p.get_graph()]
+        return self.properties[(self.t, key)]
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __setitem__(self, key, val):
-        if self.set_func != None:
-            self.set_func(self.g, key, val)
+        k = (self.t, key)
+        if self.t == "g" and not isinstance(val, PropertyMap) and k in self.properties:
+            p = self.properties[k]
+            p[p.get_graph()] = val
         else:
-            raise KeyError("Property dict cannot be set")
-        dict.__setitem__(self, key, val)
+            self.properties[k] = val
+
+    def setdefault(self, key, default=None):
+        self.properties.setdefault((self.t, key), default)
+
+    if sys.version_info < (3,):
+        def update(self, *args, **kwargs):
+            temp = dict(*args, **kwargs)
+            for k, v in temp.iteritems():
+                self.properties[(self.t, k)] = v
+    else:
+        def update(self, *args, **kwargs):
+            temp = dict(*args, **kwargs)
+            for k, v in temp.items():
+                self.properties[(self.t, k)] = v
 
     def __delitem__(self, key):
-        self.del_func(self.g, key)
-        dict.__delitem__(self, key)
+        del self.properties[(self.t, key)]
 
     def clear(self):
-        for k in self.keys():
-            self.del_func(self.g, k)
-        dict.clear(self)
+        keys = []
+        for k in self.properties.items():
+            if k[0] == self.t:
+                keys.append(k[1])
+        for k in keys:
+            del self.properties[(self.t, k)]
+
+    def __len__(self):
+        count = 0
+        for k in self.properties.iterkeys():
+            if k[0] == self.t:
+                count += 1
+        return count
+
+    def __iter__(self):
+        return self.iterkeys()
+
+    def iterkeys(self):
+        for k in self.properties.iterkeys():
+            if k[0] == self.t:
+                yield k[0]
+
+    def haskey(self, key):
+        return self.properties.haskey(key)
+
+    def items(self):
+        for k, v in self.properties.items():
+            if k[0] == self.t:
+                yield k[1], v
+
+    if sys.version_info < (3,):
+        def iteritems(self):
+            for k, v in self.properties.iteritems():
+                if k[0] == self.t:
+                    yield k[1], v
+
+    def itervalues(self):
+        for k, v in self.properties.iteritems():
+            if k[0] == self.t:
+                yield v
+
+    def keys(self):
+        return [k[1] for k in self.properties.iterkeys() if k[0] == self.t]
+
+    if sys.version_info < (3,):
+        def values(self):
+            return [v for k, v in self.properties.iteritems() if k[0] == self.t]
+        def __repr__(self):
+            temp = dict([(k[1], v) for k, v in self.properties.iteritems() if k[0] == self.t])
+            return repr(temp)
+    else:
+        def values(self):
+            return [v for k, v in self.properties.items() if k[0] == self.t]
+        def __repr__(self):
+            temp = dict([(k[1], v) for k, v in self.properties.items() if k[0] == self.t])
+            return repr(temp)
+
 
     def __getattr__(self, attr):
         return self.__getitem__(attr)
 
     def __setattr__(self, attr, val):
         return self.__setitem__(attr, val)
+
 
 ################################################################################
 # Graph class
@@ -1303,7 +1414,10 @@ class Graph(object):
     """
 
     def __init__(self, g=None, directed=True, prune=False, vorder=None):
-        self.__properties = {}
+        self.__properties = InternalPropertyDict(self)
+        self.__graph_properties = PropertyDict(self.__properties, "g")
+        self.__vertex_properties = PropertyDict(self.__properties, "v")
+        self.__edge_properties = PropertyDict(self.__properties, "e")
         self.__known_properties = {}
         self.__filter_state = {"reversed": False,
                                "edge_filter": (None, False),
@@ -1751,29 +1865,7 @@ class Graph(object):
     # Internal property maps
     # ======================
 
-    # all properties
-    def __get_properties(self):
-        return PropertyDict(self, self.__properties,
-                            lambda g, k: g.__properties[k],
-                            lambda g, k, v: g.__set_property(k[0], k[1], v),
-                            lambda g, k: g.__del_property(k[0], k[1]))
-
-    @_limit_args({"t": ["v", "e", "g"]})
-    @_require("k", str)
-    def __set_property(self, t, k, v):
-        if t == "g" and not isinstance(v, PropertyMap):
-            self.__properties[(t, k)][self] = v
-        else:
-            if t != v.key_type():
-                raise ValueError("wrong key type for property map")
-            self.__properties[(t, k)] = v
-
-    @_limit_args({"t": ["v", "e", "g"]})
-    @_require("k", str)
-    def __del_property(self, t, k):
-        del self.__properties[(t, k)]
-
-    properties = property(__get_properties,
+    properties = property(lambda self: self.__properties,
                           doc=
     """Dictionary of internal properties. Keys must always be a tuple, where the
     first element if a string from the set {'v', 'e', 'g'}, representing a
@@ -1787,42 +1879,22 @@ class Graph(object):
     >>> del g.properties[("e", "foo")]
     """)
 
-    def __get_specific_properties(self, t):
-        props = dict([(k[1], v) for k, v in self.__properties.items() \
-                      if k[0] == t])
-        return props
-
     # vertex properties
-    def __get_vertex_properties(self):
-        return PropertyDict(self, self.__get_specific_properties("v"),
-                            lambda g, k: g.__properties[("v", k)],
-                            lambda g, k, v: g.__set_property("v", k, v),
-                            lambda g, k: g.__del_property("v", k))
-    vertex_properties = property(__get_vertex_properties,
+    vertex_properties = property(lambda self: self.__vertex_properties,
                                  doc="Dictionary of internal vertex properties. The keys are the property names.")
-    vp = property(__get_vertex_properties,
+    vp = property(lambda self: self.__vertex_properties,
                   doc="Alias to :attr:`~Graph.vertex_properties`.")
 
     # edge properties
-    def __get_edge_properties(self):
-        return PropertyDict(self, self.__get_specific_properties("e"),
-                            lambda g, k: g.__properties[("e", k)],
-                            lambda g, k, v: g.__set_property("e", k, v),
-                            lambda g, k: g.__del_property("e", k))
-    edge_properties = property(__get_edge_properties,
-                                 doc="Dictionary of internal edge properties. The keys are the property names.")
-    ep = property(__get_edge_properties,
+    edge_properties = property(lambda self: self.__edge_properties,
+                               doc="Dictionary of internal edge properties. The keys are the property names.")
+    ep = property(lambda self: self.__edge_properties,
                   doc="Alias to :attr:`~Graph.edge_properties`.")
 
     # graph properties
-    def __get_graph_properties(self):
-        return PropertyDict(self, self.__get_specific_properties("g"),
-                            lambda g, k: g.__properties[("g", k)][g],
-                            lambda g, k, v: g.__set_property("g", k, v),
-                            lambda g, k: g.__del_property("g", k))
-    graph_properties = property(__get_graph_properties,
+    graph_properties = property(lambda self: self.__graph_properties,
                                  doc="Dictionary of internal graph properties. The keys are the property names.")
-    gp = property(__get_graph_properties,
+    gp = property(lambda self: self.__graph_properties,
                   doc="Alias to :attr:`~Graph.graph_properties`.")
 
     def own_property(self, prop):
