@@ -518,12 +518,28 @@ class PropertyMap(object):
                                             vals)
 
     def copy(self, value_type=None):
-        """Return a copy of the property map. If ``value_type`` is specified,
-        the value type is converted to the chosen type."""
+        """Return a copy of the property map. If ``value_type`` is specified, the
+        value type is converted to the chosen type."""
         return self.get_graph().copy_property(self, value_type=value_type)
 
     def __copy__(self):
         return self.copy()
+
+    def __deepcopy__(self, memo):
+        if self.value_type() != "python::object":
+            return self.copy()
+        else:
+            pmap = self.copy()
+            g = self.get_graph()
+            if self.key_type() == "g":
+                iters = [g]
+            elif self.key_type() == "v":
+                iters = g.vertices()
+            else:
+                iters = g.edges()
+            for v in iters:
+                pmap[v] = copy.deepcopy(self[v], memo)
+            return pmap
 
     def get_graph(self):
         """Get the graph class to which the map refers."""
@@ -1439,6 +1455,9 @@ class Graph(object):
         return Graph(self)
 
     def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
         return self.copy()
 
     def __repr__(self):
