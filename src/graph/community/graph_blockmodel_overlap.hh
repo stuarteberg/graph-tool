@@ -421,14 +421,14 @@ struct overlap_partition_stats_t
 
             bv_t bv(rs.begin(), rs.end());
 
-            _bvs[v] = bv;
             _bvs[v].reserve(bv.size() * 2);
-            _nbvs[v] = bv;
+            _bvs[v] = bv;
             _nbvs[v].reserve(bv.size() * 2);
-            _degs[v] = cdeg;
+            _nbvs[v] = bv;
             _degs[v].reserve(cdeg.size() * 2);
-            _ndegs[v] = cdeg;
+            _degs[v] = cdeg;
             _ndegs[v].reserve(cdeg.size() * 2);
+            _ndegs[v] = cdeg;
 
             auto & cdh = _deg_hist[bv];
             cdh[cdeg]++;
@@ -808,8 +808,7 @@ struct overlap_partition_stats_t
 
         }
 
-        size_t bv_count = get_bv_count(bv);
-        size_t n_bv_count = get_bv_count(n_bv);
+        size_t bv_count, n_bv_count;
 
         auto get_S_b = [&] (bool is_bv, int delta) -> double
             {
@@ -820,6 +819,8 @@ struct overlap_partition_stats_t
 
         if (!is_same_bv)
         {
+            bv_count = get_bv_count(bv);
+            n_bv_count = get_bv_count(n_bv);
             S_b += get_S_b(true,  0) + get_S_b(false, 0);
             S_a += get_S_b(true, -1) + get_S_b(false, 1);
         }
@@ -1248,7 +1249,8 @@ public:
 
     void set_move(size_t, size_t) {}
 
-    void insert_delta(size_t r, size_t s, int delta, bool source)
+    void insert_delta(size_t r, size_t s, int delta, bool source,
+                      size_t mrs = numeric_limits<size_t>::max())
     {
         if (source)
             _entries[_pos] = make_pair(s, r);
@@ -1258,6 +1260,7 @@ public:
             _entries[_pos].second < _entries[_pos].first)
             std::swap(_entries[_pos].first, _entries[_pos].second);
         _delta[_pos] = delta;
+        _mrs[_pos] = mrs;
         ++_pos;
     }
 
@@ -1270,13 +1273,15 @@ public:
 
     void clear() { _pos = 0; }
 
-    std::array<pair<size_t, size_t>,2>& get_entries() { return _entries; }
-    std::array<int, 2>& get_delta() { return _delta; }
+    const std::array<pair<size_t, size_t>,2>& get_entries() { return _entries; }
+    const std::array<int, 2>& get_delta() { return _delta; }
+    std::array<size_t, 2>& get_mrs() { return _mrs; }
 
 private:
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
     std::array<int, 2> _delta;
+    std::array<size_t, 2> _mrs;
 };
 
 template <class RNG>

@@ -188,7 +188,6 @@ class BlockState(object):
         else:
             self.clabel = self.g.new_vertex_property("int")
 
-        self.emat = None
         if max_BE is None:
             max_BE = 1000
         self.max_BE = max_BE
@@ -334,9 +333,14 @@ class BlockState(object):
 
     def __regen_emat(self):
         if self.B <= self.max_BE:
-            self.emat = libcommunity.create_emat(self.bg._Graph__graph)
+            self.emat = libcommunity.create_emat(self.g._Graph__graph,
+                                                 _prop("v", self.g, self.b),
+                                                 self.bg._Graph__graph)
         else:
-            self.emat = libcommunity.create_ehash(self.bg._Graph__graph)
+            self.emat = libcommunity.create_ehash(self.g._Graph__graph,
+                                                  _prop("v", self.g, self.b),
+                                                  self.bg._Graph__graph,
+                                                  _get_rng())
 
     def __build_egroups(self, empty=False):
         self.esrcpos = self.g.new_edge_property("int")

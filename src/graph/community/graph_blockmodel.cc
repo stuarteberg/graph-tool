@@ -170,19 +170,59 @@ double do_get_ent_parallel(GraphInterface& gi, boost::any oweight)
 }
 
 
-boost::any do_create_emat(GraphInterface& gi)
+boost::any do_create_emat(GraphInterface& gi, boost::any ob,
+                          GraphInterface& bgi)
 {
     boost::any emat;
-    run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
-                                       std::ref(emat)))();
+    typedef property_map_type::apply<int32_t,
+                                     GraphInterface::vertex_index_map_t>::type
+        vmap_t;
+    vmap_t b = any_cast<vmap_t>(ob);
+
+    if (gi.GetDirected())
+    {
+        run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
+                                           std::ref(b),
+                                           std::ref(bgi.GetGraph()),
+                                           std::ref(emat)))();
+    }
+    else
+    {
+        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+        run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
+                                           std::ref(b),
+                                           std::ref(ug),
+                                           std::ref(emat)))();
+    }
     return emat;
 }
 
-boost::any do_create_ehash(GraphInterface& gi)
+boost::any do_create_ehash(GraphInterface& gi, boost::any ob,
+                           GraphInterface& bgi, rng_t& rng)
 {
     boost::any emat;
-    run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
-                                       std::ref(emat)))();
+    typedef property_map_type::apply<int32_t,
+                                     GraphInterface::vertex_index_map_t>::type
+        vmap_t;
+    vmap_t b = any_cast<vmap_t>(ob);
+
+    if (gi.GetDirected())
+    {
+        run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
+                                           std::ref(b),
+                                           std::ref(bgi.GetGraph()),
+                                           std::ref(emat),
+                                           std::ref(rng)))();
+    }
+    else
+    {
+        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+        run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
+                                           std::ref(b),
+                                           std::ref(ug),
+                                           std::ref(emat),
+                                           std::ref(rng)))();
+    }
     return emat;
 }
 

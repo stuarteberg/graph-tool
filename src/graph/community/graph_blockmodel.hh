@@ -749,29 +749,44 @@ struct get_emat_t
     template <class Graph>
     struct apply
     {
-        typedef multi_array<typename graph_traits<Graph>::edge_descriptor, 2> type;
+        typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+        typedef multi_array<edge_t, 2> mat_t;
+        typedef typename property_map_type
+            ::apply<edge_t,
+                    typename property_map<Graph,
+                                          edge_index_t>::type>::type bedge_t;
+        typedef struct
+        {
+            mat_t mat;
+            typename bedge_t::unchecked_t bedge;
+        } type;
     };
 };
 
 
 struct create_emat
 {
-    template <class Graph>
-    void operator()(Graph& g, boost::any& oemap) const
+    template <class Graph, class Vprop, class BGraph>
+    void operator()(Graph& g, Vprop b, BGraph& bg, boost::any& oemap) const
     {
-        typedef typename get_emat_t::apply<Graph>::type emat_t;
-        size_t B = num_vertices(g);
-        emat_t emat(boost::extents[B][B]);
-
-        for (auto e : edges_range(g))
+        typedef typename get_emat_t::apply<BGraph>::type emat_t;
+        size_t B = num_vertices(bg);
+        emat_t emat;
+        emat.mat.resize(boost::extents[B][B]);
+        for (auto e : edges_range(bg))
         {
-            if (source(e, g) >= B || target(e, g) >= B)
-                throw GraphException("incorrect number of blocks when creating emat!");
-            emat[source(e, g)][target(e, g)] = e;
+            emat.mat[source(e, bg)][target(e, bg)] = e;
             if (!is_directed::apply<Graph>::type::value)
-                emat[target(e, g)][source(e, g)] = e;
+                emat.mat[target(e, bg)][source(e, bg)] = e;
         }
 
+        auto bedge = emat.bedge.get_checked();
+        for (auto e : edges_range(g))
+        {
+            auto r = b[source(e, g)];
+            auto s = b[target(e, g)];
+            bedge[e] = emat.mat[r][s];
+        }
         oemap = emat;
     }
 };
@@ -782,7 +797,7 @@ get_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename graph_traits<Graph>::vertex_descriptor s,
        const typename get_emat_t::apply<Graph>::type& emat, const Graph&)
 {
-    return emat[r][s];
+    return emat.mat[r][s];
 }
 
 template <class Graph>
@@ -792,9 +807,9 @@ put_me(typename graph_traits<Graph>::vertex_descriptor r,
        const typename graph_traits<Graph>::edge_descriptor& e,
        typename get_emat_t::apply<Graph>::type& emat, const Graph&)
 {
-    emat[r][s] = e;
+    emat.mat[r][s] = e;
     if (!is_directed::apply<Graph>::type::value && r != s)
-        emat[s][r] = e;
+        emat.mat[s][r] = e;
 }
 
 template <class Graph>
@@ -807,11 +822,29 @@ remove_me(typename graph_traits<Graph>::vertex_descriptor r,
 {
     if (!delete_edge)
     {
-        emat[r][s] = typename graph_traits<Graph>::edge_descriptor();
+        emat.mat[r][s] = typename graph_traits<Graph>::edge_descriptor();
         if (!is_directed::apply<Graph>::type::value && r != s)
-            emat[s][r] = typename graph_traits<Graph>::edge_descriptor();
+            emat.mat[s][r] = typename graph_traits<Graph>::edge_descriptor();
     }
 }
+
+template <class Key>
+class perfect_hash_t
+{
+public:
+    template <class RNG>
+    perfect_hash_t(size_t N, RNG& rng)
+        : _index(std::make_shared<std::vector<size_t>>())
+    {
+        _index->reserve(N);
+        for (size_t i = 0; i < N; ++i)
+            _index->push_back(i);
+        std::shuffle(_index->begin(), _index->end(), rng);
+    }
+    size_t operator()(const Key& k) const {return (*_index)[k];}
+private:
+    std::shared_ptr<std::vector<size_t>> _index;
+};
 
 
 // this structure speeds up the access to the edges between given blocks, since
@@ -824,8 +857,24 @@ struct get_ehash_t
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-        typedef gt_hash_map<vertex_t, edge_t> ehash_t;
-        typedef std::vector<ehash_t> type;
+        typedef gt_hash_map<vertex_t, edge_t, perfect_hash_t<vertex_t>> ehash_t;
+        typedef std::vector<ehash_t> vhash_t;
+        typedef typename property_map_type
+            ::apply<edge_t,
+                    typename property_map<Graph,
+                                          edge_index_t>::type>::type bedge_t;
+        class type
+        {
+        private:
+            perfect_hash_t<vertex_t> _hash_function;
+        public:
+            template <class RNG>
+            type(size_t N, RNG& rng)
+                : _hash_function(N, rng), hash(N, ehash_t(0, _hash_function)) {}
+            vhash_t hash;
+            typename bedge_t::unchecked_t bedge;
+        };
+
     };
 };
 
@@ -837,8 +886,8 @@ get_me(typename graph_traits<Graph>::vertex_descriptor r,
        const typename get_ehash_t::apply<Graph>::type& ehash, const Graph&)
 {
     static typename graph_traits<Graph>::edge_descriptor null_edge;
-    assert(r < ehash.size());
-    const auto& map = ehash[r];
+    assert(r < ehash.hash.size());
+    const auto& map = ehash.hash[r];
     const auto& iter = map.find(s);
     if (iter == map.end())
         return null_edge;
@@ -853,10 +902,10 @@ put_me(typename graph_traits<Graph>::vertex_descriptor r,
        typename get_ehash_t::apply<Graph>::type& ehash,
        const Graph&)
 {
-    assert(r < ehash.size());
-    ehash[r][s] = e;
+    assert(r < ehash.hash.size());
+    ehash.hash[r][s] = e;
     if (!is_directed::apply<Graph>::type::value)
-        ehash[s][r] = e;
+        ehash.hash[s][r] = e;
 }
 
 template<class Graph>
@@ -867,38 +916,55 @@ remove_me(typename graph_traits<Graph>::vertex_descriptor r,
           typename get_ehash_t::apply<Graph>::type& ehash, Graph& bg,
           bool delete_edge=true)
 {
-    assert(r < ehash.size());
-    ehash[r].erase(s);
+    assert(r < ehash.hash.size());
+    ehash.hash[r].erase(s);
     if (!is_directed::apply<Graph>::type::value)
-        ehash[s].erase(r);
+        ehash.hash[s].erase(r);
     if (delete_edge)
         remove_edge(e, bg);
 }
 
 struct create_ehash
 {
-    template <class Graph>
-    void operator()(Graph& g, boost::any& oemap) const
+    template <class Graph, class Vprop, class BGraph, class RNG>
+    void operator()(Graph& g, Vprop b, BGraph& bg, boost::any& oemap, RNG& rng)
+        const
     {
-        typedef typename get_ehash_t::apply<Graph>::type emat_t;
-        emat_t emat(num_vertices(g));
+        typedef typename get_ehash_t::apply<BGraph>::type emat_t;
+        emat_t emat(num_vertices(bg), rng);
 
+        for (auto e : edges_range(bg))
+            put_me(source(e, bg), target(e, bg), e, emat, bg);
+
+        auto bedge = emat.bedge.get_checked();
         for (auto e : edges_range(g))
-            put_me(source(e, g), target(e, g), e, emat, g);
+        {
+            auto r = b[source(e, g)];
+            auto s = b[target(e, g)];
+            bedge[e] = emat.hash[r][s];
+        }
 
         oemap = emat;
     }
 };
+
+template <class Edge, class Eprop>
+inline size_t get_mrs(const Edge& me, const Eprop& mrs)
+{
+    static Edge null_edge;
+    if (me != null_edge)
+        return mrs[me];
+    else
+        return 0;
+}
+
 
 template <class Vertex, class Eprop, class Emat, class BGraph>
 inline size_t get_mrs(Vertex r, Vertex s, const Eprop& mrs, const Emat& emat,
                       BGraph& bg)
 {
     const auto& me = get_me(r, s, emat, bg);
-    if (me != typename graph_traits<BGraph>::edge_descriptor())
-        return mrs[me];
-    else
-        return 0;
+    return get_mrs(me, mrs);
 }
 
 struct standard_neighbours_policy
@@ -948,11 +1014,7 @@ void remove_vertex(size_t v, Eprop& mrs, Vprop& mrp, Vprop& mrm, Vprop& wr,
         vertex_t u = target(e, g);
         vertex_t s = b[u];
 
-        // if (!emat[r][s].second)
-        //     throw GraphException("no edge? " + lexical_cast<string>(r) +
-        //                          " " + lexical_cast<string>(s));
-
-        const auto& me = get_me(r, s, emat, bg);
+        const auto& me = emat.bedge[e];
 
         size_t ew = eweight[e];
         if (u == v && !is_directed::apply<Graph>::type::value)
@@ -992,11 +1054,7 @@ void remove_vertex(size_t v, Eprop& mrs, Vprop& mrp, Vprop& mrm, Vprop& wr,
             continue;
         vertex_t s = b[u];
 
-        // if (!emat[s][r].second)
-        //     throw GraphException("no edge? " + lexical_cast<string>(s) +
-        //                          " " + lexical_cast<string>(r));
-
-        const auto& me = get_me(s, r, emat, bg);
+        const auto& me = emat.bedge[e];
 
         size_t ew = eweight[e];
         mrs[me] -= ew;
@@ -1050,6 +1108,8 @@ void add_vertex(size_t v, size_t r, Eprop& mrs, Vprop& mrp, Vprop& mrm,
             mrs[me] = 0;
         }
 
+        emat.bedge[e] = me;
+
         size_t ew = eweight[e];
 
         if (u == v && !is_directed::apply<Graph>::type::value)
@@ -1090,6 +1150,7 @@ void add_vertex(size_t v, size_t r, Eprop& mrs, Vprop& mrp, Vprop& mrm,
             put_me(s, r, me, emat, bg);
             mrs[me] = 0;
         }
+        emat.bedge[e] = me;
 
         size_t ew = eweight[e];
 
@@ -1120,7 +1181,7 @@ template <class Graph, class BGraph, class Eprop, class Vprop, class EWprop,
 void move_vertex(const Vec& vs, size_t nr, Eprop& mrs, Vprop& mrp, Vprop& mrm,
                  Vprop& wr, Vprop& b, bool deg_corr, const EWprop& eweight,
                  const VWprop& vweight, Graph& g, BGraph& bg, EMat& emat,
-                 OStats& overlap_stats,  PStats& partition_stats,
+                 OStats& overlap_stats, PStats& partition_stats,
                  const NPolicy& npolicy = NPolicy())
 {
     if (b[vs[0]] == int(nr))
@@ -1190,8 +1251,6 @@ public:
             _r_field_s.resize(B, _null);
             _nr_field_s.resize(B, _null);
         }
-        _entries.reserve(B);
-        _delta.reserve(B);
     }
 
     void set_move(size_t r, size_t nr)
@@ -1199,7 +1258,8 @@ public:
         _rnr = make_pair(r, nr);
     }
 
-    void insert_delta(size_t r, size_t s, int delta, bool source)
+    void insert_delta(size_t r, size_t s, int delta, bool source,
+                      size_t mrs = numeric_limits<size_t>::max())
     {
         if (s == _rnr.first || s == _rnr.second)
         {
@@ -1224,6 +1284,7 @@ public:
             else
                 _entries.emplace_back(r, s);
             _delta.push_back(delta);
+            _mrs.push_back(mrs);
         }
         else
         {
@@ -1284,10 +1345,12 @@ public:
         }
         _entries.clear();
         _delta.clear();
+        _mrs.clear();
     }
 
-    vector<pair<size_t, size_t> >& get_entries() { return _entries; }
-    vector<int>& get_delta() { return _delta; }
+    const vector<pair<size_t, size_t> >& get_entries() { return _entries; }
+    const vector<int>& get_delta() { return _delta; }
+    vector<size_t>& get_mrs() { return _mrs; }
 
 private:
     pair<size_t, size_t> _rnr;
@@ -1298,6 +1361,7 @@ private:
     vector<size_t> _nr_field_s;
     vector<pair<size_t, size_t> > _entries;
     vector<int> _delta;
+    vector<size_t> _mrs;
 };
 
 struct is_loop_nop
@@ -1309,10 +1373,10 @@ struct is_loop_nop
 // obtain the necessary entries in the e_rs matrix which need to be modified
 // after the move
 template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
-          class MEntries,  class NPolicy = standard_neighbours_policy,
-          class IL = is_loop_nop>
-void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
-                  BGraph& bg, MEntries& m_entries,
+          class CEprop, class EBedge, class MEntries,
+          class NPolicy = standard_neighbours_policy, class IL = is_loop_nop>
+void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, CEprop& mrs,
+                  EBedge& bedge, Graph& g, BGraph& bg, MEntries& m_entries,
                   const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
@@ -1320,15 +1384,16 @@ void move_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
 
     m_entries.set_move(r, nr);
 
-    remove_entries(v, r, b, eweights, g, bg, m_entries, npolicy, is_loop);
+    remove_entries(v, r, b, eweights, mrs, bedge, g, bg, m_entries, npolicy,
+                   is_loop);
     add_entries(v, nr, b, eweights, g, bg, m_entries, npolicy, is_loop);
 }
 
 template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
-          class MEntries,  class NPolicy = standard_neighbours_policy,
-          class IL = is_loop_nop>
-void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, Graph& g,
-                    BGraph&, MEntries& m_entries,
+          class CEprop, class EBedge, class MEntries,
+          class NPolicy = standard_neighbours_policy, class IL = is_loop_nop>
+void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, CEprop& mrs,
+                    EBedge& bedge, Graph& g, BGraph&, MEntries& m_entries,
                     const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
@@ -1340,7 +1405,7 @@ void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, Graph& g,
         int ew = eweights[e];
         //assert(ew > 0);
 
-        m_entries.insert_delta(r, s, -ew, false);
+        m_entries.insert_delta(r, s, -ew, false, mrs[bedge[e]]);
 
         if (u == v || is_loop(v))
         {
@@ -1360,7 +1425,7 @@ void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, Graph& g,
         vertex_t s = b[u];
         int ew = eweights[e];
 
-        m_entries.insert_delta(r,  s, -ew, true);
+        m_entries.insert_delta(r,  s, -ew, true, mrs[bedge[e]]);
     }
 }
 
@@ -1386,7 +1451,6 @@ void add_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
             if (!is_directed::apply<Graph>::type::value)
                 self_weight += ew;
         }
-
         m_entries.insert_delta(nr, s, +ew, false);
     }
 
@@ -1406,11 +1470,12 @@ void add_entries(Vertex v, Vertex nr, Vprop& b, Eprop& eweights, Graph& g,
 
 
 // obtain the entropy difference given a set of entries in the e_rs matrix
-template <class MEntries, class Eprop, class BGraph, class EMat>
-double entries_dS(MEntries& m_entries, Eprop& mrs, BGraph& bg, EMat& emat)
+template <class MEntries, class Eprop, class EMat, class BGraph>
+double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
 {
-    auto& entries = m_entries.get_entries();
-    auto& delta = m_entries.get_delta();
+    const auto& entries = m_entries.get_entries();
+    const auto& delta = m_entries.get_delta();
+    auto& d_mrs = m_entries.get_mrs();
 
     double dS = 0;
     for (size_t i = 0; i < entries.size(); ++i)
@@ -1418,8 +1483,9 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, BGraph& bg, EMat& emat)
         auto er = entries[i].first;
         auto es = entries[i].second;
         int d = delta[i];
-
-        int ers = get_mrs(er, es, mrs, emat, bg);
+        size_t ers = d_mrs[i];
+        if (ers == numeric_limits<size_t>::max())
+            ers = d_mrs[i] = get_mrs(er, es, mrs, emat, bg); // slower
         assert(ers + d >= 0);
         dS += eterm(er, es, ers + d, bg) - eterm(er, es, ers, bg);
     }
@@ -1451,7 +1517,8 @@ double virtual_move_sparse(const Vec& vs, size_t nr, Eprop& mrs, Vprop& mrp,
     int self_weight = 0;
     for (auto v : vs)
     {
-        move_entries(v, nr, b, eweight, g, bg, m_entries, npolicy, is_loop);
+        move_entries(v, nr, b, eweight, mrs, emat.bedge, g, bg, m_entries,
+                     npolicy, is_loop);
         kout += npolicy.get_out_degree(v, g, eweight);
         if (is_directed::apply<Graph>::type::value)
         {
@@ -1470,7 +1537,7 @@ double virtual_move_sparse(const Vec& vs, size_t nr, Eprop& mrs, Vprop& mrp,
         m_entries.insert_delta(nr, nr, -self_weight / 2, false);
     }
 
-    double dS = entries_dS(m_entries, mrs, bg, emat);
+    double dS = entries_dS(m_entries, mrs, emat, bg);
 
     int dwr = 0, dwnr = 0;
     if (!overlap_stats.is_enabled())
@@ -1546,7 +1613,8 @@ double virtual_move_dense(const Vec& vs, size_t nr, Eprop& mrs, Vprop&,
     int self_weight = 0;
     for (auto v : vs)
     {
-        move_entries(v, nr, b, eweight, g, bg, m_entries, npolicy, is_loop);
+        move_entries(v, nr, b, eweight, mrs, emat.bedge, g, bg, m_entries,
+                     npolicy, is_loop);
         kout += npolicy.get_out_degree(v, g, eweight);
         if (is_directed::apply<Graph>::type::value)
         {
@@ -1993,6 +2061,7 @@ get_move_prob(Vertex v, Vertex r, Vertex s, double c, Vprop& b, MEprop& mrs,
     {
         size_t vi = overlap_stats.get_node(v);
         auto& ns = overlap_stats.get_half_edges(vi);
+        vertices.reserve(ns.size() + 1);
         vertices.insert(vertices.end(), ns.begin(), ns.end());
     }
 
@@ -2009,7 +2078,11 @@ get_move_prob(Vertex v, Vertex r, Vertex s, double c, Vprop& b, MEprop& mrs,
             size_t ew = eweight[e];
             w += ew;
 
-            int mts = get_mrs(t, s, mrs, emat, bg);
+            int mts;
+            if (t == r && s == size_t(b[u]))
+                mts = get_mrs(emat.bedge[e], mrs);
+            else
+                mts = get_mrs(t, s, mrs, emat, bg);
             int mtp = mrp[t];
             int mst = mts;
             int mtm = mtp;
@@ -2060,11 +2133,12 @@ get_move_prob(Vertex v, Vertex r, Vertex s, double c, Vprop& b, MEprop& mrs,
 
 
 // merge vertex u into v
-template <class Graph, class Eprop, class Vprop>
+template <class Graph, class Eprop, class Vprop, class EBedge>
 void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight,
-                    Graph& g)
+                    EBedge& bedge_u, Graph& g)
 {
     auto eweight = eweight_u.get_checked();
+    auto bedge = bedge_u.get_checked();
 
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
@@ -2105,6 +2179,7 @@ void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight,
             auto e = add_edge(v, t, g).first;
             ns_v[t].push_back(e);
             eweight[e] = w;
+            bedge[e] = bedge[es[0]];
         }
     }
 
@@ -2141,6 +2216,7 @@ void merge_vertices(size_t u, size_t v, Eprop& eweight_u, Vprop& vweight,
                 auto e = add_edge(s, v, g).first;
                 ns_v[s].push_back(e);
                 eweight[e] = w;
+                bedge[e] = bedge[es[0]];
             }
         }
     }
@@ -2282,8 +2358,9 @@ double virtual_move(size_t v, size_t s, Vprop& b, VLprop& cv, VVprop& vmap,
             if (state.slave)
             {
                 m_entries[l].clear();
-                move_entries(u, s_u, state.b, state.eweight, state.g,
-                             state.bg, m_entries[l], npolicy);
+                move_entries(u, s_u, state.b, state.eweight, state.mrs,
+                             state.emat.bedge, state.g, state.bg, m_entries[l],
+                             npolicy);
             }
 
             double ddS = virtual_move_covariate(state.mrs, state.bg, state.emat,
@@ -2405,7 +2482,8 @@ double virtual_move(const Vec& vs, size_t s, Vprop& b, VLprop& cv, VVprop& vmap,
             {
                 m_entries[l].clear();
                 for (auto w : iter.second)
-                    move_entries(w, s_u, state.b, state.eweight, state.g,
+                    move_entries(w, s_u, state.b, state.eweight, state.mrs,
+                                 state.emat.bedge, state.g,
                                  state.bg, m_entries[l], npolicy);
             }
 
@@ -2928,12 +3006,13 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
                     auto& state = states[l];
                     assert(u < num_vertices(state.g));
                     assert(w < num_vertices(state.g));
-                    merge_vertices(u, w, state.eweight, state.vweight, state.g);
+                    merge_vertices(u, w, state.eweight, state.vweight,
+                                   state.emat.bedge, state.g);
                     i++;
                     j++;
                 }
             }
-            merge_vertices(v, s, eweight, vweight, g);
+            merge_vertices(v, s, eweight, vweight, states[0].emat.bedge, g);
 
             clear_vec(cv[v]);
             clear_vec(vmap[v]);

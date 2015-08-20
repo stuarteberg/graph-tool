@@ -75,6 +75,8 @@ public:
             _probs[_small[i]] = 1;
         _large.clear();
         _small.clear();
+
+        _sample = uniform_int_distribution<size_t>(0, _probs.size() - 1);
     }
 
     Sampler() {}
@@ -82,9 +84,7 @@ public:
     template <class RNG>
     const Value& sample(RNG& rng)
     {
-        uniform_int_distribution<size_t> sample(0, _probs.size() - 1);
-        size_t i = sample(rng);
-
+        size_t i = _sample(rng);
         bernoulli_distribution coin(_probs[i]);
         if (coin(rng))
             return _items[i];
@@ -104,6 +104,8 @@ private:
     vector<size_t> _alias;
     vector<size_t> _small;
     vector<size_t> _large;
+    uniform_int_distribution<size_t> _sample;
+
 };
 
 // uniform sampling from containers
