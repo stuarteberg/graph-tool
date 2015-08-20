@@ -716,10 +716,13 @@ struct overlap_partition_stats_t
         bool is_same_bv = get_n_bv(v, r, nr, bv, deg, n_bv, n_deg, g, in_deg,
                                    out_deg);
 
+        if (is_same_bv)
+            return 0;
+
         size_t n_d = n_bv.size();
         size_t n_D = _D;
 
-        if (d == _D && _dhist[d] == 1)
+        if (d == _D && n_d < d && _dhist[d] == 1)
         {
             n_D = 1;
             for (auto& bc : _bhist)
@@ -736,8 +739,8 @@ struct overlap_partition_stats_t
 
         if (n_D != _D)
         {
-            S_b += lbinom(_D  + _N - 1, _N);
-            S_a += lbinom(n_D + _N - 1, _N);
+            S_b += lbinom_fast(_D  + _N - 1, _N);
+            S_a += lbinom_fast(n_D + _N - 1, _N);
         }
 
         int dB = 0;
@@ -752,7 +755,7 @@ struct overlap_partition_stats_t
                 if (nd == 0)
                     return 0.;
                 double x = lbinom_fast(_actual_B + dB, d_i);
-                double S = lbinom(exp(x) + nd - 1, nd); // not fast
+                double S = lbinom_careful(exp(x) + nd - 1, nd); // not fast
                 if (std::isinf(S) || std::isnan(S))
                     S = nd * x - lgamma_fast(nd + 1);
                 return S;
@@ -808,7 +811,8 @@ struct overlap_partition_stats_t
 
         }
 
-        size_t bv_count, n_bv_count;
+        size_t bv_count = get_bv_count(bv);
+        size_t n_bv_count = get_bv_count(n_bv);
 
         auto get_S_b = [&] (bool is_bv, int delta) -> double
             {
@@ -817,13 +821,8 @@ struct overlap_partition_stats_t
                 return -lgamma_fast(n_bv_count + delta + 1);
             };
 
-        if (!is_same_bv)
-        {
-            bv_count = get_bv_count(bv);
-            n_bv_count = get_bv_count(n_bv);
-            S_b += get_S_b(true,  0) + get_S_b(false, 0);
-            S_a += get_S_b(true, -1) + get_S_b(false, 1);
-        }
+        S_b += get_S_b(true,  0) + get_S_b(false, 0);
+        S_a += get_S_b(true, -1) + get_S_b(false, 1);
 
         return S_a - S_b;
     }
@@ -849,8 +848,7 @@ struct overlap_partition_stats_t
         bool is_same_bv = get_n_bv(v, r, nr, bv, deg, n_bv, n_deg, g, in_deg,
                                    out_deg);
 
-        size_t bv_count = get_bv_count(bv);
-        size_t n_bv_count = get_bv_count(n_bv);
+        size_t bv_count, n_bv_count;
 
         auto get_S_bv = [&] (bool is_bv, int delta) -> double
             {
@@ -915,6 +913,9 @@ struct overlap_partition_stats_t
 
         if (!is_same_bv)
         {
+            bv_count = get_bv_count(bv);
+            n_bv_count = get_bv_count(n_bv);
+
             S_b += get_S_bv(true,  0) + get_S_bv(false, 0);
             S_a += get_S_bv(true, -1) + get_S_bv(false, 1);
 
