@@ -194,6 +194,9 @@ class CovariateBlockState(BlockState):
                 assert state.mrs.fa.sum() == state.eweight.fa.sum(), ("inconsistent mrs!", l)
 
 
+        #self.wr = self.__dummy_bg.own_property(total_state.wr)
+        self.wr = total_state.wr
+
         self.clear_cache()
 
         if _bm_test():
@@ -204,19 +207,18 @@ class CovariateBlockState(BlockState):
         self.__bg = None
         self.__mrs = None
         self.__bec = None
-        self.__dummy_bg = Graph(directed=g.is_directed())
+        self.__dummy_bg = Graph(directed=self.g.is_directed())
         self.__dummy_bg.add_vertex(self.B)
-        #self.wr = self.__dummy_bg.own_property(total_state.wr)
-        self.wr = total_state.wr
 
         for s in self.states:
             s.clear_cache()
 
         self.total_state.clear_cache()
 
-        self.sweep_vertices = total_state.sweep_vertices
+        self.sweep_vertices = self.total_state.sweep_vertices
         self.emat = None
         self.overlap_stats = self.total_state.overlap_stats
+        self.__layer_entropy = None
 
     def __get_base_u(self, u):
         node_index = u.vp["vmap"].copy("int64_t")
