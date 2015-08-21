@@ -43,12 +43,12 @@ public:
 
     typedef Value value_type;
 
-    size_t get_left(size_t i)   { return 2 * i + 1;               }
-    size_t get_right(size_t i)  { return 2 * i + 2;               }
-    size_t get_parent(size_t i) { return i > 0 ? (i - 1) / 2 : 0; }
+    size_t get_left(size_t i)   const { return 2 * i + 1;               }
+    size_t get_right(size_t i)  const { return 2 * i + 2;               }
+    size_t get_parent(size_t i) const { return i > 0 ? (i - 1) / 2 : 0; }
 
     template <class RNG>
-    const Value& sample(RNG& rng)
+    const Value& sample(RNG& rng) const
     {
         uniform_real_distribution<> sample(0, 1);
         double u = _tree[0] * sample(rng), c = 0;
