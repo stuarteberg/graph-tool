@@ -23,6 +23,7 @@
 #include "graph_properties.hh"
 
 #include <boost/mpl/quote.hpp>
+#include <boost/graph/breadth_first_search.hpp>
 
 #include <cmath>
 
@@ -159,6 +160,32 @@ void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
 }
 
 
+template <class Graph>
+void graph_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
+{
+    typename property_map_type::apply<size_t,
+                                     typename property_map<Graph, vertex_index_t>::type>::type
+        cpred;
+    auto pred = cpred.get_unchecked(num_vertices(g));
+
+    UndirectedAdaptor<Graph> ug(g);
+
+    boost::breadth_first_search(ug, s,
+                                boost::visitor(
+                                    boost::make_bfs_visitor(
+                                        boost::record_predecessors(
+                                            pred,
+                                            boost::on_tree_edge()))));
+    size_t pos = t;
+    path.push_back(pos);
+    while (pos != s)
+    {
+        pos = pred[pos];
+        path.push_back(pos);
+    }
+    std::reverse(path.begin(), path.end());
+}
+
 template<class T>
 void pack(vector<point_t>& cp, vector<T>& ncp)
 {
@@ -173,7 +200,7 @@ void pack(vector<point_t>& cp, vector<T>& ncp)
 struct do_get_cts
 {
     template <class Graph, class Tree, class PosProp, class BProp, class CMap>
-    void operator()(Graph& g, Tree* t, PosProp tpos, BProp beta, CMap cts) const
+    void operator()(Graph& g, Tree* t, PosProp tpos, BProp beta, CMap cts, bool is_tree) const
     {
         vector<size_t> path;
         vector<point_t> cp;
@@ -187,7 +214,10 @@ struct do_get_cts
                 continue;
 
             path.clear();
-            tree_path(*t, u, v, path);
+            if (is_tree)
+                tree_path(*t, u, v, path);
+            else
+                graph_path(*t, u, v, path);
             cp.clear();
             get_control_points(path, tpos, beta[e], cp);
             ncp.clear();
@@ -208,8 +238,8 @@ struct get_pointers
     };
 };
 
-void get_cts(GraphInterface& gi, GraphInterface& tgi,
-             boost::any otpos, boost::any obeta, boost::any octs)
+void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
+             boost::any obeta, boost::any octs, bool is_tree)
 {
     typedef property_map_type::apply<vector<double>,
                                      GraphInterface::edge_index_map_t>::type
@@ -221,9 +251,9 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi,
     eprop_t cts = boost::any_cast<eprop_t>(octs);
     beprop_t beta = boost::any_cast<beprop_t>(obeta);
 
-    run_action<graph_tool::detail::always_directed, boost::mpl::true_>()
+    run_action<>()
         (gi, std::bind(do_get_cts(), placeholders::_1, placeholders::_2,
-                       placeholders::_3, beta, cts),
+                       placeholders::_3, beta, cts, is_tree),
          get_pointers::apply<graph_tool::detail::always_directed>::type(),
          vertex_scalar_vector_properties())
         (tgi.GetGraphView(), otpos);

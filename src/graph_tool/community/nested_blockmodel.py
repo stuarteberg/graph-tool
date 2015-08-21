@@ -1727,6 +1727,14 @@ def get_hierarchy_tree(state, empty_branches=True):
     This transforms a :class:`~graph_tool.NestedBlockState` instance into a
     single :class:`~graph_tool.Graph` instance containing the hierarchy tree.
 
+    Parameters
+    ----------
+    state : :class:`~graph_tool.community.NestedBlockState`
+       Nested block model state.
+    empty_branches : ``bool`` (optional, default: ``True``)
+       If ``empty_branches == False``, dangling branches at the upper layers
+       will be pruned.
+
     Returns
     -------
 
@@ -1738,9 +1746,6 @@ def get_hierarchy_tree(state, empty_branches=True):
     order : :class:`~graph_tool.PropertyMap`
        A vertex property map containing the relative ordering of each layer
        according to the total degree of the groups at the specific levels.
-    empty_branches : ``bool`` (optional, default: ``True``)
-       If ``empty_branches == False``, dangling branches at the upper layers
-       will be pruned.
     """
 
     bstack = state.get_bstack()

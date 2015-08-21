@@ -27,6 +27,8 @@ import os
 import warnings
 import numpy
 
+from .. topology import shortest_distance
+
 try:
     import cairo
 except ImportError:
@@ -1224,7 +1226,7 @@ def transform_scale(M, scale):
                              scale / np.sqrt(2))
     return np.sqrt(p[0] ** 2 + p[1] ** 2)
 
-def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None):
+def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True):
     r"""Return the Bézier spline control points for the edges in ``g``, given the hierarchical structure encoded in graph `t`.
 
     Parameters
@@ -1248,6 +1250,9 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None):
     cts : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Edge property map of type ``vector<double>`` where the control points
         will be stored.
+    is_tree : ``bool`` (optional, default: ``True``)
+        If ``True``, ``t`` must be a directed tree, otherwise it can be any
+        connected graph.
 
 
     Returns
@@ -1326,7 +1331,8 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None):
                                tu._Graph__graph,
                                _prop("v", tu, tpos),
                                _prop("e", u, beta),
-                               _prop("e", u, cts))
+                               _prop("e", u, cts),
+                               is_tree)
     return cts
 
 #
@@ -1414,8 +1420,8 @@ class GraphArtist(matplotlib.artist.Artist):
 
 def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                    halpha=0.6, subsample_edges=None, deg_order=True,
-                   deg_size=True, vsize_scale=1, hsize_scale=1,
-                   empty_branches=True, verbose=False, **kwargs):
+                   deg_size=True, vsize_scale=1, hsize_scale=1, hshortcuts=0,
+                   hide=0, empty_branches=True, verbose=False, **kwargs):
     r"""Draw a nested block model state in a circular hierarchy layout with edge
     bundling.
 
@@ -1448,14 +1454,19 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         Multiplicative factor of the vertex sizes.
     hsize_scale : ``float`` (optional, default: ``1.``)
         Multiplicative factor of the sizes of the hierarchy nodes.
+    hshortcuts : ``int`` (optional, default: ``0``)
+        Include shortcuts to the number of upper layers in the hierarchy
+        determined by this parameter.
+    hide : ``int`` (optional, default: ``0``)
+        Hide upper levels of the hierarchy.
     empty_branches : ``bool`` (optional, default: ``False``)
-       If ``empty_branches == False``, dangling branches at the upper layers
-       will be pruned.
+        If ``empty_branches == False``, dangling branches at the upper layers
+        will be pruned.
     verbose : ``bool`` (optional, default: ``False``)
-       If ``verbose == True``, verbose information will be displayed.
+        If ``verbose == True``, verbose information will be displayed.
     **kwargs :
-       All remaining keyword arguments will be passed to the
-       :func:`~graph_tool.draw.graph_draw` function.
+        All remaining keyword arguments will be passed to the
+        :func:`~graph_tool.draw.graph_draw` function.
 
     Returns
     -------
@@ -1570,12 +1581,30 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     else:
         tpos = t.own_property(layout)
 
+    hvvisible = t.new_vertex_property("bool", True)
+    if hide > 0:
+        root = t.vertex(t.num_vertices() - 1)
+        dist = shortest_distance(t, source=root)
+        hvvisible.fa = dist.fa >= hide
+
+    hevisible = t.new_edge_property("bool", True)
+    if hshortcuts > 0:
+        root = t.vertex(t.num_vertices() - 1)
+        dist = shortest_distance(t, source=root)
+        nodes = [v for v in t.vertices() if dist[v] <= hshortcuts]
+        for v in nodes:
+            for u in nodes:
+                if u == v:
+                    continue
+                t.add_edge(u, v)
+
     pos = g.own_property(tpos.copy())
 
     if verbose:
         print("getting cts...")
 
-    cts = get_hierarchy_control_points(g, t, tpos, beta)
+    cts = get_hierarchy_control_points(g, t, tpos, beta,
+                                       is_tree=hshortcuts == 0)
 
     if verbose:
         print("done.")
@@ -1646,7 +1675,9 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     tlabels = t.new_vertex_property("string")
 
     t_orig = t
-    t = GraphView(t, vfilt=lambda v: int(v) >= g.num_vertices(True))
+    t = GraphView(t,
+                  vfilt=lambda v: int(v) >= g.num_vertices(True) and hvvisible[v],
+                  efilt=hevisible)
     if verbose:
         print("joining graphs")
     props = [(pos, tpos),
@@ -1783,7 +1814,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         vmask = gg.vertex_index.copy("int")
         u = GraphView(gg, directed=False, vfilt=vmask.fa < g.num_vertices())
         cts = eprops["control_points"]
-        get_hierarchy_control_points(u, t_orig, pos, beta, cts=cts)
+        get_hierarchy_control_points(u, t_orig, pos, beta, cts=cts,
+                                     is_tree=hshortcuts == 0)
 
     def draw_branch(widget, gg, key_id, picked, pos, vprops, eprops):
         if key_id == ord('b'):
