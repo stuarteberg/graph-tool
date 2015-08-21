@@ -27,7 +27,7 @@ import os
 import warnings
 import numpy
 
-from .. topology import shortest_distance
+from .. topology import shortest_distance, is_bipartite
 
 try:
     import cairo
@@ -1435,7 +1435,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     layout : ``str`` or :class:`~graph_tool.PropertyMap` (optional, default: ``"radial"``)
         If ``layout == "radial"`` :func:`~graph_tool.draw.radial_tree_layout`
         will be used. If ``layout == "sfdp"``, the hierarchy tree will be
-        positioned using :func:`~graph_tool.draw.sfdp_layout`. If a
+        positioned using :func:`~graph_tool.draw.sfdp_layout`. If ``layout ==
+        "bipartite"`` a bipartite layout will be used. If instead a
         :class:`~graph_tool.PropertyMap` is provided, it must correspond to the
         position of the hierarchy tree.
     beta : ``float`` (optional, default: ``.8``)
@@ -1561,6 +1562,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1,
                                                    use_index=False),
                                   rel_order=vorder)
+    elif layout == "bipartite":
+        tpos = t.own_property(get_bip_hierachy_pos(state))
     elif layout == "sfdp":
         if pos is None:
             tpos = sfdp_layout(t)
@@ -1929,6 +1932,105 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         pos = (g.own_property(pos[0]),
                g.own_property(pos[1]))
     return pos, t, tpos
+
+
+def get_bip_hierachy_pos(state):
+
+    if state.overlap:
+        g = state.g
+        ostate = state.levels[0]
+        bv, bcin, bcout, bc = ostate.get_overlap_blocks()
+        be = ostate.get_edge_blocks()
+
+        n_r = zeros(ostate.B)
+        b = g.new_vertex_property("int")
+        for v in g.vertices():
+            i = bc[v].a.argmax()
+            b[v] = bv[v][i]
+            n_r[b[v]] += 1
+
+        orphans = [r for r in range(ostate.B) if n_r[r] == 0]
+
+        for v in g.vertices():
+            for r in orphans:
+                b[v] = r
+
+        orig_state = state
+        state = state.copy()
+        state.levels[0] = BlockState(g, b=b)
+
+    g = state.g
+
+    deg = g.degree_property_map("total")
+
+    t, tb, order = get_hierarchy_tree(state)
+
+    root = t.vertex(t.num_vertices() - 1)
+    if root.out_degree() > 2:
+        clabel = is_bipartite(g, partition=True)[1].copy("int")
+        if state.overlap:
+            ostate = OverlapBlockState(g, b=clabel)
+            ostate = orig_state.copy(clabel=clabel)
+            bc = ostate._NestedBlockState__propagate_clabel(len(state.levels) - 2)
+        else:
+            state = state.copy(clabel=clabel)
+            bc = state._NestedBlockState__propagate_clabel(len(state.levels) - 2)
+
+        ps = list(root.out_neighbours())
+        t.clear_vertex(root)
+
+        p1 = t.add_vertex()
+        p2 = t.add_vertex()
+
+        t.add_edge(root, p1)
+        t.add_edge(root, p2)
+        for p in ps:
+            if bc.a[tb[p]] == 0:
+                t.add_edge(p2, p)
+            else:
+                t.add_edge(p1, p)
+
+    w = t.new_vertex_property("double")
+    for v in t.vertices():
+        if v.in_degree() == 0:
+            break
+        if v.out_degree() == 0:
+            w[v] = 1
+        parent, = v.in_neighbours()
+        w[parent] += w[v]
+
+    pos = t.new_vertex_property("vector<double>")
+
+    pos[root] = (0., 0.)
+
+    p1, p2 = root.out_neighbours()
+
+    if w[p1] > w[p2]:
+        p1, p2 = p2, p1
+
+    L = len(state.levels)
+    pos[p1] = (-1 / L * .5, 0)
+    pos[p2] = (+1 / L * .5, 0)
+
+    for i, p in enumerate([p1, p2]):
+        roots = [p]
+        while len(roots) > 0:
+            nroots = []
+            for r in roots:
+                cw = pos[r][1] - w[r] / 2 / w[p]
+                for v in sorted(r.out_neighbours(), key=lambda a: order[a]):
+                    pos[v] = (0, 0)
+                    if i == 0:
+                        pos[v][0] = pos[r][0] - 1 / L * .5
+                    else:
+                        pos[v][0] = pos[r][0] + 1 / L * .5
+                    pos[v][1] = cw + w[v] / 2 / w[p]
+                    cw += w[v] / w[p]
+                    nroots.append(v)
+            roots = nroots
+    return pos
+
+
 
 # Bottom imports to avoid circular dependency issues
 from .. community import get_hierarchy_tree, NestedBlockState, BlockState, OverlapBlockState
