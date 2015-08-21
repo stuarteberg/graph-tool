@@ -75,8 +75,6 @@ class OverlapBlockState(BlockState):
     def __init__(self, g, b=None, B=None, clabel=None, deg_corr=True,
                  max_BE=1000, **kwargs):
 
-        BlockState._state_ref_count += 1
-
         # determine if there is a base graph, and overlapping structure
         self.base_g = kwargs.get("base_g", None)
 

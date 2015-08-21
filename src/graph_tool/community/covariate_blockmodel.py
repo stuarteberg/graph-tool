@@ -85,9 +85,6 @@ class CovariateBlockState(BlockState):
     def __init__(self, g, ec, eweight=None, vweight=None, b=None, B=None,
                  clabel=None, layers=False, deg_corr=True, overlap=False,
                  **kwargs):
-
-        BlockState._state_ref_count += 1
-
         self.g = g
 
         if kwargs.get("ec_done", False):
