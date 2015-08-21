@@ -2010,15 +2010,15 @@ struct egroups_manage
     }
 
     template <class Edge, class RNG>
-    static typename std::tuple_element<0, Edge>::type
-    sample_edge(DynamicSampler<Edge>& elist, RNG& rng)
+    static const typename std::tuple_element<0, Edge>::type&
+    sample_edge(const DynamicSampler<Edge>& elist, RNG& rng)
     {
         return get<0>(elist.sample(rng));
     }
 
     template <class Edge, class RNG>
-    static typename std::tuple_element<0, Edge>::type
-    sample_edge(vector<Edge>& elist, RNG& rng)
+    static const typename std::tuple_element<0, Edge>::type&
+    sample_edge(const vector<Edge>& elist, RNG& rng)
     {
         std::uniform_int_distribution<size_t> urand(0, elist.size() - 1);
         size_t ur = urand(rng);
