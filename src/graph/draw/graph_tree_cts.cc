@@ -128,7 +128,8 @@ void get_control_points(vector<size_t>& path, PosProp pos, double beta,
 }
 
 template <class Graph>
-void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
+void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path,
+               size_t max_depth)
 {
     vector<size_t> s_root;
     vector<size_t> t_root;
@@ -138,7 +139,7 @@ void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
     size_t v = s;
     size_t u = t;
 
-    while (v != u)
+    while (v != u && s_root.size() < max_depth)
     {
         typename graph_traits<Graph>::in_edge_iterator e, e_end;
         tie(e, e_end) = in_edges(v, g);
@@ -200,7 +201,8 @@ void pack(vector<point_t>& cp, vector<T>& ncp)
 struct do_get_cts
 {
     template <class Graph, class Tree, class PosProp, class BProp, class CMap>
-    void operator()(Graph& g, Tree* t, PosProp tpos, BProp beta, CMap cts, bool is_tree) const
+    void operator()(Graph& g, Tree* t, PosProp tpos, BProp beta, CMap cts,
+                    bool is_tree, size_t max_depth) const
     {
         vector<size_t> path;
         vector<point_t> cp;
@@ -215,7 +217,7 @@ struct do_get_cts
 
             path.clear();
             if (is_tree)
-                tree_path(*t, u, v, path);
+                tree_path(*t, u, v, path, max_depth);
             else
                 graph_path(*t, u, v, path);
             cp.clear();
@@ -239,7 +241,7 @@ struct get_pointers
 };
 
 void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
-             boost::any obeta, boost::any octs, bool is_tree)
+             boost::any obeta, boost::any octs, bool is_tree, size_t max_depth)
 {
     typedef property_map_type::apply<vector<double>,
                                      GraphInterface::edge_index_map_t>::type
@@ -253,7 +255,7 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
 
     run_action<>()
         (gi, std::bind(do_get_cts(), placeholders::_1, placeholders::_2,
-                       placeholders::_3, beta, cts, is_tree),
+                       placeholders::_3, beta, cts, is_tree, max_depth),
          get_pointers::apply<graph_tool::detail::always_directed>::type(),
          vertex_scalar_vector_properties())
         (tgi.GetGraphView(), otpos);

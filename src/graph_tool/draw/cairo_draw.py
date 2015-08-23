@@ -1226,7 +1226,8 @@ def transform_scale(M, scale):
                              scale / np.sqrt(2))
     return np.sqrt(p[0] ** 2 + p[1] ** 2)
 
-def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True):
+def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True,
+                                 max_depth=None):
     r"""Return the Bézier spline control points for the edges in ``g``, given the hierarchical structure encoded in graph `t`.
 
     Parameters
@@ -1253,6 +1254,9 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True):
     is_tree : ``bool`` (optional, default: ``True``)
         If ``True``, ``t`` must be a directed tree, otherwise it can be any
         connected graph.
+    max_depth : ``int`` (optional, default: ``None``)
+        If supplied, only the first ``max_depth`` bottom levels of the hierarchy
+        will be used.
 
 
     Returns
@@ -1326,13 +1330,16 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True):
     else:
         beta = beta.copy("double")
 
+    if max_depth is None:
+        max_depth = t.num_vertices()
+
     tu = GraphView(tu, skip_vfilt=True)
     libgraph_tool_draw.get_cts(u._Graph__graph,
                                tu._Graph__graph,
                                _prop("v", tu, tpos),
                                _prop("e", u, beta),
                                _prop("e", u, cts),
-                               is_tree)
+                               is_tree, max_depth)
     return cts
 
 #
@@ -1590,24 +1597,13 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         dist = shortest_distance(t, source=root)
         hvvisible.fa = dist.fa >= hide
 
-    hevisible = t.new_edge_property("bool", True)
-    if hshortcuts > 0:
-        root = t.vertex(t.num_vertices() - 1)
-        dist = shortest_distance(t, source=root)
-        nodes = [v for v in t.vertices() if dist[v] <= hshortcuts]
-        for v in nodes:
-            for u in nodes:
-                if u == v:
-                    continue
-                t.add_edge(u, v)
-
     pos = g.own_property(tpos.copy())
 
     if verbose:
         print("getting cts...")
 
     cts = get_hierarchy_control_points(g, t, tpos, beta,
-                                       is_tree=hshortcuts == 0)
+                                       max_depth=len(state.levels) - hshortcuts)
 
     if verbose:
         print("done.")
@@ -1679,8 +1675,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
 
     t_orig = t
     t = GraphView(t,
-                  vfilt=lambda v: int(v) >= g.num_vertices(True) and hvvisible[v],
-                  efilt=hevisible)
+                  vfilt=lambda v: int(v) >= g.num_vertices(True) and hvvisible[v])
     if verbose:
         print("joining graphs")
     props = [(pos, tpos),

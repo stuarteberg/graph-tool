@@ -2150,7 +2150,7 @@ struct enum_from_int
 };
 
 void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
-             boost::any obeta, boost::any octs, bool);
+             boost::any obeta, boost::any octs, bool, size_t);
 
 BOOST_PYTHON_MODULE(libgraph_tool_draw)
 {
