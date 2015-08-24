@@ -264,12 +264,11 @@ class BlockState(object):
                                       max_BE=self.max_BE, **kwargs)
 
         if not state.__check_clabel():
+            if _bm_test() or not kwargs.get("fix_clabel", True) :
+                raise RuntimeError("Inconsistent clabel after copy!")
             b = state.b.a + state.clabel.a * state.B
             continuous_map(b)
-            state = state.copy(b=b)
-
-            if _bm_test():
-                assert state.__check_clabel()
+            state = state.copy(b=b, fix_clabel=False)
 
         return state
 

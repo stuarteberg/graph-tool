@@ -488,7 +488,8 @@ class CovariateBlockState(BlockState):
             return self.copy(g=g, ec=ec, b=b.fa, clabel=clabel.fa)
 
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
-             deg_corr=None, clabel=None, overlap=None, layers=None, ec=None):
+             deg_corr=None, clabel=None, overlap=None, layers=None, ec=None,
+             **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
         state = CovariateBlockState(self.g if g is None else g,
@@ -508,12 +509,11 @@ class CovariateBlockState(BlockState):
                                     ec_done=ec is None)
 
         if not state._BlockState__check_clabel():
+            if _bm_test() or not kwargs.get("fix_clabel", True) :
+                raise RuntimeError("Inconsistent clabel after copy!")
             b = state.b.a + state.clabel.a * state.B
             continuous_map(b)
-            state = state.copy(b=b)
-
-            if _bm_test():
-                assert state._BlockState__check_clabel()
+            state = state.copy(b=b, fix_clabel=False)
 
         return state
 
