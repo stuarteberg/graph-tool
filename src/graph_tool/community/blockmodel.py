@@ -316,11 +316,11 @@ class BlockState(object):
         return bclabel
 
     def __check_clabel(self):
-        b = self.b.a + self.clabel.a * self.B
+        b = self.b.fa + self.clabel.fa * self.B
+        b2 = self.b.fa.copy()
         continuous_map(b)
-        b2 = self.b.copy()
-        continuous_map(b2.a)
-        return (b == b2.a).all()
+        continuous_map(b2)
+        return (b == b2).all()
 
     def __get_emat(self):
         if self.emat is None:
