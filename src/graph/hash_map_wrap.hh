@@ -53,10 +53,10 @@ struct empty_key
     }
 };
 
-template <class Key>
-struct empty_key<std::vector<Key>>
+template <class Key, class Allocator>
+struct empty_key<std::vector<Key, Allocator>>
 {
-    static std::vector<Key> get()
+    static std::vector<Key, Allocator> get()
     {
         return { empty_key<Key>::get() };
     }
@@ -118,10 +118,10 @@ struct deleted_key
     }
 };
 
-template <class Key>
-struct deleted_key<std::vector<Key>>
+template <class Key, class Allocator>
+struct deleted_key<std::vector<Key, Allocator>>
 {
-    static std::vector<Key> get()
+    static std::vector<Key, Allocator> get()
     {
         return { deleted_key<Key>::get() };
     }

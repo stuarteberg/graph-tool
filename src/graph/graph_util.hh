@@ -560,10 +560,10 @@ struct hash<std::pair<T1, T2>>
     }
 };
 
-template <class Value>
-struct hash<vector<Value>>
+template <class Value, class Allocator>
+struct hash<vector<Value, Allocator>>
 {
-    size_t operator()(const vector<Value>& v) const
+    size_t operator()(const vector<Value, Allocator>& v) const
     {
         size_t seed = 0;
         for (const auto& x : v)
