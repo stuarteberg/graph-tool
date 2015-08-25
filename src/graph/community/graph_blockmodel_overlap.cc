@@ -52,6 +52,7 @@ struct move_sweep_overlap_dispatch
                                 boost::any egroups, VEprop esrcpos,
                                 VEprop etgtpos, Vprop label,
                                 vector<int64_t>& vlist,
+                                vector<int64_t>& block_list,
                                 vector<int64_t>& target_blocks,
                                 bool deg_corr, bool dense, bool multigraph,
                                 bool parallel_edges, double beta,
@@ -65,11 +66,11 @@ struct move_sweep_overlap_dispatch
                                 GraphInterface& bgi)
 
         : eweight(eweight), vweight(vweight), oegroups(egroups), esrcpos(esrcpos),
-          etgtpos(etgtpos), label(label), vlist(vlist), target_blocks(target_blocks),
-          deg_corr(deg_corr), dense(dense), multigraph(multigraph),
-          parallel_edges(parallel_edges), beta(beta), sequential(sequential),
-          parallel(parallel), random_move(random_move), c(c),
-          node_coherent(node_coherent), verbose(verbose),
+          etgtpos(etgtpos), label(label), vlist(vlist), block_list(block_list),
+          target_blocks(target_blocks), deg_corr(deg_corr), dense(dense),
+          multigraph(multigraph), parallel_edges(parallel_edges), beta(beta),
+          sequential(sequential), parallel(parallel), random_move(random_move),
+          c(c), node_coherent(node_coherent), verbose(verbose),
           max_edge_index(max_edge_index), nmerges(nmerges),
           niter(niter), merge_map(merge_map), overlap_stats(overlap_stats),
           partition_stats(partition_stats), rng(rng), S(S), nmoves(nmoves), bgi(bgi)
@@ -83,6 +84,7 @@ struct move_sweep_overlap_dispatch
     Vprop label;
     size_t n;
     vector<int64_t>& vlist;
+    vector<int64_t>& block_list;
     vector<int64_t>& target_blocks;
     bool deg_corr;
     bool dense;
@@ -222,7 +224,8 @@ struct move_sweep_overlap_dispatch
                                        wr.get_unchecked(num_vertices(bg)),
                                        b.get_unchecked(num_vertices(g)), cv,
                                        vmap, label.get_unchecked(num_vertices(bg)),
-                                       vlist, deg_corr, dense, multigraph, beta,
+                                       vlist, block_list, deg_corr, dense,
+                                       multigraph, beta,
                                        vweight.get_unchecked(num_vertices(g)), g,
                                        sequential, parallel, random_move, c, niter,
                                        num_vertices(bg), verbose, rng, S, nmoves);
@@ -234,7 +237,8 @@ struct move_sweep_overlap_dispatch
                                                 wr.get_unchecked(num_vertices(bg)),
                                                 b.get_unchecked(num_vertices(g)), cv,
                                                 vmap, label.get_unchecked(num_vertices(bg)),
-                                                vlist, deg_corr, dense, multigraph, beta,
+                                                vlist, block_list, deg_corr,
+                                                dense, multigraph, beta,
                                                 vweight.get_unchecked(num_vertices(g)), g,
                                                 sequential,  random_move, c,
                                                 false, niter,
@@ -245,11 +249,12 @@ struct move_sweep_overlap_dispatch
             {
                 merge_sweep_overlap(states, m_entries, overlap_stats,
                                     wr.get_unchecked(num_vertices(bg)),
-                                    b.get_unchecked(num_vertices(g)), ce, cv, vmap,
-                                    label.get_unchecked(num_vertices(bg)), vlist,
-                                    deg_corr, dense, multigraph, g, random_move,
-                                    false, nmerges, niter,
-                                    num_vertices(bg), rng, S, nmoves);
+                                    b.get_unchecked(num_vertices(g)), ce, cv,
+                                    vmap,
+                                    label.get_unchecked(num_vertices(bg)),
+                                    vlist, block_list, deg_corr, dense,
+                                    multigraph, g, random_move, false, nmerges,
+                                    niter, num_vertices(bg), rng, S, nmoves);
             }
         }
         else
@@ -276,8 +281,8 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                       boost::any sampler, boost::any cavity_sampler,
                       boost::any omrs, boost::any omrp, boost::any omrm,
                       boost::any owr, boost::any ob, boost::any olabel,
-                      vector<int64_t>& vlist, vector<int64_t>& target_blocks,
-                      bool deg_corr, bool dense,
+                      vector<int64_t>& vlist, vector<int64_t>& block_list,
+                      vector<int64_t>& target_blocks, bool deg_corr, bool dense,
                       bool multigraph, bool parallel_edges, boost::any oeweight,
                       boost::any ovweight, boost::any oegroups,
                       boost::any oesrcpos, boost::any oetgtpos, double beta,
@@ -317,11 +322,11 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_overlap_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
-                        label, vlist, target_blocks, deg_corr, dense, multigraph,
-                        parallel_edges, beta, sequential, parallel, random_move,
-                        c, node_coherent, verbose, gi.GetMaxEdgeIndex(), nmerges,
-                        niter, merge_map, overlap_stats, partition_stats, rng, S,
-                        nmoves, bgi),
+                        label, vlist, block_list, target_blocks, deg_corr, dense,
+                        multigraph, parallel_edges, beta, sequential, parallel,
+                        random_move, c, node_coherent, verbose, gi.GetMaxEdgeIndex(),
+                        nmerges, niter, merge_map, overlap_stats, partition_stats,
+                        rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,
                        std::ref(emat), sampler, cavity_sampler, weighted))();
     return boost::python::make_tuple(S, nmoves);

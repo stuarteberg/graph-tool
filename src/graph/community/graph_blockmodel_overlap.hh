@@ -1302,11 +1302,11 @@ void move_sweep_overlap(vector<BlockState>& states,
                         vector<MEntries>& m_entries_r,
                         overlap_stats_t& overlap_stats, Vprop wr, Vprop b,
                         VLprop cv, VVprop vmap, Vprop clabel,
-                        vector<int64_t>& vlist, bool deg_corr, bool dense,
-                        bool multigraph, double beta, Vprop vweight, Graph& g,
-                        bool sequential, bool parallel, bool random_move,
-                        double c, size_t niter, size_t B, bool verbose,
-                        RNG& rng, double& S, size_t& nmoves)
+                        vector<int64_t>& vlist, vector<int64_t>& block_list,
+                        bool deg_corr, bool dense, bool multigraph, double beta,
+                        Vprop vweight, Graph& g, bool sequential, bool parallel,
+                        bool random_move, double c, size_t niter, size_t B,
+                        bool verbose, RNG& rng, double& S, size_t& nmoves)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
@@ -1339,6 +1339,8 @@ void move_sweep_overlap(vector<BlockState>& states,
         rngs.push_back(&rng);
     }
 
+    std::uniform_int_distribution<size_t> s_rand(0, block_list.size() - 1);
+
     half_edge_neighbour_policy<Graph> npolicy(g);
 
     vector<MEntries> m_entries = m_entries_r;
@@ -1362,7 +1364,6 @@ void move_sweep_overlap(vector<BlockState>& states,
 
             typedef std::uniform_real_distribution<> rdist_t;
             auto rand_real = std::bind(rdist_t(), std::ref(*rngs[tid]));
-            std::uniform_int_distribution<size_t> s_rand(0, B - 1);
 
             vertex_t v;
             if (sequential)
@@ -1380,7 +1381,7 @@ void move_sweep_overlap(vector<BlockState>& states,
                 continue;
 
             // attempt random block
-            vertex_t s = s_rand(*rngs[tid]);
+            vertex_t s = block_list[s_rand(*rngs[tid])];
 
             if (!random_move && total_degreeS()(v, g) > 0)
             {
@@ -1550,18 +1551,20 @@ void coherent_move_sweep_overlap(vector<BlockState>& states,
                                  vector<MEntries>& m_entries,
                                  overlap_stats_t& overlap_stats, Vprop wr,
                                  Vprop b, VLprop cv, VVprop vmap, Vprop clabel,
-                                 vector<int64_t>& vlist, bool deg_corr, bool dense,
-                                 bool multigraph, double beta, Vprop vweight,
-                                 Graph& g, bool sequential, bool random_move,
-                                 double c, bool confine_layers, size_t niter,
-                                 size_t B, RNG& rng, double& S, size_t& nmoves)
+                                 vector<int64_t>& vlist,
+                                 vector<int64_t>& block_list, bool deg_corr,
+                                 bool dense, bool multigraph, double beta,
+                                 Vprop vweight, Graph& g, bool sequential,
+                                 bool random_move, double c,
+                                 bool confine_layers, size_t niter, size_t B,
+                                 RNG& rng, double& S, size_t& nmoves)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
     typedef std::uniform_real_distribution<> rdist_t;
     auto rand_real = std::bind(rdist_t(), std::ref(rng));
 
-    std::uniform_int_distribution<size_t> s_rand(0, B - 1);
+    std::uniform_int_distribution<size_t> s_rand(0, block_list.size() - 1);
 
     nmoves = 0;
     S = 0;
@@ -1599,7 +1602,7 @@ void coherent_move_sweep_overlap(vector<BlockState>& states,
                 continue;
 
             // attempt random block
-            vertex_t s = s_rand(rng);
+            vertex_t s = block_list[s_rand(rng)];
 
             if (!random_move && total_degreeS()(v, g) > 0)
             {
@@ -1689,7 +1692,7 @@ void coherent_move_sweep_overlap(vector<BlockState>& states,
             double dS = virtual_move(vs, s, b, cv, vmap, states, m_entries,
                                      dense, deg_corr, multigraph, npolicy);
 
-            assert (!std::isinf(dS) && !std::isnan(dS));
+            assert(!std::isinf(dS) && !std::isnan(dS));
 
             bool accept = false;
             if (std::isinf(beta))
@@ -1752,10 +1755,11 @@ void merge_sweep_overlap(vector<BlockState>& states,
                          vector<MEntries>& m_entries,
                          overlap_stats_t& overlap_stats, Vprop wr, Vprop b,
                          EVprop ce, VLprop cv, VVprop vmap, Vprop clabel,
-                         vector<int64_t>& vlist, bool deg_corr, bool dense,
-                         bool multigraph, Graph& g, bool random_move,
-                         size_t confine_layers, size_t nmerges, size_t ntries,
-                         size_t B, RNG& rng, double& S, size_t& nmoves)
+                         vector<int64_t>& vlist, vector<int64_t>& block_list,
+                         bool deg_corr, bool dense, bool multigraph, Graph& g,
+                         bool random_move, size_t confine_layers,
+                         size_t nmerges, size_t ntries, size_t B, RNG& rng,
+                         double& S, size_t& nmoves)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
@@ -1799,7 +1803,7 @@ void merge_sweep_overlap(vector<BlockState>& states,
         }
     }
 
-    std::uniform_int_distribution<size_t> s_rand(0, B - 1);
+    std::uniform_int_distribution<size_t> s_rand(0, block_list.size() - 1);
 
     nmoves = 0;
     S = 0;
@@ -1838,7 +1842,7 @@ void merge_sweep_overlap(vector<BlockState>& states,
                 else
                 {
                     // attempt random block
-                    s = uniform_sample(blocks[clabel[r]], rng);
+                    s = block_list[s_rand(rng)];
                 }
 
                 if (s == r)

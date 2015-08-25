@@ -212,7 +212,8 @@ class CovariateBlockState(BlockState):
 
         self.total_state.clear_cache()
 
-        self.sweep_vertices = self.total_state.sweep_vertices
+        self.sweep_vertices = None
+        self.block_list = None
         self.emat = None
         self.overlap_stats = self.total_state.overlap_stats
         self.__layer_entropy = None

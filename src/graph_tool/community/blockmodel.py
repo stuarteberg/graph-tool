@@ -201,6 +201,7 @@ class BlockState(object):
         self.egroups = None
         self.nsampler = None
         self.sweep_vertices = None
+        self.block_list = None
         self.overlap_stats = libcommunity.overlap_stats()
         self.partition_stats = libcommunity.partition_stats()
         self.edges_dl = False
@@ -994,6 +995,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
     merge_map = kwargs.get("merge_map", None)
     coherent_merge = kwargs.get("coherent_merge", False)
     edges_dl = kwargs.get("edges_dl", False)
+    block_list  = kwargs.get("block_list", None)
 
     if state.B == 1:
         return 0., 0
@@ -1018,6 +1020,12 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
     else:
         target_blocks = libcommunity.get_vector(0)
 
+    if block_list is not None:
+        state.block_list = libcommunity.get_vector(len(block_list))
+        state.block_list.a = block_list
+    elif state.block_list is None or len(state.block_list) != state.B:
+        state.block_list = libcommunity.get_vector(state.B)
+        state.block_list.a = arange(state.B)
 
     random_move = c == numpy.inf
 
@@ -1098,6 +1106,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                      _prop("v", state.g, state.b),
                                                      _prop("v", state.bg, bclabel),
                                                      state.sweep_vertices,
+                                                     state.block_list,
                                                      target_blocks,
                                                      state.deg_corr, dense, multigraph,
                                                      _prop("e", state.g, state.eweight),
@@ -1126,6 +1135,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                              _prop("v", state.g, state.b),
                                                              _prop("v", state.bg, bclabel),
                                                              state.sweep_vertices,
+                                                             state.block_list,
                                                              target_blocks,
                                                              state.deg_corr, dense, multigraph,
                                                              multigraph,
@@ -1175,7 +1185,7 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
                                                      [state.master for state in states],
                                                      [state.slave for state in states],
                                                      _prop("v", None, bclabel),
-                                                     [main_state.sweep_vertices, target_blocks],
+                                                     [main_state.sweep_vertices, main_state.block_list, target_blocks],
                                                      main_state.deg_corr, dense, multigraph,
                                                      [_prop("e", state.g, state.eweight) for state in states],
                                                      [_prop("v", state.g, state.vweight) for state in states],

@@ -56,6 +56,7 @@ struct cov_move_sweep_dispatch
                             vector<std::reference_wrapper<VEprop>>& esrcpos,
                             vector<std::reference_wrapper<VEprop>>& etgtpos,
                             Vprop& label, vector<int64_t>& vlist,
+                            vector<int64_t>& block_list,
                             vector<int64_t>& target_blocks, bool deg_corr,
                             bool dense, bool multigraph, double beta,
                             bool sequential, bool parallel, bool random_move,
@@ -76,7 +77,7 @@ struct cov_move_sweep_dispatch
 
         : ce(ce), cv(cv), vmap(vmap), eweight(eweight), vweight(vweight),
           oegroups(egroups), esrcpos(esrcpos), etgtpos(etgtpos), label(label),
-          vlist(vlist), target_blocks(target_blocks),
+          vlist(vlist), block_list(block_list), target_blocks(target_blocks),
           deg_corr(deg_corr), dense(dense), multigraph(multigraph), beta(beta),
           sequential(sequential), parallel(parallel), random_move(random_move),
           node_coherent(node_coherent), confine_layers(confine_layers),
@@ -102,6 +103,7 @@ struct cov_move_sweep_dispatch
     Vprop& label;
     size_t n;
     vector<int64_t>& vlist;
+    vector<int64_t>& block_list;
     vector<int64_t>& target_blocks;
     bool deg_corr;
     bool dense;
@@ -333,7 +335,7 @@ struct cov_move_sweep_dispatch
                            cv.get_unchecked(num_vertices(g)),
                            vmap.get_unchecked(num_vertices(g)),
                            label.get_unchecked(B),
-                           vlist, deg_corr,
+                           vlist, block_list, deg_corr,
                            dense, multigraph, beta,
                            eweight[0].get().get_unchecked(max_edge_index[0]),
                            vweight[0].get().get_unchecked(num_vertices(g)),
@@ -407,29 +409,35 @@ struct cov_move_sweep_dispatch
                 {
                     if (!node_coherent)
                     {
-                        move_sweep_overlap(states, m_entries, overlap_stats[0].get(),
+                        move_sweep_overlap(states, m_entries,
+                                           overlap_stats[0].get(),
                                            wr[0].get().get_unchecked(B),
-                                           b.get_unchecked(num_vertices(g)), cv,
-                                           vmap, label.get_unchecked(B),
-                                           vlist, deg_corr, dense, multigraph, beta,
-                                           vweight[0].get().get_unchecked(num_vertices(g)), g,
-                                           sequential, parallel, random_move, c, niter,
-                                           B, verbose, rng, S, nmoves);
+                                           b.get_unchecked(num_vertices(g)),
+                                           cv, vmap, label.get_unchecked(B),
+                                           vlist, block_list, deg_corr, dense,
+                                           multigraph, beta,
+                                           vweight[0].get().get_unchecked(num_vertices(g)),
+                                           g, sequential, parallel, random_move,
+                                           c, niter, B, verbose, rng, S,
+                                           nmoves);
                     }
                     else
                     {
                         vector<EntrySet<Graph>> m_entries;
                         for (auto& state : states)
                             m_entries.emplace_back(num_vertices(state.bg));
-                        coherent_move_sweep_overlap(states, m_entries, overlap_stats[0].get(),
+                        coherent_move_sweep_overlap(states, m_entries,
+                                                    overlap_stats[0].get(),
                                                     wr[0].get().get_unchecked(B),
-                                                    b.get_unchecked(num_vertices(g)), cv,
-                                                    vmap, label.get_unchecked(B),
-                                                    vlist, deg_corr, dense, multigraph, beta,
-                                                    vweight[0].get().get_unchecked(num_vertices(g)), g,
-                                                    sequential, random_move, c,
-                                                    confine_layers, niter,
-                                                    B, rng, S, nmoves);
+                                                    b.get_unchecked(num_vertices(g)),
+                                                    cv, vmap,
+                                                    label.get_unchecked(B),
+                                                    vlist, block_list, deg_corr,
+                                                    dense, multigraph, beta,
+                                                    vweight[0].get().get_unchecked(num_vertices(g)),
+                                                    g, sequential, random_move,
+                                                    c, confine_layers, niter, B,
+                                                    rng, S, nmoves);
                     }
                 }
                 else
@@ -438,7 +446,7 @@ struct cov_move_sweep_dispatch
                                         wr[0].get().get_unchecked(B),
                                         b.get_unchecked(num_vertices(g)), ce, cv,
                                         vmap, label.get_unchecked(B), vlist,
-                                        deg_corr, dense, multigraph, g,
+                                        block_list, deg_corr, dense, multigraph, g,
                                         random_move, confine_layers, nmerges, niter,
                                         B, rng, S, nmoves);
                 }
@@ -586,7 +594,8 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
     auto slave = from_list<bool>(oslave);
 
     vector<int64_t>& vlist = boost::python::extract<vector<int64_t>&>(ovlist[0]);
-    vector<int64_t>& target_blocks = boost::python::extract<vector<int64_t>&>(ovlist[1]);
+    vector<int64_t>& block_list = boost::python::extract<vector<int64_t>&>(ovlist[1]);
+    vector<int64_t>& target_blocks = boost::python::extract<vector<int64_t>&>(ovlist[2]);
 
     bool node_coherent = python::extract<bool>(onode_coherent[0]);
     bool confine_layers = python::extract<bool>(onode_coherent[1]);
@@ -594,9 +603,9 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(cov_move_sweep_dispatch<emap_t, vmap_t, vvmap_t, emap_t, bmap_t>
                        (ce, cv, vmap, eweight, vweight, egroups, esrcpos, etgtpos,
-                        label, vlist, target_blocks, deg_corr, dense, multigraph, beta,
-                        sequential, parallel, random_move, node_coherent,
-                        confine_layers, c, verbose,
+                        label, vlist, block_list, target_blocks, deg_corr, dense,
+                        multigraph, beta, sequential, parallel, random_move,
+                        node_coherent, confine_layers, c, verbose,
                         gi.GetMaxEdgeIndex(), eidx, nmerges, niter, merge_map,
                         partition_stats, overlap_partition_stats, overlap_stats,
                         master, slave, rng, S, nmoves, bgi, bmap, brmap, free_blocks, B),

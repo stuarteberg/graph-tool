@@ -2644,11 +2644,12 @@ template <class Graph, class Vprop, class VVprop, class VLprop,
           class Eprop, class RNG, class BlockState, class MEntries>
 void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
                 Vprop wr, Vprop b, VLprop cv, VVprop vmap, Vprop clabel,
-                vector<int64_t>& vlist, bool deg_corr, bool dense, bool multigraph,
-                double beta, Eprop eweight, Vprop vweight, Graph& g,
-                bool sequential, bool parallel, bool random_move, double c,
-                size_t nmerges, Vprop merge_map, size_t niter, size_t B,
-                bool verbose, RNG& rng, double& S, size_t& nmoves)
+                vector<int64_t>& vlist, vector<int64_t>& block_list,
+                bool deg_corr, bool dense, bool multigraph, double beta,
+                Eprop eweight, Vprop vweight, Graph& g, bool sequential,
+                bool parallel, bool random_move, double c, size_t nmerges,
+                Vprop merge_map, size_t niter, size_t B, bool verbose, RNG& rng,
+                double& S, size_t& nmoves)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
@@ -2684,7 +2685,7 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
     if (nmerges > 0 || parallel)
         best_move.resize(num_vertices(g), make_pair(vertex_t(0), numeric_limits<double>::max()));
 
-    std::uniform_int_distribution<size_t> s_rand(0, B - 1);
+    std::uniform_int_distribution<size_t> s_rand(0, block_list.size() - 1);
 
     vector<MEntries> m_entries = m_entries_r;
 
@@ -2734,7 +2735,7 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
                 past_moves.clear();
 
             // attempt random block
-            vertex_t s = s_rand(*rngs[tid]);
+            vertex_t s = block_list[s_rand(*rngs[tid])];
 
             if (!random_move && total_degreeS()(v, g) > 0)
             {

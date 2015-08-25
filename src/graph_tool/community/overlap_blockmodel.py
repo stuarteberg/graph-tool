@@ -223,6 +223,7 @@ class OverlapBlockState(BlockState):
         self.egroups = None
         self.nsampler = None
         self.sweep_vertices = None
+        self.block_list = None
         self.partition_stats = libcommunity.overlap_partition_stats()
         self.edges_dl = False
         self.emat = None

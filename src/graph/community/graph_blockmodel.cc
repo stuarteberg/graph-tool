@@ -236,18 +236,20 @@ struct move_sweep_dispatch
 {
     move_sweep_dispatch(Eprop eweight, Vprop vweight, boost::any egroups,
                         VEprop esrcpos, VEprop etgtpos, Vprop label,
-                        vector<int64_t>& vlist, vector<int64_t>& target_list,
-                        bool deg_corr, bool dense, bool multigraph, double beta,
-                        bool sequential, bool parallel, bool random_move,
-                        double c, bool verbose, size_t max_edge_index,
-                        size_t nmerges, size_t niter, Vprop merge_map,
-                        partition_stats_t& partition_stats, rng_t& rng,
-                        double& S, size_t& nmoves, GraphInterface& bgi)
+                        vector<int64_t>& vlist, vector<int64_t>& block_list,
+                        vector<int64_t>& target_list, bool deg_corr, bool dense,
+                        bool multigraph, double beta, bool sequential,
+                        bool parallel, bool random_move, double c, bool verbose,
+                        size_t max_edge_index, size_t nmerges, size_t niter,
+                        Vprop merge_map, partition_stats_t& partition_stats,
+                        rng_t& rng, double& S, size_t& nmoves,
+                        GraphInterface& bgi)
 
         : eweight(eweight), vweight(vweight), oegroups(egroups), esrcpos(esrcpos),
-          etgtpos(etgtpos), label(label), vlist(vlist), target_list(target_list), 
-          deg_corr(deg_corr), dense(dense), multigraph(multigraph), beta(beta),
-          sequential(sequential), parallel(parallel), random_move(random_move),
+          etgtpos(etgtpos), label(label), vlist(vlist), block_list(block_list),
+          target_list(target_list), deg_corr(deg_corr), dense(dense),
+          multigraph(multigraph), beta(beta), sequential(sequential),
+          parallel(parallel), random_move(random_move),
           c(c), verbose(verbose), max_edge_index(max_edge_index),
           nmerges(nmerges), niter(niter), merge_map(merge_map),
           partition_stats(partition_stats), rng(rng), S(S),
@@ -262,6 +264,7 @@ struct move_sweep_dispatch
     Vprop label;
     size_t n;
     vector<int64_t>& vlist;
+    vector<int64_t>& block_list;
     vector<int64_t>& target_list;
     bool deg_corr;
     bool dense;
@@ -405,8 +408,9 @@ struct move_sweep_dispatch
                        wr.get_unchecked(num_vertices(bg)),
                        b.get_unchecked(num_vertices(g)),
                        cv, vmap,
-                       label.get_unchecked(num_vertices(bg)), vlist, deg_corr,
-                       dense, multigraph, beta,
+                       label.get_unchecked(num_vertices(bg)),
+                       vlist, block_list,
+                       deg_corr, dense, multigraph, beta,
                        eweight.get_unchecked(max_edge_index),
                        vweight.get_unchecked(num_vertices(g)),
                        g, sequential, parallel, random_move, c,
@@ -438,7 +442,9 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                                     boost::any cavity_sampler, boost::any omrs,
                                     boost::any omrp, boost::any omrm,
                                     boost::any owr, boost::any ob,
-                                    boost::any olabel, vector<int64_t>& vlist,
+                                    boost::any olabel,
+                                    vector<int64_t>& vlist,
+                                    vector<int64_t>& block_list,
                                     vector<int64_t>& target_list,
                                     bool deg_corr, bool dense, bool multigraph,
                                     boost::any oeweight, boost::any ovweight,
@@ -480,7 +486,8 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
-                        label, vlist,  target_list, deg_corr, dense, multigraph,
+                        label, vlist, block_list,
+                        target_list, deg_corr, dense, multigraph,
                         beta, sequential, parallel, random_move, c, verbose,
                         gi.GetMaxEdgeIndex(), nmerges, niter, merge_map,
                         partition_stats, rng, S, nmoves, bgi),
