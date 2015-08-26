@@ -181,7 +181,7 @@ class BlockState(object):
                 self.clabel = self.g.own_property(clabel.copy("int"))
             else:
                 self.clabel = self.g.new_vertex_property("int")
-                self.clabel.a = clabel
+                self.clabel.fa = clabel
         else:
             self.clabel = self.g.new_vertex_property("int")
 
@@ -1340,7 +1340,7 @@ def greedy_shrink(state, B, **kwargs):
         curr_B = (state.wr.a > 0).sum()
 
         if _bm_test():
-            assert curr_B == len(set(state.b.a)), (curr_B, len(set(state.b.a)))
+            assert curr_B == len(set(state.b.fa)), (curr_B, len(set(state.b.fa)))
 
         if verbose:
             print("merging, B=%d" % curr_B, "left:", curr_B - B,
@@ -1727,7 +1727,7 @@ def multilevel_minimize(state, B, nsweeps=10, adaptive_sweeps=True, epsilon=0,
         # check cache for previous results
         if b_cache is not None and Bi in b_cache:
             if _bm_test():
-                assert (state.clabel.a == b_cache[Bi][1].clabel.a).all(), "wrong clabel in cache"
+                assert (state.clabel.fa == b_cache[Bi][1].clabel.fa).all(), "wrong clabel in cache"
                 assert state._BlockState__check_clabel(), "clabel already invalidated before cache"
                 assert b_cache[Bi][1]._BlockState__check_clabel(), "clabel already invalidated after cache"
             state = b_cache[Bi][1].copy()
@@ -1759,7 +1759,7 @@ def multilevel_minimize(state, B, nsweeps=10, adaptive_sweeps=True, epsilon=0,
             nstate = state.copy(b=state.get_nonoverlap_blocks(), overlap=False)
             assert nstate.B <= nstate.N
             nstate = multilevel_minimize(nstate, B=Bi, verbose=verbose, **kwargs)
-            nstate = nstate.copy(overlap=True, clabel=state.clabel.a)
+            nstate = nstate.copy(overlap=True, clabel=state.clabel.fa)
             unilevel_minimize(nstate, **kwargs)
 
             if nstate.B > Bi:
@@ -2236,7 +2236,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
         minimize_state.init = False
 
         if min_B is None:
-            min_B = state.clabel.a.max() + 1
+            min_B = state.clabel.fa.max() + 1
 
         if verbose:
             print("Overlapping minimization starting from B=", max_B)

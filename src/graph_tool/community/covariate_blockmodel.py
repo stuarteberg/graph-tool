@@ -247,7 +247,7 @@ class CovariateBlockState(BlockState):
                                max_BE=self.max_BE)
         else:
             base_u, node_index = self.__get_base_u(u)
-            state = OverlapBlockState(u, b=u.vp["b"].a,
+            state = OverlapBlockState(u, b=u.vp["b"].fa,
                                       B=B,
                                       vweight=u.vp["weight"],
                                       node_index=node_index,
@@ -499,7 +499,7 @@ class CovariateBlockState(BlockState):
                                     vweight=self.vweight if vweight is None else vweight,
                                     b=self.b if b is None else b,
                                     B=(self.B if b is None else None) if B is None else B,
-                                    clabel=(self.clabel.a if self.overlap else self.clabel) if clabel is None else clabel,
+                                    clabel=(self.clabel.fa if self.overlap else self.clabel) if clabel is None else clabel,
                                     deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                     overlap=self.overlap if overlap is None else overlap,
                                     layers=self.layers if layers is None else layers,
@@ -727,7 +727,7 @@ def init_layer_confined(g, ec):
     tmp_state = tmp_state.copy(overlap=True)
     be = tmp_state.get_edge_blocks()
     ba = ungroup_vector_property(be, [0])[0]
-    ba.a = ba.a + ec.a * (ba.a.max() + 1)
+    ba.fa = ba.fa + ec.fa * (ba.fa.max() + 1)
     continuous_map(ba)
     be = group_vector_property([ba, ba])
     return be

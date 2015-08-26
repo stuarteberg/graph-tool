@@ -111,7 +111,7 @@ class NestedBlockState(object):
                                                   clabel=self.clabel,
                                                   max_BE=max_BE)
                         self.clabel = state.clabel.copy()
-                        state.clabel.a = 0
+                        state.clabel.fa = 0
                     else:
                         state = BlockState(g, B=Bl, b=bl,
                                            eweight=ecount,
@@ -132,7 +132,7 @@ class NestedBlockState(object):
                                                 max_BE=max_BE)
                     if overlap:
                         self.clabel = state.clabel.copy()
-                        state.clabel.a = 0
+                        state.clabel.fa = 0
 
 
             else:
@@ -170,7 +170,7 @@ class NestedBlockState(object):
         ec = g.own_property(self.ec.copy()) if self.ec is not None else None
         bstack = self.get_bstack()
         return self.copy(g=g, eweight=eweight, vweight=vweight, clabel=clabel,
-                         ec=ec, bs=[s.vp.b.a for s in bstack])
+                         ec=ec, bs=[s.vp.b.fa for s in bstack])
 
     def copy(self, g=None, eweight=None, vweight=None, bs=None, ec=None,
              layers=None, deg_corr=None, overlap=None, clabel=None, **kwargs):
@@ -178,18 +178,20 @@ class NestedBlockState(object):
          have the same meaning as in the constructor.."""
 
         if bs is None:
-            bs = [s.b.a for s in self.levels]
+            bs = [s.b.fa for s in self.levels]
         if overlap is None:
             overlap = self.overlap
         elif self.overlap and not overlap:
             raise ValueError("Cannot automatically convert overlapping nested state to nonoverlapping")
         elif not self.overlap and overlap:
             s = self.levels[0].copy(overlap=True)
-            bs[0] = s.b.a
+            bs[0] = s.b.fa
         if deg_corr is None:
             deg_corr = self.deg_corr
         if layers is None:
             layers = self.layers
+        if clabel is None:
+            clabel = self.clabel
         return NestedBlockState(self.g if g is None else g,
                                 self.eweight if eweight is None else eweight,
                                 self.vweight if vweight is None else vweight,
@@ -206,7 +208,7 @@ class NestedBlockState(object):
                      eweight=self.eweight,
                      vweight=self.vweight,
                      overlap=self.overlap,
-                     bs=[array(s.b.a) for s in self.levels],
+                     bs=[array(s.b.fa) for s in self.levels],
                      clabel=self.clabel,
                      deg_corr=self.deg_corr,
                      max_BE=self.levels[0].max_BE,
@@ -253,12 +255,12 @@ class NestedBlockState(object):
 
             if self.levels[j].wr.a.min() == 0:
                 print("WARNING: empty blocks at level", j)
-            if self.levels[j].b.a.max() + 1 != self.levels[j].B:
-                print("WARNING: b.max() + 1 != B at level", j, self.levels[j].b.max() + 1, self.levels[j].B)
+            if self.levels[j].b.fa.max() + 1 != self.levels[j].B:
+                print("WARNING: b.max() + 1 != B at level", j, self.levels[j].b.fa.max() + 1, self.levels[j].B)
 
         for j in range(len(self.levels) - 1):
 
-            B = self.levels[j].b.a.max() + 1
+            B = self.levels[j].b.fa.max() + 1
             bg_state = self.levels[j].get_block_state(b=self.levels[j+1].b.copy(),
                                                       overlap=self.overlap == "full",
                                                       deg_corr=self.deg_corr == "full")[0]
@@ -275,20 +277,20 @@ class NestedBlockState(object):
                 print("N, B:", bg_state.N, bg_state.B)
                 print("N, B:", self.levels[j + 1].N, self.levels[j + 1].B)
                 print("similarity:", similarity(bg_state.g, self.levels[j+1].g))
-                print("b:", bg_state.b.a)
-                print("b:", self.levels[j+1].b.a)
+                print("b:", bg_state.b.fa)
+                print("b:", self.levels[j+1].b.fa)
 
-                print("wr:", bg_state.wr.a)
-                print("wr:", self.levels[j+1].wr.a)
+                print("wr:", bg_state.wr.fa)
+                print("wr:", self.levels[j+1].wr.fa)
 
-                print("mrs:", bg_state.mrs.a)
-                print("mrs:", self.levels[j+1].mrs.a)
+                print("mrs:", bg_state.mrs.fa)
+                print("mrs:", self.levels[j+1].mrs.fa)
 
-                print("eweight:", bg_state.eweight.a)
-                print("eweight:", self.levels[j+1].eweight.a)
+                print("eweight:", bg_state.eweight.fa)
+                print("eweight:", self.levels[j+1].eweight.fa)
 
-                print("vweight:", bg_state.vweight.a)
-                print("vweight:", self.levels[j+1].vweight.a)
+                print("vweight:", bg_state.vweight.fa)
+                print("vweight:", self.levels[j+1].vweight.fa)
 
 
             assert abs(S1 - S2) < 1e-6 and not isnan(S2) and not isnan(S1), "inconsistency at level %d after %s of level %d, different entropies (%g, %g)" % (j, op, l, S1, S2)
@@ -297,15 +299,15 @@ class NestedBlockState(object):
 
             # verify hierarchy / clabel consistency
             clabel = self.__project_partition(0, j)
-            self.levels[0].clabel.a = self.clabel.a
+            self.levels[0].clabel.fa = self.clabel.fa
             assert self.levels[0]._BlockState__check_clabel(),  "inconsistency at level %d after %s of level %d, clabel invalidated" % (j + 1, op, l)
-            self.levels[0].clabel.a = 0
+            self.levels[0].clabel.fa = 0
 
             # verify hierarchy consistency
             clabel = self.__project_partition(j, j + 1)
-            self.levels[0].clabel.a = self.clabel.a
+            self.levels[0].clabel.fa = self.clabel.fa
             assert self.levels[0]._BlockState__check_clabel(),  "inconsistency at level %d after %s of level %d, partition not compatible with upper level" % (j + 1, op, l)
-            self.levels[0].clabel.a = 0
+            self.levels[0].clabel.fa = 0
 
 
     def __rebuild_level(self, l, b, clabel=None):
@@ -320,7 +322,7 @@ class NestedBlockState(object):
 
         old_b = b.copy()
 
-        state = self.levels[l].copy(b=b, clabel=clabel.a)
+        state = self.levels[l].copy(b=b, clabel=clabel.fa)
         self.levels[l] = state
         if l == 0:
             self.clabel = state.g.own_property(self.clabel)  # for CovariateBlockState
@@ -334,8 +336,8 @@ class NestedBlockState(object):
             self.levels.append(None)
         self.levels[l + 1] = bstate
 
-        self.levels[l].clabel.a = 0
-        self.levels[l + 1].clabel.a = 0
+        self.levels[l].clabel.fa = 0
+        self.levels[l + 1].clabel.fa = 0
 
         # if l + 1 < len(self.levels) - 1:
         #     self.levels[l + 1].clabel = self.__project_partition(l + 1, l + 2)
@@ -354,22 +356,22 @@ class NestedBlockState(object):
                 if abs(bstate.entropy() - self.levels[l + 2].entropy()) > 1e-6:
                     print("********************** inconsistent rebuild! **************************")
 
-                    print(bstate.b.a)
-                    print(self.levels[l + 2].b.a)
+                    print(bstate.b.fa)
+                    print(self.levels[l + 2].b.fa)
 
                     print(bstate.wr.a)
                     print(self.levels[l + 2].wr.a)
 
-                    print(bstate.eweight.a)
-                    print(self.levels[l + 2].eweight.a)
+                    print(bstate.eweight.fa)
+                    print(self.levels[l + 2].eweight.fa)
 
                     nclabel = self.__project_partition(l, l + 1)
-                    print(nclabel.a)
-                    print(clabel.a)
-                    print(self.levels[l].b.a)
-                    print(self.levels[l+1].b.a)
-                    print(self.levels[l+2].b.a)
-                    print(bstate.b.a)
+                    print(nclabel.fa)
+                    print(clabel.fa)
+                    print(self.levels[l].b.fa)
+                    print(self.levels[l+1].b.fa)
+                    print(self.levels[l+2].b.fa)
+                    print(bstate.b.fa)
                 print ("DS", l, l + 1, bstate.entropy(), self.levels[l + 2].entropy())
 
         B = self.levels[l].B
@@ -516,7 +518,7 @@ class NestedBlockState(object):
                 l -= 1
         else:
             b = self.levels[l].b.copy()
-        state = self.levels[0].copy(b=b.a)
+        state = self.levels[0].copy(b=b.fa)
         return state
 
     def merge_layers(self, l_src, l_tgt, revert=False):
@@ -624,7 +626,7 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=False, sequential=True,
 
         # propagate externally imposed clabel at the bottom
         cclabel = state._NestedBlockState__propagate_clabel(l)
-        cclabel.a += clabel.a * (cclabel.a.max() + 1)
+        cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
         continuous_map(cclabel)
 
         bstate.clabel = cclabel
@@ -635,7 +637,7 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=False, sequential=True,
                          sequential=sequential, parallel=parallel,
                          verbose=verbose)
 
-        bstate.clabel.a = 0
+        bstate.clabel.fa = 0
 
         rets.append(ret)
     return rets
@@ -673,7 +675,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     if l > 0 or max_B is None:
         max_B = bstate.N
 
-    min_B = max(min_B, state.clabel.a.max() + 1)
+    min_B = max(min_B, state.clabel.fa.max() + 1)
 
     # constraint partitions not to invalidate upper layers
     if l < len(state.levels) - 1:
@@ -682,25 +684,25 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
         clabel = bstate.g.new_vertex_property("int")
 
     assert min_B <= max_B, (min_B, max_B, bstate.B, bstate.N, g.num_vertices(),
-                            state.clabel.a.max() + 1, clabel.a.max() + 1, l)
+                            state.clabel.fa.max() + 1, clabel.fa.max() + 1, l)
 
     # propagate externally imposed clabel at the bottom
     cclabel = state._NestedBlockState__propagate_clabel(l)
-    assert cclabel.a.max() <= state.clabel.a.max(),  (cclabel.a.max(), state.clabel.a.max())
-    cclabel.a += clabel.a * (cclabel.a.max() + 1)
+    assert cclabel.fa.max() <= state.clabel.fa.max(),  (cclabel.fa.max(), state.clabel.fa.max())
+    cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
     continuous_map(cclabel)
 
-    min_B = max(min_B, cclabel.a.max() + 1)
+    min_B = max(min_B, cclabel.fa.max() + 1)
 
     assert min_B <= max_B, (min_B, max_B, bstate.B, bstate.N, g.num_vertices(),
-                            cclabel.a.max() + 1, state.clabel.a.max() + 1, clabel.a.max() + 1, l)
+                            cclabel.fa.max() + 1, state.clabel.fa.max() + 1, clabel.fa.max() + 1, l)
 
     if _bm_test():
         assert bstate._BlockState__check_clabel(), "invalid clabel before minimize!"
 
     nested_dl = l < len(state.levels) - 1
 
-    state.levels[l].clabel.a = cclabel.a
+    state.levels[l].clabel.fa = cclabel.fa
 
     Sb = get_b_dl(state.levels[l],
                   dense=(l > 0 and state.deg_corr != "full") or dense,
@@ -709,14 +711,14 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   nested_overlap=state.overlap == "full",
                   dl_ent=dl_ent)
 
-    state.levels[l].clabel.a = 0
+    state.levels[l].clabel.fa = 0
 
     if _bm_test():
-        assert clabel.a.max() + 1 <= min_B
+        assert clabel.fa.max() + 1 <= min_B
 
     if l == 0 and max_b is not None:
         istate = state.levels[0].copy(b=max_b.copy(),
-                                      clabel=cclabel.a if state.overlap else cclabel)
+                                      clabel=cclabel.fa if state.overlap else cclabel)
         if _bm_test():
             assert istate._BlockState__check_clabel(), "invalid clabel!"
         if istate.B > max_B:
@@ -749,7 +751,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                  epsilon=epsilon,
                                  max_B=max_B,
                                  min_B=min_B,
-                                 clabel=cclabel if not bstate.overlap else cclabel.a,
+                                 clabel=cclabel if not bstate.overlap else cclabel.fa,
                                  max_BE=bstate.max_BE,
                                  dl=dl,
                                  dense=(l > 0 and state.deg_corr != "full") or dense,
@@ -769,7 +771,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                  ignore_degrees=state.ignore_degrees if l == 0 else None)
 
     if _bm_test():
-        assert (res.clabel.a == cclabel.a).all(), (res.clabel.a, cclabel.a)
+        assert (res.clabel.fa == cclabel.fa).all(), (res.clabel.fa, cclabel.fa)
         assert res._BlockState__check_clabel(), "invalid clabel after minimize!"
 
     Sf = get_b_dl(res,
@@ -779,10 +781,10 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   nested_overlap=state.overlap == "full",
                   dl_ent=dl_ent)
 
-    res.clabel.a = 0
+    res.clabel.fa = 0
     if state.ec is not None:
         for s in res.states:
-            s.clabel.a = 0
+            s.clabel.fa = 0
     b = res.b
 
     kept = False
@@ -1331,7 +1333,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                                                            deg_corr=deg_corr == "full")[0]
 
             if B == 1:
-                bstate.copy(b=bstate.g.new_vertex_property("int").a)
+                bstate.copy(b=bstate.g.new_vertex_property("int").fa)
             else:
                 bstate = multilevel_minimize(bstate, B, nsweeps=nsweeps,
                                              epsilon=epsilon,
@@ -1636,12 +1638,12 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
                               nmerge_sweeps=nmerge_sweeps, dl=dl,
                               sequential=sequential, parallel=parallel,
                               confine_layers=confine_layers)
-            bs = [array(s.b.a) for s in state.levels]
-            bs[0] = array(bstate.b.a)
+            bs = [array(s.b.fa) for s in state.levels]
+            bs[0] = array(bstate.b.fa)
             del bstate
         else:
             bstates = [bstate.copy(overlap=True) for bstate in state.levels]
-            bs = [array(s.b.a) for s in bstates]
+            bs = [array(s.b.fa) for s in bstates]
             del bstates
 
         if nonoverlap_init != "full":

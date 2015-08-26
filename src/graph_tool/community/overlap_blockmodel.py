@@ -202,13 +202,13 @@ class OverlapBlockState(BlockState):
             if isinstance(clabel, PropertyMap):
                 # if clabel is a property map, we will assume it constraints the *nodes*
                 if _bm_test():
-                    assert len(clabel.a) < self.g.num_vertices()
+                    assert len(clabel.fa) < self.g.num_vertices()
                 self.clabel = self.node_index.copy()
                 pmap(self.clabel, clabel.copy("int"))
             else:
                 # if clabel is an array, we will assume it constraints the *half-edges*
                 self.clabel = self.g.new_vertex_property("int")
-                self.clabel.a = clabel
+                self.clabel.fa = clabel
         else:
             self.clabel = self.g.new_vertex_property("int")
 
@@ -266,7 +266,7 @@ class OverlapBlockState(BlockState):
                                       vweight=self.vweight if vweight is None else vweight,
                                       b=self.b if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
-                                      clabel=self.clabel.a if clabel is None else clabel,
+                                      clabel=self.clabel.fa if clabel is None else clabel,
                                       deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                       base_g=self.base_g,
                                       half_edges=self.half_edges,
@@ -296,7 +296,7 @@ class OverlapBlockState(BlockState):
                      vweight=self.vweight,
                      b=self.b,
                      B=self.B,
-                     clabel=array(self.clabel.a),
+                     clabel=array(self.clabel.fa),
                      deg_corr=self.deg_corr,
                      base_g=self.base_g,
                      half_edges=self.half_edges,
