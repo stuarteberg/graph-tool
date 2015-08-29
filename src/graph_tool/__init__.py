@@ -37,6 +37,7 @@ Summary
    load_graph
    group_vector_property
    ungroup_vector_property
+   map_property_values
    infect_vertex_property
    edge_endpoint_property
    incident_edges_op
@@ -125,12 +126,12 @@ __all__ = ["Graph", "GraphView", "Vertex", "Edge", "Vector_bool",
            "Vector_double", "Vector_long_double", "Vector_string",
            "Vector_size_t", "value_types", "load_graph", "PropertyMap",
            "group_vector_property", "ungroup_vector_property",
-           "infect_vertex_property", "edge_endpoint_property",
-           "incident_edges_op", "perfect_prop_hash", "seed_rng", "show_config",
-           "PropertyArray", "openmp_enabled", "openmp_get_num_threads",
-           "openmp_set_num_threads", "openmp_get_schedule",
-           "openmp_set_schedule", "__author__", "__copyright__", "__URL__",
-           "__version__"]
+           "map_property_values", "infect_vertex_property",
+           "edge_endpoint_property", "incident_edges_op", "perfect_prop_hash",
+           "seed_rng", "show_config", "PropertyArray", "openmp_enabled",
+           "openmp_get_num_threads", "openmp_set_num_threads",
+           "openmp_get_schedule", "openmp_set_schedule", "__author__",
+           "__copyright__", "__URL__", "__version__"]
 
 # this is rather pointless, but it works around a sphinx bug
 graph_tool = sys.modules[__name__]
@@ -1036,6 +1037,49 @@ def ungroup_vector_property(vprop, pos, props=None):
             props[i][g] = vprop[g][pos[i]]
     return props
 
+def map_property_values(src_prop, tgt_prop, map_func):
+    """Map the values of ``src_prop`` to ``tgt_prop`` according to the mapping
+    function ``map_func``.
+
+    Parameters
+    ----------
+    src_prop : :class:`~graph_tool.PropertyMap`
+        Source property map.
+    tgt_prop : :class:`~graph_tool.PropertyMap`
+        Target property map.
+    map_func : function or callable object
+        Function mapping values of ``src_prop`` to values of ``tgt_prop``.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> g = gt.collection.data["lesmis"]
+    >>> label_len = g.new_vertex_property("int64_t")
+    >>> gt.map_property_values(g.vp.label, label_len,
+    ...                        label x: len(x))
+    >>> print(label_len.a)
+    [ 6  8 14 11 12  8 12  8  5  6  7  7 10  6  7  7  9  9  7 11  9  6  7  7 13
+     10  7  6 12 10  8  8 11  6  5 12  6 10 11  9 12  7  7  6 14  7  9  9  8 12
+      6 16 12 11 14  6  9  6  8 10  9  7 10  7  7  4  9 14  9  5 10 12  9  6  6
+      6 12]
+    """
+
+    if src_prop.key_type() != tgt_prop.key_type():
+        raise ValueError("src_prop and tgt_prop must be of the same key type")
+    g = src_prop.get_graph()
+    k = src_prop.key_type()
+    if k == "g":
+        tgt_prop[g] = map_func(src_prop[g])
+        return
+    u = GraphView(g, directed=True, reversed=g.is_reversed(),
+                  skip_properties=True)
+    libcore.property_map_values(u._Graph__graph,
+                                _prop(k, g, src_prop),
+                                _prop(k, g, tgt_prop),
+                                map_func, k == 'e')
 
 def infect_vertex_property(g, prop, vals=None):
     """Propagate the `prop` values of vertices with value `val` to all their

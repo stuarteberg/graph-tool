@@ -32,6 +32,7 @@ libgraph_tool_core_la_SOURCES = \
     graph_properties_copy.cc \
     graph_properties_group.cc \
     graph_properties_ungroup.cc \
+    graph_properties_map_values.cc \
     graph_python_interface.cc \
     graph_python_interface_export.cc \
     graph_selectors.cc \
@@ -53,6 +54,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_io_binary.hh \
     graph_properties.hh \
     graph_properties_group.hh \
+    graph_properties_map_values.hh \
     graph_python_interface.hh \
     graph_selectors.hh \
     graph_util.hh \
