@@ -2640,10 +2640,10 @@ class GraphView(Graph):
             vf = self.get_vertex_filter()
             if vf[0] is not None:
                 if not vf[1]:
-                    vf[0].a = numpy.logical_and(vfilt.a, vf[0].a)
+                    vf[0].fa = vfilt.fa
                 else:
-                    vf[0].a = numpy.logical_and(vfilt.a, numpy.logical_not(vf[0].a))
-                self.set_vertex_filter(vf[0])
+                    vf[0].fa = numpy.logical_not(vfilt.fa)
+                self.set_vertex_filter(vf[0], vf[1])
             else:
                 self.set_vertex_filter(vfilt)
 
@@ -2660,10 +2660,10 @@ class GraphView(Graph):
             ef = self.get_edge_filter()
             if ef[0] is not None:
                 if not ef[1]:
-                    ef[0].a = numpy.logical_and(efilt.a, ef[0].a)
+                    ef[0].fa = efilt.fa
                 else:
-                    ef[0].a = numpy.logical_and(efilt.a, numpy.logical_not(ef[0].a))
-                self.set_edge_filter(ef[0])
+                    ef[0].fa = numpy.logical_not(efilt.fa)
+                self.set_edge_filter(ef[0], ef[1])
             else:
                 self.set_edge_filter(efilt)
 
