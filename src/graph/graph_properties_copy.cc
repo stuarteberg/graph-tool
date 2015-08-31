@@ -64,9 +64,6 @@ struct copy_property
             tie(vt, vt_end) = IteratorSel::range(tgt);
             for (tie(vs, vs_end) = IteratorSel::range(*src); vs != vs_end; ++vs)
             {
-                if (vt == vt_end)
-                    throw ValueException("Error copying properties: "
-                                         "graphs not compatible");
                 dst_map[*vt] = get(src_map, *vs);
                 ++vt;
             }

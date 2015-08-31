@@ -72,7 +72,7 @@ struct SumOp
 
         convert<vval_t, eval_t> conv;
         size_t count = 0;
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
         {
             if (count == 0)
                 vprop[v] = conv(eprop[e]);
@@ -93,7 +93,7 @@ struct ProdOp
 
         convert<vval_t, eval_t> conv;
         size_t count = 0;
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
         {
             if (count == 0)
                 vprop[v] = conv(eprop[e]);
@@ -115,13 +115,13 @@ struct MinOp
 
         convert<vval_t, eval_t> conv;
 
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
         {
             vprop[v] = conv(eprop[e]);
             break;
         }
 
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
             vprop[v] = std::min(vprop[v], conv(eprop[e]));
     }
 };
@@ -136,13 +136,13 @@ struct MaxOp
 
         convert<vval_t, eval_t> conv;
 
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
         {
             vprop[v] = conv(eprop[e]);
             break;
         }
 
-        for (auto e : out_edges_range(v, g))
+        for (const auto& e : out_edges_range(v, g))
             vprop[v] = std::max(vprop[v], conv(eprop[e]));
     }
 };

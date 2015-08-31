@@ -49,7 +49,7 @@ struct do_edge_endpoint
             typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
-            for (auto e : out_edges_range(v, g))
+            for (const auto& e : out_edges_range(v, g))
             {
                 auto s = v;
                 auto t = target(e, g);

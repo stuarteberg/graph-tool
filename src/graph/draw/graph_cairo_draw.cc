@@ -811,7 +811,7 @@ public:
         }
 
         boost::python::object osrc = _attrs.template get<boost::python::object>(VERTEX_SURFACE);
-        if (osrc == boost::python::object())
+        if (osrc == boost::python::object() || outline)
         {
             pw =_attrs.template get<double>(VERTEX_PENWIDTH);
             pw = get_user_dist(cr, pw);
@@ -919,33 +919,30 @@ public:
                 cr.fill_preserve();
 
                 cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
-                                       get<3>(color));
+                                   get<3>(color));
                 cr.stroke();
             }
         }
         else
         {
-            if (!outline)
-            {
-                double swidth, sheight;
-                PycairoSurface* src = (PycairoSurface*) osrc.ptr();
-                Cairo::RefPtr<Cairo::Surface> surface(new Cairo::Surface(src->surface));
-                get_surface_size(surface, swidth, sheight);
-                Cairo::RefPtr<Cairo::SurfacePattern> pat(Cairo::SurfacePattern::create(surface));
-                //pat->set_extend(Cairo::EXTEND_REPEAT);
+            double swidth, sheight;
+            PycairoSurface* src = (PycairoSurface*) osrc.ptr();
+            Cairo::RefPtr<Cairo::Surface> surface(new Cairo::Surface(src->surface));
+            get_surface_size(surface, swidth, sheight);
+            Cairo::RefPtr<Cairo::SurfacePattern> pat(Cairo::SurfacePattern::create(surface));
+            //pat->set_extend(Cairo::EXTEND_REPEAT);
 
-                double r = size / sqrt(2);
-                double scale = r / max(swidth / aspect, sheight);
+            double r = size / sqrt(2);
+            double scale = r / max(swidth / aspect, sheight);
 
-                Cairo::Matrix m = Cairo::identity_matrix();
-                m.translate(swidth / 2, sheight / 2);
-                m.scale(1. / scale, 1. / scale);
-                pat->set_matrix(m);
+            Cairo::Matrix m = Cairo::identity_matrix();
+            m.translate(swidth / 2, sheight / 2);
+            m.scale(1. / scale, 1. / scale);
+            pat->set_matrix(m);
 
-                cr.set_source(pat);
-                cr.rectangle(-r * aspect / 2, -r / 2, r * aspect, r);
-                cr.fill();
-            }
+            cr.set_source(pat);
+            cr.rectangle(-r * aspect / 2, -r / 2, r * aspect, r);
+            cr.fill();
         }
 
         if (!outline)

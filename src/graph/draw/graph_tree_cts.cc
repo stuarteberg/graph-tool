@@ -111,14 +111,20 @@ void transform(vector<point_t>& cp)
 }
 
 template <class PosProp>
-void get_control_points(vector<size_t>& path, PosProp pos, double beta,
+void get_control_points(vector<size_t>& path, PosProp& pos, double beta,
                         vector<point_t>& ncp)
 {
     size_t L = path.size();
     vector<point_t> cp(L);
     for (size_t i = 0; i < L; ++i)
-        cp[i] = make_pair(double(pos[path[i]][0]),
-                          double(pos[path[i]][1]));
+    {
+        auto& p = pos[path[i]];
+        if (p.size() < 2)
+            p.resize(2);
+        cp[i].first = p[0];
+        cp[i].second = p[1];
+    }
+
     ncp.resize(L);
     for (size_t i = 0; i < L; ++i)
     {

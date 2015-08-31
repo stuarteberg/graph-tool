@@ -146,6 +146,60 @@ _edefaults = {
     "seamless": False
     }
 
+_vtypes = {
+    "shape": "int",
+    "color": "vector<double>",
+    "fill_color": "vector<double>",
+    "size": "double",
+    "aspect": "double",
+    "anchor": "double",
+    "pen_width": "double",
+    "halo": "bool",
+    "halo_color": "vector<double>",
+    "halo_size": "double",
+    "text": "string",
+    "text_color": "vector<double>",
+    "text_position": "double",
+    "text_rotation": "double",
+    "text_offset": "vector<double>",
+    "font_family": "string",
+    "font_slant": "int",
+    "font_weight": "int",
+    "font_size": "float",
+    "surface": "object",
+    "pie_fractions": "vector<double>",
+    "pie_colors": "vector<double>"
+    }
+
+_etypes = {
+    "color": "vector<double>",
+    "pen_width": "double",
+    "start_marker": "int",
+    "mid_marker": "int",
+    "end_marker": "int",
+    "marker_size": "double",
+    "mid_marker_pos": "double",
+    "control_points": "vector<double>",
+    "gradient": "vector<double>",
+    "dash_style": "vector<double>",
+    "text": "string",
+    "text_color": "vector<double>",
+    "text_distance": "double",
+    "text_parallel": "bool",
+    "font_family": "string",
+    "font_slant": "int",
+    "font_weight": "int",
+    "font_size": "double",
+    "sloppy": "bool",
+    "seamless": "bool"
+    }
+
+for k in list(_vtypes.keys()):
+    _vtypes[getattr(vertex_attrs, k)] = _vtypes[k]
+
+for k in list(_etypes.keys()):
+    _etypes[getattr(edge_attrs, k)] = _etypes[k]
+
 
 def shape_from_prop(shape, enum):
     if isinstance(shape, PropertyMap):
@@ -171,7 +225,7 @@ def shape_from_prop(shape, enum):
             prop.fa += rg[0]
         return prop
     if isinstance(shape, str):
-        return int(enum.__dict__[shape])
+        return int(getattr(enum, shape))
     else:
         return shape
 
@@ -226,7 +280,7 @@ def surface_from_prop(surface):
             elif surface.value_type() == "python::object":
                 if isinstance(surface[v], cairo.Surface):
                     prop[v] = surface[v]
-                else:
+                elif surface[v] is not None:
                     raise ValueError("Invalid value type for surface property: " +
                                      str(type(surface[v])))
             else:
@@ -384,17 +438,12 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
             return new_val
 
     if pmap_default and not isinstance(val, PropertyMap):
-        if isinstance(val, str):
-            if k == "v":
-                new_val = g.new_vertex_property("string", [val] * g.num_vertices())
-            else:
-                new_val = g.new_edge_property("string", [val] * g.num_edges())
+        if k == "v":
+            new_val = g.new_vertex_property(_vtypes[attr], val=val)
         else:
-            if k == "v":
-                new_val = g.new_vertex_property("double", val)
-            else:
-                new_val = g.new_edge_property("double", val)
+            new_val = g.new_edge_property(_etypes[attr], val=val)
         return new_val
+
     return val
 
 
@@ -404,10 +453,10 @@ def _attrs(attrs, d, g, cmap):
     for k, v in attrs.items():
         try:
             if d == "v":
-                attr = vertex_attrs.__dict__[k]
+                attr = getattr(vertex_attrs, k)
             else:
-                attr = edge_attrs.__dict__[k]
-        except KeyError:
+                attr = getattr(edge_attrs, k)
+        except AttributeError:
             warnings.warn("Unknown attribute: " + str(k), UserWarning)
             continue
         if isinstance(v, PropertyMap):
@@ -421,12 +470,12 @@ def _convert_props(props, d, g, cmap, pmap_default=False):
     for k, v in props.items():
         try:
             if d == "v":
-                attr = vertex_attrs.__dict__[k]
+                attr = getattr(vertex_attrs, k)
             else:
-                attr = edge_attrs.__dict__[k]
+                attr = getattr(edge_attrs, k)
             nprops[k] = _convert(attr, v, cmap, pmap_default=pmap_default,
                                  g=g, k=d)
-        except KeyError:
+        except AttributeError:
             warnings.warn("Unknown attribute: " + str(k), UserWarning)
             continue
     return nprops
@@ -480,7 +529,7 @@ def parse_props(prefix, args):
 
 def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, vcmap=default_cm, ecmap=default_cm,
-               loop_angle=float("nan"), parallel_distance=None, fit_view=False,
+               loop_angle=numpy.nan, parallel_distance=None, fit_view=False,
                res=0, render_offset=0, max_render_time=-1, **kwargs):
     r"""
     Draw a graph to a :mod:`cairo` context.
@@ -638,10 +687,7 @@ def auto_colors(g, bg, pos, back):
     if not isinstance(bg, PropertyMap):
         if isinstance(bg, str):
             bg = color_converter.to_rgba(bg)
-        bgc = numpy.zeros((g.num_vertices(), 4))
-        for i in range(4):
-            bgc[:, i] = bg[i]
-        bg = g.new_vertex_property("vector<double>", bgc)
+        bg = g.new_vertex_property("vector<double>", val=bg)
     if not isinstance(pos, PropertyMap):
         if pos == "centered":
             pos = 0
@@ -1694,9 +1740,26 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
     vprops.setdefault("fill_color", b)
     vprops.setdefault("color", b)
     vprops.setdefault("shape", _vdefaults["shape"] if not state.overlap else "pie")
-
     s = max(200 / numpy.sqrt(g.num_vertices()), 5)
     vprops.setdefault("size", prop_to_size(g.degree_property_map("total"), s/5, s))
+
+    if vprops.get("text_position", None) == "centered":
+        angle, text_pos = centered_rotation(g, pos, text_pos=True)
+        vprops["text_position"] = text_pos
+        vprops["text_rotation"] = angle
+
+    self_loops = label_self_loops(g, mark_only=True)
+    if self_loops.fa.max() > 0:
+        parallel_distance = vprops.get("size", _vdefaults["size"])
+        if isinstance(parallel_distance, PropertyMap):
+            parallel_distance = parallel_distance.fa.mean()
+        cts_p = position_parallel_edges(g, pos, numpy.nan,
+                                        parallel_distance)
+        gu = GraphView(g, efilt=self_loops)
+        for e in gu.edges():
+            cts[e] = cts_p[e]
+
+
     vprops = _convert_props(vprops, "v", g, kwargs.get("vcmap", default_cm),
                             pmap_default=True)
 
@@ -1705,6 +1768,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
     eprops.setdefault("control_points", cts)
     eprops.setdefault("pen_width", _edefaults["pen_width"])
     eprops.setdefault("color", _edefaults["color"])
+    eprops.setdefault("end_marker", "arrow" if g.is_directed() else "none")
     eprops = _convert_props(eprops, "e", g, kwargs.get("ecmap", default_cm),
                             pmap_default=True)
 
@@ -1720,6 +1784,11 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
     hvprops.setdefault("color", [1, 1, 1, 0])
     hvprops.setdefault("shape", "square")
     hvprops.setdefault("size", 10)
+
+    if hvprops.get("text_position", None) == "centered":
+        angle, text_pos = centered_rotation(t, tpos, text_pos=True)
+        hvprops["text_position"] = text_pos
+        hvprops["text_rotation"] = angle
 
     hvprops = _convert_props(hvprops, "v", t, kwargs.get("vcmap", default_cm),
                              pmap_default=True)
@@ -1879,16 +1948,21 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
             widget.regenerate_surface(reset=True)
             widget.queue_draw()
 
+    if kwargs.get("output", None) is None:
+        kwargs["layout_callback"] = update_cts
+        kwargs["key_press_callback"] = draw_branch
+
     pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=vorder,
-                     layout_callback=update_cts, key_press_callback=draw_branch,
                      **kwargs)
 
     if isinstance(pos, PropertyMap):
         pos = g.own_property(pos)
+        t_orig.copy_property(pos, tpos, g=u)
     else:
         pos = (g.own_property(pos[0]),
                g.own_property(pos[1]))
-    return pos, t, tpos
+        t_orig.copy_property(pos[0], tpos, g=u)
+    return pos, t_orig, tpos
 
 
 def get_bip_hierachy_pos(state):

@@ -23,7 +23,8 @@ from __future__ import division, absolute_import, print_function
 import numpy
 
 from .. import GraphView, PropertyMap, ungroup_vector_property,\
-     group_vector_property, _prop
+     group_vector_property, infect_vertex_property, edge_endpoint_property, \
+     _prop
 from .cairo_draw import *
 from .cairo_draw import _vdefaults, _edefaults
 from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
@@ -134,7 +135,7 @@ class GraphWidget(Gtk.DrawingArea):
                  layout_K=1., multilevel=False, display_props=None,
                  display_props_size=11, fit_area=0.95, bg_color=None,
                  max_render_time=300, layout_callback=None,
-                 key_press_callback=None, **kwargs):
+                 key_press_callback=None, highlight_color=None, **kwargs):
         r"""Interactive GTK+ widget displaying a given graph.
 
         Parameters
@@ -266,7 +267,9 @@ class GraphWidget(Gtk.DrawingArea):
         self.pointer = [0, 0]
         self.picked = False
         self.selected = g.new_vertex_property("bool", False)
+        self.highlight = g.new_vertex_property("bool", False)
         self.sel_edge_filt = g.new_edge_property("bool", False)
+        self.highlight_color = highlight_color
         self.srect = None
         self.drag_begin = None
         self.moved_picked = False
@@ -545,12 +548,60 @@ class GraphWidget(Gtk.DrawingArea):
         cr.restore()
 
         if self.picked is not None or self.picked is not False:
-            vprops = {}
-            vprops.update(self.vprops)
+            # draw immediate neighbourhood
+            if self.selected.fa.sum() == 1:
+                vprops = dict(**self.vprops)
+                vprops["halo"] = self.highlight
+                vprops["halo_color"] = (0.9372549019607843, 0.1607843137254902, 0.1607843137254902, .9)
+                vprops["halo_size"] = 1.3
+
+                if self.highlight_color is not None:
+                    vprops["halo_color"] = self.highlight_color
+
+                eprops = {}
+                eprops["color"] = (0.9372549019607843, 0.1607843137254902, 0.1607843137254902, .9)
+                if "control_points" in self.eprops:
+                   eprops["control_points"] = self.eprops["control_points"]
+
+                if self.highlight_color is not None:
+                    eprops["color"] = self.highlight_color
+
+                self.highlight.fa = self.selected.fa
+                infect_vertex_property(GraphView(self.g, directed=False),
+                                       self.highlight, [True])
+                self.highlight.fa = numpy.logical_xor(self.selected.fa,
+                                                      self.highlight.fa)
+
+                hsrc = edge_endpoint_property(self.g, self.selected, "source")
+                htgt = edge_endpoint_property(self.g, self.selected, "target")
+                self.sel_edge_filt.fa = numpy.logical_or(hsrc.fa, htgt.fa)
+
+                u = GraphView(self.g,
+                              vfilt=numpy.logical_or(self.highlight.fa,
+                                                     self.selected.fa),
+                              efilt=self.sel_edge_filt)
+
+                self.sel_edge_filt.fa = False
+
+                eprops["pen_width"] = self.eprops.get("pen_width",
+                                                      _edefaults["pen_width"])
+
+                if isinstance(eprops["pen_width"], PropertyMap):
+                    pw = eprops["pen_width"]
+                    pw = u.own_property(pw.copy())
+                    pw.fa *= 1.1
+                else:
+                    eprops["pen_width"] *= 1.1
+
+                cr.save()
+                cr.set_matrix(self.tmatrix * self.smatrix)
+                cairo_draw(u, self.pos, cr, vprops, eprops, self.vorder,
+                           self.eorder, self.nodesfirst)
+                cr.restore()
+
+            # draw selected edges
+            vprops = dict(**self.vprops)
             vprops["halo"] = True
-            vprops["color"] = [1., 1., 1., 0.]
-            vprops["fill_color"] = [1., 1., 1., 0.]
-            vprops["text_color"] = [1., 1., 1., 0.]
 
             eprops = {}
 
@@ -858,14 +909,20 @@ class GraphWidget(Gtk.DrawingArea):
 
         if event.direction == Gdk.ScrollDirection.UP:
             if state & Gdk.ModifierType.CONTROL_MASK:
-                angle = 0.1
+                if state & Gdk.ModifierType.SHIFT_MASK:
+                    angle = 0.01
+                else:
+                    angle = 0.1
             else:
                 zoom = 1. / 0.9
                 if state & Gdk.ModifierType.SHIFT_MASK:
                     scale_ink(1. / 0.9, self.vprops, self.eprops)
         elif event.direction == Gdk.ScrollDirection.DOWN:
             if state & Gdk.ModifierType.CONTROL_MASK:
-                angle = -0.1
+                if state & Gdk.ModifierType.SHIFT_MASK:
+                    angle = -0.01
+                else:
+                    angle = -0.1
             else:
                 zoom = 0.9
                 if state & Gdk.ModifierType.SHIFT_MASK:
