@@ -265,7 +265,7 @@ class GraphWidget(Gtk.DrawingArea):
         self.smatrix = cairo.Matrix()  # surface to screen
         self.pointer = [0, 0]
         self.picked = False
-        self.selected = g.new_vertex_property("bool")
+        self.selected = g.new_vertex_property("bool", False)
         self.sel_edge_filt = g.new_edge_property("bool", False)
         self.srect = None
         self.drag_begin = None

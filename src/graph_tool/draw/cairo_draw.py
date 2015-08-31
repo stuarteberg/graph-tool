@@ -58,6 +58,7 @@ try:
     default_cm = matplotlib.colors.LinearSegmentedColormap.from_list("Set3",
                                                                      default_clrs)
     is_draw_inline = 'inline' in matplotlib.get_backend()
+    color_converter = matplotlib.colors.ColorConverter()
 except ImportError:
     msg = "Error importing matplotlib module. Graph drawing will not work."
     warnings.warn(msg, RuntimeWarning)
@@ -77,7 +78,7 @@ import io
 from collections import defaultdict
 
 from .. import Graph, GraphView, PropertyMap, ungroup_vector_property,\
-     group_vector_property, _prop, _check_prop_vector
+     group_vector_property, _prop, _check_prop_vector, map_property_values
 
 from .. stats import label_parallel_edges, label_self_loops
 
@@ -93,11 +94,6 @@ except ImportError:
 
 from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
     coarse_graphs, radial_tree_layout, prop_to_size
-
-try:
-    from matplotlib.colors import colorConverter
-except ImportError:
-    pass
 
 from .. generation import graph_union
 from .. topology import shortest_path
@@ -153,26 +149,27 @@ _edefaults = {
 
 def shape_from_prop(shape, enum):
     if isinstance(shape, PropertyMap):
+        g = shape.get_graph()
         if shape.key_type() == "v":
-            prop = shape.get_graph().new_vertex_property("int")
-            descs = shape.get_graph().vertices()
+            prop = g.new_vertex_property("int")
+            descs = g.vertices()
         else:
-            descs = shape.get_graph().edges()
-            prop = shape.get_graph().new_edge_property("int")
-        offset = min(enum.values.keys())
-        vals = dict([(int(k - offset), v) for k, v in enum.values.items()])
-        for v in descs:
-            if shape.value_type() == "string":
-                prop[v] = int(enum.__dict__[shape[v]])
-            elif int(shape[v]) in vals:
-                prop[v] = int(vals[int(shape[v])])
-            elif int(shape[v]) - offset in vals:
-                prop[v] = int(vals[int(shape[v]) - offset])
-            else:
-                raise ValueError("Invalid value for attribute %s: %s" %
-                                 (repr(enum), repr(shape[v])))
+            descs = g.edges()
+            prop = g.new_edge_property("int")
+        if shape.value_type() == "string":
+            def conv(x):
+                return int(getattr(enum, x))
+            map_property_values(shape, prop, conv)
+        else:
+            rg = (min(enum.values.keys()),
+                  max(enum.values.keys()))
+            g.copy_property(shape, prop)
+            if prop.fa.min() < rg[0]:
+                prop.fa += rg[0]
+            prop.fa -= rg[0]
+            prop.fa %= rg[1] - rg[0] + 1
+            prop.fa += rg[0]
         return prop
-
     if isinstance(shape, str):
         return int(enum.__dict__[shape])
     else:
@@ -262,16 +259,24 @@ def centered_rotation(g, pos, text_pos=True):
         return angle, tpos
     return angle
 
-def _convert(attr, val, cmap):
+def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
     if attr == vertex_attrs.shape:
-        return shape_from_prop(val, vertex_shape)
-    if attr == vertex_attrs.surface:
-        return surface_from_prop(val)
-    if attr in [edge_attrs.start_marker, edge_attrs.mid_marker,
-                edge_attrs.end_marker]:
-        return shape_from_prop(val, edge_marker)
-
-    if attr in [vertex_attrs.pie_colors]:
+        new_val = shape_from_prop(val, vertex_shape)
+        if pmap_default and not isinstance(val, PropertyMap):
+            new_val = g.new_vertex_property("int", new_val)
+        return new_val
+    elif attr == vertex_attrs.surface:
+        new_val = surface_from_prop(val)
+        if pmap_default and not isinstance(val, PropertyMap):
+            new_val = g.new_vertex_property("python::object", new_val)
+        return new_val
+    elif attr in [edge_attrs.start_marker, edge_attrs.mid_marker,
+                  edge_attrs.end_marker]:
+        new_val = shape_from_prop(val, edge_marker)
+        if pmap_default and not isinstance(val, PropertyMap):
+            new_val = g.new_edge_property("int", new_val)
+        return new_val
+    elif attr in [vertex_attrs.pie_colors]:
         if isinstance(val, PropertyMap):
             if val.value_type() in ["vector<double>", "vector<long double>"]:
                 return val
@@ -285,101 +290,146 @@ def _convert(attr, val, cmap):
                         rg[1] = max(x, rg[1])
                 if rg[0] == rg[1]:
                     rg[1] = 1
-                for v in g.vertices():
-                    new_val[v] = flatten([cmap((x - rg[0]) / (rg[1] - rg[0])) for x in val[v]])
+                map_property_values(val, new_val,
+                                    lambda y: flatten([cmap((x - rg[0]) / (rg[1] - rg[0])) for x in y]))
                 return new_val
             if val.value_type() == "vector<string>":
                 g = val.get_graph()
                 new_val = g.new_vertex_property("vector<double>")
-                for v in g.vertices():
-                    new_val[v] = flatten([matplotlib.colors.ColorConverter().to_rgba(x) for x in val[v]])
+                map_property_values(val, new_val,
+                                    lambda y: flatten([color_converter.to_rgba(x) for x in y]))
                 return new_val
             if val.value_type() == "python::object":
                 try:
                     g = val.get_graph()
                     new_val = g.new_vertex_property("vector<double>")
-                    for v in g.vertices():
+                    def conv(y):
                         try:
-                            new_val[v] = [float(x) for x in flatten(val[v])]
+                            new_val[v] = [float(x) for x in flatten(y)]
                         except ValueError:
-                            new_val[v] = flatten([matplotlib.colors.ColorConverter().to_rgba(x) for x in val[v]])
+                            new_val[v] = flatten([color_converter.to_rgba(x) for x in y])
+                    map_property_values(val, new_val, conv)
                     return new_val
                 except ValueError:
                     pass
         else:
             try:
-                return [float(x) for x in flatten(val)]
+                new_val = [float(x) for x in flatten(val)]
             except ValueError:
                 try:
-                    new_val = flatten(matplotlib.colors.ColorConverter().to_rgba(x) for x in val)
-                    return list(new_val)
+                    new_val = flatten(color_convert.to_rgba(x) for x in val)
+                    new_val = list(new_val)
                 except ValueError:
                     pass
-    if attr in [vertex_attrs.color, vertex_attrs.fill_color,
-                vertex_attrs.text_color, vertex_attrs.halo_color,
-                edge_attrs.color, edge_attrs.text_color]:
+            if pmap_default:
+                val_a = numpy.zeros((g.num_vertices(), len(new_val)))
+                for i in range(len(new_val)):
+                    val_a[:, i] = new_val[i]
+                return g.new_vertex_property("vector<double>", val_a)
+            else:
+                return new_val
+    elif attr in [vertex_attrs.color, vertex_attrs.fill_color,
+                  vertex_attrs.text_color, vertex_attrs.halo_color,
+                  edge_attrs.color, edge_attrs.text_color]:
         if isinstance(val, list):
-            return val
-        if isinstance(val, (tuple, np.ndarray)):
-            return list(val)
-        if isinstance(val, str):
-            return list(matplotlib.colors.ColorConverter().to_rgba(val))
-        if isinstance(val, PropertyMap):
+            new_val = val
+        elif isinstance(val, (tuple, np.ndarray)):
+            new_val = list(val)
+        elif isinstance(val, str):
+            new_val = list(color_converter.to_rgba(val))
+        elif isinstance(val, PropertyMap):
             if val.value_type() in ["vector<double>", "vector<long double>"]:
-                return val
-            if val.value_type() in ["int32_t", "int64_t", "double",
-                                    "long double", "unsigned long", "bool"]:
+                new_val = val
+            elif val.value_type() in ["int32_t", "int64_t", "double",
+                                      "long double", "unsigned long", "bool"]:
+                g = val.get_graph()
                 try:
                     vrange = [val.fa.min(), val.fa.max()]
                 except ValueError:
-                    vrange = val[val.get_graph().vertex(0)]
-                    vrange = [vrange, vrange]
-                    for v in val.get_graph().vertices():
-                        vrange[0] = min(vrange[0], val[v])
-                        vrange[1] = max(vrange[1], val[v])
+                    val_ = val.copy("int64_t")
                 cnorm = matplotlib.colors.Normalize(vmin=vrange[0],
                                                     vmax=vrange[1])
+                g = val.get_graph()
                 if val.key_type() == "v":
-                    prop = val.get_graph().new_vertex_property("vector<double>")
-                    descs = val.get_graph().vertices()
+                    prop = g.new_vertex_property("vector<double>")
                 else:
-                    prop = val.get_graph().new_edge_property("vector<double>")
-                    descs = val.get_graph().edges()
-                for v in descs:
-                    prop[v] = cmap(cnorm(val[v]))
-                return prop
-            if val.value_type() == "string":
+                    prop = g.new_edge_property("vector<double>")
+                map_property_values(val, prop, lambda x: cmap(cnorm(x)))
+                new_val = prop
+            elif val.value_type() == "string":
+                g = val.get_graph()
                 if val.key_type() == "v":
-                    prop = val.get_graph().new_vertex_property("vector<double>")
-                    for v in val.get_graph().vertices():
-                        prop[v] = matplotlib.colors.ColorConverter().to_rgba(val[v])
-                elif val.key_type() == "e":
-                    prop = val.get_graph().new_edge_property("vector<double>")
-                    for e in val.get_graph().edges():
-                        prop[e] = matplotlib.colors.ColorConverter().to_rgba(val[e])
-                return prop
-        raise ValueError("Invalid value for attribute %s: %s" %
-                         (repr(attr), repr(val)))
+                    prop = g.new_vertex_property("vector<double>")
+                else:
+                    prop = g.new_edge_property("vector<double>")
+                map_property_values(val, prop,
+                                    lambda x: color_converter.to_rgba(x))
+                new_val = prop
+            else:
+                raise ValueError("Invalid value for attribute %s: %s" %
+                                 (repr(attr), repr(val)))
+        if pmap_default and not isinstance(val, PropertyMap):
+            if attr in [vertex_attrs.color, vertex_attrs.fill_color,
+                        vertex_attrs.text_color, vertex_attrs.halo_color]:
+                val_a = numpy.zeros((g.num_vertices(),len(new_val)))
+                for i in range(len(new_val)):
+                    val_a[:, i] = new_val[i]
+                return g.new_vertex_property("vector<double>", val_a)
+            else:
+                val_a = numpy.zeros((g.num_edges(), len(new_val)))
+                for i in range(len(new_val)):
+                    val_a[:,i] = new_val[i]
+                return g.new_edge_property("vector<double>", val_a)
+        else:
+            return new_val
+
+    if pmap_default and not isinstance(val, PropertyMap):
+        if isinstance(val, str):
+            if k == "v":
+                new_val = g.new_vertex_property("string", [val] * g.num_vertices())
+            else:
+                new_val = g.new_edge_property("string", [val] * g.num_edges())
+        else:
+            if k == "v":
+                new_val = g.new_vertex_property("double", val)
+            else:
+                new_val = g.new_edge_property("double", val)
+        return new_val
     return val
 
 
 def _attrs(attrs, d, g, cmap):
     nattrs = {}
     defaults = {}
-    for k, v in list(attrs.items()):
+    for k, v in attrs.items():
         try:
             if d == "v":
                 attr = vertex_attrs.__dict__[k]
             else:
                 attr = edge_attrs.__dict__[k]
         except KeyError:
-            warnings.warn("Unknown attribute: " + k, UserWarning)
+            warnings.warn("Unknown attribute: " + str(k), UserWarning)
             continue
         if isinstance(v, PropertyMap):
             nattrs[int(attr)] = _prop(d, g, _convert(attr, v, cmap))
         else:
             defaults[int(attr)] = _convert(attr, v, cmap)
     return nattrs, defaults
+
+def _convert_props(props, d, g, cmap, pmap_default=False):
+    nprops = {}
+    for k, v in props.items():
+        try:
+            if d == "v":
+                attr = vertex_attrs.__dict__[k]
+            else:
+                attr = edge_attrs.__dict__[k]
+            nprops[k] = _convert(attr, v, cmap, pmap_default=pmap_default,
+                                 g=g, k=d)
+        except KeyError:
+            warnings.warn("Unknown attribute: " + str(k), UserWarning)
+            continue
+    return nprops
 
 
 def get_attr(attr, d, attrs, defaults):
@@ -400,8 +450,7 @@ def position_parallel_edges(g, pos, loop_angle=float("nan"),
     if isinstance(loop_angle, PropertyMap):
         angle = loop_angle
     else:
-        angle = g.new_vertex_property("double")
-        angle.a = float(loop_angle)
+        angle = g.new_vertex_property("double", float(loop_angle))
 
     g = GraphView(g, directed=True)
     if ((len(lp.fa) == 0 or lp.fa.max() == 0) and
@@ -450,7 +499,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
     eprops : dict (optional, default: ``None``)
-        Dictionary with the vertex properties. Individual properties may also be
+        Dictionary with the edge properties. Individual properties may also be
         given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
     vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
@@ -586,25 +635,32 @@ def color_contrast(color):
 
 
 def auto_colors(g, bg, pos, back):
-    c = g.new_vertex_property("vector<double>")
-    for v in g.vertices():
-        if isinstance(bg, PropertyMap):
-            bgc = bg[v]
-        elif isinstance(bg, str):
-            bgc = matplotlib.colors.ColorConverter().to_rgba(bg)
-        else:
-            bgc = bg
-        if isinstance(pos, PropertyMap):
-            p = pos[v]
-        else:
-            if pos == "centered":
-                p = 0
-            else:
-                p = pos
+    if not isinstance(bg, PropertyMap):
+        if isinstance(bg, str):
+            bg = color_converter.to_rgba(bg)
+        bgc = numpy.zeros((g.num_vertices(), 4))
+        for i in range(4):
+            bgc[:, i] = bg[i]
+        bg = g.new_vertex_property("vector<double>", bgc)
+    if not isinstance(pos, PropertyMap):
+        if pos == "centered":
+            pos = 0
+        pos = g.new_vertex_property("double", pos)
+    bg_a = bg.get_2d_array(range(4))
+    bgc_pos = numpy.zeros((g.num_vertices(), 5))
+    for i in range(4):
+        bgc_pos[:, i] = bg_a[i, :]
+    bgc_pos[:, 4] = pos.fa
+    bgc_pos = g.new_vertex_property("vector<double>", bgc_pos)
+    def conv(x):
+        bgc = x[:4]
+        p = x[4]
         if p < 0:
-            c[v] = color_contrast(bgc)
+            return color_contrast(bgc)
         else:
-            c[v] = color_contrast(back)
+            return color_contrast(back)
+    c = g.new_vertex_property("vector<double>")
+    map_property_values(bgc_pos, c, conv)
     return c
 
 def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
@@ -879,8 +935,10 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     eprops = eprops.copy() if eprops is not None else {}
 
     props, kwargs = parse_props("vertex", kwargs)
+    props = _convert_props(props, "v", g, kwargs.get("vcmap", default_cm))
     vprops.update(props)
     props, kwargs = parse_props("edge", kwargs)
+    props = _convert_props(props, "e", g, kwargs.get("ecmap", default_cm))
     eprops.update(props)
 
     if pos is None:
@@ -907,7 +965,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         pw = eprops["pen_width"]
         if isinstance(pw, PropertyMap):
             pw = pw.copy()
-            pw.a = pw.a * 2.75
+            pw.fa *= 2.75
             eprops["marker_size"] = pw
         else:
             eprops["marker_size"] = pw * 2.75
@@ -916,18 +974,17 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         pw = eprops["pen_width"]
         if isinstance(pw, PropertyMap):
             pw = pw.copy()
-            pw.a *= 2
+            pw.fa *= 2
             eprops["text_distance"] = pw
         else:
             eprops["text_distance"] = pw * 2
 
     if "text" in vprops and ("text_color" not in vprops or vprops["text_color"] == "auto"):
         vcmap = kwargs.get("vcmap", matplotlib.cm.jet)
-        bg = _convert(vertex_attrs.fill_color, vprops.get("fill_color", _vdefaults["fill_color"]), vcmap)
-        if "bg_color" in kwargs:
-            bg_color = kwargs["bg_color"]
-        else:
-            bg_color = [1., 1., 1., 1.]
+        bg = _convert(vertex_attrs.fill_color,
+                      vprops.get("fill_color", _vdefaults["fill_color"]),
+                      vcmap)
+        bg_color = kwargs.get("bg_color", [1., 1., 1., 1.])
         vprops["text_color"] = auto_colors(g, bg,
                                            vprops.get("text_position",
                                                       _vdefaults["text_position"]),
@@ -973,14 +1030,6 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         output = io.BytesIO()
 
     if output is None:
-        for p, val in vprops.items():
-            if isinstance(val, PropertyMap):
-                vprops[p] = _convert(vertex_attrs.__dict__[p], val,
-                                     kwargs.get("vcmap", default_cm))
-        for p, val in eprops.items():
-            if isinstance(val, PropertyMap):
-                eprops[p] = _convert(edge_attrs.__dict__[p], val,
-                                     kwargs.get("ecmap", default_cm))
         fit_area = fit_view if fit_view != True else 0.95
         return interactive_window(g, pos, vprops, eprops, vorder, eorder,
                                   nodesfirst, geometry=output_size,
@@ -1169,7 +1218,7 @@ def get_bb(g, pos, size, pen_width, size_scale=1, text=None, font_family=None,
                 size[:] = size[i]
                 break
     sl = label_self_loops(g)
-    slm = sl.a.max() * 0.75
+    slm = sl.fa.max() * 0.75
     delta = (size * size_scale * (slm + 1)) / 2 + pen_width * 2
     x_range = [pos_x.fa.min(), pos_x.fa.max()]
     y_range = [pos_y.fa.min(), pos_y.fa.max()]
@@ -1425,10 +1474,11 @@ class GraphArtist(matplotlib.artist.Artist):
 # ===================
 #
 
-def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
-                   halpha=0.6, subsample_edges=None, deg_order=True,
-                   deg_size=True, vsize_scale=1, hsize_scale=1, hshortcuts=0,
-                   hide=0, empty_branches=True, verbose=False, **kwargs):
+def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
+                   eprops=None, hvprops=None, heprops=None,
+                   subsample_edges=None, deg_order=True, deg_size=True,
+                   vsize_scale=1, hsize_scale=1, hshortcuts=0, hide=0,
+                   empty_branches=True, **kwargs):
     r"""Draw a nested block model state in a circular hierarchy layout with edge
     bundling.
 
@@ -1448,20 +1498,39 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         position of the hierarchy tree.
     beta : ``float`` (optional, default: ``.8``)
         Edge bundling strength.
-    ealpha : ``float`` (optional, default: ``.8``)
-        Alpha value of the edge colors.
-    halpha : ``float`` (optional, default: ``.8``)
-        Alpha value of hierarchy nodes and edges.
+    vprops : dict (optional, default: ``None``)
+        Dictionary with the vertex properties. Individual properties may also be
+        given via the ``vertex_<prop-name>`` parameters, where ``<prop-name>`` is
+        the name of the property. See :func:`~graph_tool.draw.graph_draw` for
+        details.
+    eprops : dict (optional, default: ``None``)
+        Dictionary with the edge properties. Individual properties may also be
+        given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
+        the name of the property. See :func:`~graph_tool.draw.graph_draw` for
+        details.
+    hvprops : dict (optional, default: ``None``)
+        Dictionary with the vertex properties for the *hierarchy tree*.
+        Individual properties may also be given via the ``hvertex_<prop-name>``
+        parameters, where ``<prop-name>`` is the name of the property. See
+        :func:`~graph_tool.draw.graph_draw` for details.
+    heprops : dict (optional, default: ``None``)
+        Dictionary with the edge properties for the *hierarchy tree*. Individual
+        properties may also be given via the ``hedge_<prop-name>`` parameters,
+        where ``<prop-name>`` is the name of the property. See
+        :func:`~graph_tool.draw.graph_draw` for details.
     subsample_edges : ``int`` or list of :class:`~graph_tool.Edge` instances (optional, default: ``None``)
         If provided, only this number of random edges will be drawn. If the
         value is a list, it should include the edges that are to be drawn.
     deg_order : ``bool`` (optional, default: ``True``)
         If ``True``, the vertices will be ordered according to degree inside
         each group.
+    deg_size : ``bool`` (optional, default: ``True``)
+        If ``True``, the (total) node degrees will be used for the default
+        vertex sizes..
     vsize_scale : ``float`` (optional, default: ``1.``)
-        Multiplicative factor of the vertex sizes.
+        Multiplicative factor for the default vertex sizes.
     hsize_scale : ``float`` (optional, default: ``1.``)
-        Multiplicative factor of the sizes of the hierarchy nodes.
+        Multiplicative factor for the default sizes of the hierarchy nodes.
     hshortcuts : ``int`` (optional, default: ``0``)
         Include shortcuts to the number of upper layers in the hierarchy
         determined by this parameter.
@@ -1470,15 +1539,30 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
     empty_branches : ``bool`` (optional, default: ``False``)
         If ``empty_branches == False``, dangling branches at the upper layers
         will be pruned.
-    verbose : ``bool`` (optional, default: ``False``)
-        If ``verbose == True``, verbose information will be displayed.
+    vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        Parameters following the pattern ``vertex_<prop-name>`` specify the
+        vertex property with name ``<prop-name>``, as an alternative to the
+        ``vprops`` parameter. See :func:`~graph_tool.draw.graph_draw` for
+        details.
+    edge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        Parameters following the pattern ``edge_<prop-name>`` specify the edge
+        property with name ``<prop-name>``, as an alternative to the ``eprops``
+        parameter. See :func:`~graph_tool.draw.graph_draw` for details.
+    hvertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        Parameters following the pattern ``hvertex_<prop-name>`` specify the
+        vertex property with name ``<prop-name>``, as an alternative to the
+        ``hvprops`` parameter. See :func:`~graph_tool.draw.graph_draw` for
+        details.
+    hedge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        Parameters following the pattern ``hedge_<prop-name>`` specify the edge
+        property with name ``<prop-name>``, as an alternative to the ``heprops``
+        parameter. See :func:`~graph_tool.draw.graph_draw` for details.
     **kwargs :
         All remaining keyword arguments will be passed to the
         :func:`~graph_tool.draw.graph_draw` function.
 
     Returns
     -------
-
     pos : :class:`~graph_tool.PropertyMap`
         This is a vertex property map with the positions of
         the vertices in the layout.
@@ -1536,8 +1620,6 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
         b = state.levels[0].b
 
     if subsample_edges is not None:
-        if verbose:
-            print("subsampling edges...")
         emask = g.new_edge_property("bool", False)
         if isinstance(subsample_edges, int):
             eidx = g.edge_index.copy("int").fa.copy()
@@ -1549,12 +1631,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                 emask[e] = True
         g = GraphView(g, efilt=emask)
 
-        if verbose:
-            print("done.")
-
-    t, tb, vorder = get_hierarchy_tree(state, empty_branches=empty_branches)
-
-    edge_labels = t.new_edge_property("string")
+    t, tb, vorder = get_hierarchy_tree(state,
+                                       empty_branches=empty_branches)
 
     if layout == "radial":
         if not deg_order:
@@ -1599,221 +1677,135 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
 
     pos = g.own_property(tpos.copy())
 
-    if verbose:
-        print("getting cts...")
-
     cts = get_hierarchy_control_points(g, t, tpos, beta,
                                        max_depth=len(state.levels) - hshortcuts)
 
-    if verbose:
-        print("done.")
+    vprops_orig = vprops
+    eprops_orig = eprops
+    hvprops_orig = vprops
+    heprops_orig = eprops
+    kwargs_orig = kwargs
 
-    if verbose:
-        print("putting gradient...")
+    vprops = vprops.copy() if vprops is not None else {}
+    eprops = eprops.copy() if eprops is not None else {}
 
-    args = kwargs
-    vcmap = args.get("vcmap", default_cm)
-    ecmap = args.get("ecmap", vcmap)
+    props, kwargs = parse_props("vertex", kwargs)
+    vprops.update(props)
+    vprops.setdefault("fill_color", b)
+    vprops.setdefault("color", b)
+    vprops.setdefault("shape", _vdefaults["shape"] if not state.overlap else "pie")
+
+    s = max(200 / numpy.sqrt(g.num_vertices()), 5)
+    vprops.setdefault("size", prop_to_size(g.degree_property_map("total"), s/5, s))
+    vprops = _convert_props(vprops, "v", g, kwargs.get("vcmap", default_cm),
+                            pmap_default=True)
+
+    props, kwargs = parse_props("edge", kwargs)
+    eprops.update(props)
+    eprops.setdefault("control_points", cts)
+    eprops.setdefault("pen_width", _edefaults["pen_width"])
+    eprops.setdefault("color", _edefaults["color"])
+    eprops = _convert_props(eprops, "e", g, kwargs.get("ecmap", default_cm),
+                            pmap_default=True)
+
+    hvprops = hvprops.copy() if hvprops is not None else {}
+    heprops = heprops.copy() if heprops is not None else {}
+
+    props, kwargs = parse_props("hvertex", kwargs)
+    hvprops.update(props)
+
+    blue = list(color_converter.to_rgba("#729fcf"))
+    blue[-1] = .6
+    hvprops.setdefault("fill_color", blue)
+    hvprops.setdefault("color", [1, 1, 1, 0])
+    hvprops.setdefault("shape", "square")
+    hvprops.setdefault("size", 10)
+
+    hvprops = _convert_props(hvprops, "v", t, kwargs.get("vcmap", default_cm),
+                             pmap_default=True)
+
+    props, kwargs = parse_props("hedge", kwargs)
+    heprops.update(props)
+
+    heprops.setdefault("color", blue)
+    heprops.setdefault("end_marker", "arrow")
+    heprops.setdefault("marker_size", 8.)
+    heprops.setdefault("pen_width", 1.)
+
+    heprops = _convert_props(heprops, "e", t, kwargs.get("ecmap", default_cm),
+                             pmap_default=True)
+
+
+    vcmap = kwargs.get("vcmap", default_cm)
+    ecmap = kwargs.get("ecmap", vcmap)
 
     B = state.levels[0].B
 
-    gradient = args.get("edge_gradient", None)
+    if state.overlap and "pie_fractions" not in vprops:
+        vprops["pie_fractions"] = bc.copy("vector<double>")
+        if "pie_colors" not in vprops:
+            vertex_pie_colors = g.new_vertex_property("vector<double>")
+            nodes = defaultdict(list)
+            def conv(k):
+                clrs = [vcmap(r / (B - 1) if B > 1 else 0) for r in k]
+                return [item for l in clrs for item in l]
+            map_property_values(bv, vertex_pie_colors, conv)
+            vprops["pie_colors"] = vertex_pie_colors
+
+    gradient = eprops.get("gradient", None)
     if gradient is None:
         gradient = g.new_edge_property("double")
-        gradient = group_vector_property([gradient])
+        gradient = group_vector_property([gradient, gradient])
+        ecolor = eprops.get("ecolor", _edefaults["color"])
+        eprops["gradient"] = gradient
         if state.overlap:
-            for e in g.edges():
+            for e in g.edges():                       # ******** SLOW *******
                 r, s = be[e]
                 if e.source() > e.target():
                     r, s = s, r
                 gradient[e] = [0] + list(vcmap(r / (B - 1))) + \
                               [1] + list(vcmap(s / (B - 1)))
-                gradient[e][4] = gradient[e][9] = ealpha
+                if isinstance(ecolor, PropertyMap):
+                    gradient[e][4] = gradient[e][9] = ecolor[e][3]
+                else:
+                    gradient[e][4] = gradient[e][9] = ecolor[3]
 
-    if verbose:
-        print("done")
-
-    if verbose:
-        print("putting color...")
-    if args.get("edge_color", None) is not None:
-        edge_color = args.get("edge_color")
-        edge_color = _convert(edge_attrs.color, edge_color,
-                              args.get("ecmap", default_cm))
-        if not isinstance(edge_color, PropertyMap):
-            val = edge_color
-            clrs = [g.new_edge_property("double") for i in range(4)]
-            for i in range(4):
-                clrs[i].fa = val[i]
-            edge_color = group_vector_property(clrs)
-    else:
-        z = g.new_edge_property("double", 0)
-        a = g.new_edge_property("double", ealpha)
-        edge_color = group_vector_property([z, z, z, a])
-
-    if verbose:
-        print("done")
-
-    if verbose:
-        print("putting tcolor...")
-    tedge_color = t.new_edge_property("vector<double>")
-    r = t.new_edge_property("double",  int("a4", 16) / 256)
-    a = t.new_edge_property("double", halpha)
-    z = t.new_edge_property("double")
-    tedge_color = group_vector_property([r, z, z, a])
-    if verbose:
-        print("done")
-
-    em = g.new_edge_property("int", g.is_directed())
-    tem = t.new_edge_property("int", 1)
-
-    epw = args.get("edge_pen_width",
-                   g.new_edge_property("double", 1))
-    tepw = t.new_edge_property("double", 1)
-
-    vlabels = args.get("vertex_text", g.new_vertex_property("string"))
-    tlabels = t.new_vertex_property("string")
 
     t_orig = t
     t = GraphView(t,
                   vfilt=lambda v: int(v) >= g.num_vertices(True) and hvvisible[v])
-    if verbose:
-        print("joining graphs")
-    props = [(pos, tpos),
-             (cts, None),
-             (gradient, None),
-             (edge_color, tedge_color),
-             (em, tem),
-             (epw, tepw),
-             (args.get("edge_text", g.new_edge_property("string")).copy("string"),
-              edge_labels),
-             (g.vertex_index, tb),
-             (vlabels, tlabels),
-             (b, None)]
 
-    # propagate all other properties in args
-    arg_pos = {}
-    for a, v in args.items():
-        if isinstance(v, PropertyMap) and v.key_type() != "v":
-            props.append((v, None))
-            arg_pos[a] = len(props) - 1
+    t_vprops = {}
+    t_eprops = {}
+
+    props = []
+    for k in set(list(vprops.keys()) + list(hvprops.keys())):
+        t_vprops[k] = (vprops.get(k, None), hvprops.get(k, None))
+        props.append(t_vprops[k])
+    for k in set(list(eprops.keys()) + list(heprops.keys())):
+        t_eprops[k] = (eprops.get(k, None), heprops.get(k, None))
+        props.append(t_eprops[k])
+
+    props.append((pos, tpos))
+    props.append((g.vertex_index, tb))
+    props.append((b, None))
 
     u, props = graph_union(g, t, props=props)
-    if verbose:
-        print("done")
 
-    pos = props[0]
-    cts = props[1]
-    egradient = props[2]
-    ecolor = props[3]
-    em = props[4]
-    epw = props[5]
-    elabels = props[6]
-    tb = props[7]
-    vertex_text = props[8]
-    b = props[9]
-
-    for a, v in arg_pos.items():
-        args[a] = props[v]
-
-    vshape = u.new_vertex_property("int")
-    vshape.a[:g.num_vertices()] = 0
-    vshape.a[g.num_vertices():] = 2
-    if "vertex_shape" in args:
-        vshape.a[:g.num_vertices()] = args["vertex_shape"].a[:g.num_vertices()]
-        del args["vertex_shape"]
-
-    vsize = None
-
-    if deg_size:
-        vsize = prop_to_size(u.degree_property_map("total"), 5, 20)
-
-    if "vertex_size" in args:
-        vsize.a[:g.num_vertices()] = args["vertex_size"].fa[:g.num_vertices()]
-        del args["vertex_size"]
-
-    if vsize is not None:
-        vsize.a[g.num_vertices():] = vsize.a[g.num_vertices():].mean() * hsize_scale * 1.5
-
-        ems = epw.copy()
-        ems.fa *= 2.75
-        ems.a[g.num_edges():] = numpy.sqrt(vsize.fa[g.num_vertices():].mean() * hsize_scale * 1.5) * 2
-
-        vsize.a[:g.num_vertices()] *= vsize_scale
-
-    vorder = vsize.copy()
-    vorder.a[g.num_vertices():] = vorder.a.max() + 1
-
-    vfcolor = args.get("vertex_fill_color", None)
-    vcolor = args.get("vertex_color", None)
-    vertex_color = u.new_vertex_property("vector<double>")
-    vertex_border_color = u.new_vertex_property("vector<double>")
-    max_vc = None
-    max_bvc = None
-    for v in u.vertices():
-        if isinstance(vfcolor, PropertyMap):
-            if vfcolor.value_type == "vector<double>":
-                vertex_color[v] = vfcolor[v]
-            elif vfcolor.value_type == "string":
-                vertex_color[v] = matplotlib.colors.ColorConverter().to_rgba(vfcolor[v])
-            else:
-                if max_vc is None:
-                    max_vc = vfcolor.fa.max()
-                vertex_color[v] = vcmap(vfcolor[v] / max_vc)
-        elif vfcolor is not None:
-            vertex_color[v] = matplotlib.colors.ColorConverter().to_rgba(vfcolor)
-        else:
-            vertex_color[v] = vcmap(b[v] / (B - 1) if B > 1 else 0)
-
-        if isinstance(vcolor, PropertyMap):
-            if vcolor.value_type == "vector<double>":
-                vertex_border_color[v] = vcolor[v]
-            elif vcolor.value_type == "string":
-                vertex_border_color[v] = matplotlib.colors.ColorConverter().to_rgba(vcolor[v])
-            else:
-                if max_vc is None:
-                    max_vc = vcolor.fa.max()
-                vertex_border_color[v] = vcmap(vcolor[v] / max_vc)
-        elif vcolor is not None:
-            vertex_border_color[v] = matplotlib.colors.ColorConverter().to_rgba(vcolor)
-        else:
-            vertex_border_color[v] = colorConverter.to_rgba("#babdb6", 1)
-
-        if int(v) >= g.num_vertices():
-            vertex_color[v] =  colorConverter.to_rgba("#a40000", halpha)
-            vertex_border_color[v] = colorConverter.to_rgba("#babdb6", halpha)
-
-
-    if state.overlap:
-        vshape.a[:g.num_vertices()] = 14
-        vertex_pie_frac = u.new_vertex_property("vector<int>")
-        vertex_pie_colors = u.new_vertex_property("vector<double>")
-        nodes = defaultdict(list)
-        for v in u.vertices():
-            if int(v) >= g.num_vertices():
-                break
-            vertex_pie_frac[v] = bc[v]
-            clrs = [vcmap(r / (B - 1) if B > 1 else 0) for r in bv[v]]
-            vertex_pie_colors[v] = [item for l in clrs for item in l]
-    else:
-        vertex_pie_frac = [1]
-        vertex_pie_colors = [0,0,0,1]
-
-
-    tangle = u.new_vertex_property("double")
-    for v in u.vertices():
-        if int(v) >= g.num_vertices():
-            break
-        tangle[v] = numpy.arctan2(pos[v][1], pos[v][0])
-
-    if verbose:
-        print("drawing...")
+    for k in set(list(vprops.keys()) + list(hvprops.keys())):
+        t_vprops[k] = props.pop(0)
+    for k in set(list(eprops.keys()) + list(heprops.keys())):
+        t_eprops[k] = props.pop(0)
+    pos = props.pop(0)
+    tb = props.pop(0)
+    b = props.pop(0)
 
     def update_cts(widget, gg, picked, pos, vprops, eprops):
         vmask = gg.vertex_index.copy("int")
         u = GraphView(gg, directed=False, vfilt=vmask.fa < g.num_vertices())
         cts = eprops["control_points"]
         get_hierarchy_control_points(u, t_orig, pos, beta, cts=cts,
-                                     is_tree=hshortcuts == 0)
+                                     max_depth=len(state.levels) - hshortcuts)
 
     def draw_branch(widget, gg, key_id, picked, pos, vprops, eprops):
         if key_id == ord('b'):
@@ -1840,8 +1832,9 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                         rs = be[e]
                         if rs[0] == tb[picked] and rs[1] == tb[picked]:
                             emask[e] = True
-                    u = GraphView(GraphView(g, efilt=emask),
-                                  vfilt=lambda v: v.in_degree() + v.out_degree() > 0)
+                    u = GraphView(g, efilt=emask)
+                    d = u.degree_property_map("total")
+                    u = GraphView(u, vfilt=d.fa > 0)
                     u.ep["be"] = orig_state.levels[0].get_edge_blocks()
                     u = Graph(u, prune=True)
                     be = u.ep["be"]
@@ -1852,75 +1845,44 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, ealpha=0.4,
                                           overlap=state.overlap,
                                           deg_corr=state.deg_corr)
 
-                draw_hierarchy(nstate, beta=beta, ealpha=ealpha, halpha=halpha,
+                kwargs_ = kwargs_orig.copy()
+                if "no_main" in kwargs_:
+                    del kwargs_["no_main"]
+                draw_hierarchy(nstate, beta=beta, vprops=vprops_orig,
+                               eprops=eprops_orig, hvprops=hvprops_orig,
+                               heprops=heprops_orig,
                                subsample_edges=subsample_edges,
-                               deg_order=deg_order, deg_size=deg_size,
-                               vsize_scale=vsize_scale, hsize_scale=hsize_scale,
-                               verbose=verbose, empty_branches=False,
-                               no_main=True)
+                               deg_order=deg_order, empty_branches=False,
+                               no_main=True, **kwargs_)
+
         if key_id == ord('r'):
-            x, y = ungroup_vector_property(pos, [0, 1])
-            x.fa -= x.fa.mean()
-            y.fa -= y.fa.mean()
-            angle = gg.new_vertex_property("double")
-            angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
-            tpos = radial_tree_layout(t_orig,
-                                      root=t_orig.vertex(t_orig.num_vertices() - 1,
-                                                         use_index=False),
-                                      rel_order=angle)
-            gg.copy_property(tpos, pos)
+            if layout == "radial":
+                x, y = ungroup_vector_property(pos, [0, 1])
+                x.fa -= x.fa.mean()
+                y.fa -= y.fa.mean()
+                angle = gg.new_vertex_property("double")
+                angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
+                tpos = radial_tree_layout(t_orig,
+                                          root=t_orig.vertex(t_orig.num_vertices() - 1,
+                                                             use_index=False),
+                                          rel_order=angle)
+                gg.copy_property(tpos, pos)
+
             update_cts(widget, gg, picked, pos, vprops, eprops)
 
             if widget.vertex_matrix is not None:
                 widget.vertex_matrix.update()
             widget.picked = None
             widget.selected.fa = False
+
+            widget.fit_to_window()
+            widget.regenerate_surface(reset=True)
             widget.queue_draw()
 
-    if args.get("edge_color", None) is not None:
-        egradient = None
-        del args["edge_color"]
-    if args.get("edge_gradient", None) is not None:
-        del args["edge_gradient"]
-    if args.get("edge_pen_width", None) is not None:
-        del args["edge_pen_width"]
-    if args.get("edge_text", None) is not None:
-        del args["edge_text"]
-    if args.get("vertex_color", None) is not None:
-        del args["vertex_color"]
-    if args.get("vertex_fill_color", None) is not None:
-        del args["vertex_fill_color"]
-    if args.get("vertex_text", None) is not None:
-        del args["vertex_text"]
+    pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=vorder,
+                     layout_callback=update_cts, key_press_callback=draw_branch,
+                     **kwargs)
 
-
-    kwargs = dict(pos=pos,
-                  vorder=vorder,
-                  vertex_size=vsize,
-                  vertex_fill_color=vertex_color,
-                  vertex_color=vertex_border_color,
-                  #vertex_pen_width = 2,
-                  #vertex_text_rotation=tangle,
-                  edge_control_points=cts,
-                  edge_gradient=egradient,
-                  edge_pen_width=epw,
-                  vertex_shape=vshape,
-                  vertex_text=vertex_text,
-                  vertex_pie_fractions=vertex_pie_frac,
-                  vertex_pie_colors=vertex_pie_colors,
-                  edge_color=ecolor,
-                  edge_end_marker=em,
-                  edge_marker_size=ems,
-                  edge_text=elabels,
-                  layout_callback=update_cts,
-                  key_press_callback=draw_branch,
-                  display_props=[tb])
-
-    kwargs = dict(((k,v) for k,v in kwargs.items() if v is not None))
-
-    kwargs.update(args)
-
-    pos = graph_draw(u, **kwargs)
     if isinstance(pos, PropertyMap):
         pos = g.own_property(pos)
     else:

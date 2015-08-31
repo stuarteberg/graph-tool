@@ -761,7 +761,7 @@ class PropertyMap(object):
             return numpy.array(self.fa)
         except ValueError:
             p = ungroup_vector_property(self, pos)
-            return numpy.array([x.a for x in p])
+            return numpy.array([x.fa for x in p])
 
     def set_2d_array(self, a, pos=None):
         r"""Set the entries of the vector-valued property map from a

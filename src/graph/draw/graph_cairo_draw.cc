@@ -1040,7 +1040,7 @@ public:
             _attrs.template get<vector<double> >(EDGE_CONTROL_POINTS);
         vector<double> gradient =
             _attrs.template get<vector<double> >(EDGE_GRADIENT);
-        if (gradient.size() == 1)
+        if (gradient.size() == 2)
         {
             auto e_color = _attrs.template get<color_t>(EDGE_COLOR);
             auto s_color = _s._attrs.template get<color_t>(VERTEX_FILL_COLOR);
@@ -1109,10 +1109,8 @@ public:
 
 
         color_t color = _attrs.template get<color_t>(EDGE_COLOR);
-        double pw;
-        pw = _attrs.template get<double>(EDGE_PENWIDTH);
+        double pw = _attrs.template get<double>(EDGE_PENWIDTH);
         pw = get_user_dist(cr, pw);
-        cr.set_line_width(pw);
 
         pos_t pos_begin_marker = pos_begin;
         pos_t pos_end_marker = pos_end;
@@ -1155,6 +1153,7 @@ public:
             double sx1, sy1, sx2, sy2;
             draw_edge_markers(pos_begin_marker, pos_begin_d, pos_end_marker,
                               pos_end_d, controls, marker_size, cr);
+            cr.set_line_width(pw);
             draw_edge_line(pos_begin, pos_end, controls, cr);
             cr.get_stroke_extents(sx1, sy1, sx2, sy2);
             cr.begin_new_path();
@@ -1282,6 +1281,7 @@ public:
             }
 
             draw_edge_line(pos_begin, pos_end, controls, cr);
+            cr.set_line_width(pw);
             cr.stroke();
             cr.reset_clip();
             draw_edge_markers(pos_begin_marker, pos_begin_d, pos_end_marker,
@@ -1531,14 +1531,17 @@ void draw_vertices(Graph&, pair<VertexIterator, VertexIterator> v_range,
                    Cairo::Context& cr)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+
+    if (offset > count)
+    {
+        size_t dist = std::distance(v_range.first, v_range.second);
+        size_t skip = std::min(offset - count, dist);
+        std::advance(v_range.first, skip);
+        count += skip;
+    }
+
     for(VertexIterator v = v_range.first; v != v_range.second; ++v)
     {
-        if (count < offset)
-        {
-            count++;
-            continue;
-        }
-
         pos_t pos;
         if (pos_map[*v].size() >= 2)
         {
@@ -1562,14 +1565,23 @@ void draw_edges(Graph& g, pair<EdgeIterator, EdgeIterator> e_range,
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-    for(EdgeIterator e = e_range.first; e != e_range.second; ++e)
+    if (offset > count)
     {
-        if (count < offset)
+        size_t E = num_edges(g);
+        if (offset - count >= E)
         {
-            count++;
-            continue;
+            count += E;
+            return;
         }
 
+        size_t dist = std::distance(e_range.first, e_range.second);
+        size_t skip = std::min(offset - count, dist);
+        std::advance(e_range.first, skip);
+        count += skip;
+    }
+
+    for(EdgeIterator e = e_range.first; e != e_range.second; ++e)
+    {
         vertex_t s, t;
         s = source(*e, g);
         t = target(*e, g);
