@@ -217,22 +217,25 @@ def _python_type(type_name):
     return object
 
 def _gt_type(obj):
-    t = type(obj)
-    if t in (numpy.int16, numpy.uint16, numpy.int8, numpy.uint8):
+    if isinstance(obj, numpy.dtype):
+        t = obj.type
+    else:
+        t = type(obj)
+    if issubclass(t, (numpy.int16, numpy.uint16, numpy.int8, numpy.uint8)):
         return "int16_t"
-    if t in (int, numpy.int32, numpy.uint32):
+    if issubclass(t, (int, numpy.int32, numpy.uint32)):
         return "int32_t"
-    if t in (numpy.longlong, numpy.uint64, numpy.int64):
+    if issubclass(t, (numpy.longlong, numpy.uint64, numpy.int64)):
         return "int64_t"
-    if t in (float, numpy.float, numpy.float16, numpy.float32, numpy.float64):
+    if issubclass(t, (float, numpy.float, numpy.float16, numpy.float32, numpy.float64)):
         return "double"
-    if t is numpy.float128:
+    if issubclass(t, numpy.float128):
         return "long double"
-    if t is str:
+    if issubclass(t, str):
         return "string"
-    if t is bool:
+    if issubclass(t, bool):
         return "bool"
-    if issubclass(t, list) or issubclass(t, numpy.ndarray):
+    if issubclass(t, (list, numpy.ndarray)):
         return "vector<%s>" % _gt_type(obj[0])
     return "object"
 
