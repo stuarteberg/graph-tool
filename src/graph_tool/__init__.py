@@ -799,6 +799,17 @@ class PropertyMap(object):
         """Return True if the property is writable."""
         return self.__map.is_writable()
 
+
+    def set_value(self, val):
+        """Sets all values in the property map to ``val``."""
+        g = self.get_graph()
+        if self.key_type() == "v":
+            libcore.set_vertex_property(g._Graph__graph, self.__map.get_map(), val)
+        elif self.key_type() == "e":
+            libcore.set_edge_property(g._Graph__graph, self.__map.get_map(), val)
+        else:
+            self[g] = val
+
     def __call__(self, a):
         p = self.copy()
         p.fa = a
@@ -2084,26 +2095,30 @@ class Graph(object):
             return self.new_graph_property(value_type, vals)
         raise ValueError("unknown key type: " + key_type)
 
-    def new_vertex_property(self, value_type, vals=None):
-        """Create a new (uninitialized) vertex property map of type ``value_type``,
-        and return it. If provided, the values will be initialized by ``vals``,
-        which should be either a sequence or a single value."""
+    def new_vertex_property(self, value_type, vals=None, val=None):
+        """Create a new vertex property map of type ``value_type``, and return it. If
+        provided, the values will be initialized by ``vals``, which should be
+        sequence or by ``val`` which should be  a single value.
+        """
         prop = PropertyMap(new_vertex_property(_type_alias(value_type),
                                                self.__graph.GetVertexIndex(),
                                                libcore.any()),
                            self, "v")
         if vals is not None:
             try:
-                prop.a = vals
+                prop.fa = vals
             except ValueError:
                 for v, x in zip(self.vertices(), vals):
                     prop[v] = x
+        elif val is not None:
+            prop.set_value(val)
         return prop
 
-    def new_edge_property(self, value_type, vals=None):
-        """Create a new (uninitialized) edge property map of type
-        ``value_type``, and return it. If provided, the values will be
-        initialized by ``vals``, which should be a sequence or a single value."""
+    def new_edge_property(self, value_type, vals=None, val=None):
+        """Create a new edge property map of type ``value_type``, and return it. If
+        provided, the values will be initialized by ``vals``, which should be
+        sequence or by ``val`` which should be a single value.
+        """
         prop = PropertyMap(new_edge_property(_type_alias(value_type),
                                              self.__graph.GetEdgeIndex(),
                                              libcore.any()),
@@ -2114,6 +2129,8 @@ class Graph(object):
             except ValueError:
                 for e, x in zip(self.edges(), vals):
                     prop[e] = x
+        elif val is not None:
+            prop.set_value(val)
         return prop
 
     def new_graph_property(self, value_type, val=None):
@@ -2131,11 +2148,12 @@ class Graph(object):
     @_require("src", PropertyMap)
     @_require("tgt", (PropertyMap, type(None)))
     def copy_property(self, src, tgt=None, value_type=None, g=None):
-        """Copy contents of ``src`` property to ``tgt`` property. If ``tgt`` is
-        None, then a new property map of the same type (or with the type given
-        by the optional ``value_type`` parameter) is created, and returned. The
-        optional parameter g specifies the (identical) source graph to copy
-        properties from (defaults to self).
+        """Copy contents of ``src`` property to ``tgt`` property. If ``tgt`` is None,
+        then a new property map of the same type (or with the type given by the
+        optional ``value_type`` parameter) is created, and returned. The
+        optional parameter ``g`` specifies the source graph to copy properties
+        from (defaults to self).
+
         """
         if tgt is None:
             tgt = self.new_property(src.key_type(),
@@ -2159,13 +2177,29 @@ class Graph(object):
             g.set_edge_filter(None)
             g.set_vertex_filter(None)
             if src.key_type() == "v":
-                self.__graph.CopyVertexProperty(g.__graph,
-                                                _prop("v", g, src),
-                                                _prop("v", self, tgt))
+                if g.num_vertices() > self.num_vertices():
+                    raise ValueError("graphs with incompatible sizes (%d, %d)" %
+                                     (g.num_vertices(), self.num_vertices()))
+                try:
+                    self.__graph.CopyVertexProperty(g.__graph,
+                                                    _prop("v", g, src),
+                                                    _prop("v", self, tgt))
+                except ValueError:
+                    raise ValueError("property maps with the following types are"
+                                     " not convertible: %s, %s" %
+                                     (src.value_type(), tgt.value_type()))
             elif src.key_type() == "e":
-                self.__graph.CopyEdgeProperty(g.__graph,
-                                              _prop("e", g, src),
-                                              _prop("e", self, tgt))
+                if g.num_edges() > self.num_edges():
+                    raise ValueError("graphs with incompatible sizes (%d, %d)" %
+                                     (g.num_edges(), self.num_edges()))
+                try:
+                    self.__graph.CopyEdgeProperty(g.__graph,
+                                                  _prop("e", g, src),
+                                                  _prop("e", self, tgt))
+                except ValueError:
+                    raise ValueError("property maps with the following types are"
+                                     " not convertible: %s, %s" %
+                                     (src.value_type(), tgt.value_type()))
             else:
                 tgt[self] = src[g]
         finally:

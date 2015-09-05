@@ -176,36 +176,37 @@ struct do_infect_vertex_property
             }
         }
 
-        unchecked_vector_property_map<uint8_t, IndexMap>
+        unchecked_vector_property_map<bool, IndexMap>
             marked(index, num_vertices(g));
+
+        PropertyMap temp(index, num_vertices(g));
 
         int i, N = num_vertices(g);
         #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
+            auto v = vertex(i, g);
             if (v == graph_traits<Graph>::null_vertex())
-                continue;
-            bool skip;
-            {
-                #pragma omp critical
-                skip = marked[v];
-            }
-            if (skip)
                 continue;
             if (!all && vals.find(prop[v]) == vals.end())
                 continue;
-            typename graph_traits<Graph>::adjacency_iterator a, a_end;
-            for (tie(a, a_end) = adjacent_vertices(v, g); a != a_end; ++a)
+            for (auto a : adjacent_vertices_range(v, g))
             {
-                if (prop[*a] == prop[v])
+                if (prop[a] == prop[v])
                     continue;
-                {
-                    #pragma omp critical
-                    marked[*a] = true;
-                }
-                prop[*a] = prop[v];
+                marked[a] = true;
+                temp[a] = prop[v];
             }
+        }
+
+        #pragma omp parallel for default(shared) private(i)
+        for (i = 0; i < N; ++i)
+        {
+            auto v = vertex(i, g);
+            if (v == graph_traits<Graph>::null_vertex())
+                continue;
+            if (marked[v])
+                prop[v] = temp[v];
         }
     }
 };
@@ -331,4 +332,47 @@ void perfect_ehash(GraphInterface& gi, boost::any prop, boost::any hprop,
          std::placeholders::_2, std::placeholders::_3, std::ref(dict)),
          edge_properties(), writable_edge_scalar_properties())
         (prop, hprop);
+}
+
+
+struct do_set_vertex_property
+{
+    template <class Graph, class PropertyMap>
+    void operator()(Graph& g, PropertyMap prop, boost::python::object oval) const
+    {
+        typedef typename property_traits<PropertyMap>::value_type val_t;
+        val_t val = boost::python::extract<val_t>(oval);
+
+        for (auto v : vertices_range(g))
+            prop[v] = val;
+    }
+};
+
+void set_vertex_property(GraphInterface& gi, boost::any prop,
+                         boost::python::object val)
+{
+    run_action<>()(gi, std::bind(do_set_vertex_property(), std::placeholders::_1,
+                                 std::placeholders::_2, val),
+                   writable_vertex_properties())(prop);
+}
+
+struct do_set_edge_property
+{
+    template <class Graph, class PropertyMap>
+    void operator()(Graph& g, PropertyMap prop, boost::python::object oval) const
+    {
+        typedef typename property_traits<PropertyMap>::value_type val_t;
+        val_t val = boost::python::extract<val_t>(oval);
+
+        for (auto e : edges_range(g))
+            prop[e] = val;
+    }
+};
+
+void set_edge_property(GraphInterface& gi, boost::any prop,
+                       boost::python::object val)
+{
+    run_action<>()(gi, std::bind(do_set_edge_property(), std::placeholders::_1,
+                                 std::placeholders::_2, val),
+                   writable_edge_properties())(prop);
 }

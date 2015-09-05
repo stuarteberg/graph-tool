@@ -400,6 +400,10 @@ void perfect_ehash(GraphInterface& gi, boost::any prop, boost::any hprop,
                    boost::any& dict);
 void perfect_vhash(GraphInterface& gi, boost::any prop, boost::any hprop,
                    boost::any& dict);
+void set_vertex_property(GraphInterface& gi, boost::any prop,
+                         boost::python::object val);
+void set_edge_property(GraphInterface& gi, boost::any prop,
+                       boost::python::object val);
 
 
 void export_python_interface();
@@ -527,6 +531,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     def("mark_edges", &mark_edges);
     def("perfect_ehash", &perfect_ehash);
     def("perfect_vhash", &perfect_vhash);
+    def("set_vertex_property", &set_vertex_property);
+    def("set_edge_property", &set_edge_property);
 
     class_<LibInfo>("mod_info")
         .add_property("name", &LibInfo::GetName)
