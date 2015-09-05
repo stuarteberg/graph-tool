@@ -30,14 +30,9 @@ namespace std
     {
         size_t operator()(const boost::python::object& o) const
         {
-            return boost::python::extract<size_t>(o.attr("__hash__")());
+            return std::hash<int64_t>()(boost::python::extract<int64_t>(o.attr("__hash__")()));
         }
     };
-}
-
-namespace boost
-{
-    size_t hash_value(const boost::python::object& o);
 }
 
 #include <boost/graph/graph_traits.hpp>

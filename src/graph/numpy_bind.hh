@@ -44,6 +44,7 @@ using namespace std;
 
 typedef boost::mpl::map<
     boost::mpl::pair<bool, boost::mpl::int_<NPY_BOOL> >,
+    boost::mpl::pair<char, boost::mpl::int_<NPY_CHAR> >,
     boost::mpl::pair<int8_t, boost::mpl::int_<NPY_INT8> >,
     boost::mpl::pair<uint8_t, boost::mpl::int_<NPY_UINT8> >,
     boost::mpl::pair<int16_t, boost::mpl::int_<NPY_INT16> >,

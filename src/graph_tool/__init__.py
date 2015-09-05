@@ -216,19 +216,18 @@ def _python_type(type_name):
         return str
     return object
 
-
 def _gt_type(obj):
     t = type(obj)
-    if t is numpy.longlong or t is numpy.uint64:
-        return "long long"
-    if issubclass(t, numpy.int16):
-        return "short"
-    if t is int or issubclass(t, numpy.int):
-        return "int"
+    if t in (numpy.int16, numpy.uint16, numpy.int8, numpy.uint8):
+        return "int16_t"
+    if t in (int, numpy.int32, numpy.uint32):
+        return "int32_t"
+    if t in (numpy.longlong, numpy.uint64, numpy.int64):
+        return "int64_t"
+    if t in (float, numpy.float, numpy.float16, numpy.float32, numpy.float64):
+        return "double"
     if t is numpy.float128:
         return "long double"
-    if t is float or issubclass(t, numpy.float):
-        return "double"
     if t is str:
         return "string"
     if t is bool:
@@ -1872,16 +1871,38 @@ class Graph(object):
         self.__check_perms("del_edge")
         return libcore.remove_edge(self.__graph, edge)
 
-    def add_edge_list(self, edge_list):
+    def add_edge_list(self, edge_list, hashed=False, string_vals=False):
         """Add a list of edges to the graph, given by ``edge_list``, which can
         be a list of ``(source, target)`` pairs where both ``source`` and
         ``target`` are vertex indexes, or a :class:`~numpy.ndarray` of shape
         ``(E,2)``, where ``E`` is the number of edges, and each line specifies a 
         ``(source, target)`` pair. If the list references vertices which do not
-        exist in the graph, they will be created."""
+        exist in the graph, they will be created.
+
+        Optionally, if ``hashed == True``, the vertex values in the edge list
+        are not assumed to correspond to vertex indices directly. In this case
+        they will be mapped to vertex indices in according to the order in which
+        they are encountered. In this case, a vertex property map with the
+        vertex values is returned. If ``string_vals == True``, the algorithm
+        assumes that the vertex values are strings. Otherwise, they will be
+        assumed to be numeric if ``edge_list`` is a :class:`~numpy.ndarray`, or
+        arbitrary python objects if it is not.
+        """
         self.__check_perms("add_edge")
-        edges = numpy.asarray(edge_list)
-        libcore.add_edge_list(self.__graph, edges)
+        if not hashed:
+            edges = numpy.asarray(edge_list)
+            libcore.add_edge_list(self.__graph, edges)
+        else:
+            if isinstance(edge_list, numpy.ndarray):
+                vprop = self.new_vertex_property(_gt_type(edge_list.dtype))
+            elif string_vals:
+                vprop = self.new_vertex_property("string")
+            else:
+                vprop = self.new_vertex_property("object")
+            libcore.add_edge_list_hashed(self.__graph, edge_list,
+                                         _prop("v", self, vprop),
+                                         string_vals)
+            return vprop
 
     def set_fast_edge_removal(self, fast=True):
         r"""If ``fast == True`` the fast :math:`O(1)` removal of edges will be
