@@ -239,16 +239,20 @@ def _gt_type(obj):
         return "vector<%s>" % _gt_type(obj[0])
     return "object"
 
-
-def _convert(prop, val):
+def _converter(val_type):
     # attempt to convert to a compatible python type. This is useful,
     # for instance, when dealing with numpy types.
-    vtype = _python_type(prop.value_type())
+    vtype = _python_type(val_type)
     if type(vtype) is tuple:
-        return [vtype[1](x) for x in val]
-    if vtype is object:
-        return val
-    return vtype(val)
+        def convert(val):
+            return [vtype[1](x) for x in val]
+    elif vtype is object:
+        def convert(val):
+            return val
+    else:
+        def convert(val):
+            return vtype(val)
+    return convert
 
 
 def show_config():
@@ -421,6 +425,7 @@ class PropertyMap(object):
         except NameError:
             pass  # ignore if GraphView is yet undefined
         self.__key_type = key_type
+        self.__convert = _converter(self.value_type())
         self.__register_map()
 
     def __key_trans(self, key):
@@ -482,14 +487,14 @@ class PropertyMap(object):
             try:
                 self.__map[key] = v
             except TypeError:
-                self.__map[key] = _convert(self, v)
+                self.__map[key] = self.__convert(v)
         except ArgumentError:
             try:
                 key = self.__key_convert(key)
                 try:
                     self.__map[key] = v
                 except TypeError:
-                    self.__map[key] = _convert(self, v)
+                    self.__map[key] = self.__convert(v)
             except ArgumentError:
                 if self.key_type() == "e":
                     kt = "Edge"
@@ -829,11 +834,11 @@ class PropertyMap(object):
         else:
             u = GraphView(g, skip_vfilt=True, skip_efilt=True)
             if key_type == "v":
-                vals = [_convert(self, self[v]) for v in u.vertices()]
+                vals = [self.__convert(self[v]) for v in u.vertices()]
             elif key_type == "e":
-                vals = [_convert(self, self[e]) for e in u.edges()]
+                vals = [self.__convert(self[e]) for e in u.edges()]
             else:
-                vals = _convert(self, self[g])
+                vals = self.__convert(self[g])
 
         state = dict(g=g, value_type=value_type,
                      key_type=key_type, vals=vals,
@@ -1885,9 +1890,10 @@ class Graph(object):
         self.__check_perms("del_edge")
         return libcore.remove_edge(self.__graph, edge)
 
-    def add_edge_list(self, edge_list, hashed=False, string_vals=False):
+    def add_edge_list(self, edge_list, hashed=False, string_vals=False,
+                      eprops=None):
         """Add a list of edges to the graph, given by ``edge_list``, which can
-        be a list of ``(source, target)`` pairs where both ``source`` and
+        be an iterator of ``(source, target)`` pairs where both ``source`` and
         ``target`` are vertex indexes, or a :class:`~numpy.ndarray` of shape
         ``(E,2)``, where ``E`` is the number of edges, and each line specifies a 
         ``(source, target)`` pair. If the list references vertices which do not
@@ -1895,17 +1901,33 @@ class Graph(object):
 
         Optionally, if ``hashed == True``, the vertex values in the edge list
         are not assumed to correspond to vertex indices directly. In this case
-        they will be mapped to vertex indices in according to the order in which
+        they will be mapped to vertex indices according to the order in which
         they are encountered. In this case, a vertex property map with the
         vertex values is returned. If ``string_vals == True``, the algorithm
         assumes that the vertex values are strings. Otherwise, they will be
         assumed to be numeric if ``edge_list`` is a :class:`~numpy.ndarray`, or
         arbitrary python objects if it is not.
+
+        If given, `eprops` specifies edge property maps that will be filled with
+        the remaining values at each row, if there are more than two.
         """
         self.__check_perms("add_edge")
+        if eprops is None:
+            eprops = ()
+        else:
+            convert = [_converter(x.value_type()) for x in eprops]
+            eprops = [_prop("e", self, x) for x in eprops]
+            if not isinstance(edge_list, numpy.ndarray):
+                def wrap(elist):
+                    for row in elist:
+                        yield (val if i < 2 else convert[i - 2](val)
+                               for (i, val) in enumerate(row))
+                edge_list = wrap(edge_list)
         if not hashed:
-            edges = numpy.asarray(edge_list)
-            libcore.add_edge_list(self.__graph, edges)
+            if isinstance(edge_list, numpy.ndarray):
+                libcore.add_edge_list(self.__graph, edge_list, eprops)
+            else:
+                libcore.add_edge_list_iter(self.__graph, edge_list, eprops)
         else:
             if isinstance(edge_list, numpy.ndarray):
                 vprop = self.new_vertex_property(_gt_type(edge_list.dtype))
@@ -1915,7 +1937,7 @@ class Graph(object):
                 vprop = self.new_vertex_property("object")
             libcore.add_edge_list_hashed(self.__graph, edge_list,
                                          _prop("v", self, vprop),
-                                         string_vals)
+                                         string_vals, eprops)
             return vprop
 
     def set_fast_edge_removal(self, fast=True):

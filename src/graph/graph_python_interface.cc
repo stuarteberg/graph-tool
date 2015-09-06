@@ -387,17 +387,21 @@ template <class ValueList>
 struct add_edge_list
 {
     template <class Graph>
-    void operator()(Graph& g, python::object aedge_list, bool& found) const
+    void operator()(Graph& g, python::object aedge_list,
+                    python::object& eprops, bool& found) const
     {
         boost::mpl::for_each<ValueList>(std::bind(dispatch(), std::ref(g),
                                                   std::ref(aedge_list),
-                                                  std::ref(found), placeholders::_1));
+                                                  std::ref(eprops),
+                                                  std::ref(found),
+                                                  placeholders::_1));
     }
 
     struct dispatch
     {
         template <class Graph, class Value>
-        void operator()(Graph& g, python::object& aedge_list, bool& found, Value) const
+        void operator()(Graph& g, python::object& aedge_list,
+                        python::object& oeprops, bool& found, Value) const
         {
             if (found)
                 return;
@@ -408,13 +412,31 @@ struct add_edge_list
                 if (edge_list.shape()[1] < 2)
                     throw GraphException("Second dimension in edge list must be of size (at least) two");
 
+                typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+                vector<DynamicPropertyMapWrap<Value, edge_t>> eprops;
+                python::stl_input_iterator<boost::any> iter(oeprops), end;
+                for (; iter != end; ++iter)
+                    eprops.emplace_back(*iter, writable_edge_properties());
+
                 for (const auto& e : edge_list)
                 {
                     size_t s = e[0];
                     size_t t = e[1];
                     while (s >= num_vertices(g) || t >= num_vertices(g))
                         add_vertex(g);
-                    add_edge(vertex(s, g), vertex(t, g), g);
+                    auto ne = add_edge(vertex(s, g), vertex(t, g), g).first;
+                    for (size_t i = 0; i < e.size() - 2; ++i)
+                    {
+                        try
+                        {
+                            put(eprops[i], ne, e[i + 2]);
+                        }
+                        catch(bad_lexical_cast&)
+                        {
+                            throw ValueException("Invalid edge property value: " +
+                                                 lexical_cast<string>(e[i + 2]));
+                        }
+                    }
                 }
                 found = true;
             }
@@ -423,13 +445,15 @@ struct add_edge_list
     };
 };
 
-void do_add_edge_list(GraphInterface& gi, python::object aedge_list)
+void do_add_edge_list(GraphInterface& gi, python::object aedge_list,
+                      python::object eprops)
 {
     typedef mpl::vector<bool, char, uint8_t, uint16_t, uint32_t, uint64_t,
                         int8_t, int16_t, int32_t, int64_t, uint64_t, double,
                         long double> vals_t;
     bool found = false;
-    run_action<>()(gi, std::bind(add_edge_list<vals_t>(), placeholders::_1, aedge_list,
+    run_action<>()(gi, std::bind(add_edge_list<vals_t>(), placeholders::_1,
+                                 aedge_list, std::ref(eprops),
                                  std::ref(found)))();
     if (!found)
         throw GraphException("Invalid type for edge list; must be two-dimensional with a scalar type");
@@ -440,17 +464,18 @@ struct add_edge_list_hash
 {
     template <class Graph, class VProp>
     void operator()(Graph& g, python::object aedge_list, VProp vmap,
-                    bool& found, bool use_str) const
+                    bool& found, bool use_str, python::object& eprops) const
     {
         boost::mpl::for_each<ValueList>(std::bind(dispatch(), std::ref(g),
                                                   std::ref(aedge_list), std::ref(vmap),
-                                                  std::ref(found), placeholders::_1));
+                                                  std::ref(found), std::ref(eprops),
+                                                  placeholders::_1));
         if (!found)
         {
             if (use_str)
-                dispatch()(g, aedge_list, vmap, found, std::string());
+                dispatch()(g, aedge_list, vmap, found, eprops, std::string());
             else
-                dispatch()(g, aedge_list, vmap, found, python::object());
+                dispatch()(g, aedge_list, vmap, found, eprops, python::object());
         }
     }
 
@@ -458,7 +483,7 @@ struct add_edge_list_hash
     {
         template <class Graph, class VProp, class Value>
         void operator()(Graph& g, python::object& aedge_list, VProp& vmap,
-                        bool& found, Value) const
+                        bool& found, python::object& oeprops, Value) const
         {
             if (found)
                 return;
@@ -470,6 +495,11 @@ struct add_edge_list_hash
                 if (edge_list.shape()[1] < 2)
                     throw GraphException("Second dimension in edge list must be of size (at least) two");
 
+                typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+                vector<DynamicPropertyMapWrap<Value, edge_t>> eprops;
+                python::stl_input_iterator<boost::any> iter(oeprops), end;
+                for (; iter != end; ++iter)
+                    eprops.emplace_back(*iter, writable_edge_properties());
 
                 auto get_vertex = [&] (const Value& r) -> size_t
                     {
@@ -488,7 +518,19 @@ struct add_edge_list_hash
                 {
                     size_t s = get_vertex(e[0]);
                     size_t t = get_vertex(e[1]);
-                    add_edge(vertex(s, g), vertex(t, g), g);
+                    auto ne = add_edge(vertex(s, g), vertex(t, g), g).first;
+                    for (size_t i = 0; i < e.size() - 2; ++i)
+                    {
+                        try
+                        {
+                            put(eprops[i], ne, e[i + 2]);
+                        }
+                        catch(bad_lexical_cast&)
+                        {
+                            throw ValueException("Invalid edge property value: " +
+                                                 lexical_cast<string>(e[i + 2]));
+                        }
+                    }
                 }
                 found = true;
             }
@@ -497,13 +539,19 @@ struct add_edge_list_hash
 
         template <class Graph, class VProp>
         void operator()(Graph& g, python::object& edge_list, VProp& vmap,
-                        bool& found, std::string) const
+                        bool& found, python::object& oeprops, std::string) const
         {
             if (found)
                 return;
             try
             {
                 unordered_map<std::string, size_t> vertices;
+
+                typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+                vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
+                python::stl_input_iterator<boost::any> piter(oeprops), pend;
+                for (; piter != pend; ++piter)
+                    eprops.emplace_back(*piter, writable_edge_properties());
 
                 auto get_vertex = [&] (const std::string& r) -> size_t
                     {
@@ -521,10 +569,46 @@ struct add_edge_list_hash
                 python::stl_input_iterator<python::object> iter(edge_list), end;
                 for (; iter != end; ++iter)
                 {
-                    const auto& e = *iter;
-                    size_t s = get_vertex(python::extract<std::string>(e[0]));
-                    size_t t = get_vertex(python::extract<std::string>(e[1]));
-                    add_edge(vertex(s, g), vertex(t, g), g);
+                    const auto& row = *iter;
+
+                    python::stl_input_iterator<python::object> eiter(row), eend;
+
+                    size_t s = 0;
+                    size_t t = 0;
+
+                    typename graph_traits<Graph>::edge_descriptor e;
+                    size_t i = 0;
+                    for(; eiter != eend; ++eiter)
+                    {
+                        if (i >= eprops.size() + 2)
+                            break;
+                        const auto& val = *eiter;
+                        switch (i)
+                        {
+                        case 0:
+                            s = get_vertex(python::extract<std::string>(val));
+                            while (s >= num_vertices(g))
+                                add_vertex(g);
+                            break;
+                        case 1:
+                            t = get_vertex(python::extract<std::string>(val));
+                            while (t >= num_vertices(g))
+                                add_vertex(g);
+                            e = add_edge(vertex(s, g), vertex(t, g), g).first;
+                            break;
+                        default:
+                            try
+                            {
+                                put(eprops[i - 2], e, val);
+                            }
+                            catch(bad_lexical_cast&)
+                            {
+                                throw ValueException("Invalid edge property value: " +
+                                                     python::extract<string>(python::str(val))());
+                            }
+                        }
+                        i++;
+                    }
                 }
                 found = true;
             }
@@ -533,13 +617,19 @@ struct add_edge_list_hash
 
         template <class Graph, class VProp>
         void operator()(Graph& g, python::object& edge_list, VProp& vmap,
-                        bool& found, python::object) const
+                        bool& found, python::object& oeprops, python::object) const
         {
             if (found)
                 return;
             try
             {
                 unordered_map<python::object, size_t> vertices;
+
+                typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+                vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
+                python::stl_input_iterator<boost::any> piter(oeprops), pend;
+                for (; piter != pend; ++piter)
+                    eprops.emplace_back(*piter, writable_edge_properties());
 
                 auto get_vertex = [&] (const python::object& r) -> size_t
                     {
@@ -557,10 +647,46 @@ struct add_edge_list_hash
                 python::stl_input_iterator<python::object> iter(edge_list), end;
                 for (; iter != end; ++iter)
                 {
-                    const auto& e = *iter;
-                    size_t s = get_vertex(e[0]);
-                    size_t t = get_vertex(e[1]);
-                    add_edge(vertex(s, g), vertex(t, g), g);
+                    const auto& row = *iter;
+
+                    python::stl_input_iterator<python::object> eiter(row), eend;
+
+                    size_t s = 0;
+                    size_t t = 0;
+
+                    typename graph_traits<Graph>::edge_descriptor e;
+                    size_t i = 0;
+                    for(; eiter != eend; ++eiter)
+                    {
+                        if (i >= eprops.size() + 2)
+                            break;
+                        const auto& val = *eiter;
+                        switch (i)
+                        {
+                        case 0:
+                            s = get_vertex(val);
+                            while (s >= num_vertices(g))
+                                add_vertex(g);
+                            break;
+                        case 1:
+                            t = get_vertex(val);
+                            while (t >= num_vertices(g))
+                                add_vertex(g);
+                            e = add_edge(vertex(s, g), vertex(t, g), g).first;
+                            break;
+                        default:
+                            try
+                            {
+                                put(eprops[i - 2], e, val);
+                            }
+                            catch(bad_lexical_cast&)
+                            {
+                                throw ValueException("Invalid edge property value: " +
+                                                     python::extract<string>(python::str(val))());
+                            }
+                        }
+                        i++;
+                    }
                 }
                 found = true;
             }
@@ -570,7 +696,8 @@ struct add_edge_list_hash
 };
 
 void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
-                             boost::any& vertex_map, bool is_str)
+                             boost::any& vertex_map, bool is_str,
+                             python::object eprops)
 {
     typedef mpl::vector<bool, char, uint8_t, uint16_t, uint32_t, uint64_t,
                         int8_t, int16_t, int32_t, int64_t, uint64_t, double,
@@ -579,10 +706,75 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(add_edge_list_hash<vals_t>(), placeholders::_1,
                        aedge_list, placeholders::_2, std::ref(found),
-                       is_str),
+                       is_str, std::ref(eprops)),
          writable_vertex_properties())(vertex_map);
-    if (!found)
-        throw GraphException("Invalid type for edge list; must be two-dimensional with a scalar or string type");
+}
+
+
+struct add_edge_list_iter
+{
+    template <class Graph>
+    void operator()(Graph& g, python::object& edge_list,
+                    python::object& oeprops) const
+    {
+        typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+        vector<DynamicPropertyMapWrap<python::object, edge_t>> eprops;
+        python::stl_input_iterator<boost::any> piter(oeprops), pend;
+        for (; piter != pend; ++piter)
+            eprops.emplace_back(*piter, writable_edge_properties());
+
+        python::stl_input_iterator<python::object> iter(edge_list), end;
+        for (; iter != end; ++iter)
+        {
+            const auto& row = *iter;
+            python::stl_input_iterator<python::object> eiter(row), eend;
+
+            size_t s = 0;
+            size_t t = 0;
+
+            typename graph_traits<Graph>::edge_descriptor e;
+            size_t i = 0;
+            for(; eiter != eend; ++eiter)
+            {
+                if (i >= eprops.size() + 2)
+                    break;
+                const auto& val = *eiter;
+                switch (i)
+                {
+                case 0:
+                    s = python::extract<size_t>(val);
+                    while (s >= num_vertices(g))
+                        add_vertex(g);
+                    break;
+                case 1:
+                    t = python::extract<size_t>(val);
+                    while (t >= num_vertices(g))
+                        add_vertex(g);
+                    e = add_edge(vertex(s, g), vertex(t, g), g).first;
+                    break;
+                default:
+                    try
+                    {
+                        put(eprops[i - 2], e, val);
+                    }
+                    catch(bad_lexical_cast&)
+                    {
+                        throw ValueException("Invalid edge property value: " +
+                                             python::extract<string>(python::str(val))());
+                    }
+                }
+                i++;
+            }
+        }
+    }
+};
+
+void do_add_edge_list_iter(GraphInterface& gi, python::object edge_list,
+                           python::object eprops)
+{
+    run_action<>()
+        (gi, std::bind(add_edge_list_iter(), placeholders::_1,
+                       std::ref(edge_list), std::ref(eprops)))();
 }
 
 
@@ -640,6 +832,7 @@ void export_python_interface()
     def("remove_edge", graph_tool::remove_edge);
     def("add_edge_list", graph_tool::do_add_edge_list);
     def("add_edge_list_hashed", graph_tool::do_add_edge_list_hashed);
+    def("add_edge_list_iter", graph_tool::do_add_edge_list_iter);
     def("get_edge", get_edge);
 
     def("get_vertex_index", get_vertex_index);

@@ -429,9 +429,9 @@ private:
 
         virtual void put(const Key& k, const Value& val)
         {
-            return  put_dispatch(_pmap, k, _c_put(val),
-                                 is_convertible<typename boost::property_traits<PropertyMap>::category,
-                                                boost::writable_property_map_tag>());
+            put_dispatch(_pmap, k, _c_put(val),
+                         is_convertible<typename boost::property_traits<PropertyMap>::category,
+                         boost::writable_property_map_tag>());
         }
 
         template <class PMap>
