@@ -34,6 +34,7 @@
 
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/python/stl_iterator.hpp>
 #include "bytesobject.h"
 
 using namespace std;
@@ -73,27 +74,19 @@ struct vector_from_list
 
     static void* convertible(PyObject* obj_ptr)
     {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
-        size_t N = len(o);
-        for (size_t i = 0; i < N; ++i)
-        {
-            extract<ValueType> elem(o[i]);
-            if (!elem.check())
-                return 0;
-        }
+        // can't verify without potentially exhausting an iterator
         return obj_ptr;
     }
 
     static void construct(PyObject* obj_ptr,
                           boost::python::converter::rvalue_from_python_stage1_data* data)
     {
-        handle<> x(borrowed(obj_ptr));
-        object o(x);
+        python::handle<> x(python::borrowed(obj_ptr));
+        python::object o(x);
         vector<ValueType> value;
-        size_t N = len(o);
-        for (size_t i = 0; i < N; ++i)
-            value.push_back(extract<ValueType>(o[i])());
+        python::stl_input_iterator<ValueType> iter(o), end;
+        for (; iter != end; ++iter)
+            value.push_back(*iter);
         void* storage =
             ( (boost::python::converter::rvalue_from_python_storage
                <vector<ValueType> >*) data)->storage.bytes;
@@ -212,8 +205,6 @@ struct pair_from_tuple
         handle<> x(borrowed(obj_ptr));
         object o(x);
         pair<T1,T2> value;
-        if (boost::python::len(o) < 2)
-            throw ValueException("Invalid conversion to pair... Sequence is too short.");
         value.first = extract<T1>(o[0])();
         value.second = extract<T2>(o[1])();
         void* storage =
