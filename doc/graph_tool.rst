@@ -181,8 +181,11 @@
    .. autofunction:: load_graph
    .. autofunction:: group_vector_property
    .. autofunction:: ungroup_vector_property
+   .. autofunction:: map_property_values
    .. autofunction:: infect_vertex_property
    .. autofunction:: edge_endpoint_property
+   .. autofunction:: incident_edges_op
+   .. autofunction:: perfect_prop_hash
    .. autofunction:: value_types
    .. autofunction:: show_config
 

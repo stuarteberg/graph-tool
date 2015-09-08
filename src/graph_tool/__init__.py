@@ -1077,7 +1077,7 @@ def map_property_values(src_prop, tgt_prop, map_func):
     >>> g = gt.collection.data["lesmis"]
     >>> label_len = g.new_vertex_property("int64_t")
     >>> gt.map_property_values(g.vp.label, label_len,
-    ...                        label x: len(x))
+    ...                        lambda x: len(x))
     >>> print(label_len.a)
     [ 6  8 14 11 12  8 12  8  5  6  7  7 10  6  7  7  9  9  7 11  9  6  7  7 13
      10  7  6 12 10  8  8 11  6  5 12  6 10 11  9 12  7  7  6 14  7  9  9  8 12
@@ -1908,8 +1908,8 @@ class Graph(object):
         assumed to be numeric if ``edge_list`` is a :class:`~numpy.ndarray`, or
         arbitrary python objects if it is not.
 
-        If given, `eprops` specifies edge property maps that will be filled with
-        the remaining values at each row, if there are more than two.
+        If given, ``eprops`` specifies edge property maps that will be filled
+        with the remaining values at each row, if there are more than two.
         """
         self.__check_perms("add_edge")
         if eprops is None:
