@@ -1313,8 +1313,8 @@ def greedy_shrink(state, B, **kwargs):
 
     # merge according to indirect neighbourhood; we put all group-nodes in their
     # own groups, and merge/move them until the desired size is reached
-    curr_B = (state.wr.a > 0).sum()
-    assert curr_B >= B, "shrinking to a larger size ?! (%d, %d)" % (curr_B, B)
+    curr_B = (state.wr.fa > 0).sum()
+    assert curr_B > B, "shrinking to a larger size ?! (%d, %d, %d)" % (state.B, curr_B, B)
 
     random = kwargs.get("random_move", False)
     old_state = state

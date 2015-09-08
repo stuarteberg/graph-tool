@@ -2923,9 +2923,8 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
                        vector<std::tuple<vertex_t, vertex_t, double> >,
                        decltype(merge_cmp_less)> move_heap(merge_cmp_less);
 
-        for (size_t i = 0; i < num_vertices(g); ++i)
+        for (vertex_t v : vlist)
         {
-            vertex_t v = vertex(i, g);
             vertex_t r = b[v];
             vertex_t s = best_move[v].first;
             double dS = best_move[v].second;
