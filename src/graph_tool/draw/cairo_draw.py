@@ -104,6 +104,7 @@ _vdefaults = {
     "fill_color": (0.6470588235294118, 0.058823529411764705, 0.08235294117647059, 0.8),
     "size": 5,
     "aspect": 1.,
+    "rotation": 0.,
     "anchor": 1,
     "pen_width": 0.8,
     "halo": 0,
@@ -152,6 +153,7 @@ _vtypes = {
     "fill_color": "vector<double>",
     "size": "double",
     "aspect": "double",
+    "rotation": "double",
     "anchor": "double",
     "pen_width": "double",
     "halo": "bool",
@@ -813,6 +815,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         |               | points).                                          |                        |                                  |
         +---------------+---------------------------------------------------+------------------------+----------------------------------+
         | aspect        | The aspect ratio of the vertex.                   | ``float`` or ``int``   | ``1.0``                          |
+        +---------------+---------------------------------------------------+------------------------+----------------------------------+
+        | rotation      | Angle (in radians) to rotate the vertex.          | ``float``              | ``0.``                          |
         +---------------+---------------------------------------------------+------------------------+----------------------------------+
         | anchor        | Specifies how the edges anchor to the vertices.   |  ``int``               | ``1``                            |
         |               | If `0`, the anchor is at the center of the vertex,|                        |                                  |
@@ -1767,7 +1771,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
     eprops.update(props)
     eprops.setdefault("control_points", cts)
     eprops.setdefault("pen_width", _edefaults["pen_width"])
-    eprops.setdefault("color", _edefaults["color"])
+    eprops.setdefault("color", list(_edefaults["color"][:-1]) + [.6])
     eprops.setdefault("end_marker", "arrow" if g.is_directed() else "none")
     eprops = _convert_props(eprops, "e", g, kwargs.get("ecmap", default_cm),
                             pmap_default=True)

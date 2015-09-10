@@ -50,6 +50,7 @@ enum vertex_attr_t {
     VERTEX_FILL_COLOR,
     VERTEX_SIZE,
     VERTEX_ASPECT,
+    VERTEX_ROTATION,
     VERTEX_ANCHOR,
     VERTEX_PENWIDTH,
     VERTEX_HALO,
@@ -66,7 +67,7 @@ enum vertex_attr_t {
     VERTEX_FONT_SIZE,
     VERTEX_SURFACE,
     VERTEX_PIE_FRACTIONS,
-    VERTEX_PIE_COLORS
+    VERTEX_PIE_COLORS,
 };
 
 enum edge_attr_t {
@@ -123,12 +124,13 @@ typedef pair<double, double> pos_t;
 typedef std::tuple<double, double, double, double> color_t;
 typedef gt_hash_map<int, boost::any> attrs_t;
 
-typedef boost::mpl::map42<
+typedef boost::mpl::map43<
     boost::mpl::pair<boost::mpl::int_<VERTEX_SHAPE>, vertex_shape_t>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_COLOR>, color_t>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_FILL_COLOR>, color_t>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_SIZE>, double>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_ASPECT>, double>,
+    boost::mpl::pair<boost::mpl::int_<VERTEX_ROTATION>, double>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_ANCHOR>, int32_t>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_PENWIDTH>, double>,
     boost::mpl::pair<boost::mpl::int_<VERTEX_HALO>, uint8_t>,
@@ -638,7 +640,7 @@ public:
                 cr.get_text_extents(text, extents);
                 double s = max(extents.width, extents.height) * 1.4;
                 vertex_shape_t shape = _attrs.template get<vertex_shape_t>(VERTEX_SHAPE);
-                if (shape >= SHAPE_DOUBLE_CIRCLE)
+                if (shape >= SHAPE_DOUBLE_CIRCLE && shape != SHAPE_PIE)
                 {
                     s /= 0.7;
                     double pw = _attrs.template get<double>(VERTEX_PENWIDTH);
@@ -660,8 +662,11 @@ public:
 
         double angle = atan2(_pos.second - origin.second,
                              _pos.first - origin.first);
+        double rot = _attrs.template get<double>(VERTEX_ROTATION);
+
         if (angle < 0)
             angle += 2 * M_PI;
+
         double r = get_size(cr) / 2;
         double dr = r;
 
@@ -689,7 +694,7 @@ public:
             nsides = shape - SHAPE_TRIANGLE + 3;
             if (nsides > 8)
                 nsides -= 7;
-            dr = get_polygon_anchor(nsides, r, angle);
+            dr = get_polygon_anchor(nsides, r, angle - rot);
             break;
         case SHAPE_CIRCLE:
         case SHAPE_DOUBLE_CIRCLE:
@@ -779,7 +784,7 @@ public:
     void draw(Cairo::Context& cr, bool outline=false)
     {
         color_t color, fillcolor;
-        double size, pw, aspect;
+        double size, pw;
         size = get_size(cr);
 
         std::array<double, 4> clip;
@@ -788,11 +793,13 @@ public:
             (_pos.first - 2 * size > clip[2] && _pos.second - 2 * size > clip[3]))
             return;
 
-        aspect = _attrs.template get<double>(VERTEX_ASPECT);
+        double aspect = _attrs.template get<double>(VERTEX_ASPECT);
+        double rot = _attrs.template get<double>(VERTEX_ROTATION);
 
         if (!outline)
             cr.save();
         cr.translate(_pos.first, _pos.second);
+        cr.rotate(rot);
 
         if (!outline && _attrs.template get<uint8_t>(VERTEX_HALO))
         {
@@ -1009,6 +1016,7 @@ public:
         }
         else
         {
+            cr.rotate(-rot);
             cr.translate(-_pos.first, -_pos.second);
         }
     }
@@ -2173,6 +2181,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_draw)
         .value("fill_color", VERTEX_FILL_COLOR)
         .value("size", VERTEX_SIZE)
         .value("aspect", VERTEX_ASPECT)
+        .value("rotation", VERTEX_ROTATION)
         .value("anchor", VERTEX_ANCHOR)
         .value("pen_width", VERTEX_PENWIDTH)
         .value("halo", VERTEX_HALO)
