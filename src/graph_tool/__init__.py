@@ -1414,7 +1414,7 @@ class PropertyDict():
                 yield v
 
     def keys(self):
-        return [k[1] for k in self.properties.iterkeys() if k[0] == self.t]
+        return [k[1] for k in self.properties.keys() if k[0] == self.t]
 
     if sys.version_info < (3,):
         def values(self):
