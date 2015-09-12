@@ -1524,8 +1524,8 @@ class GraphArtist(matplotlib.artist.Artist):
 # ===================
 #
 
-def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
-                   eprops=None, hvprops=None, heprops=None,
+def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
+                   vprops=None, eprops=None, hvprops=None, heprops=None,
                    subsample_edges=None, deg_order=True, deg_size=True,
                    vsize_scale=1, hsize_scale=1, hshortcuts=0, hide=0,
                    empty_branches=True, **kwargs):
@@ -1694,11 +1694,17 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
             angle = g.new_vertex_property("double")
             angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
             vorder = angle
-        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1,
+        if node_weight is not None:
+            node_weight = t.own_property(node_weight.copy())
+            node_weight.a[node_weight.a == 0] = 1
+        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices(True) - 1,
                                                    use_index=False),
+                                  node_weight=node_weight,
                                   rel_order=vorder)
     elif layout == "bipartite":
-        tpos = t.own_property(get_bip_hierachy_pos(state))
+        tpos = get_bip_hierachy_pos(state,
+                                    node_weight=node_weight)
+        tpos = t.own_property(tpos)
     elif layout == "sfdp":
         if pos is None:
             tpos = sfdp_layout(t)
@@ -1709,7 +1715,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
             K = numpy.sqrt(x.fa.std() + y.fa.std()) / 10
             tpos = t.new_vertex_property("vector<double>")
             for v in t.vertices():
-                if int(v) < g.num_vertices():
+                if int(v) < g.num_vertices(True):
                     tpos[v] = [x[v], y[v]]
                 else:
                     tpos[v] = [0, 0]
@@ -1721,7 +1727,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
 
     hvvisible = t.new_vertex_property("bool", True)
     if hide > 0:
-        root = t.vertex(t.num_vertices() - 1)
+        root = t.vertex(t.num_vertices(True) - 1)
         dist = shortest_distance(t, source=root)
         hvvisible.fa = dist.fa >= hide
 
@@ -1875,15 +1881,15 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
 
     def update_cts(widget, gg, picked, pos, vprops, eprops):
         vmask = gg.vertex_index.copy("int")
-        u = GraphView(gg, directed=False, vfilt=vmask.fa < g.num_vertices())
+        u = GraphView(gg, directed=False, vfilt=vmask.fa < g.num_vertices(True))
         cts = eprops["control_points"]
         get_hierarchy_control_points(u, t_orig, pos, beta, cts=cts,
                                      max_depth=len(state.levels) - hshortcuts)
 
     def draw_branch(widget, gg, key_id, picked, pos, vprops, eprops):
         if key_id == ord('b'):
-            if picked is not None and not isinstance(picked, PropertyMap) and int(picked) > g.num_vertices():
-                p = shortest_path(t_orig, source=t_orig.vertex(t_orig.num_vertices() - 1),
+            if picked is not None and not isinstance(picked, PropertyMap) and int(picked) > g.num_vertices(True):
+                p = shortest_path(t_orig, source=t_orig.vertex(t_orig.num_vertices(True) - 1),
                                   target=picked)[0]
                 l = len(state.levels) - max(len(p), 1)
 
@@ -1936,8 +1942,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
                 angle = gg.new_vertex_property("double")
                 angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
                 tpos = radial_tree_layout(t_orig,
-                                          root=t_orig.vertex(t_orig.num_vertices() - 1,
-                                                             use_index=False),
+                                          root=t_orig.vertex(t_orig.num_vertices(True) - 1),
                                           rel_order=angle)
                 gg.copy_property(tpos, pos)
 
@@ -1969,7 +1974,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, vprops=None,
     return pos, t_orig, tpos
 
 
-def get_bip_hierachy_pos(state):
+def get_bip_hierachy_pos(state, node_weight=None):
 
     if state.overlap:
         g = state.g
@@ -2000,7 +2005,7 @@ def get_bip_hierachy_pos(state):
 
     t, tb, order = get_hierarchy_tree(state)
 
-    root = t.vertex(t.num_vertices() - 1)
+    root = t.vertex(t.num_vertices(True) - 1)
     if root.out_degree() > 2:
         clabel = is_bipartite(g, partition=True)[1].copy("int")
         if state.overlap:
@@ -2030,7 +2035,7 @@ def get_bip_hierachy_pos(state):
         if v.in_degree() == 0:
             break
         if v.out_degree() == 0:
-            w[v] = 1
+            w[v] = 1 if node_weight is None else node_weight[v]
         parent, = v.in_neighbours()
         w[parent] += w[v]
 
@@ -2040,7 +2045,8 @@ def get_bip_hierachy_pos(state):
 
     p1, p2 = root.out_neighbours()
 
-    if w[p1] > w[p2]:
+    if ((w[p1] == w[p2] and p1.out_degree() > p2.out_degree()) or
+        w[p1] > w[p2]):
         p1, p2 = p2, p1
 
     L = len(state.levels)
@@ -2052,14 +2058,14 @@ def get_bip_hierachy_pos(state):
         while len(roots) > 0:
             nroots = []
             for r in roots:
-                cw = pos[r][1] - w[r] / 2 / w[p]
+                cw = pos[r][1] - w[r] / (2. * w[p])
                 for v in sorted(r.out_neighbours(), key=lambda a: order[a]):
                     pos[v] = (0, 0)
                     if i == 0:
                         pos[v][0] = pos[r][0] - 1 / L * .5
                     else:
                         pos[v][0] = pos[r][0] + 1 / L * .5
-                    pos[v][1] = cw + w[v] / 2 / w[p]
+                    pos[v][1] = cw + w[v] / (2. * w[p])
                     cw += w[v] / w[p]
                     nroots.append(v)
             roots = nroots

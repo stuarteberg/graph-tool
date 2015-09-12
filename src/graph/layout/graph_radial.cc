@@ -31,19 +31,21 @@ using namespace graph_tool;
 
 struct do_get_radial
 {
-    template <class Graph, class PosProp, class LevelMap, class OrderMap>
+    template <class Graph, class PosProp, class LevelMap, class OrderMap,
+              class WeightMap>
     void operator()(Graph& g, PosProp tpos, LevelMap level, OrderMap order,
-                    size_t root, bool weighted, double r) const
+                    WeightMap weight, size_t root, bool weighted, double r) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-        typedef property_map_type::apply<int, GraphInterface::vertex_index_map_t>::type
+        typedef typename property_map_type::apply<typename property_traits<WeightMap>::value_type,
+                                                  GraphInterface::vertex_index_map_t>::type
             vcount_t;
-        vcount_t::unchecked_t count(get(vertex_index, g), num_vertices(g));
+        typename vcount_t::unchecked_t count(get(vertex_index, g), num_vertices(g));
 
         if (!weighted)
         {
             for (auto v : vertices_range(g))
-                count[v] = 1;
+                count[v] = weight[v];
         }
         else
         {
@@ -53,7 +55,7 @@ struct do_get_radial
                 if (out_degree(v, g) == 0)
                 {
                     q.push_back(v);
-                    count[v] = 1;
+                    count[v] = weight[v];
                 }
             }
 
@@ -78,7 +80,7 @@ struct do_get_radial
             }
         }
 
-        vector<vector<vertex_t> > layers(1);
+        vector<vector<vertex_t>> layers(1);
         layers[0].push_back(root);
 
         bool last = false;
@@ -121,8 +123,11 @@ struct do_get_radial
         vector<vertex_t>& outer_layer = layers.back();
         for (size_t i = 0; i < outer_layer.size(); ++i)
             d_sum += count[outer_layer[i]];
+        angle[outer_layer[0]] = (2 * M_PI * count[outer_layer[0]]) / d_sum;
+        for (size_t i = 1; i < outer_layer.size(); ++i)
+            angle[outer_layer[i]] = angle[outer_layer[i-1]] + (2 * M_PI * count[outer_layer[i]]) / d_sum;
         for (size_t i = 0; i < outer_layer.size(); ++i)
-            angle[outer_layer[i]] = (i * 2 * M_PI * count[outer_layer[i]]) / d_sum;
+            angle[outer_layer[i]] -= (2 * M_PI * count[outer_layer[i]]) / (2 * d_sum);
 
         for (size_t i = 0; i < layers.size(); ++i)
         {
@@ -151,7 +156,8 @@ struct do_get_radial
 };
 
 void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
-                boost::any oorder, size_t root, bool weighted, double r)
+                boost::any oorder, boost::any oweight, size_t root,
+                bool weighted, double r)
 {
     typedef property_map_type::apply<int32_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -159,9 +165,15 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
 
     vmap_t levels = boost::any_cast<vmap_t>(olevels);
 
+    typedef property_map_type::apply<double,
+                                     GraphInterface::vertex_index_map_t>::type
+        wmap_t;
+
+    wmap_t weight = boost::any_cast<wmap_t>(oweight);
+
     run_action<graph_tool::detail::always_directed>()
         (gi, std::bind(do_get_radial(), placeholders::_1, placeholders::_2,
-                       levels, placeholders::_3, root, weighted,  r),
+                       levels, placeholders::_3, weight, root, weighted,  r),
          vertex_scalar_vector_properties(),
          vertex_properties())(otpos, oorder);
 }

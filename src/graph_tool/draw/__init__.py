@@ -702,7 +702,8 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                                      verbose, _get_rng())
     return pos
 
-def radial_tree_layout(g, root, rel_order=None, weighted=False, r=1.):
+def radial_tree_layout(g, root, rel_order=None, weighted=False,
+                       node_weight=None, r=1.):
     r"""Computes a radial layout of the graph according to the minimum spanning
     tree centered at the ``root`` vertex.
 
@@ -717,6 +718,9 @@ def radial_tree_layout(g, root, rel_order=None, weighted=False, r=1.):
     weighted : ``bool`` (optional, default: ``False``)
         If true, the angle between the child branches will be computed according
         to weight of the entire sub-branches.
+    node_weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        If given, the relative spacing between leafs will correspond to the node
+        weights.
     r : ``float`` (optional, default: ``1.``)
         Layer spacing.
 
@@ -762,11 +766,15 @@ def radial_tree_layout(g, root, rel_order=None, weighted=False, r=1.):
     levels = t.own_property(levels)
     if rel_order is None:
         rel_order = g.vertex_index.copy("int")
-
+    if node_weight is None:
+        node_weight = g.new_vertex_property("double", 1)
+    elif node_weight.value_type() != "double":
+        node_weight = node_weight.copy("double")
     libgraph_tool_layout.get_radial(t._Graph__graph,
                                     _prop("v", g, pos),
                                     _prop("v", g, levels),
                                     _prop("v", g, rel_order),
+                                    _prop("v", g, node_weight),
                                     int(root), weighted, r)
     return g.own_property(pos)
 
