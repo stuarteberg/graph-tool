@@ -33,46 +33,52 @@ using namespace graph_tool;
 class BFVisitorWrapper
 {
 public:
-    BFVisitorWrapper(python::object gi, python::object vis)
+    BFVisitorWrapper(GraphInterface& gi, python::object vis)
         : _gi(gi), _vis(vis) {}
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, const Graph&)
+    void examine_edge(Edge e, Graph& g)
     {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("examine_edge")
-            (PythonEdge<Graph>(_gi, e));
+            (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_relaxed(Edge e, const Graph&)
+    void edge_relaxed(Edge e, Graph& g)
     {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+            (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_not_relaxed(Edge e, const Graph&)
+    void edge_not_relaxed(Edge e, Graph& g)
     {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_not_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+            (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_minimized(Edge e, const Graph&)
+    void edge_minimized(Edge e, Graph& g)
     {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_minimized")
-            (PythonEdge<Graph>(_gi, e));
+            (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_not_minimized(Edge e, const Graph&)
+    void edge_not_minimized(Edge e, Graph& g)
     {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_not_minimized")
-            (PythonEdge<Graph>(_gi, e));
+            (PythonEdge<Graph>(gp, e));
     }
 
 private:
-    python::object _gi, _vis;
+    GraphInterface& _gi;
+    python::object _vis;
 };
 
 
@@ -109,10 +115,10 @@ private:
 struct do_bf_search
 {
     template <class Graph, class DistanceMap>
-    void operator()(const Graph& g, size_t s, DistanceMap dist,
-                    boost::any pred_map, boost::any aweight,
-                    BFVisitorWrapper vis, pair<BFCmp, BFCmb> cm,
-                    pair<python::object, python::object> range, bool& ret) const
+    void operator()(Graph& g, size_t s, DistanceMap dist, boost::any pred_map,
+                    boost::any aweight, BFVisitorWrapper vis, pair<BFCmp,
+                    BFCmb> cm, pair<python::object, python::object> range,
+                    bool& ret) const
     {
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
         dtype_t z = python::extract<dtype_t>(range.first);
@@ -136,17 +142,17 @@ struct do_bf_search
 };
 
 
-bool bellman_ford_search(GraphInterface& g, python::object gi, size_t source,
-                         boost::any dist_map, boost::any pred_map,
-                         boost::any weight, python::object vis,
-                         python::object cmp, python::object cmb,
-                         python::object zero, python::object inf)
+bool bellman_ford_search(GraphInterface& g, size_t source, boost::any dist_map,
+                         boost::any pred_map, boost::any weight,
+                         python::object vis, python::object cmp,
+                         python::object cmb, python::object zero,
+                         python::object inf)
 {
     bool ret = false;
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
         (g, std::bind(do_bf_search(),  placeholders::_1, source,
                       placeholders::_2, pred_map, weight,
-                      BFVisitorWrapper(gi, vis),
+                      BFVisitorWrapper(g, vis),
                       make_pair(BFCmp(cmp), BFCmb(cmb)), make_pair(zero, inf),
                       std::ref(ret)),
          writable_vertex_properties())

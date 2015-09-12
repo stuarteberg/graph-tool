@@ -40,11 +40,10 @@ python::object operator |(const python::object& a, const T& b)
 struct do_astar_search
 {
     template <class Graph, class DistanceMap>
-    void operator()(const Graph& g, size_t s, DistanceMap dist,
-                    boost::any pred_map, boost::any aweight,
-                    AStarVisitorWrapper vis, pair<AStarCmp, AStarCmb> cmp,
-                    pair<python::object, python::object> range,
-                    pair<python::object, python::object> h) const
+    void operator()(Graph& g, size_t s, DistanceMap dist, boost::any pred_map,
+                    boost::any aweight, AStarVisitorWrapper vis, pair<AStarCmp,
+                    AStarCmb> cmp, pair<python::object, python::object> range,
+                    python::object h, GraphInterface& gi) const
     {
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
@@ -61,24 +60,24 @@ struct do_astar_search
             cost(get(vertex_index, g));
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());
-        astar_search(g, vertex(s, g), AStarH<dtype_t>(h.first, h.second),
+        astar_search(g, vertex(s, g), AStarH<Graph, dtype_t>(gi, g, h),
                      vis, pred, cost, dist, weight, get(vertex_index, g), color,
                      cmp.first, cmp.second, i, z);
    }
 };
 
 
-void a_star_search(GraphInterface& g, python::object gi, size_t source,
-                   boost::any dist_map, boost::any pred_map, boost::any weight,
-                   python::object vis, python::object cmp, python::object cmb,
-                   python::object zero, python::object inf, python::object h)
+void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
+                   boost::any pred_map, boost::any weight, python::object vis,
+                   python::object cmp, python::object cmb, python::object zero,
+                   python::object inf, python::object h)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
         (g, std::bind(do_astar_search(),  placeholders::_1, source,
                       placeholders::_2, pred_map, weight,
-                      AStarVisitorWrapper(gi, vis), make_pair(AStarCmp(cmp),
-                                                              AStarCmb(cmb)),
-                      make_pair(zero, inf), make_pair(gi, h)),
+                      AStarVisitorWrapper(g, vis), make_pair(AStarCmp(cmp),
+                                                             AStarCmb(cmb)),
+                      make_pair(zero, inf), h, std::ref(g)),
          writable_vertex_properties())(dist_map);
 }
 

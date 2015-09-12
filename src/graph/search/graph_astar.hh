@@ -33,64 +33,68 @@ using namespace boost;
 class AStarVisitorWrapper
 {
 public:
-    AStarVisitorWrapper(python::object& gi, python::object vis)
+    AStarVisitorWrapper(GraphInterface& gi, python::object vis)
         : _gi(gi), _vis(vis) {}
 
     template <class Vertex, class Graph>
-    void initialize_vertex(Vertex u, const Graph&)
+    void initialize_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("initialize_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
-    void discover_vertex(Vertex u, const Graph&)
+    void discover_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("discover_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
-    void examine_vertex(Vertex u, const Graph&)
+    void examine_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("examine_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("examine_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, const Graph&)
+    void examine_edge(Edge e, Graph& g)
     {
-        _vis.attr("examine_edge")
-            (PythonEdge<Graph>(_gi, e));
-
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("examine_edge") (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_relaxed(Edge e, const Graph&)
+    void edge_relaxed(Edge e, Graph& g)
     {
-        _vis.attr("edge_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("edge_relaxed") (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_not_relaxed(Edge e, const Graph&)
+    void edge_not_relaxed(Edge e, Graph& g)
     {
-        _vis.attr("edge_not_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("edge_not_relaxed") (PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void black_target(Edge e, const Graph&)
+    void black_target(Edge e, Graph& g)
     {
-        _vis.attr("black_target")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("black_target") (PythonEdge<Graph>(gp, e));
     }
 
     template <class Vertex, class Graph>
-    void finish_vertex(Vertex u, const Graph&)
+    void finish_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("finish_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
     }
 
 private:
-    python::object _gi, _vis;
+    GraphInterface& _gi;
+    python::object _vis;
 };
 
 
@@ -124,19 +128,22 @@ private:
     python::object _cmb;
 };
 
-template <class Value>
+template <class Graph, class Value>
 class AStarH
 {
 public:
-    AStarH(python::object gi, python::object h): _gi(gi), _h(h) {}
+    AStarH(GraphInterface& gi, Graph& g, python::object h)
+        : _gi(gi), _h(h), _gp(retrieve_graph_view<Graph>(gi, g)) {}
 
     Value operator()(GraphInterface::vertex_t v) const
     {
-        return python::extract<Value>(_h(PythonVertex(_gi, v)));
+        return python::extract<Value>(_h(PythonVertex<Graph>(_gp, v)));
     }
 
 private:
-    python::object _gi, _h;
+    GraphInterface& _gi;
+    python::object _h;
+    std::shared_ptr<Graph> _gp;
 };
 
 } // namespace graph_tool

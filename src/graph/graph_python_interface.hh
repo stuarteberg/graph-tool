@@ -58,24 +58,23 @@ namespace graph_tool
 
 // generic iterator adaptor which can be used to iterate vertices, edges,
 // out_edges and in_edges through python
-template <class Descriptor, class Iterator>
+template <class Graph, class Descriptor, class Iterator>
 class PythonIterator
 {
 public:
-    PythonIterator(const boost::python::object& g,
+    PythonIterator(std::shared_ptr<Graph>& gp,
                    std::pair<Iterator,Iterator> e)
-        : _wg(g), _g(g()), _e(e) {}
+        : _g(gp), _e(e) {}
     Descriptor Next()
     {
         if (_e.first == _e.second)
             boost::python::objects::stop_iteration_error();
-        Descriptor e(_wg, *_e.first);
+        Descriptor e(_g, *_e.first);
         ++_e.first;
         return e;
     }
 private:
-    boost::python::object _wg;
-    boost::python::object _g;
+    std::shared_ptr<Graph> _g;
     std::pair<Iterator,Iterator> _e;
 };
 
@@ -84,27 +83,24 @@ private:
 template <class Graph>
 class PythonEdge;
 
+class VertexBase {}; // useful to unite all vertex
+
 // below are classes related to the PythonVertex type
-class PythonVertex
+template <class Graph>
+class PythonVertex : public VertexBase
 {
 public:
-    PythonVertex(const boost::python::object& g, GraphInterface::vertex_t v):
-        _g(g), _v(v), _valid(true)
-    {}
+    PythonVertex(std::shared_ptr<Graph> g, GraphInterface::vertex_t v):
+        _g(g), _v(v) {}
 
     bool IsValid() const
     {
-        if (_g().ptr() == Py_None)
+        std::shared_ptr<Graph> gp(_g);
+        Graph* g = gp.get();
+        if (g == nullptr)
             return false;
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        return _valid &&
-            (_v != boost::graph_traits<GraphInterface::multigraph_t>::null_vertex()) &&
-            (_v < num_vertices(*gi._mg));
-    }
-
-    void SetValid(bool valid)
-    {
-        _valid = valid;
+        return ((_v != boost::graph_traits<Graph>::null_vertex()) &&
+                (_v < num_vertices(*g)));
     }
 
     void CheckValid() const
@@ -112,11 +108,6 @@ public:
         if (!IsValid())
             throw ValueException("invalid vertex descriptor: " +
                                  boost::lexical_cast<string>(_v));
-    }
-
-    boost::python::object GetGraph() const
-    {
-        return _g();
     }
 
     GraphInterface::vertex_t GetDescriptor() const
@@ -127,7 +118,6 @@ public:
     template <class DegSelector>
     struct get_degree
     {
-        template<class Graph>
         void operator()(const Graph& g,
                         typename boost::graph_traits<Graph>::vertex_descriptor v,
                         size_t& deg) const
@@ -135,120 +125,100 @@ public:
             deg = DegSelector()(v, g);
         }
 
-        template<class Graph, class PMap>
+        template<class PMap>
         void operator()(const Graph& g,
                         typename boost::graph_traits<Graph>::vertex_descriptor v,
-                        const PMap& weight,
-                        boost::python::object& deg) const
+                        const boost::any& aweight, boost::python::object& deg,
+                        bool& found, PMap) const
         {
-            deg = boost::python::object(DegSelector()(v, g, weight));
+            try
+            {
+                const PMap& weight = boost::any_cast<const PMap&>(aweight);
+                deg = boost::python::object(DegSelector()(v, g, weight));
+                found = true;
+            }
+            catch (boost::bad_any_cast&) {}
         }
     };
 
     size_t GetInDegree() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
+        std::shared_ptr<Graph> gp(_g);
+        Graph& g = *gp.get();
         size_t in_deg;
-        run_action<>()(gi, std::bind(get_degree<in_degreeS>(),
-                                     std::placeholders::_1, _v,
-                                     std::ref(in_deg)))();
+        get_degree<in_degreeS>()(g, _v, in_deg);
         return in_deg;
     }
 
     boost::python::object GetWeightedInDegree(boost::any pmap) const
     {
-        if (!belongs<edge_scalar_properties>()(pmap))
-            throw ValueException("edge weight property must be of scalar type");
-        CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
+        std::shared_ptr<Graph> gp(_g);
+        Graph& g = *gp.get();
         boost::python::object in_deg;
-        run_action<>()(gi, std::bind(get_degree<in_degreeS>(),
-                                     std::placeholders::_1, _v,
-                                     std::placeholders::_2,
-                                     std::ref(in_deg)),
-                       edge_scalar_properties())(pmap);
+        bool found = false;
+        boost::mpl::for_each<edge_scalar_properties>(std::bind(get_degree<in_degreeS>(),
+                                                               std::ref(g), _v,
+                                                               std::ref(pmap),
+                                                               std::ref(in_deg),
+                                                               std::ref(found),
+                                                               std::placeholders::_1));
+        if (!found)
+            throw ValueException("edge weight property must be of scalar type");
         return in_deg;
     }
 
     size_t GetOutDegree() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
+        std::shared_ptr<Graph> gp(_g);
+        Graph& g = *gp.get();
         size_t out_deg;
-        run_action<>()(gi, std::bind(get_degree<out_degreeS>(),
-                                     std::placeholders::_1, _v,
-                                     std::ref(out_deg)))();
+        get_degree<out_degreeS>()(g, _v, out_deg);
         return out_deg;
     }
 
 
     boost::python::object GetWeightedOutDegree(boost::any pmap) const
     {
-        if (!belongs<edge_scalar_properties>()(pmap))
-            throw ValueException("edge weight property must be of scalar type");
-        CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
+        std::shared_ptr<Graph> gp(_g);
+        Graph& g = *gp.get();
         boost::python::object out_deg;
-        run_action<>()(gi, std::bind(get_degree<out_degreeS>(),
-                                     std::placeholders::_1, _v,
-                                     std::placeholders::_2,
-                                     std::ref(out_deg)),
-                       edge_scalar_properties())(pmap);
+        bool found = false;
+        boost::mpl::for_each<edge_scalar_properties>(std::bind(get_degree<out_degreeS>(),
+                                                               std::ref(g), _v,
+                                                               std::ref(pmap),
+                                                               std::ref(out_deg),
+                                                               std::ref(found),
+                                                               std::placeholders::_1));
+        if (!found)
+            throw ValueException("edge weight property must be of scalar type");
         return out_deg;
     }
 
     // provide iterator support for out_edges
-
-    struct get_out_edges
-    {
-        template<class Graph>
-        void operator()(const Graph& g, const boost::python::object& pg,
-                        typename boost::graph_traits<Graph>::vertex_descriptor v,
-                        boost::python::object& iter) const
-        {
-            typedef typename boost::graph_traits<Graph>::out_edge_iterator
-                out_edge_iterator;
-            iter = boost::python::object(PythonIterator<PythonEdge<Graph>,
-                                                 out_edge_iterator>
-                                  (pg, out_edges(v, g)));
-        }
-    };
-
     boost::python::object OutEdges() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        boost::python::object iter;
-        run_action<>()(gi, std::bind(get_out_edges(), std::placeholders::_1,
-                                     std::ref(_g), _v, std::ref(iter)))();
-        return iter;
+        std::shared_ptr<Graph> pg(_g);
+        Graph& g = *pg;
+        typedef typename boost::graph_traits<Graph>::out_edge_iterator
+            out_edge_iterator;
+        return boost::python::object(PythonIterator<Graph,PythonEdge<Graph>,
+                                                    out_edge_iterator>
+                                     (pg, out_edges(_v, g)));
     }
-
-    struct get_in_edges
-    {
-        template<class Graph>
-        void operator()(const Graph& g, const boost::python::object& pg,
-                        typename boost::graph_traits<Graph>::vertex_descriptor v,
-                        boost::python::object& iter) const
-        {
-            typedef typename in_edge_iteratorS<Graph>::type
-                in_edge_iterator;
-            iter = boost::python::object
-                (PythonIterator<PythonEdge<Graph>,in_edge_iterator>
-                 (pg, in_edge_iteratorS<Graph>::get_edges(v, g)));
-        }
-    };
 
     boost::python::object InEdges() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        boost::python::object iter;
-        run_action<>()(gi, std::bind(get_in_edges(), placeholders::_1,
-                                     std::ref(_g), _v,
-                                     std::ref(iter)))();
-        return iter;
+        std::shared_ptr<Graph> pg(_g);
+        Graph& g = *pg;
+        typedef typename in_edge_iteratorS<Graph>::type
+            in_edge_iterator;
+        return boost::python::object(PythonIterator<Graph, PythonEdge<Graph>,
+                                                    in_edge_iterator>
+                                     (pg, in_edge_iteratorS<Graph>::get_edges(_v, g)));
     }
 
     std::string GetString() const
@@ -267,10 +237,34 @@ public:
         return _v;
     }
 
+    size_t GetGraphPtr() const
+    {
+        std::shared_ptr<Graph> pg(_g);
+        return size_t(pg.get());
+    }
+
+    std::string GetGraphType() const
+    {
+        using boost::python::detail::gcc_demangle;
+        return gcc_demangle(typeid(Graph).name());
+    }
+
+    template <class OGraph>
+    bool operator==(const PythonVertex<OGraph>& other) const { return _v == other._v; }
+    template <class OGraph>
+    bool operator!=(const PythonVertex<OGraph>& other) const { return _v != other._v; }
+    template <class OGraph>
+    bool operator<(const PythonVertex<OGraph>& other) const { return _v < other._v; }
+    template <class OGraph>
+    bool operator<=(const PythonVertex<OGraph>& other) const { return _v <= other._v; }
+    template <class OGraph>
+    bool operator>(const PythonVertex<OGraph>& other) const { return _v > other._v; }
+    template <class OGraph>
+    bool operator>=(const PythonVertex<OGraph>& other) const { return _v >= other._v; }
+
 private:
-    boost::python::object _g;
+    std::weak_ptr<Graph> _g;
     GraphInterface::vertex_t _v;
-    bool _valid;
 };
 
 // below are classes related to the PythonEdge type
@@ -282,35 +276,23 @@ class PythonEdge : public EdgeBase
 {
 public:
     typedef typename boost::graph_traits<Graph>::edge_descriptor edge_descriptor;
-    PythonEdge(const boost::python::object& g, edge_descriptor e)
-        : _g(g), _e(e), _valid(true)
-    {
-    }
+    PythonEdge(std::shared_ptr<Graph> g, edge_descriptor e)
+        : _g(g), _e(e) {}
 
     bool IsValid() const
     {
-        boost::python::object g = _g();
-        if (g.ptr() == Py_None || !_valid)
+        std::shared_ptr<Graph> gp(_g);
+        Graph* g = gp.get();
+        if (g == nullptr)
             return false;
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(g.attr("_Graph__graph"));
-        GraphInterface::edge_t e(_e);
 
-        typename GraphInterface::multigraph_t::vertex_t s, t;
-        s = source(e, *gi._mg);
-        t = target(e, *gi._mg);
+        auto s = source(_e, *g);
+        auto t = target(_e, *g);
 
-        bool valid = ((s != boost::graph_traits<GraphInterface::multigraph_t>::null_vertex()) &&
-                      (s < num_vertices(*gi._mg)) &&
-                      (t != boost::graph_traits<GraphInterface::multigraph_t>::null_vertex()) &&
-                      (t < num_vertices(*gi._mg)) &&
-                      gi.GetEdgeIndex()[e] <= gi.GetMaxEdgeIndex());
-
-        return valid;
-    }
-
-    void SetValid(bool valid)
-    {
-        _valid = valid;
+        return ((s != boost::graph_traits<Graph>::null_vertex()) &&
+                (s < num_vertices(*g)) &&
+                (t != boost::graph_traits<Graph>::null_vertex()) &&
+                (t < num_vertices(*g)));
     }
 
     void CheckValid() const
@@ -319,79 +301,95 @@ public:
             throw ValueException("invalid edge descriptor");
     }
 
-    boost::python::object GetGraph() const
-    {
-        return _g();
-    }
-
     GraphInterface::edge_t GetDescriptor() const
     {
         return _e;
     }
 
-    struct get_source
-    {
-        template<class GraphType>
-        void operator()(const GraphType& g, const boost::python::object& pg,
-                        const edge_descriptor& edge, boost::python::object& vertex)
-            const
-        {
-            typedef typename boost::graph_traits<GraphType>::edge_descriptor edge_t;
-            vertex = boost::python::object(PythonVertex(pg, source(edge_t(edge), g)));
-        }
-    };
-
-    boost::python::object GetSource() const
+    PythonVertex<Graph> GetSource() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        boost::python::object v;
-        run_action<>()(gi, std::bind(get_source(), std::placeholders::_1,
-                                     std::ref(_g), std::ref(_e),
-                                     std::ref(v)))();
-        return v;
+        std::shared_ptr<Graph> pg(_g);
+        Graph& g = *pg;
+        return PythonVertex<Graph>(pg, source(_e, g));
     }
 
-    struct get_target
-    {
-        template<class GraphType>
-        void operator()(const GraphType& g, const boost::python::object& pg,
-                        const edge_descriptor& edge, boost::python::object& vertex)
-            const
-        {
-            typedef typename boost::graph_traits<GraphType>::edge_descriptor edge_t;
-            vertex = boost::python::object(PythonVertex(pg, target(edge_t(edge), g)));
-        }
-    };
-
-    boost::python::object GetTarget() const
+    PythonVertex<Graph> GetTarget() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        boost::python::object v;
-        run_action<>()(gi, std::bind(get_target(), std::placeholders::_1,
-                                     std::ref(_g), std::ref(_e), std::ref(v)))();
-        return v;
+        std::shared_ptr<Graph> pg(_g);
+        Graph& g = *pg;
+        return PythonVertex<Graph>(pg, target(_e, g));
     }
 
     std::string GetString() const
     {
-        PythonVertex src = boost::python::extract<PythonVertex>(GetSource());
-        PythonVertex tgt = boost::python::extract<PythonVertex>(GetTarget());
-        return "(" + src.GetString() + ", " + tgt.GetString() + ")";
+        CheckValid();
+        Graph& g = *std::shared_ptr<Graph>(_g);
+        auto s = source(_e, g);
+        auto t = target(_e, g);
+        return "(" + boost::lexical_cast<std::string>(s) + ", "
+            + boost::lexical_cast<std::string>(t) + ")";
     }
 
     size_t GetHash() const
     {
         CheckValid();
-        GraphInterface& gi = boost::python::extract<GraphInterface&>(_g().attr("_Graph__graph"));
-        return std::hash<size_t>()(gi._edge_index[_e]);
+        Graph& g = *std::shared_ptr<Graph>(_g);
+        auto eindex = get(boost::edge_index_t(), g);
+        return std::hash<size_t>()(eindex[_e]);
     }
 
+    size_t GetGraphPtr() const
+    {
+        std::shared_ptr<Graph> pg(_g);
+        return site_t(pg.get());
+    }
+
+    std::string GetGraphType() const
+    {
+        using boost::python::detail::gcc_demangle;
+        return gcc_demangle(typeid(Graph).name());
+    }
+
+    template <class OGraph>
+    bool operator==(const PythonEdge<OGraph>& other) const { return _e == other._e; }
+    template <class OGraph>
+    bool operator!=(const PythonEdge<OGraph>& other) const { return !(*this == other); }
+    template <class OGraph>
+    bool operator<(const PythonEdge<OGraph>& other)  const
+    {
+        CheckValid();
+        other.CheckValid();
+        Graph& g = *std::shared_ptr<Graph>(_g);
+        OGraph& og = *std::shared_ptr<OGraph>(other._g);
+        auto s = source(_e, g);
+        auto t = target(_e, g);
+        auto os = source(other._e, og);
+        auto ot = target(other._e, og);
+        if (not is_directed::apply<Graph>::type::value ||
+            not is_directed::apply<OGraph>::type::value)
+        {
+            if (t < s)
+                std::swap(s, t);
+            if (ot < os)
+                std::swap(os, ot);
+        }
+        return s < os && t < ot;
+    }
+    template <class OGraph>
+    bool operator<=(const PythonEdge<OGraph>& other) const {return *this < other || *this == other;}
+    template <class OGraph>
+    bool operator>(const PythonEdge<OGraph>& other) const {return !(*this < other || *this == other);}
+    template <class OGraph>
+    bool operator>=(const PythonEdge<OGraph>& other) const {return *this > other || *this == other;}
+
 private:
-    boost::python::object _g;
+    std::weak_ptr<Graph> _g;
     edge_descriptor _e;
-    bool _valid;
+
+    template <class OGraph>
+    friend class PythonEdge;
 };
 
 // metafunction to determine wether or not to return copies or internal
@@ -477,7 +475,7 @@ public:
             return gcc_demangle(typeid(value_type).name());
         else
             return type_names[boost::mpl::find<value_types,
-                                        value_type>::type::pos::value];
+                                               value_type>::type::pos::value];
     }
 
     boost::any GetMap() const

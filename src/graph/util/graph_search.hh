@@ -60,7 +60,7 @@ bool operator<=(const string& s1, const string& s2)
 struct find_vertices
 {
     template <class Graph, class DegreeSelector>
-    void operator()(Graph& g, const python::object& pg, DegreeSelector deg,
+    void operator()(Graph& g, GraphInterface& gi, DegreeSelector deg,
                     python::tuple& prange, python::list& ret) const
     {
         typedef typename DegreeSelector::value_type value_type;
@@ -74,6 +74,7 @@ struct find_vertices
             nt = 1; // python is not thread-safe
         #endif
 
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         int i, N = num_vertices(g);
@@ -88,7 +89,7 @@ struct find_vertices
             if ((is_eq && (val == range.first)) ||
                 (!is_eq && (range.first <= val && val <= range.second)))
             {
-                PythonVertex pv(pg, v);
+                PythonVertex<Graph> pv(gp, v);
                 #pragma omp critical
                 {
                     ret.append(pv);
@@ -102,7 +103,7 @@ struct find_vertices
 struct find_edges
 {
     template <class Graph, class EdgeIndex, class EdgeProperty>
-    void operator()(Graph& g, const python::object& pg, EdgeIndex eindex,
+    void operator()(Graph& g, GraphInterface& gi, EdgeIndex eindex,
                     EdgeProperty prop, python::tuple& prange, python::list& ret)
         const
     {
@@ -119,6 +120,7 @@ struct find_edges
             nt = 1; // python is not thread-safe
         #endif
 
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         int i, N = num_vertices(g);
@@ -144,7 +146,7 @@ struct find_edges
                 if ((is_eq && (val == range.first)) ||
                     (!is_eq && (range.first <= val && val <= range.second)))
                 {
-                    PythonEdge<Graph> pe(pg, *e);
+                    PythonEdge<Graph> pe(gp, *e);
                     #pragma omp critical
                     {
                         ret.append(pe);

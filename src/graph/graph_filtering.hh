@@ -515,6 +515,43 @@ struct run_action
 // returns true if graph filtering was enabled at compile time
 bool graph_filtering_enabled();
 
+
+template <class Graph, class GraphInit>
+std::shared_ptr<Graph> get_graph_ptr(GraphInterface& gi, GraphInit&, std::true_type)
+{
+    return gi.GetGraphPtr();
+}
+
+template <class Graph, class GraphInit>
+std::shared_ptr<Graph> get_graph_ptr(GraphInterface&, GraphInit& g, std::false_type)
+{
+    return std::shared_ptr<Graph>(new Graph(g));
+}
+
+// this function retrieves a graph view stored in graph_views, or stores one if
+// non-existent
+template <class Graph>
+typename std::shared_ptr<Graph>
+retrieve_graph_view(GraphInterface& gi, Graph& init)
+{
+    typedef typename std::remove_const<Graph>::type g_t;
+    size_t index = boost::mpl::find<detail::all_graph_views,g_t>::type::pos::value;
+    auto& graph_views = gi.GetGraphViews();
+    if (index >= graph_views.size())
+        graph_views.resize(index + 1);
+    boost::any& gview = graph_views[index];
+    std::shared_ptr<g_t>* gptr = boost::any_cast<std::shared_ptr<g_t>>(&gview);
+    if (gptr == 0)
+    {
+        std::shared_ptr<g_t> new_g =
+            get_graph_ptr<g_t>(gi, init,
+                               std::is_same<g_t, GraphInterface::multigraph_t>());
+        gptr = &new_g;
+        gview = new_g;
+    }
+    return *gptr;
+}
+
 } //graph_tool namespace
 
 #endif // FILTERING_HH

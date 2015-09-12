@@ -151,7 +151,8 @@ public:
 
     // internal access
 
-    multigraph_t& GetGraph() {return *_mg;}
+    multigraph_t&      GetGraph() {return *_mg;}
+    std::shared_ptr<multigraph_t> GetGraphPtr() {return _mg;}
     vertex_index_map_t GetVertexIndex() {return _vertex_index;}
     edge_index_map_t   GetEdgeIndex()   {return _edge_index;}
     size_t             GetMaxEdgeIndex(){return _mg->get_last_index();}
@@ -160,17 +161,13 @@ public:
 
     // Gets the encapsulated graph view. See graph_filtering.cc for details
     boost::any GetGraphView() const;
+    vector<boost::any>& GetGraphViews() {return _graph_views;}
 
 private:
 
     // Generic graph_action functor. See graph_filtering.hh for details.
     template <class Action, class GraphViews, class Wrap, class... TRS>
     friend struct detail::graph_action;
-
-    // python interface
-    friend class PythonVertex;
-    template <class Graph>
-    friend class PythonEdge;
 
     // this is the main graph
     shared_ptr<multigraph_t> _mg;
@@ -205,6 +202,7 @@ private:
     bool _edge_filter_invert;
     bool _edge_filter_active;
 };
+
 
 } //namespace graph_tool
 

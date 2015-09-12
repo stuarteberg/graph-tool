@@ -24,62 +24,67 @@ using namespace graph_tool;
 class DFSVisitorWrapper
 {
 public:
-    DFSVisitorWrapper(python::object& gi, python::object vis)
+    DFSVisitorWrapper(GraphInterface& gi, python::object vis)
         : _gi(gi), _vis(vis) {}
 
 
     template <class Vertex, class Graph>
-    void initialize_vertex(Vertex u, const Graph&)
+    void initialize_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("initialize_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
     }
     template <class Vertex, class Graph>
-    void start_vertex(Vertex u, const Graph&)
+    void start_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("start_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("start_vertex")(PythonVertex<Graph>(gp, u));
     }
     template <class Vertex, class Graph>
-    void discover_vertex(Vertex u, const Graph&)
+    void discover_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("discover_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, const Graph&)
+    void examine_edge(Edge e, Graph& g)
     {
-        _vis.attr("examine_edge")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("examine_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void tree_edge(Edge e, const Graph&)
+    void tree_edge(Edge e, Graph& g)
     {
-        _vis.attr("tree_edge")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("tree_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void back_edge(Edge e, const Graph&)
+    void back_edge(Edge e, Graph& g)
     {
-        _vis.attr("back_edge")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("back_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void forward_or_cross_edge(Edge e, const Graph&)
+    void forward_or_cross_edge(Edge e, Graph& g)
     {
-        _vis.attr("forward_or_cross_edge")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("forward_or_cross_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Vertex, class Graph>
-    void finish_vertex(Vertex u, const Graph&)
+    void finish_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("finish_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
     }
 
 private:
-    python::object _gi, _vis;
+    GraphInterface& _gi;
+    python::object _vis;
 };
 
 struct do_dfs
@@ -96,12 +101,11 @@ struct do_dfs
 };
 
 
-void dfs_search(GraphInterface& g, python::object gi, size_t s,
-                python::object vis)
+void dfs_search(GraphInterface& g, size_t s, python::object vis)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
         (g, std::bind(do_dfs(), placeholders::_1, g.GetVertexIndex(),
-                      s, DFSVisitorWrapper(gi, vis)))();
+                      s, DFSVisitorWrapper(g, vis)))();
 }
 
 void export_dfs()

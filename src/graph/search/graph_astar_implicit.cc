@@ -35,11 +35,11 @@ using namespace graph_tool;
 struct do_astar_search
 {
     template <class Graph, class DistanceMap>
-    void operator()(const Graph& g, size_t s, DistanceMap dist,
-                    pair<boost::any, boost::any> pc, boost::any aweight,
-                    AStarVisitorWrapper vis, pair<AStarCmp, AStarCmb> cmp,
-                    pair<python::object, python::object> range,
-                    pair<python::object, python::object> h) const
+    void operator()(Graph& g, size_t s, DistanceMap dist, pair<boost::any,
+                    boost::any> pc, boost::any aweight, AStarVisitorWrapper vis,
+                    pair<AStarCmp, AStarCmb> cmp, pair<python::object,
+                    python::object> range, python::object h,
+                    GraphInterface& gi) const
     {
 
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
@@ -55,7 +55,7 @@ struct do_astar_search
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());
         astar_search_no_init(g, vertex(s, g),
-                             AStarH<dtype_t>(h.first, h.second), vis,
+                             AStarH<Graph, dtype_t>(gi, g, h), vis,
                              any_cast<pred_t>(pc.first),
                              any_cast<DistanceMap>(pc.second), dist, weight,
                              color, get(vertex_index, g), cmp.first,
@@ -64,7 +64,7 @@ struct do_astar_search
 };
 
 
-void a_star_search_implicit(GraphInterface& g, python::object gi, size_t source,
+void a_star_search_implicit(GraphInterface& g, size_t source,
                             boost::any dist_map, boost::any pred,
                             boost::any cost, boost::any weight,
                             python::object vis, python::object cmp,
@@ -75,9 +75,10 @@ void a_star_search_implicit(GraphInterface& g, python::object gi, size_t source,
         (g, std::bind(do_astar_search(), placeholders::_1, source,
                       placeholders::_2, make_pair(pred, cost),
                       weight,
-                      AStarVisitorWrapper(gi, vis), make_pair(AStarCmp(cmp),
-                                                              AStarCmb(cmb)),
-                      make_pair(zero, inf), make_pair(gi, h)),
+                      AStarVisitorWrapper(g, vis),
+                      make_pair(AStarCmp(cmp),
+                                AStarCmb(cmb)),
+                      make_pair(zero, inf), h, std::ref(g)),
          writable_vertex_properties())(dist_map);
 }
 

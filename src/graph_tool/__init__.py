@@ -121,8 +121,8 @@ if sys.version_info < (3,):
 from .decorators import _wraps, _require, _attrs, _limit_args
 from inspect import ismethod
 
-__all__ = ["Graph", "GraphView", "Vertex", "Edge", "Vector_bool",
-           "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
+__all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
+           "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
            "Vector_double", "Vector_long_double", "Vector_string",
            "Vector_size_t", "value_types", "load_graph", "PropertyMap",
            "group_vector_property", "ungroup_vector_property",
@@ -1679,7 +1679,7 @@ class Graph(object):
         >>> assert(vlist == vlist2)
 
         """
-        return libcore.get_vertices(weakref.ref(self))
+        return libcore.get_vertices(self.__graph)
 
     def vertex(self, i, use_index=True, add_missing=False):
         """Return the vertex with index ``i``. If ``use_index=False``, the
@@ -1692,11 +1692,11 @@ class Graph(object):
         """
         vfilt = self.get_vertex_filter()
         if vfilt[0] is None or not use_index:
-            v = libcore.get_vertex(weakref.ref(self), int(i))
+            v = libcore.get_vertex(self.__graph, int(i))
         else:
             try:
                 self.set_vertex_filter(None)
-                v = libcore.get_vertex(weakref.ref(self), int(i))
+                v = libcore.get_vertex(self.__graph, int(i))
                 if v.is_valid() and vfilt[0][v] == vfilt[1]:
                     raise ValueError("Invalid vertex index: %d (filtered out)" % int(i))
             finally:
@@ -1725,7 +1725,7 @@ class Graph(object):
         if s is None or t is None:
             return None
         efilt = self.get_edge_filter()
-        edges = libcore.get_edge(weakref.ref(self), int(s), int(t), all_edges)
+        edges = libcore.get_edge(self.__graph, int(s), int(t), all_edges)
         if add_missing and len(edges) == 0:
             edges.append(self.add_edge(s, t))
         if all_edges:
@@ -1749,7 +1749,7 @@ class Graph(object):
            ordering.
 
         """
-        return libcore.get_edges(weakref.ref(self))
+        return libcore.get_edges(self.__graph)
 
     def add_vertex(self, n=1):
         """Add a vertex to the graph, and return it. If ``n != 1``, ``n``
@@ -1760,7 +1760,7 @@ class Graph(object):
             return (None for i in range(0, 0))
 
         self.__check_perms("add_vertex")
-        v = libcore.add_vertex(weakref.ref(self), n)
+        v = libcore.add_vertex(self.__graph, n)
 
         vfilt = self.get_vertex_filter()
         if vfilt[0] is not None:
@@ -1863,7 +1863,7 @@ class Graph(object):
 
         """
         self.__check_perms("add_edge")
-        e = libcore.add_edge(weakref.ref(self),
+        e = libcore.add_edge(self.__graph,
                              self.vertex(int(source), add_missing=add_missing),
                              self.vertex(int(target), add_missing=add_missing))
         efilt = self.get_edge_filter()
@@ -2816,30 +2816,17 @@ def value_types():
 
 # Vertex and Edge Types
 # =====================
-from .libgraph_tool_core import Vertex, Edge, EdgeBase
-
-Vertex.__doc__ = """Vertex descriptor.
-
-This class represents a vertex in a :class:`~graph_tool.Graph` instance.
-
-:class:`~graph_tool.Vertex` instances are hashable, and are convertible to
-integers, corresponding to its index (see :attr:`~graph_tool.Graph.vertex_index`).
-"""
-
+from .libgraph_tool_core import Vertex, Edge, VertexBase, EdgeBase
 
 def _out_neighbours(self):
     """Return an iterator over the out-neighbours."""
     for e in self.out_edges():
         yield e.target()
-Vertex.out_neighbours = _out_neighbours
-
 
 def _in_neighbours(self):
     """Return an iterator over the in-neighbours."""
     for e in self.in_edges():
         yield e.source()
-Vertex.in_neighbours = _in_neighbours
-
 
 def _all_edges(self):
     """Return an iterator over all edges (both in or out)."""
@@ -2847,8 +2834,6 @@ def _all_edges(self):
         yield e
     for e in self.in_edges():
         yield e
-Vertex.all_edges = _all_edges
-
 
 def _all_neighbours(self):
     """Return an iterator over all neighbours (both in or out)."""
@@ -2856,7 +2841,6 @@ def _all_neighbours(self):
         yield v
     for v in self.in_neighbours():
         yield v
-Vertex.all_neighbours = _all_neighbours
 
 def _in_degree(self, weight=None):
     """Return the in-degree of the vertex. If provided, ``weight`` should be a
@@ -2867,9 +2851,7 @@ def _in_degree(self, weight=None):
     if weight is None:
         return self.__in_degree()
     else:
-        return self.__weighted_in_degree(_prop("e", self.get_graph(), weight))
-
-Vertex.in_degree = _in_degree
+        return self.__weighted_in_degree(_prop("e", weight.get_graph(), weight))
 
 def _out_degree(self, weight=None):
     """Return the out-degree of the vertex. If provided, ``weight`` should be a
@@ -2880,23 +2862,73 @@ def _out_degree(self, weight=None):
     if weight is None:
         return self.__out_degree()
     else:
-        return self.__weighted_out_degree(_prop("e", self.get_graph(), weight))
-
-Vertex.out_degree = _out_degree
-
+        return self.__weighted_out_degree(_prop("e", weight.get_graph(), weight))
 
 def _vertex_repr(self):
     if not self.is_valid():
         return "<invalid Vertex object at 0x%x>" % (id(self))
     return "<Vertex object with index '%d' at 0x%x>" % (int(self), id(self))
-Vertex.__repr__ = _vertex_repr
 
-Vertex.__eq__ = lambda v1, v2 : int(v1) == (int(v2) if isinstance(v2, Vertex) else v2)
-Vertex.__ne__ = lambda v1, v2 : int(v1) != (int(v2) if isinstance(v2, Vertex) else v2)
-Vertex.__lt__ = lambda v1, v2 : int(v1) < (int(v2) if isinstance(v2, Vertex) else v2)
-Vertex.__gt__ = lambda v1, v2 : int(v1) > (int(v2) if isinstance(v2, Vertex) else v2)
-Vertex.__le__ = lambda v1, v2 : int(v1) <= (int(v2) if isinstance(v2, Vertex) else v2)
-Vertex.__ge__ = lambda v1, v2 : int(v1) >= (int(v2) if isinstance(v2, Vertex) else v2)
+_vertex_doc = """Vertex descriptor.
+
+
+This class represents a vertex in a :class:`~graph_tool.Graph` instance.
+
+:class:`~graph_tool.Vertex` instances are hashable, and are convertible to
+integers, corresponding to its index (see :attr:`~graph_tool.Graph.vertex_index`).
+"""
+
+def v_eq(v1, v2):
+    try:
+        return int(v1) == int(v2)
+    except TypeError:
+        return False
+
+def v_ne(v1, v2):
+    try:
+        return int(v1) != int(v2)
+    except TypeError:
+        return True
+
+def v_lt(v1, v2):
+    try:
+        return int(v1) < int(v2)
+    except TypeError:
+        return False
+
+def v_gt(v1, v2):
+    try:
+        return int(v1) > int(v2)
+    except TypeError:
+        return False
+
+def v_le(v1, v2):
+    try:
+        return int(v1) <= int(v2)
+    except TypeError:
+        return False
+
+def v_ge(v1, v2):
+    try:
+        return int(v1) >= int(v2)
+    except TypeError:
+        return False
+
+for Vertex in libcore.get_vlist():
+    Vertex.__doc__ = _vertex_doc
+    Vertex.out_neighbours = _out_neighbours
+    Vertex.in_neighbours = _in_neighbours
+    Vertex.all_edges = _all_edges
+    Vertex.all_neighbours = _all_neighbours
+    Vertex.in_degree = _in_degree
+    Vertex.out_degree = _out_degree
+    Vertex.__repr__ = _vertex_repr
+    Vertex.__eq__ = v_eq
+    Vertex.__ne__ = v_ne
+    Vertex.__lt__ = v_lt
+    Vertex.__gt__ = v_gt
+    Vertex.__le__ = v_le
+    Vertex.__ge__ = v_ge
 
 _edge_doc = """Edge descriptor.
 
@@ -2906,27 +2938,10 @@ This class represents an edge in a :class:`~graph_tool.Graph`.
 tuple, which contains the source and target vertices.
 """
 
-def _edge_cmp(e1, e2):
-    te1, te2 = tuple(e1), tuple(e2)
-    g1 = e1.get_graph()
-    g2 = e2.get_graph()
-    if not g1.is_directed():
-        te1 = sorted(te1)
-    if not g2.is_directed():
-        te2 = sorted(te2)
-    te1 = (te1, g1.edge_index[e1])
-    te2 = (te2, g2.edge_index[e2])
-    if te1 < te2:
-        return -1
-    if te1 > te2:
-        return 1
-    return 0
-
 def _edge_iter(self):
     """Iterate over the source and target"""
-    for v in [self.source(), self.target()]:
+    for v in (self.source(), self.target()):
         yield v
-
 
 def _edge_repr(self):
     if not self.is_valid():
@@ -2935,49 +2950,32 @@ def _edge_repr(self):
     return ("<Edge object with source '%d' and target '%d'" +
             " at 0x%x>") % (int(self.source()), int(self.target()), id(self))
 
-
 # There are several edge classes... me must cycle through them all to modify
 # them.
 
-def init_edge_classes():
-    for directed in [True, False]:
-        for e_reversed in [True, False]:
-            for e_filtered in [True, False]:
-                for v_filtered in [True, False]:
-                    g = Graph(directed=directed)
-                    g.set_reversed(e_reversed)
-                    v = g.add_vertex()
-                    g.add_edge(v, v)
-                    if e_filtered:
-                        e_filter = g.new_edge_property("bool")
-                        e_filter.a = [1]
-                        g.set_edge_filter(e_filter)
-                    if v_filtered:
-                        v_filter = g.new_vertex_property("bool")
-                        v_filter.a = [1]
-                        g.set_vertex_filter(v_filter)
-                    e = next(g.edges())
-                    e.__class__.__repr__ = _edge_repr
-                    e.__class__.__iter__ = _edge_iter
-                    e.__class__.__doc__ = _edge_doc
+for Edge in libcore.get_elist():
+    Edge.__repr__ = _edge_repr
+    Edge.__iter__ = _edge_iter
+    Edge.__doc__ = _edge_doc
 
-                    e.__class__.__eq__ = lambda e1, e2 : _edge_cmp(e1, e2) == 0
-                    e.__class__.__ne__ = lambda e1, e2 : _edge_cmp(e1, e2) != 0
-                    e.__class__.__lt__ = lambda e1, e2 : _edge_cmp(e1, e2) < 0
-                    e.__class__.__gt__ = lambda e1, e2 : _edge_cmp(e1, e2) > 0
-                    e.__class__.__le__ = lambda e1, e2 : _edge_cmp(e1, e2) <= 0
-                    e.__class__.__ge__ = lambda e1, e2 : _edge_cmp(e1, e2) >= 0
-
-init_edge_classes()
-
-# some shenanigans to make it seem there is only a single edge class
+# some shenanigans to make it seem there is only a single edge and vertex class
 EdgeBase.__doc__ = Edge.__doc__
 EdgeBase.source = Edge.source
 EdgeBase.target = Edge.target
 EdgeBase.is_valid = Edge.is_valid
-EdgeBase.get_graph = Edge.get_graph
 Edge = EdgeBase
 Edge.__name__ = "Edge"
+
+VertexBase.__doc__ = Vertex.__doc__
+VertexBase.out_neighbours = Vertex.out_neighbours
+VertexBase.in_neighbours = Vertex.in_neighbours
+VertexBase.all_edges = Vertex.all_edges
+VertexBase.all_neighbours = Vertex.all_neighbours
+VertexBase.in_degree = Vertex.in_degree
+VertexBase.out_degree = Vertex.out_degree
+VertexBase.is_valid = Vertex.is_valid
+Vertex = VertexBase
+Vertex.__name__ = "Vertex"
 
 
 # Add convenience function to vector classes

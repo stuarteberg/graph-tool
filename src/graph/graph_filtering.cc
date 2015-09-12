@@ -67,34 +67,10 @@ const char * graph_tool::ActionNotFound::what () const throw ()
     return error.c_str();
 }
 
-// this function retrieves a graph view stored in graph_views, or stores one if
-// non-existent
-template <class Graph>
-typename std::remove_const<Graph>::type&
-retrieve_graph(vector<boost::any>& graph_views, Graph& init)
-{
-    typedef typename std::remove_const<Graph>::type g_t;
-    size_t index = boost::mpl::find<all_graph_views,g_t>::type::pos::value;
-    if (index >= graph_views.size())
-        graph_views.resize(index+1);
-    boost::any gview = graph_views[index];
-    std::shared_ptr<g_t>* gptr = any_cast<std::shared_ptr<g_t> >(&gview);
-    if (gptr == 0)
-    {
-        std::shared_ptr<g_t> new_g(new g_t(init));
-        gptr = &new_g;
-        gview = new_g;
-        graph_views[index] = gview;
-    }
-    return **gptr;
-}
-
-
 // this will check whether a graph is reversed and return the proper view
 // encapsulated
 template <class Graph>
-boost::any check_reverse(const Graph &g, bool reverse,
-                         vector<boost::any>& graph_views)
+boost::any check_reverse(const Graph& g, bool reverse, GraphInterface& gi)
 {
     if (reverse)
     {
@@ -104,26 +80,26 @@ boost::any check_reverse(const Graph &g, bool reverse,
             reverse_graph_t;
 
         reverse_graph_t rg(g);
-        return &retrieve_graph(graph_views, rg);
+        return retrieve_graph_view(gi, rg).get();
     }
 
-    return boost::any(&const_cast<Graph&>(g));
+    return boost::any(const_cast<Graph*>(&g));
 };
 
 // this will check whether a graph is directed and return the proper view
 // encapsulated
 template <class Graph>
 boost::any check_directed(const Graph &g, bool reverse, bool directed,
-                          vector<boost::any>& graph_views)
+                          GraphInterface& gi)
 {
     if (directed)
     {
-        return check_reverse(g, reverse, graph_views);
+        return check_reverse(g, reverse, gi);
     }
 
     typedef UndirectedAdaptor<Graph> ug_t;
     ug_t ug(g);
-    return &retrieve_graph(graph_views, ug);
+    return retrieve_graph_view(gi, ug).get();
 };
 
 // this will check whether a graph is filtered and return the proper view
@@ -133,7 +109,7 @@ boost::any
 check_filtered(const Graph &g, const EdgeFilter& edge_filter,
                const bool& e_invert, bool e_active, size_t max_eindex,
                const VertexFilter& vertex_filter, const bool& v_invert,
-               bool v_active, vector<boost::any>& graph_views, bool reverse,
+               bool v_active, GraphInterface& gi, bool reverse,
                bool directed)
 {
 #ifndef NO_GRAPH_FILTERING
@@ -152,20 +128,20 @@ check_filtered(const Graph &g, const EdgeFilter& edge_filter,
         typedef filtered_graph<Graph, MaskFilter<EdgeFilter>,
                                MaskFilter<VertexFilter> > fg_t;
         fg_t init(g, e_filter, v_filter);
-        fg_t& fg = retrieve_graph(graph_views, init);
+        fg_t& fg = *retrieve_graph_view(gi, init).get();
         fg.m_edge_pred = e_filter;
         fg.m_vertex_pred = v_filter;
-        return check_directed(fg, reverse, directed, graph_views);
+        return check_directed(fg, reverse, directed, gi);
     }
     else
     {
         if (v_active)
             throw GraphException("Vertex filter is active but edge filter is not. This is a bug.");
 
-        return check_directed(g, reverse, directed, graph_views);
+        return check_directed(g, reverse, directed, gi);
     }
 #else
-    return check_directed(g, reverse, directed, graph_views);
+    return check_directed(g, reverse, directed, gi);
 #endif
 }
 
@@ -177,7 +153,7 @@ boost::any GraphInterface::GetGraphView() const
                        _edge_filter_active, _mg->get_last_index(),
                        _vertex_filter_map, _vertex_filter_invert,
                        _vertex_filter_active,
-                       const_cast<vector<boost::any>&>(_graph_views), _reversed,
+                       const_cast<GraphInterface&>(*this), _reversed,
                        _directed);
     return graph;
 }

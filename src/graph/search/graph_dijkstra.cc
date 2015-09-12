@@ -33,56 +33,61 @@ using namespace graph_tool;
 class DJKVisitorWrapper
 {
 public:
-    DJKVisitorWrapper(python::object& gi, python::object vis)
+    DJKVisitorWrapper(GraphInterface& gi, python::object vis)
         : _gi(gi), _vis(vis) {}
 
     template <class Vertex, class Graph>
-    void initialize_vertex(Vertex u, const Graph&)
+    void initialize_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("initialize_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
-    void discover_vertex(Vertex u, const Graph&)
+    void discover_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("discover_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
-    void examine_vertex(Vertex u, const Graph&)
+    void examine_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("examine_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("examine_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Edge, class Graph>
-    void examine_edge(Edge e, const Graph&)
+    void examine_edge(Edge e, Graph& g)
     {
-        _vis.attr("examine_edge")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("examine_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_relaxed(Edge e, const Graph&)
+    void edge_relaxed(Edge e, Graph& g)
     {
-        _vis.attr("edge_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("edge_relaxed")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
-    void edge_not_relaxed(Edge e, const Graph&)
+    void edge_not_relaxed(Edge e, Graph& g)
     {
-        _vis.attr("edge_not_relaxed")
-            (PythonEdge<Graph>(_gi, e));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("edge_not_relaxed")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Vertex, class Graph>
-    void finish_vertex(Vertex u, const Graph&)
+    void finish_vertex(Vertex u, Graph& g)
     {
-        _vis.attr("finish_vertex")(PythonVertex(_gi, u));
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
     }
 
 private:
-    python::object _gi, _vis;
+    GraphInterface& _gi;
+    boost::python::object _vis;
 };
 
 
@@ -142,16 +147,15 @@ struct do_djk_search
 };
 
 
-void dijkstra_search(GraphInterface& g, python::object gi, size_t source,
-                     boost::any dist_map, boost::any pred_map,
-                     boost::any weight, python::object vis, python::object cmp,
-                     python::object cmb, python::object zero,
-                     python::object inf)
+void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
+                     boost::any pred_map, boost::any weight, python::object vis,
+                     python::object cmp, python::object cmb,
+                     python::object zero, python::object inf)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
         (g, std::bind(do_djk_search(), placeholders::_1, source, 
                       placeholders::_2, pred_map, weight,
-                      DJKVisitorWrapper(gi, vis), DJKCmp(cmp), DJKCmb(cmb),
+                      DJKVisitorWrapper(g, vis), DJKCmp(cmp), DJKCmb(cmb),
                       make_pair(zero, inf)),
          writable_vertex_properties())(dist_map);
 }

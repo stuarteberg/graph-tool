@@ -21,6 +21,7 @@
 
 #include <boost/python.hpp>
 #include <boost/lambda/bind.hpp>
+#include <functional>
 
 using namespace std;
 using namespace boost;
@@ -56,47 +57,59 @@ struct export_vertex_property_map
             ::type return_policy;
 
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
-                                      boost::python::no_init);
+                                             boost::python::no_init);
         pclass.def("__hash__", &pmap_t::GetHash)
             .def("value_type", &pmap_t::GetType)
-            .def("__getitem__", &pmap_t::template GetValue<PythonVertex>,
-                 return_policy())
-            .def("__setitem__", &pmap_t::template SetValue<PythonVertex>)
             .def("get_map", &pmap_t::GetMap)
             .def("get_dynamic_map", &pmap_t::GetDynamicMap)
             .def("get_array", &pmap_t::GetArray)
             .def("is_writable", &pmap_t::IsWritable);
+
+        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+                                      boost::mpl::quote1<std::add_const> >::type const_graph_views;
+        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+                                      boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
+        typedef boost::mpl::transform<const_graph_views,
+                                      boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
+        typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
+
+        boost::mpl::for_each<graph_views>(std::bind(dispatch_access<PropertyMap>(),
+                                                    std::placeholders::_1,
+                                                    std::ref(pclass), return_policy()));
     }
+
+    template <class PropertyMap>
+    struct dispatch_access
+    {
+        typedef PythonPropertyMap<PropertyMap> pmap_t;
+
+        template <class Graph, class PClass, class ReturnPolicy>
+        void operator()(Graph*, PClass& pclass, ReturnPolicy return_policy) const
+        {
+            pclass
+                .def("__getitem__", &pmap_t::template GetValue<PythonVertex<Graph>>,
+                     return_policy)
+                .def("__setitem__", &pmap_t::template SetValue<PythonVertex<Graph>>);
+        }
+    };
 };
 
 struct export_edge_property_map
 {
     template <class PropertyMap>
-    struct export_access
+    struct dispatch_access
     {
         typedef PythonPropertyMap<PropertyMap> pmap_t;
-
-        export_access(boost::python::class_<pmap_t>& pclass)
-            : _pclass(pclass) {}
-
-        typedef typename boost::mpl::if_<
-            typename return_reference::apply<typename pmap_t::value_type>::type,
-            boost::python::return_internal_reference<>,
-            boost::python::return_value_policy<boost::python::return_by_value> >
-            ::type return_policy;
-
-        template <class Graph>
-        void operator()(Graph*) const
+        template <class Graph, class PClass, class ReturnPolicy>
+        void operator()(Graph*, PClass& pclass, ReturnPolicy return_policy) const
         {
-            _pclass
+            pclass
                 .def("__getitem__",
                      &pmap_t::template GetValue<PythonEdge<Graph> >,
-                     return_policy())
+                     return_policy)
                 .def("__setitem__",
                      &pmap_t::template SetValue<PythonEdge<Graph> >);
         }
-
-        boost::python::class_<PythonPropertyMap<PropertyMap> >& _pclass;
     };
 
     template <class PropertyMap>
@@ -118,6 +131,12 @@ struct export_edge_property_map
                            ::type::pos::value];
         string class_name = "EdgePropertyMap<" + type_name + ">";
 
+        typedef typename boost::mpl::if_<
+            typename return_reference::apply<typename pmap_t::value_type>::type,
+            boost::python::return_internal_reference<>,
+            boost::python::return_value_policy<boost::python::return_by_value> >
+            ::type return_policy;
+
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
                                              boost::python::no_init);
         pclass.def("__hash__", &pmap_t::GetHash)
@@ -129,9 +148,16 @@ struct export_edge_property_map
 
 
         typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
-                                      boost::mpl::quote1<std::add_pointer> >::type graph_views;
+                                      boost::mpl::quote1<std::add_const> >::type const_graph_views;
+        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+                                      boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
+        typedef boost::mpl::transform<const_graph_views,
+                                      boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
+        typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
 
-        boost::mpl::for_each<graph_views>(export_access<PropertyMap>(pclass));
+        boost::mpl::for_each<graph_views>(std::bind(dispatch_access<PropertyMap>(),
+                                                    std::placeholders::_1,
+                                                    std::ref(pclass), return_policy()));
     }
 };
 

@@ -29,12 +29,11 @@ using namespace graph_tool;
 
 // find vertices which match a certain (inclusive) property range
 python::list
-find_vertex_range(python::object g, GraphInterface::deg_t deg,
+find_vertex_range(GraphInterface& gi, GraphInterface::deg_t deg,
                   python::tuple range)
 {
-    GraphInterface& gi = python::extract<GraphInterface&>(g().attr("_Graph__graph"));
     python::list ret;
-    run_action<>()(gi, std::bind(find_vertices(), placeholders::_1, std::ref(g),
+    run_action<>()(gi, std::bind(find_vertices(), placeholders::_1, std::ref(gi),
                                  placeholders::_2, std::ref(range),
                                  std::ref(ret)),
                    all_selectors())(degree_selector(deg));
@@ -43,10 +42,8 @@ find_vertex_range(python::object g, GraphInterface::deg_t deg,
 
 // find edges which match a certain (inclusive) property range
 python::list
-find_edge_range(python::object g, boost::any eprop,
-                python::tuple range)
+find_edge_range(GraphInterface& gi, boost::any eprop, python::tuple range)
 {
-    GraphInterface& gi = python::extract<GraphInterface&>(g().attr("_Graph__graph"));
     python::list ret;
     typedef property_map_types::apply<value_types,
                                       GraphInterface::edge_index_map_t,
@@ -55,7 +52,7 @@ find_edge_range(python::object g, boost::any eprop,
 
     GraphInterface::edge_index_map_t eindex =
         any_cast<GraphInterface::edge_index_map_t>(gi.GetEdgeIndex());
-    run_action<>()(gi, std::bind(find_edges(), placeholders::_1, std::ref(g), eindex,
+    run_action<>()(gi, std::bind(find_edges(), placeholders::_1, std::ref(gi), eindex,
                                  placeholders::_2, std::ref(range), std::ref(ret)),
                    all_edge_props())(eprop);
     return ret;
