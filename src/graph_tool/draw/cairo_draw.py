@@ -402,7 +402,10 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                 try:
                     vrange = [val.fa.min(), val.fa.max()]
                 except ValueError:
-                    val_ = val.copy("int64_t")
+                    #vertex index
+                    vrange = [int(g.vertex(0, use_index=False)),
+                              int(g.vertex(g.num_vertices() - 1,
+                                           use_index=False))]
                 cnorm = matplotlib.colors.Normalize(vmin=vrange[0],
                                                     vmax=vrange[1])
                 g = val.get_graph()
