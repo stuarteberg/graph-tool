@@ -43,7 +43,7 @@ public:
     {
         typename Hist::point_t p;
         p[0] = deg(v, g);
-        hist.PutValue(p);
+        hist.put_value(p);
     }
 };
 
@@ -61,7 +61,7 @@ public:
         for(e = e_begin; e != e_end; ++e)
         {
             p[0] = eprop[*e];
-            hist.PutValue(p);
+            hist.put_value(p);
         }
     }
 };
@@ -129,12 +129,12 @@ struct get_histogram
                 continue;
             filler(g, v, deg, s_hist);
         }
-        s_hist.Gather();
+        s_hist.gather();
 
-        bin_list = hist.GetBins();
+        bin_list = hist.get_bins();
         python::object ret_bins = wrap_vector_owned(bin_list[0]);
         _ret_bins = ret_bins;
-        _hist = wrap_multi_array_owned<size_t,1>(hist.GetArray());
+        _hist = wrap_multi_array_owned<size_t,1>(hist.get_array());
     }
     python::object& _hist;
     const vector<long double>& _bins;

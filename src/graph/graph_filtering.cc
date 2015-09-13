@@ -146,7 +146,7 @@ check_filtered(const Graph &g, const EdgeFilter& edge_filter,
 }
 
 // gets the correct graph view at run time
-boost::any GraphInterface::GetGraphView() const
+boost::any GraphInterface::get_graph_view() const
 {
     boost::any graph =
         check_filtered(*_mg, _edge_filter_map, _edge_filter_invert,
@@ -159,25 +159,25 @@ boost::any GraphInterface::GetGraphView() const
 }
 
 // these test whether or not the vertex and edge filters are active
-bool GraphInterface::IsVertexFilterActive() const
+bool GraphInterface::is_vertex_filter_active() const
 { return _vertex_filter_active; }
 
-bool GraphInterface::IsEdgeFilterActive() const
+bool GraphInterface::is_edge_filter_active() const
 { return _edge_filter_active; }
 
 
 // this function will reindex all the edges, in the order in which they are
 // found
-void GraphInterface::ReIndexEdges()
+void GraphInterface::re_index_edges()
 {
     _mg->reindex_edges();
 }
 
 // this will definitively remove all the edges from the graph, which are being
 // currently filtered out. This will also disable the edge filter
-void GraphInterface::PurgeEdges()
+void GraphInterface::purge_edges()
 {
-    if (!IsEdgeFilterActive())
+    if (!is_edge_filter_active())
         return;
 
     MaskFilter<edge_filter_t> filter(_edge_filter_map, _edge_filter_invert);
@@ -199,9 +199,9 @@ void GraphInterface::PurgeEdges()
 
 // this will definitively remove all the vertices from the graph, which are
 // being currently filtered out. This will also disable the vertex filter
-void GraphInterface::PurgeVertices(boost::any aold_index)
+void GraphInterface::purge_vertices(boost::any aold_index)
 {
-    if (!IsVertexFilterActive())
+    if (!is_vertex_filter_active())
         return;
 
     typedef property_map_type::apply<int32_t,
@@ -241,7 +241,7 @@ void GraphInterface::PurgeVertices(boost::any aold_index)
     }
 }
 
-void GraphInterface::SetVertexFilterProperty(boost::any property, bool invert)
+void GraphInterface::set_vertex_filter_property(boost::any property, bool invert)
 {
 #ifdef NO_GRAPH_FILTERING
     throw GraphException("graph filtering was not enabled at compile time");
@@ -262,7 +262,7 @@ void GraphInterface::SetVertexFilterProperty(boost::any property, bool invert)
     }
 }
 
-void GraphInterface::SetEdgeFilterProperty(boost::any property, bool invert)
+void GraphInterface::set_edge_filter_property(boost::any property, bool invert)
 {
 #ifdef NO_GRAPH_FILTERING
     throw GraphException("graph filtering was not enabled at compile time");

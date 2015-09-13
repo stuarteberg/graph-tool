@@ -32,7 +32,7 @@ void do_kcore_decomposition(GraphInterface& gi, boost::any prop,
                             GraphInterface::deg_t deg)
 {
     run_action<>()(gi, std::bind(kcore_decomposition(), placeholders::_1,
-                                 gi.GetVertexIndex(), placeholders::_2,
+                                 gi.get_vertex_index(), placeholders::_2,
                                  placeholders::_3),
                    writable_vertex_scalar_properties(),
                    degree_selectors())(prop, degree_selector(deg));

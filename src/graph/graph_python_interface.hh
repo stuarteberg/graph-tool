@@ -93,7 +93,7 @@ public:
     PythonVertex(std::shared_ptr<Graph> g, GraphInterface::vertex_t v):
         _g(g), _v(v) {}
 
-    bool IsValid() const
+    bool is_valid() const
     {
         std::shared_ptr<Graph> gp(_g);
         Graph* g = gp.get();
@@ -103,14 +103,14 @@ public:
                 (_v < num_vertices(*g)));
     }
 
-    void CheckValid() const
+    void check_valid() const
     {
-        if (!IsValid())
+        if (!is_valid())
             throw ValueException("invalid vertex descriptor: " +
                                  boost::lexical_cast<string>(_v));
     }
 
-    GraphInterface::vertex_t GetDescriptor() const
+    GraphInterface::vertex_t get_descriptor() const
     {
         return _v;
     }
@@ -141,9 +141,9 @@ public:
         }
     };
 
-    size_t GetInDegree() const
+    size_t get_in_degree() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> gp(_g);
         Graph& g = *gp.get();
         size_t in_deg;
@@ -151,7 +151,7 @@ public:
         return in_deg;
     }
 
-    boost::python::object GetWeightedInDegree(boost::any pmap) const
+    boost::python::object get_weighted_in_degree(boost::any pmap) const
     {
         std::shared_ptr<Graph> gp(_g);
         Graph& g = *gp.get();
@@ -168,9 +168,9 @@ public:
         return in_deg;
     }
 
-    size_t GetOutDegree() const
+    size_t get_out_degree() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> gp(_g);
         Graph& g = *gp.get();
         size_t out_deg;
@@ -179,7 +179,7 @@ public:
     }
 
 
-    boost::python::object GetWeightedOutDegree(boost::any pmap) const
+    boost::python::object get_weighted_out_degree(boost::any pmap) const
     {
         std::shared_ptr<Graph> gp(_g);
         Graph& g = *gp.get();
@@ -197,21 +197,21 @@ public:
     }
 
     // provide iterator support for out_edges
-    boost::python::object OutEdges() const
+    boost::python::object out_edges() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> pg(_g);
         Graph& g = *pg;
         typedef typename boost::graph_traits<Graph>::out_edge_iterator
             out_edge_iterator;
         return boost::python::object(PythonIterator<Graph,PythonEdge<Graph>,
                                                     out_edge_iterator>
-                                     (pg, out_edges(_v, g)));
+                                     (pg, boost::out_edges(_v, g)));
     }
 
-    boost::python::object InEdges() const
+    boost::python::object in_edges() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> pg(_g);
         Graph& g = *pg;
         typedef typename in_edge_iteratorS<Graph>::type
@@ -221,29 +221,29 @@ public:
                                      (pg, in_edge_iteratorS<Graph>::get_edges(_v, g)));
     }
 
-    std::string GetString() const
+    std::string get_string() const
     {
-        CheckValid();
+        check_valid();
         return boost::lexical_cast<std::string>(_v);
     }
 
-    size_t GetHash() const
+    size_t get_hash() const
     {
         return std::hash<size_t>()(_v);
     }
 
-    size_t GetIndex() const
+    size_t get_index() const
     {
         return _v;
     }
 
-    size_t GetGraphPtr() const
+    size_t get_graph_ptr() const
     {
         std::shared_ptr<Graph> pg(_g);
         return size_t(pg.get());
     }
 
-    std::string GetGraphType() const
+    std::string get_graph_type() const
     {
         using boost::python::detail::gcc_demangle;
         return gcc_demangle(typeid(Graph).name());
@@ -279,7 +279,7 @@ public:
     PythonEdge(std::shared_ptr<Graph> g, edge_descriptor e)
         : _g(g), _e(e) {}
 
-    bool IsValid() const
+    bool is_valid() const
     {
         std::shared_ptr<Graph> gp(_g);
         Graph* g = gp.get();
@@ -295,36 +295,36 @@ public:
                 (t < num_vertices(*g)));
     }
 
-    void CheckValid() const
+    void check_valid() const
     {
-        if (!IsValid())
+        if (!is_valid())
             throw ValueException("invalid edge descriptor");
     }
 
-    GraphInterface::edge_t GetDescriptor() const
+    GraphInterface::edge_t get_descriptor() const
     {
         return _e;
     }
 
-    PythonVertex<Graph> GetSource() const
+    PythonVertex<Graph> get_source() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> pg(_g);
         Graph& g = *pg;
         return PythonVertex<Graph>(pg, source(_e, g));
     }
 
-    PythonVertex<Graph> GetTarget() const
+    PythonVertex<Graph> get_target() const
     {
-        CheckValid();
+        check_valid();
         std::shared_ptr<Graph> pg(_g);
         Graph& g = *pg;
         return PythonVertex<Graph>(pg, target(_e, g));
     }
 
-    std::string GetString() const
+    std::string get_string() const
     {
-        CheckValid();
+        check_valid();
         Graph& g = *std::shared_ptr<Graph>(_g);
         auto s = source(_e, g);
         auto t = target(_e, g);
@@ -332,21 +332,21 @@ public:
             + boost::lexical_cast<std::string>(t) + ")";
     }
 
-    size_t GetHash() const
+    size_t get_hash() const
     {
-        CheckValid();
+        check_valid();
         Graph& g = *std::shared_ptr<Graph>(_g);
         auto eindex = get(boost::edge_index_t(), g);
         return std::hash<size_t>()(eindex[_e]);
     }
 
-    size_t GetGraphPtr() const
+    size_t get_graph_ptr() const
     {
         std::shared_ptr<Graph> pg(_g);
         return site_t(pg.get());
     }
 
-    std::string GetGraphType() const
+    std::string get_graph_type() const
     {
         using boost::python::detail::gcc_demangle;
         return gcc_demangle(typeid(Graph).name());
@@ -359,8 +359,8 @@ public:
     template <class OGraph>
     bool operator<(const PythonEdge<OGraph>& other)  const
     {
-        CheckValid();
-        other.CheckValid();
+        check_valid();
+        other.check_valid();
         Graph& g = *std::shared_ptr<Graph>(_g);
         OGraph& og = *std::shared_ptr<OGraph>(other._g);
         auto s = source(_e, g);
@@ -431,43 +431,43 @@ public:
         value_type>::type reference;
 
     template <class PythonDescriptor>
-    reference GetValue(const PythonDescriptor& key)
+    reference get_value(const PythonDescriptor& key)
     {
-        key.CheckValid();
-        return get(_pmap, key.GetDescriptor());
+        key.check_valid();
+        return get(_pmap, key.get_descriptor());
     }
 
     // in this case, val should be a copy, not a reference. This is to avoid a
     // problem with vector-valued property maps
     template <class PythonDescriptor>
-    void SetValue(const PythonDescriptor& key, value_type val)
+    void set_value(const PythonDescriptor& key, value_type val)
     {
-        set_value(key, val,
-                  std::is_convertible<typename boost::property_traits<PropertyMap>::category,
-                                      boost::writable_property_map_tag>());
+        set_value_dispatch(key, val,
+                           std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                               boost::writable_property_map_tag>());
     }
 
     template <class PythonDescriptor>
-    void set_value(const PythonDescriptor& key, const value_type& val,
-                   std::true_type)
+    void set_value_dispatch(const PythonDescriptor& key, const value_type& val,
+                            std::true_type)
     {
-        key.CheckValid();
-        put(_pmap, key.GetDescriptor(), val);
+        key.check_valid();
+        put(_pmap, key.get_descriptor(), val);
     }
 
     template <class PythonDescriptor>
-    void set_value(const PythonDescriptor&, const value_type&,
-                   std::false_type)
+    void set_value_dispatch(const PythonDescriptor&, const value_type&,
+                            std::false_type)
     {
         throw ValueException("property is read-only");
     }
 
-    size_t GetHash() const
+    size_t get_hash() const
     {
         return std::hash<size_t>()(size_t(this));
     }
 
-    std::string GetType() const
+    std::string get_type() const
     {
         using boost::python::detail::gcc_demangle;
         if (std::is_same<typename boost::mpl::find<value_types,value_type>::type,
@@ -478,19 +478,19 @@ public:
                                                value_type>::type::pos::value];
     }
 
-    boost::any GetMap() const
+    boost::any get_map() const
     {
         return _pmap;
     }
 
-    boost::any GetDynamicMap() const
+    boost::any get_dynamic_map() const
     {
         return (boost::dynamic_property_map*)
             (new boost::detail::dynamic_property_map_adaptor<PropertyMap>
              (_pmap));
     }
 
-    boost::python::object GetArray(size_t size)
+    boost::python::object get_array(size_t size)
     {
         typedef typename boost::mpl::or_<
             typename boost::mpl::or_<
@@ -501,21 +501,21 @@ public:
             typename boost::mpl::not_<
                 typename boost::mpl::has_key<numpy_types, value_type>::type >
             ::type>::type isnt_vector_map;
-        return get_array(size, isnt_vector_map());
+        return get_array_dispatch(size, isnt_vector_map());
     }
 
-    boost::python::object get_array(size_t size, boost::mpl::bool_<false>)
+    boost::python::object get_array_dispatch(size_t size, boost::mpl::bool_<false>)
     {
         _pmap.reserve(size);
         return wrap_vector_not_owned(_pmap.get_storage());
     }
 
-    boost::python::object get_array(size_t, boost::mpl::bool_<true>)
+    boost::python::object get_array_dispatch(size_t, boost::mpl::bool_<true>)
     {
         return boost::python::object();
     }
 
-    bool IsWritable() const
+    bool is_writable() const
     {
         return std::is_convertible<typename boost::property_traits<PropertyMap>::category,
                                    boost::writable_property_map_tag>::value;
@@ -577,12 +577,12 @@ class OStream
 public:
     OStream(std::ostream& s): _s(s) {}
 
-    void Write(const std::string& s, size_t n)
+    void write(const std::string& s, size_t n)
     {
         _s.write(s.c_str(), long(n));
     }
 
-    void Flush()
+    void flush()
     {
         _s.flush();
     }
@@ -596,7 +596,7 @@ class IStream
 public:
     IStream(std::istream& s): _s(s) {}
 
-    boost::python::object Read(size_t n)
+    boost::python::object read(size_t n)
     {
         std::string buf;
         buf.resize(n);

@@ -82,7 +82,7 @@ void extended_clustering(GraphInterface& g, boost::python::list props)
 
     boost::any vprop =
         prop_vector<writable_vertex_scalar_properties>()
-        (cmaps, num_vertices(g.GetGraph()));
+        (cmaps, num_vertices(g.get_graph()));
     if (vprop.empty())
         throw ValueException("all vertex properties must be of the same"
                              " floating point type");
@@ -93,7 +93,7 @@ void extended_clustering(GraphInterface& g, boost::python::list props)
 
     run_action<>()
         (g, std::bind<void>(get_extended_clustering(), placeholders::_1,
-                            any_cast<GraphInterface::vertex_index_map_t>(g.GetVertexIndex()),
+                            any_cast<GraphInterface::vertex_index_map_t>(g.get_vertex_index()),
                             placeholders::_2),
          properties_vector()) (vprop);
 }

@@ -68,7 +68,7 @@ long double hits(GraphInterface& g, boost::any w, boost::any x, boost::any y,
 
     long double eig = 0;
     run_action<>()
-        (g, std::bind(get_hits_dispatch(), placeholders::_1, g.GetVertexIndex(),
+        (g, std::bind(get_hits_dispatch(), placeholders::_1, g.get_vertex_index(),
                       placeholders::_2,  placeholders::_3, y, epsilon, max_iter,
                       std::ref(eig)),
          weight_props_t(),

@@ -52,10 +52,10 @@ GraphInterface::~GraphInterface()
 
 // this will get the number of vertices, either the "soft" O(1) way, or the hard
 // O(V) way, which is necessary if the graph is filtered
-size_t GraphInterface::GetNumberOfVertices(bool filtered)
+size_t GraphInterface::get_num_vertices(bool filtered)
 {
     size_t n = 0;
-    if (filtered && IsVertexFilterActive())
+    if (filtered && is_vertex_filter_active())
         run_action<>()(*this, lambda::var(n) =
                        lambda::bind<size_t>(HardNumVertices(),lambda::_1))();
     else
@@ -66,11 +66,11 @@ size_t GraphInterface::GetNumberOfVertices(bool filtered)
 // this will get the number of edges, either the "soft" O(E) way, or the hard
 // O(E) way, which is necessary if the graph is filtered. Both cases are of
 // linear complexity, since num_edges() is O(E) in Boost's adjacency_list
-size_t GraphInterface::GetNumberOfEdges(bool filtered)
+size_t GraphInterface::get_num_edges(bool filtered)
 {
     using namespace boost::lambda;
     size_t n = 0;
-    if (filtered && (IsEdgeFilterActive() || IsVertexFilterActive()))
+    if (filtered && (is_edge_filter_active() || is_vertex_filter_active()))
         run_action<>()(*this, lambda::var(n) =
                        lambda::bind<size_t>(HardNumEdges(),lambda::_1))();
     else
@@ -94,12 +94,12 @@ struct clear_vertices
     }
 };
 
-void GraphInterface::Clear()
+void GraphInterface::clear()
 {
     run_action<>()(*this, std::bind(clear_vertices(), placeholders::_1))();
 }
 
-struct clear_edges
+struct do_clear_edges
 {
     template <class Graph>
     void operator()(Graph& g) const
@@ -109,7 +109,7 @@ struct clear_edges
     }
 };
 
-void GraphInterface::ClearEdges()
+void GraphInterface::clear_edges()
 {
-    run_action<>()(*this, std::bind(clear_edges(), placeholders::_1))();
+    run_action<>()(*this, std::bind(do_clear_edges(), placeholders::_1))();
 }

@@ -120,14 +120,14 @@ struct get_sampled_distance_histogram
                     dist_map[*v2] != numeric_limits<val_type>::max())
                 {
                     point[0] = dist_map[*v2];
-                    s_hist.PutValue(point);
+                    s_hist.put_value(point);
                 }
         }
-        s_hist.Gather();
+        s_hist.gather();
 
         python::list ret;
-        ret.append(wrap_multi_array_owned<size_t,1>(hist.GetArray()));
-        ret.append(wrap_vector_owned<val_type>(hist.GetBins()[0]));
+        ret.append(wrap_multi_array_owned<size_t,1>(hist.get_array()));
+        ret.append(wrap_vector_owned<val_type>(hist.get_bins()[0]));
         phist = ret;
     }
 

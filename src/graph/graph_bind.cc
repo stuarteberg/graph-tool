@@ -440,37 +440,37 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     class_<GraphInterface>("GraphInterface", init<>())
         .def(init<GraphInterface,bool,boost::python::object,
                   boost::python::object, boost::python::object>())
-        .def("GetNumberOfVertices", &GraphInterface::GetNumberOfVertices)
-        .def("GetNumberOfEdges", &GraphInterface::GetNumberOfEdges)
-        .def("SetDirected", &GraphInterface::SetDirected)
-        .def("GetDirected", &GraphInterface::GetDirected)
-        .def("SetReversed", &GraphInterface::SetReversed)
-        .def("GetReversed", &GraphInterface::GetReversed)
-        .def("SetKeepEpos", &GraphInterface::SetKeepEpos)
-        .def("GetKeepEpos", &GraphInterface::GetKeepEpos)
-        .def("SetVertexFilterProperty",
-             &GraphInterface::SetVertexFilterProperty)
-        .def("IsVertexFilterActive", &GraphInterface::IsVertexFilterActive)
-        .def("SetEdgeFilterProperty",
-             &GraphInterface::SetEdgeFilterProperty)
-        .def("IsEdgeFilterActive", &GraphInterface::IsEdgeFilterActive)
-        .def("PurgeVertices",  &GraphInterface::PurgeVertices)
-        .def("PurgeEdges",  &GraphInterface::PurgeEdges)
-        .def("ShiftVertexProperty",  &GraphInterface::ShiftVertexProperty)
-        .def("MoveVertexProperty",  &GraphInterface::MoveVertexProperty)
-        .def("ReIndexVertexProperty",  &GraphInterface::ReIndexVertexProperty)
-        .def("WriteToFile", &GraphInterface::WriteToFile)
-        .def("ReadFromFile",&GraphInterface::ReadFromFile)
-        .def("DegreeMap", &GraphInterface::DegreeMap)
-        .def("Clear", &GraphInterface::Clear)
-        .def("ClearEdges", &GraphInterface::ClearEdges)
-        .def("GetVertexIndex", &GraphInterface::GetVertexIndex)
-        .def("GetEdgeIndex", &GraphInterface::GetEdgeIndex)
-        .def("GetMaxEdgeIndex", &GraphInterface::GetMaxEdgeIndex)
-        .def("ReIndexEdges", &GraphInterface::ReIndexEdges)
-        .def("GetGraphIndex", &GraphInterface::GetGraphIndex)
-        .def("CopyVertexProperty", &GraphInterface::CopyVertexProperty)
-        .def("CopyEdgeProperty", &GraphInterface::CopyEdgeProperty);
+        .def("get_num_vertices", &GraphInterface::get_num_vertices)
+        .def("get_num_edges", &GraphInterface::get_num_edges)
+        .def("set_directed", &GraphInterface::set_directed)
+        .def("get_directed", &GraphInterface::get_directed)
+        .def("set_reversed", &GraphInterface::set_reversed)
+        .def("get_reversed", &GraphInterface::get_reversed)
+        .def("set_keep_epos", &GraphInterface::set_keep_epos)
+        .def("get_keep_epos", &GraphInterface::get_keep_epos)
+        .def("set_vertex_filter_property",
+             &GraphInterface::set_vertex_filter_property)
+        .def("is_vertex_filter_active", &GraphInterface::is_vertex_filter_active)
+        .def("set_edge_filter_property",
+             &GraphInterface::set_edge_filter_property)
+        .def("is_edge_filter_active", &GraphInterface::is_edge_filter_active)
+        .def("purge_vertices",  &GraphInterface::purge_vertices)
+        .def("purge_edges",  &GraphInterface::purge_edges)
+        .def("shift_vertex_property",  &GraphInterface::shift_vertex_property)
+        .def("move_vertex_property",  &GraphInterface::move_vertex_property)
+        .def("re_index_vertex_property",  &GraphInterface::re_index_vertex_property)
+        .def("write_to_file", &GraphInterface::write_to_file)
+        .def("read_from_file",&GraphInterface::read_from_file)
+        .def("degree_map", &GraphInterface::degree_map)
+        .def("clear", &GraphInterface::clear)
+        .def("clear_edges", &GraphInterface::clear_edges)
+        .def("get_vertex_index", &GraphInterface::get_vertex_index)
+        .def("get_edge_index", &GraphInterface::get_edge_index)
+        .def("get_max_edge_index", &GraphInterface::get_max_edge_index)
+        .def("re_index_edges", &GraphInterface::re_index_edges)
+        .def("get_graph_index", &GraphInterface::get_graph_index)
+        .def("copy_vertex_property", &GraphInterface::copy_vertex_property)
+        .def("copy_edge_property", &GraphInterface::copy_edge_property);
 
     class_<GraphInterface::vertex_index_map_t>("vertex_index_map", no_init);
     class_<GraphInterface::edge_index_map_t>("edge_index_map", no_init);
@@ -507,9 +507,9 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     to_python_converter<py::str, scxx_to_python<py::str> >();
 #endif
 
-    class_<IStream>("IStream", no_init).def("Read", &IStream::Read);
-    class_<OStream>("OStream", no_init).def("Write", &OStream::Write).
-        def("Flush", &OStream::Flush);
+    class_<IStream>("IStream", no_init).def("read", &IStream::read);
+    class_<OStream>("OStream", no_init).def("write", &OStream::write).
+        def("flush", &OStream::flush);
     def("set_pickler", &set_pickler);
     def("set_unpickler", &set_unpickler);
 

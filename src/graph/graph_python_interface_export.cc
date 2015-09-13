@@ -58,12 +58,13 @@ struct export_vertex_property_map
 
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
                                              boost::python::no_init);
-        pclass.def("__hash__", &pmap_t::GetHash)
-            .def("value_type", &pmap_t::GetType)
-            .def("get_map", &pmap_t::GetMap)
-            .def("get_dynamic_map", &pmap_t::GetDynamicMap)
-            .def("get_array", &pmap_t::GetArray)
-            .def("is_writable", &pmap_t::IsWritable);
+        pclass
+            .def("__hash__", &pmap_t::get_hash)
+            .def("value_type", &pmap_t::get_type)
+            .def("get_map", &pmap_t::get_map)
+            .def("get_dynamic_map", &pmap_t::get_dynamic_map)
+            .def("get_array", &pmap_t::get_array)
+            .def("is_writable", &pmap_t::is_writable);
 
         typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
                                       boost::mpl::quote1<std::add_const> >::type const_graph_views;
@@ -87,9 +88,9 @@ struct export_vertex_property_map
         void operator()(Graph*, PClass& pclass, ReturnPolicy return_policy) const
         {
             pclass
-                .def("__getitem__", &pmap_t::template GetValue<PythonVertex<Graph>>,
+                .def("__getitem__", &pmap_t::template get_value<PythonVertex<Graph>>,
                      return_policy)
-                .def("__setitem__", &pmap_t::template SetValue<PythonVertex<Graph>>);
+                .def("__setitem__", &pmap_t::template set_value<PythonVertex<Graph>>);
         }
     };
 };
@@ -105,10 +106,10 @@ struct export_edge_property_map
         {
             pclass
                 .def("__getitem__",
-                     &pmap_t::template GetValue<PythonEdge<Graph> >,
+                     &pmap_t::template get_value<PythonEdge<Graph> >,
                      return_policy)
                 .def("__setitem__",
-                     &pmap_t::template SetValue<PythonEdge<Graph> >);
+                     &pmap_t::template set_value<PythonEdge<Graph> >);
         }
     };
 
@@ -139,12 +140,12 @@ struct export_edge_property_map
 
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
                                              boost::python::no_init);
-        pclass.def("__hash__", &pmap_t::GetHash)
-            .def("value_type", &pmap_t::GetType)
-            .def("get_map", &pmap_t::GetMap)
-            .def("get_dynamic_map", &pmap_t::GetDynamicMap)
-            .def("get_array", &pmap_t::GetArray)
-            .def("is_writable", &pmap_t::IsWritable);
+        pclass.def("__hash__", &pmap_t::get_hash)
+            .def("value_type", &pmap_t::get_type)
+            .def("get_map", &pmap_t::get_map)
+            .def("get_dynamic_map", &pmap_t::get_dynamic_map)
+            .def("get_array", &pmap_t::get_array)
+            .def("is_writable", &pmap_t::is_writable);
 
 
         typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
@@ -181,15 +182,15 @@ struct export_graph_property_map
 
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
                                              boost::python::no_init);
-        pclass.def("__hash__", &pmap_t::GetHash)
-            .def("value_type", &pmap_t::GetType)
-            .def("__getitem__", &pmap_t::template GetValue<GraphInterface>,
+        pclass.def("__hash__", &pmap_t::get_hash)
+            .def("value_type", &pmap_t::get_type)
+            .def("__getitem__", &pmap_t::template get_value<GraphInterface>,
                  return_policy())
-            .def("__setitem__", &pmap_t::template SetValue<GraphInterface>)
-            .def("get_map", &pmap_t::GetMap)
-            .def("get_dynamic_map", &pmap_t::GetDynamicMap)
-            .def("get_array", &pmap_t::GetArray)
-            .def("is_writable", &pmap_t::IsWritable);
+            .def("__setitem__", &pmap_t::template set_value<GraphInterface>)
+            .def("get_map", &pmap_t::get_map)
+            .def("get_dynamic_map", &pmap_t::get_dynamic_map)
+            .def("get_array", &pmap_t::get_array)
+            .def("is_writable", &pmap_t::is_writable);
     }
 };
 

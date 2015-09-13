@@ -264,5 +264,5 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
                        placeholders::_3, beta, cts, is_tree, max_depth),
          get_pointers::apply<graph_tool::detail::always_directed>::type(),
          vertex_scalar_vector_properties())
-        (tgi.GetGraphView(), otpos);
+        (tgi.get_graph_view(), otpos);
 }

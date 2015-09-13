@@ -126,26 +126,26 @@ struct graph_views:
     boost::mpl::transform<graph_tool::detail::always_directed_never_reversed,
                           boost::mpl::quote1<std::add_pointer> >::type {};
 
-void GraphInterface::CopyVertexProperty(const GraphInterface& src,
-                                        boost::any prop_src,
-                                        boost::any prop_tgt)
+void GraphInterface::copy_vertex_property(const GraphInterface& src,
+                                          boost::any prop_src,
+                                          boost::any prop_tgt)
 {
     run_action<>()
         (*this, std::bind(copy_property<vertex_selector,vertex_properties>(),
                           std::placeholders::_1, std::placeholders::_2,
                           std::placeholders::_3, prop_src),
          graph_views(), writable_vertex_properties())
-        (src.GetGraphView(), prop_tgt);
+        (src.get_graph_view(), prop_tgt);
 }
 
-void GraphInterface::CopyEdgeProperty(const GraphInterface& src,
-                                      boost::any prop_src,
-                                      boost::any prop_tgt)
+void GraphInterface::copy_edge_property(const GraphInterface& src,
+                                        boost::any prop_src,
+                                        boost::any prop_tgt)
 {
     run_action<>()
         (*this, std::bind(copy_property<edge_selector,edge_properties>(),
                           std::placeholders::_1, std::placeholders::_2,
                           std::placeholders::_3, prop_src),
          graph_views(), writable_edge_properties())
-        (src.GetGraphView(), prop_tgt);
+        (src.get_graph_view(), prop_tgt);
 }

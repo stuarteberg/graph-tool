@@ -93,8 +93,8 @@ void line_graph(GraphInterface& gi, GraphInterface& lgi,
         vertex_properties;
 
     run_action<>()(gi, std::bind(get_line_graph(), placeholders::_1,
-                                 gi.GetVertexIndex(),
-                                 std::ref(lgi.GetGraph()), lgi.GetEdgeIndex(),
+                                 gi.get_vertex_index(),
+                                 std::ref(lgi.get_graph()), lgi.get_edge_index(),
                                  placeholders::_2),
                    vertex_properties())(edge_index);
 }

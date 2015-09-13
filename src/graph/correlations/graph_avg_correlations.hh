@@ -75,25 +75,25 @@ struct get_avg_correlation
                 continue;
             put_point(v, deg1, deg2, g, weight, s_sum, s_sum2, s_count);
         }
-        s_sum.Gather();
-        s_sum2.Gather();
-        s_count.Gather();
+        s_sum.gather();
+        s_sum2.gather();
+        s_count.gather();
 
-        for (i = 0; i < int(sum.GetArray().size()); ++i)
+        for (i = 0; i < int(sum.get_array().size()); ++i)
         {
-            sum.GetArray()[i] /= count.GetArray()[i];
-            sum2.GetArray()[i] =
-                sqrt(abs(sum2.GetArray()[i]/count.GetArray()[i] -
-                         sum.GetArray()[i] * sum.GetArray()[i])) /
-                sqrt(count.GetArray()[i]);
+            sum.get_array()[i] /= count.get_array()[i];
+            sum2.get_array()[i] =
+                sqrt(abs(sum2.get_array()[i]/count.get_array()[i] -
+                         sum.get_array()[i] * sum.get_array()[i])) /
+                sqrt(count.get_array()[i]);
         }
 
-        bins = sum.GetBins();
+        bins = sum.get_bins();
         python::list ret_bins;
         ret_bins.append(wrap_vector_owned(bins[0]));
         _ret_bins = ret_bins;
-        _avg = wrap_multi_array_owned<avg_type,1>(sum.GetArray());
-        _dev = wrap_multi_array_owned<avg_type,1>(sum2.GetArray());
+        _avg = wrap_multi_array_owned<avg_type,1>(sum.get_array());
+        _dev = wrap_multi_array_owned<avg_type,1>(sum2.get_array());
     }
     python::object& _avg;
     python::object& _dev;

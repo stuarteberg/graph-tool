@@ -58,7 +58,7 @@ void generate_graph(GraphInterface& gi, size_t N, boost::python::object deg_samp
         boost::mpl::bool_<true>, boost::mpl::bool_<true> >::type graph_views;
 
     if (undirected)
-        gi.SetDirected(false);
+        gi.set_directed(false);
 
     run_action<graph_views>()
         (gi, std::bind(gen_graph(), placeholders::_1, N,

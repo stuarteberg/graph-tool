@@ -70,7 +70,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
                 bool fill_list, rng_t& rng)
 {
     boost::any list;
-    if (g.GetDirected())
+    if (g.get_directed())
         list = vector<d_graph_t>();
     else
         list = vector<u_graph_t>();
@@ -139,7 +139,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
         {
 
             GraphInterface sub;
-            sub.SetDirected(g.GetDirected());
+            sub.set_directed(g.get_directed());
             typedef graph_tool::detail::get_all_graph_views::apply
                 <graph_tool::detail::filt_scalar_type,
                  boost::mpl::bool_<false>, boost::mpl::bool_<false>,

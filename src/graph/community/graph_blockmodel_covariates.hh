@@ -83,7 +83,7 @@ struct split_graph
             auto iter = vhmap[v].find(l);
             if (iter == vhmap[v].end())
             {
-                size_t u = add_vertex(us[l].get().GetGraph());
+                size_t u = add_vertex(us[l].get().get_graph());
                 vhmap[v][l] = u;
                 size_t pos = lower_bound(vc[v].begin(), vc[v].end(), l) - vc[v].begin();
                 vc[v].insert(vc[v].begin() + pos, l);
@@ -124,7 +124,7 @@ struct split_graph
 
             auto u_s = get_v(s, l);
             auto u_t = get_v(t, l);
-            auto ne = add_edge(u_s, u_t, us[l].get().GetGraph()).first;
+            auto ne = add_edge(u_s, u_t, us[l].get().get_graph()).first;
             ueweight[l].get()[ne] = eweight[e];
         }
     }

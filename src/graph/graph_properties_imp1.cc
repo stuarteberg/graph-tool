@@ -67,15 +67,15 @@ struct do_edge_endpoint
 void edge_endpoint(GraphInterface& gi, boost::any prop,
                    boost::any eprop, std::string endpoint)
 {
-    size_t max_edge_index = gi.GetMaxEdgeIndex();
+    size_t max_edge_index = gi.get_max_edge_index();
     if (endpoint == "source")
         run_action<>()(gi, std::bind(do_edge_endpoint<true>(), placeholders::_1,
-                                     gi.GetEdgeIndex(), placeholders::_2, eprop,
+                                     gi.get_edge_index(), placeholders::_2, eprop,
                                      max_edge_index),
                        vertex_properties())(prop);
     else
         run_action<>()(gi, std::bind(do_edge_endpoint<false>(), placeholders::_1,
-                                     gi.GetEdgeIndex(), placeholders::_2, eprop,
+                                     gi.get_edge_index(), placeholders::_2, eprop,
                                      max_edge_index),
                        vertex_properties())(prop);
 }

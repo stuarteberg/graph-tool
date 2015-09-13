@@ -179,16 +179,16 @@ boost::any do_create_emat(GraphInterface& gi, boost::any ob,
         vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
-    if (gi.GetDirected())
+    if (gi.get_directed())
     {
         run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
                                            std::ref(b),
-                                           std::ref(bgi.GetGraph()),
+                                           std::ref(bgi.get_graph()),
                                            std::ref(emat)))();
     }
     else
     {
-        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
         run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
                                            std::ref(b),
                                            std::ref(ug),
@@ -206,17 +206,17 @@ boost::any do_create_ehash(GraphInterface& gi, boost::any ob,
         vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
-    if (gi.GetDirected())
+    if (gi.get_directed())
     {
         run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
                                            std::ref(b),
-                                           std::ref(bgi.GetGraph()),
+                                           std::ref(bgi.get_graph()),
                                            std::ref(emat),
                                            std::ref(rng)))();
     }
     else
     {
-        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+        UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
         run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
                                            std::ref(b),
                                            std::ref(ug),
@@ -293,11 +293,11 @@ struct move_sweep_dispatch
         if (is_directed::apply<Graph>::type::value)
         {
             dispatch(mrs, mrp, mrm, wr, b, g, emat, sampler, cavity_sampler,
-                     bgi.GetGraph(), weighted);
+                     bgi.get_graph(), weighted);
         }
         else
         {
-            UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+            UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
             dispatch(mrs, mrp, mrm, wr, b, g, emat, sampler, cavity_sampler, ug,
                      weighted);
         }
@@ -489,7 +489,7 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                         label, vlist, block_list,
                         target_list, deg_corr, dense, multigraph,
                         beta, sequential, parallel, random_move, c, verbose,
-                        gi.GetMaxEdgeIndex(), nmerges, niter, merge_map,
+                        gi.get_max_edge_index(), nmerges, niter, merge_map,
                         partition_stats, rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,
                        std::ref(emat), sampler, cavity_sampler, weighted))();
@@ -531,11 +531,11 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
     boost::any oegroups;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(build_egroups(), b, std::ref(oegroups),
-                             esrcpos.get_unchecked(gi.GetMaxEdgeIndex()),
-                             etgtpos.get_unchecked(gi.GetMaxEdgeIndex()),
-                             eweights.get_unchecked(gi.GetMaxEdgeIndex()),
-                             placeholders::_1, bgi.GetVertexIndex(),
-                             bgi.GetNumberOfVertices(), weighted, empty))();
+                             esrcpos.get_unchecked(gi.get_max_edge_index()),
+                             etgtpos.get_unchecked(gi.get_max_edge_index()),
+                             eweights.get_unchecked(gi.get_max_edge_index()),
+                             placeholders::_1, bgi.get_vertex_index(),
+                             bgi.get_num_vertices(), weighted, empty))();
     return oegroups;
 }
 
@@ -580,7 +580,7 @@ void do_collect_edge_marginals(GraphInterface& gi, GraphInterface& gbi,
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(collect_edge_marginals_dispatch(),
                              placeholders::_1, B, b, p,
-                             std::tuple<boost::any, GraphInterface&>(gbi.GetGraphView(), gbi)))();
+                             std::tuple<boost::any, GraphInterface&>(gbi.get_graph_view(), gbi)))();
 }
 
 boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any op,

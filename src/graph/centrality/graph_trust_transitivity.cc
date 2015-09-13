@@ -37,7 +37,7 @@ void trust_transitivity(GraphInterface& g, int64_t source, int64_t target,
         throw ValueException("vertex property must be of floating point valued vector type");
 
     run_action<>()(g,
-                   bind<void>(get_trust_transitivity(), _1, g.GetVertexIndex(),
+                   bind<void>(get_trust_transitivity(), _1, g.get_vertex_index(),
                               source, target, _2, _3),
                    edge_floating_properties(),
                    vertex_floating_vector_properties())(c,t);

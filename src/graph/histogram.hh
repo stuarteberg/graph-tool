@@ -53,8 +53,8 @@ public:
     typedef typename boost::mpl::if_<boost::is_floating_point<ValueType>,
                                      ValueType, double>::type mean_t;
 
-    Histogram(const std::array<std::vector<ValueType>, Dim>& bins):
-        _bins(bins)
+    Histogram(const std::array<std::vector<ValueType>, Dim>& bins)
+        : _bins(bins)
     {
         bin_t new_shape;
         for (size_t j = 0; j < Dim; ++j)
@@ -95,7 +95,7 @@ public:
         _counts.resize(new_shape);
     }
 
-    void PutValue(const point_t& v, const CountType& weight = 1)
+    void put_value(const point_t& v, const CountType& weight = 1)
     {
         bin_t bin;
         for (size_t i = 0; i < Dim; ++i)
@@ -154,12 +154,12 @@ public:
         _counts(bin) += weight;
     }
 
-    boost::multi_array<CountType,Dim>& GetArray() { return _counts; }
+    boost::multi_array<CountType,Dim>& get_array() { return _counts; }
 
-    std::array<std::pair<ValueType,ValueType>,Dim>& GetDataRange()
+    std::array<std::pair<ValueType,ValueType>,Dim>& get_data_range()
     { return _data_range; }
 
-    std::array<std::vector<ValueType>, Dim>& GetBins() { return _bins; }
+    std::array<std::vector<ValueType>, Dim>& get_bins() { return _bins; }
 
 protected:
     boost::multi_array<CountType,Dim> _counts;
@@ -171,7 +171,7 @@ protected:
 
 // This class will encapsulate a histogram, and atomically sum it to a given
 // resulting histogram (which is shared among all copies) after it is
-// destructed, or when the Gather() member function is called. This enables, for
+// destructed, or when the gather() member function is called. This enables, for
 // instance, a histogram to be built in parallel.
 
 template <class Histogram>
@@ -182,10 +182,10 @@ public:
     SharedHistogram(Histogram& hist): Histogram(hist), _sum(&hist) {}
     ~SharedHistogram()
     {
-        Gather();
+        gather();
     }
 
-    void Gather()
+    void gather()
     {
         if (_sum != 0)
         {
@@ -196,8 +196,8 @@ public:
                 typename Histogram::bin_t shape;
                 for (size_t i = 0; i <  this->_counts.num_dimensions(); ++i)
                     shape[i] = std::max(this->_counts.shape()[i],
-                                        _sum->GetArray().shape()[i]);
-                _sum->GetArray().resize(shape);
+                                        _sum->get_array().shape()[i]);
+                _sum->get_array().resize(shape);
                 for (size_t i = 0; i < this->_counts.num_elements(); ++i)
                 {
                     size_t offset = 1;
@@ -207,12 +207,12 @@ public:
                         idx[j] = ((i / offset) % L);
                         offset *= L;
                     }
-                    _sum->GetArray()(idx) += this->_counts(idx);
+                    _sum->get_array()(idx) += this->_counts(idx);
                 }
                 for (int i = 0; i < Histogram::dim::value; ++i)
                 {
-                    if (_sum->GetBins()[i].size() < this->_bins[i].size())
-                        _sum->GetBins()[i] = this->_bins[i];
+                    if (_sum->get_bins()[i].size() < this->_bins[i].size())
+                        _sum->get_bins()[i] = this->_bins[i];
                 }
             }
             _sum = 0;
@@ -230,7 +230,7 @@ private:
 
 // gets the mean value of a histogram
 template <class Map>
-double GetMapMean (const Map &m)
+double get_map_mean(const Map &m)
 {
     int total = 0;
     double mean = 0;
@@ -245,7 +245,7 @@ double GetMapMean (const Map &m)
 
 // gets the standard deviation of a histogram
 template <class Map>
-double GetMapDeviation (const Map &m, double avg)
+double get_map_deviation(const Map &m, double avg)
 {
     double dev = 0.0;
     int total = 0;

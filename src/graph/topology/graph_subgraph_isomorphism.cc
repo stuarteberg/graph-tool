@@ -137,7 +137,7 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                                             GraphInterface::edge_t> > edge_props_t;
 
 
-    if (gi1.GetDirected() != gi2.GetDirected())
+    if (gi1.get_directed() != gi2.get_directed())
         return;
 
     if (vertex_label1.empty() || vertex_label2.empty())
@@ -147,8 +147,8 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     }
     else
     {
-        vertex_label1 = any_cast<vlabel_t>(vertex_label1).get_unchecked(num_vertices(gi1.GetGraph()));
-        vertex_label2 = any_cast<vlabel_t>(vertex_label2).get_unchecked(num_vertices(gi2.GetGraph()));
+        vertex_label1 = any_cast<vlabel_t>(vertex_label1).get_unchecked(num_vertices(gi1.get_graph()));
+        vertex_label2 = any_cast<vlabel_t>(vertex_label2).get_unchecked(num_vertices(gi2.get_graph()));
     }
 
     if (edge_label1.empty() || edge_label2.empty())
@@ -158,8 +158,8 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     }
     else
     {
-        edge_label1 = any_cast<elabel_t>(edge_label1).get_unchecked(gi1.GetMaxEdgeIndex());
-        edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.GetMaxEdgeIndex());
+        edge_label1 = any_cast<elabel_t>(edge_label1).get_unchecked(gi1.get_max_edge_index());
+        edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_max_edge_index());
     }
 
     vector<vlabel_t> vmaps;
@@ -173,7 +173,7 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                         edge_label2, std::ref(vmaps), max_n, induced, iso),
          graph_view_pointers(), vertex_props_t(),
          edge_props_t())
-        (gi2.GetGraphView(), vertex_label1, edge_label1);
+        (gi2.get_graph_view(), vertex_label1, edge_label1);
 
 
     for (auto& vmap: vmaps)

@@ -484,7 +484,7 @@ struct graph_action
     void operator()(Args&&... args) const
     {
         bool found = false;
-        boost::any gview = _g.GetGraphView();
+        boost::any gview = _g.get_graph_view();
         boost::mpl::nested_for_each<graph_view_pointers,TRS...>
             (boost::mpl::select_types(_a, found, gview, std::forward<Args>(args)...));
         if (!found)
@@ -519,7 +519,7 @@ bool graph_filtering_enabled();
 template <class Graph, class GraphInit>
 std::shared_ptr<Graph> get_graph_ptr(GraphInterface& gi, GraphInit&, std::true_type)
 {
-    return gi.GetGraphPtr();
+    return gi.get_graph_ptr();
 }
 
 template <class Graph, class GraphInit>
@@ -536,7 +536,7 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
 {
     typedef typename std::remove_const<Graph>::type g_t;
     size_t index = boost::mpl::find<detail::all_graph_views,g_t>::type::pos::value;
-    auto& graph_views = gi.GetGraphViews();
+    auto& graph_views = gi.get_graph_views();
     if (index >= graph_views.size())
         graph_views.resize(index + 1);
     boost::any& gview = graph_views[index];

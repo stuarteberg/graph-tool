@@ -49,7 +49,7 @@ size_t similarity(GraphInterface& gi1, GraphInterface& gi2, boost::any label1,
                         placeholders::_3, label2, std::ref(s)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          writable_vertex_properties())
-        (gi2.GetGraphView(), label1);
+        (gi2.get_graph_view(), label1);
     return s;
 }
 
@@ -62,7 +62,7 @@ size_t similarity_fast(GraphInterface& gi1, GraphInterface& gi2, boost::any labe
                         placeholders::_3, label2, std::ref(s)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          vertex_integer_properties())
-        (gi2.GetGraphView(), label1);
+        (gi2.get_graph_view(), label1);
     return s;
 }
 

@@ -30,37 +30,35 @@ from . import libgraph_tool_core
 # IStream and OStream need to be tweaked a little to become a real file-like
 # object...
 
-
 def IStream_read(self, n=None, buflen=1048576):
     if n is None:
         data = b""
         while True:
-            buf = self.Read(buflen)
+            buf = self.read_buf(buflen)
             data += buf
             if len(buf) < buflen:
                 break
         return data
     else:
-        return self.Read(n)
-
+        return self.read_buf(n)
 
 def IStream_readline(self, n=None):
     c = None
     line = b""
     while c != "" and c != "\n" and len(line) < n:
-        c = self.Read(1)
+        c = self.read_buf(1)
         line += c
     return line
 
-
 def OStream_write(self, s):
     data = s
-    self.Write(data, len(s))
+    self.write_buf(data, len(s))
 
+libgraph_tool_core.IStream.read_buf = libgraph_tool_core.IStream.read
+libgraph_tool_core.OStream.write_buf = libgraph_tool_core.OStream.write
 libgraph_tool_core.IStream.read = IStream_read
 libgraph_tool_core.IStream.readline = IStream_readline
 libgraph_tool_core.OStream.write = OStream_write
-
 
 # define and set the pickler/unpickler functions
 def pickler(stream, obj):

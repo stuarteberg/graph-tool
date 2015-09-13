@@ -125,7 +125,7 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
         weight_maps;
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, std::bind(get_kruskal_min_span_tree(), placeholders::_1, gi.GetVertexIndex(),
+        (gi, std::bind(get_kruskal_min_span_tree(), placeholders::_1, gi.get_vertex_index(),
                        placeholders::_2, placeholders::_3),
          weight_maps(), writable_edge_scalar_properties())(weight_map, tree_map);
 }
@@ -143,6 +143,6 @@ void get_prim_spanning_tree(GraphInterface& gi, size_t root,
 
     run_action<graph_tool::detail::never_directed>()
         (gi, std::bind(get_prim_min_span_tree(), placeholders::_1, root,
-                       gi.GetVertexIndex(), placeholders::_2, placeholders::_3),
+                       gi.get_vertex_index(), placeholders::_2, placeholders::_3),
          weight_maps(), tree_properties())(weight_map, tree_map);
 }

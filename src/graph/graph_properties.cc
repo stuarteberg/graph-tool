@@ -42,7 +42,7 @@ const char* type_names[] =
      "vector<string>", "python::object"};
 
 
-struct shift_vertex_property
+struct do_shift_vertex_property
 {
     template <class PropertyMap, class Vec>
     void operator()(PropertyMap, const GraphInterface::multigraph_t& g,
@@ -65,18 +65,18 @@ struct shift_vertex_property
 };
 
 // this function will shift all the properties when a vertex is to be deleted
-void GraphInterface::ShiftVertexProperty(boost::any prop, python::object oindex) const
+void GraphInterface::shift_vertex_property(boost::any prop, python::object oindex) const
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     bool found = false;
     mpl::for_each<writable_vertex_properties>
-        (std::bind(shift_vertex_property(), std::placeholders::_1, std::ref(*_mg),
-                   prop, index, std::ref(found)));
+        (std::bind(do_shift_vertex_property(), std::placeholders::_1,
+                   std::ref(*_mg), prop, index, std::ref(found)));
     if (!found)
         throw GraphException("invalid writable property map");
 }
 
-struct move_vertex_property
+struct do_move_vertex_property
 {
     template <class PropertyMap, class Vec>
     void operator()(PropertyMap, const GraphInterface::multigraph_t& g,
@@ -98,13 +98,13 @@ struct move_vertex_property
 };
 
 // this function will move the back of the property map when a vertex in the middle is to be deleted
-void GraphInterface::MoveVertexProperty(boost::any prop, python::object oindex) const
+void GraphInterface::move_vertex_property(boost::any prop, python::object oindex) const
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
     size_t back = num_vertices(*_mg) - 1;
     bool found = false;
     mpl::for_each<writable_vertex_properties>
-        (std::bind(move_vertex_property(), std::placeholders::_1, std::ref(*_mg),
+        (std::bind(do_move_vertex_property(), std::placeholders::_1, std::ref(*_mg),
                    prop, index, back, std::ref(found)));
     if (!found)
         throw GraphException("invalid writable property map");
@@ -133,8 +133,8 @@ struct reindex_vertex_property
 };
 
 
-void GraphInterface::ReIndexVertexProperty(boost::any map,
-                                           boost::any aold_index) const
+void GraphInterface::re_index_vertex_property(boost::any map,
+                                              boost::any aold_index) const
 {
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -215,7 +215,7 @@ void infect_vertex_property(GraphInterface& gi, boost::any prop,
                             boost::python::object val)
 {
         run_action<>()(gi, std::bind(do_infect_vertex_property(), std::placeholders::_1,
-                                     gi.GetVertexIndex(), std::placeholders::_2, val),
+                                     gi.get_vertex_index(), std::placeholders::_2, val),
                    writable_vertex_properties())(prop);
 }
 
@@ -251,8 +251,9 @@ struct do_mark_edges
 
 void mark_edges(GraphInterface& gi, boost::any prop)
 {
-    run_action<graph_tool::detail::always_directed>()(gi, bind<void>(do_mark_edges(), _1, _2),
-                                                      writable_edge_scalar_properties())(prop);
+    run_action<>()
+        (gi, bind<void>(do_mark_edges(), _1, _2),
+         writable_edge_scalar_properties())(prop);
 }
 
 

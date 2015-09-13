@@ -173,7 +173,7 @@ void maximal_vertex_set(GraphInterface& gi, boost::any mvs, bool high_deg,
                         rng_t& rng)
 {
     run_action<>()
-        (gi, std::bind(do_maximal_vertex_set(), placeholders::_1, gi.GetVertexIndex(),
+        (gi, std::bind(do_maximal_vertex_set(), placeholders::_1, gi.get_vertex_index(),
                        placeholders::_2, high_deg, std::ref(rng)),
          writable_vertex_scalar_properties())(mvs);
 }

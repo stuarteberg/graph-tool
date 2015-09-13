@@ -101,7 +101,7 @@ void community_network(GraphInterface& gi, GraphInterface& cgi,
 
     run_action<>()
         (gi, std::bind(get_community_network_vertices_dispatch(),
-                       placeholders::_1, std::ref(cgi.GetGraph()),
+                       placeholders::_1, std::ref(cgi.get_graph()),
                        placeholders::_2, condensed_community_property,
                        placeholders::_3, vertex_count),
          writable_vertex_properties(), vweight_properties())

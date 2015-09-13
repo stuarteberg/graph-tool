@@ -513,17 +513,12 @@ class PropertyMap(object):
         else:
             k = "Graph"
         g = self.get_graph()
-        if g == None:
+        if g is None:
             g = "a non-existent graph"
         else:
             g = "Graph 0x%x" % id(g)
-        try:
-            vals = ", with values:\n%s" % str(self.fa)
-        except ValueError:
-            vals = ""
         return ("<PropertyMap object with key type '%s' and value type '%s',"
-                + " for %s, at 0x%x%s>") % (k, self.value_type(), g, id(self),
-                                            vals)
+                + " for %s, at 0x%x>") % (k, self.value_type(), g, id(self))
 
     def copy(self, value_type=None):
         """Return a copy of the property map. If ``value_type`` is specified, the
@@ -597,7 +592,7 @@ class PropertyMap(object):
         if g is None:
             raise ValueError("Cannot get array for an orphaned property map")
         if self.__key_type == 'v':
-            n = g._Graph__graph.GetNumberOfVertices(False)
+            n = g._Graph__graph.get_num_vertices(False)
         elif self.__key_type == 'e':
             n = g.max_edge_index
         else:
@@ -631,17 +626,15 @@ class PropertyMap(object):
             N = g.num_vertices()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            N = g._get_max_edge_index()
+            N = g.max_edge_index
             if g.get_vertex_filter()[0] is not None:
                 filt = (g.new_edge_property("bool"), filt[1])
-                u = GraphView(g, directed=True, skip_properties=True)
-                libcore.mark_edges(u._Graph__graph, _prop("e", u, filt[0]))
+                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
                 if filt[1]:
                     filt[0].a = 1 - filt[0].a
-            elif g._get_max_edge_index() != g.num_edges():
+            elif g.max_edge_index != g.num_edges():
                 filt = (g.new_edge_property("bool"), False)
-                u = GraphView(g, directed=True, skip_properties=True)
-                libcore.mark_edges(u._Graph__graph, _prop("e", u, filt[0]))
+                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
         if get:
             if a is None:
                 return a
@@ -689,8 +682,7 @@ class PropertyMap(object):
             filt = g.get_edge_filter()
             if g.get_vertex_filter()[0] is not None:
                 filt = (g.new_edge_property("bool"), filt[1])
-                u = GraphView(g, directed=True, skip_properties=True)
-                libcore.mark_edges(u._Graph__graph, _prop("e", g, filt[0]))
+                libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
                 if filt[1]:
                     filt[0].a = 1 - filt[0].a
         if filt[0] is None or a is None:
@@ -1585,13 +1577,13 @@ class Graph(object):
                 # Put the copied properties in the internal dictionary
                 for i, (k, m) in enumerate(gv.vertex_properties.items()):
                     pmap = new_vertex_property(m.value_type() if m.is_writable() else "int32_t",
-                                               self.__graph.GetVertexIndex(),
+                                               self.__graph.get_vertex_index(),
                                                vprops[i][1])
                     self.vertex_properties[k] = PropertyMap(pmap, self, "v")
 
                 for i, (k, m) in enumerate(gv.edge_properties.items()):
                     pmap = new_edge_property(m.value_type() if m.is_writable() else "int32_t",
-                                             self.__graph.GetEdgeIndex(),
+                                             self.__graph.get_edge_index(),
                                              eprops[i][1])
                     self.edge_properties[k] = PropertyMap(pmap, self, "e")
 
@@ -1603,12 +1595,12 @@ class Graph(object):
                 epmap = vpmap = None
                 if vf_pos is not None:
                     vpmap = new_vertex_property("bool",
-                                                self.__graph.GetVertexIndex(),
+                                                self.__graph.get_vertex_index(),
                                                 vprops[vf_pos][1])
                     vpmap = PropertyMap(vpmap, self, "v")
                 if ef_pos is not None:
                     epmap = new_edge_property("bool",
-                                              self.__graph.GetEdgeIndex(),
+                                              self.__graph.get_edge_index(),
                                               eprops[ef_pos][1])
                     epmap = PropertyMap(epmap, self, "e")
                 self.set_filters(epmap, vpmap,
@@ -1819,7 +1811,7 @@ class Graph(object):
 
             vs = numpy.sort(vs)[::-1]
 
-        back = self.__graph.GetNumberOfVertices(False) - 1
+        back = self.__graph.get_num_vertices(False) - 1
 
         if vs.max() > back:
             raise ValueError("Vertex index %d is invalid" % vs.max())
@@ -1829,9 +1821,9 @@ class Graph(object):
             for pmap in self.__known_properties.values():
                 if pmap() is not None and pmap().key_type() == "v" and pmap().is_writable():
                     if fast:
-                        self.__graph.MoveVertexProperty(pmap()._PropertyMap__map.get_map(), vs)
+                        self.__graph.move_vertex_property(pmap()._PropertyMap__map.get_map(), vs)
                     else:
-                        self.__graph.ShiftVertexProperty(pmap()._PropertyMap__map.get_map(), vs)
+                        self.__graph.shift_vertex_property(pmap()._PropertyMap__map.get_map(), vs)
 
         libcore.remove_vertex(self.__graph, vs, fast)
 
@@ -1931,20 +1923,20 @@ class Graph(object):
         enabled. This requires an additional data structure of size :math:`O(E)`
         to be kept at all times.  If ``fast == False``, this data structure is
         destroyed."""
-        self.__graph.SetKeepEpos(fast)
+        self.__graph.set_keep_epos(fast)
 
     def get_fast_edge_removal(self):
         r"""Return whether the fast :math:`O(1)` removal of edges is currently
         enabled."""
-        return self.__graph.GetKeepEpos()
+        return self.__graph.get_keep_epos()
 
     def clear(self):
         """Remove all vertices and edges from the graph."""
-        self.__graph.Clear()
+        self.__graph.clear()
 
     def clear_edges(self):
         """Remove all edges from the graph."""
-        self.__graph.ClearEdges()
+        self.__graph.clear_edges()
 
     # Internal property maps
     # ======================
@@ -2067,7 +2059,7 @@ class Graph(object):
                                 edges are deleted from the graph.""")
 
     def _get_max_edge_index(self):
-        return self.__graph.GetMaxEdgeIndex()
+        return self.__graph.get_max_edge_index()
 
     max_edge_index = property(_get_max_edge_index,
                               doc="The maximum value of the edge index map.")
@@ -2085,7 +2077,7 @@ class Graph(object):
            be usable, but their contents will still be tied to the old indexes,
            and thus may become scrambled.
         """
-        self.__graph.ReIndexEdges()
+        self.__graph.re_index_edges()
 
     # Property map creation
 
@@ -2109,7 +2101,7 @@ class Graph(object):
         sequence or by ``val`` which should be  a single value.
         """
         prop = PropertyMap(new_vertex_property(_type_alias(value_type),
-                                               self.__graph.GetVertexIndex(),
+                                               self.__graph.get_vertex_index(),
                                                libcore.any()),
                            self, "v")
         if vals is not None:
@@ -2128,7 +2120,7 @@ class Graph(object):
         sequence or by ``val`` which should be a single value.
         """
         prop = PropertyMap(new_edge_property(_type_alias(value_type),
-                                             self.__graph.GetEdgeIndex(),
+                                             self.__graph.get_edge_index(),
                                              libcore.any()),
                            self, "e")
         if vals is not None:
@@ -2145,7 +2137,7 @@ class Graph(object):
         """Create a new graph property map of type ``value_type``, and return
         it. If ``val`` is not None, the property is initialized to its value."""
         prop = PropertyMap(new_graph_property(_type_alias(value_type),
-                                              self.__graph.GetGraphIndex(),
+                                              self.__graph.get_graph_index(),
                                               libcore.any()),
                            self, "g")
         if val is not None:
@@ -2189,9 +2181,9 @@ class Graph(object):
                     raise ValueError("graphs with incompatible sizes (%d, %d)" %
                                      (g.num_vertices(), self.num_vertices()))
                 try:
-                    self.__graph.CopyVertexProperty(g.__graph,
-                                                    _prop("v", g, src),
-                                                    _prop("v", self, tgt))
+                    self.__graph.copy_vertex_property(g.__graph,
+                                                      _prop("v", g, src),
+                                                      _prop("v", self, tgt))
                 except ValueError:
                     raise ValueError("property maps with the following types are"
                                      " not convertible: %s, %s" %
@@ -2201,9 +2193,9 @@ class Graph(object):
                     raise ValueError("graphs with incompatible sizes (%d, %d)" %
                                      (g.num_edges(), self.num_edges()))
                 try:
-                    self.__graph.CopyEdgeProperty(g.__graph,
-                                                  _prop("e", g, src),
-                                                  _prop("e", self, tgt))
+                    self.__graph.copy_edge_property(g.__graph,
+                                                    _prop("e", g, src),
+                                                    _prop("e", self, tgt))
                 except ValueError:
                     raise ValueError("property maps with the following types are"
                                      " not convertible: %s, %s" %
@@ -2223,7 +2215,7 @@ class Graph(object):
         given by ``deg``, which can be any of ``"in"``, ``"out"``, or ``"total"``.
         If provided, ``weight`` should be an edge :class:`~graph_tool.PropertyMap`
         containing the edge weights which should be summed."""
-        pmap = self.__graph.DegreeMap(deg, _prop("e", self, weight))
+        pmap = self.__graph.degree_map(deg, _prop("e", self, weight))
         return PropertyMap(pmap, self, "v")
 
     # I/O operations
@@ -2281,11 +2273,11 @@ class Graph(object):
         if ignore_gp is None:
             ignore_gp = []
         if isinstance(file_name, str):
-            props = self.__graph.ReadFromFile(file_name, None, fmt, ignore_vp,
-                                              ignore_ep, ignore_gp)
+            props = self.__graph.read_from_file(file_name, None, fmt, ignore_vp,
+                                                ignore_ep, ignore_gp)
         else:
-            props = self.__graph.ReadFromFile("", file_name, fmt, ignore_vp,
-                                              ignore_ep, ignore_gp)
+            props = self.__graph.read_from_file("", file_name, fmt, ignore_vp,
+                                                ignore_ep, ignore_gp)
         for name, prop in props[0].items():
             self.vertex_properties[name] = PropertyMap(prop, self, "v")
         for name, prop in props[1].items():
@@ -2361,9 +2353,9 @@ class Graph(object):
             f = open(file_name, "w") # throw the appropriate exception, if
                                      # unable to open
             f.close()
-            u.__graph.WriteToFile(file_name, None, fmt, props)
+            u.__graph.write_to_file(file_name, None, fmt, props)
         else:
-            u.__graph.WriteToFile("", file_name, fmt, props)
+            u.__graph.write_to_file("", file_name, fmt, props)
 
 
     # Directedness
@@ -2371,11 +2363,11 @@ class Graph(object):
 
     def set_directed(self, is_directed):
         """Set the directedness of the graph."""
-        self.__graph.SetDirected(is_directed)
+        self.__graph.set_directed(is_directed)
 
     def is_directed(self):
         """Get the directedness of the graph."""
-        return self.__graph.GetDirected()
+        return self.__graph.get_directed()
 
     # Reversedness
     # ============
@@ -2383,12 +2375,12 @@ class Graph(object):
     def set_reversed(self, is_reversed):
         """Reverse the direction of the edges, if ``is_reversed`` is ``True``,
         or maintain the original direction otherwise."""
-        self.__graph.SetReversed(is_reversed)
+        self.__graph.set_reversed(is_reversed)
 
     def is_reversed(self):
         """Return ``True`` if the edges are reversed, and ``False`` otherwise.
         """
-        return self.__graph.GetReversed()
+        return self.__graph.get_reversed()
 
     # Filtering
     # =========
@@ -2412,12 +2404,12 @@ class Graph(object):
             vprop = self.new_vertex_property("bool")
             vprop.a = not inverted_vertices
 
-        self.__graph.SetVertexFilterProperty(_prop("v", self, vprop),
-                                             inverted_vertices)
+        self.__graph.set_vertex_filter_property(_prop("v", self, vprop),
+                                                inverted_vertices)
         self.__filter_state["vertex_filter"] = (vprop, inverted_vertices)
 
-        self.__graph.SetEdgeFilterProperty(_prop("e", self, eprop),
-                                           inverted_edges)
+        self.__graph.set_edge_filter_property(_prop("e", self, eprop),
+                                              inverted_edges)
         self.__filter_state["edge_filter"] = (eprop, inverted_edges)
 
     def set_vertex_filter(self, prop, inverted=False):
@@ -2441,7 +2433,7 @@ class Graph(object):
             vfilt = self.new_vertex_property("bool")
             vfilt.a = not inverted
 
-        self.__graph.SetVertexFilterProperty(_prop("v", self, vfilt),
+        self.__graph.set_vertex_filter_property(_prop("v", self, vfilt),
                                              inverted)
         self.__filter_state["vertex_filter"] = (vfilt, inverted)
 
@@ -2474,7 +2466,7 @@ class Graph(object):
             efilt = self.new_edge_property("bool")
             efilt.a = not inverted
 
-        self.__graph.SetEdgeFilterProperty(_prop("e", self, efilt), inverted)
+        self.__graph.set_edge_filter_property(_prop("e", self, efilt), inverted)
         self.__filter_state["edge_filter"] = (efilt, inverted)
 
         if vfilt is not None:
@@ -2488,9 +2480,9 @@ class Graph(object):
     def clear_filters(self):
         """Remove vertex and edge filters, and set the graph to the unfiltered
         state."""
-        self.__graph.SetVertexFilterProperty(_prop("v", self, None), False)
+        self.__graph.set_vertex_filter_property(_prop("v", self, None), False)
         self.__filter_state["vertex_filter"] = (None, False)
-        self.__graph.SetEdgeFilterProperty(_prop("e", self, None), False)
+        self.__graph.set_edge_filter_property(_prop("e", self, None), False)
         self.__filter_state["edge_filter"] = (None, False)
 
     def purge_vertices(self, in_place=False):
@@ -2517,14 +2509,14 @@ class Graph(object):
         """
         if in_place:
             old_indexes = self.vertex_index.copy("int64_t")
-            self.__graph.PurgeVertices(_prop("v", self, old_indexes))
+            self.__graph.purge_vertices(_prop("v", self, old_indexes))
             self.set_vertex_filter(None)
             for pmap in self.__known_properties.values():
                 if (pmap() is not None and pmap().key_type() == "v" and
                     pmap().is_writable() and
                     pmap() not in [self.vertex_index, self.edge_index]):
-                    self.__graph.ReIndexVertexProperty(pmap()._PropertyMap__map.get_map(),
-                                                       _prop("v", self, old_indexes))
+                    self.__graph.re_index_vertex_property(pmap()._PropertyMap__map.get_map(),
+                                                          _prop("v", self, old_indexes))
         else:
             stamp = id(self)
             pmaps = []
@@ -2561,7 +2553,7 @@ class Graph(object):
            unfiltered state, use :meth:`~graph_tool.Graph.clear_filters`.
 
         """
-        self.__graph.PurgeEdges()
+        self.__graph.purge_edges()
         self.set_edge_filter(None)
 
     def get_filter_state(self):
@@ -2594,7 +2586,7 @@ class Graph(object):
             this operation is :math:`O(N)`. Otherwise it is :math:`O(1)`.
 
         """
-        return self.__graph.GetNumberOfVertices(not ignore_filter)
+        return self.__graph.get_num_vertices(not ignore_filter)
 
     def num_edges(self, ignore_filter=False):
         """Get the number of edges.
@@ -2607,7 +2599,7 @@ class Graph(object):
             this operation is :math:`O(E)`. Otherwise it is :math:`O(1)`.
 
         """
-        return self.__graph.GetNumberOfEdges(not ignore_filter)
+        return self.__graph.get_num_edges(not ignore_filter)
 
     # Pickling support
     # ================
@@ -2827,8 +2819,8 @@ def _all_neighbours(self):
 
 def _in_degree(self, weight=None):
     """Return the in-degree of the vertex. If provided, ``weight`` should be a
-    scalar edge property map, and the in-degree will correspond to the sum of
-    the weights of the in-edges.
+    scalar edge :class:`~graph_tool.PropertyMap`, and the in-degree will
+    correspond to the sum of the weights of the in-edges.
     """
 
     if weight is None:
@@ -2838,8 +2830,8 @@ def _in_degree(self, weight=None):
 
 def _out_degree(self, weight=None):
     """Return the out-degree of the vertex. If provided, ``weight`` should be a
-    scalar edge property map, and the out-degree will correspond to the sum of
-    the weights of the out-edges.
+    scalar edge :class:`~graph_tool.PropertyMap`, and the out-degree will
+    correspond to the sum of the weights of the out-edges.
     """
 
     if weight is None:
@@ -2853,7 +2845,6 @@ def _vertex_repr(self):
     return "<Vertex object with index '%d' at 0x%x>" % (int(self), id(self))
 
 _vertex_doc = """Vertex descriptor.
-
 
 This class represents a vertex in a :class:`~graph_tool.Graph` instance.
 
@@ -2905,6 +2896,7 @@ for Vertex in libcore.get_vlist():
     Vertex.all_neighbours = _all_neighbours
     Vertex.in_degree = _in_degree
     Vertex.out_degree = _out_degree
+    Vertex.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing vertex in the graph, ``False`` otherwise."
     Vertex.__repr__ = _vertex_repr
     Vertex.__eq__ = v_eq
     Vertex.__ne__ = v_ne
@@ -2917,8 +2909,8 @@ _edge_doc = """Edge descriptor.
 
 This class represents an edge in a :class:`~graph_tool.Graph`.
 
-:class:`~graph_tool.Edge` instances are hashable, and are convertible to a
-tuple, which contains the source and target vertices.
+:class:`~graph_tool.Edge` instances are hashable, iterable and thus are
+convertible to a tuple, which contains the source and target vertices.
 """
 
 def _edge_iter(self):
@@ -2940,6 +2932,9 @@ for Edge in libcore.get_elist():
     Edge.__repr__ = _edge_repr
     Edge.__iter__ = _edge_iter
     Edge.__doc__ = _edge_doc
+    Edge.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing edge in the graph, ``False`` otherwise."
+    Edge.source.__doc__ = "Returns the source of the edge (a :class:`~graph_tool.Vertex` instance)."
+    Edge.target.__doc__ = "Returns the target of the edge (a :class:`~graph_tool.Vertex` instance)."
 
 # some shenanigans to make it seem there is only a single edge and vertex class
 EdgeBase.__doc__ = Edge.__doc__

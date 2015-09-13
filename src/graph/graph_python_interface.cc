@@ -99,7 +99,7 @@ struct get_vertex_hard
 python::object get_vertex(GraphInterface& gi, size_t i)
 {
     python::object v;
-    if (gi.IsVertexFilterActive())
+    if (gi.is_vertex_filter_active())
         run_action<>()(gi,
                        std::bind(get_vertex_hard(), placeholders::_1,
                                  std::ref(gi), i, std::ref(v)))();
@@ -164,7 +164,7 @@ python::object add_vertex(GraphInterface& gi, size_t n)
 void remove_vertex_array(GraphInterface& gi, const python::object& oindex, bool fast)
 {
     boost::multi_array_ref<int64_t,1> index = get_array<int64_t,1>(oindex);
-    auto& g = gi.GetGraph();
+    auto& g = gi.get_graph();
     if (fast)
     {
         for (auto v : index)
@@ -179,7 +179,7 @@ void remove_vertex_array(GraphInterface& gi, const python::object& oindex, bool 
 
 void remove_vertex(GraphInterface& gi, size_t v, bool fast)
 {
-    auto& g = gi.GetGraph();
+    auto& g = gi.get_graph();
     if (fast)
     {
         remove_vertex_fast(vertex(v, g), g);
@@ -219,8 +219,8 @@ struct get_edge_descriptor
                     bool& found)  const
     {
         PythonEdge<Graph>& pe = python::extract<PythonEdge<Graph>&>(e);
-        pe.CheckValid();
-        edge = pe.GetDescriptor();
+        pe.check_valid();
+        edge = pe.get_descriptor();
         found = true;
     }
 };
@@ -231,7 +231,7 @@ void remove_edge(GraphInterface& gi, const python::object& e)
     bool found = false;
     run_action<>()(gi, std::bind(get_edge_descriptor(), placeholders::_1,
                                  std::ref(e), std::ref(de), std::ref(found)))();
-    remove_edge(de, gi.GetGraph());
+    remove_edge(de, gi.get_graph());
     if (!found)
         throw ValueException("invalid edge descriptor");
 }
@@ -294,7 +294,7 @@ struct get_degree_map
     }
 };
 
-python::object GraphInterface::DegreeMap(string deg, boost::any weight) const
+python::object GraphInterface::degree_map(string deg, boost::any weight) const
 {
 
     python::object deg_map;
@@ -338,40 +338,40 @@ struct export_python_interface
 
         class_<PythonVertex<Graph>, bases<VertexBase>> vclass("Vertex", no_init);
         vclass
-            .def("__in_degree", &PythonVertex<Graph>::GetInDegree,
+            .def("__in_degree", &PythonVertex<Graph>::get_in_degree,
                  "Return the in-degree.")
-            .def("__weighted_in_degree", &PythonVertex<Graph>::GetWeightedInDegree,
+            .def("__weighted_in_degree", &PythonVertex<Graph>::get_weighted_in_degree,
                  "Return the weighted in-degree.")
-            .def("__out_degree", &PythonVertex<Graph>::GetOutDegree,
+            .def("__out_degree", &PythonVertex<Graph>::get_out_degree,
                  "Return the out-degree.")
-            .def("__weighted_out_degree", &PythonVertex<Graph>::GetWeightedOutDegree,
+            .def("__weighted_out_degree", &PythonVertex<Graph>::get_weighted_out_degree,
                  "Return the weighted out-degree.")
-            .def("in_edges", &PythonVertex<Graph>::InEdges,
+            .def("in_edges", &PythonVertex<Graph>::in_edges,
                  "Return an iterator over the in-edges.")
-            .def("out_edges", &PythonVertex<Graph>::OutEdges,
+            .def("out_edges", &PythonVertex<Graph>::out_edges,
                  "Return an iterator over the out-edges.")
-            .def("is_valid", &PythonVertex<Graph>::IsValid,
+            .def("is_valid", &PythonVertex<Graph>::is_valid,
                  "Return whether the vertex is valid.")
-            .def("graph_ptr", &PythonVertex<Graph>::GetGraphPtr)
-            .def("graph_type", &PythonVertex<Graph>::GetGraphType)
-            .def("__str__", &PythonVertex<Graph>::GetString)
-            .def("__int__", &PythonVertex<Graph>::GetIndex)
-            .def("__hash__", &PythonVertex<Graph>::GetHash);
+            .def("graph_ptr", &PythonVertex<Graph>::get_graph_ptr)
+            .def("graph_type", &PythonVertex<Graph>::get_graph_type)
+            .def("__str__", &PythonVertex<Graph>::get_string)
+            .def("__int__", &PythonVertex<Graph>::get_index)
+            .def("__hash__", &PythonVertex<Graph>::get_hash);
 
         vclasses.append(vclass);
 
         class_<PythonEdge<Graph>, bases<EdgeBase>> eclass("Edge", no_init);
         eclass
-            .def("source", &PythonEdge<Graph>::GetSource,
+            .def("source", &PythonEdge<Graph>::get_source,
                  "Return the source vertex.")
-            .def("target", &PythonEdge<Graph>::GetTarget,
+            .def("target", &PythonEdge<Graph>::get_target,
                  "Return the target vertex.")
-            .def("is_valid", &PythonEdge<Graph>::IsValid,
+            .def("is_valid", &PythonEdge<Graph>::is_valid,
                  "Return whether the edge is valid.")
-            .def("graph_ptr", &PythonVertex<Graph>::GetGraphPtr)
-            .def("graph_type", &PythonVertex<Graph>::GetGraphType)
-            .def("__str__", &PythonEdge<Graph>::GetString)
-            .def("__hash__", &PythonEdge<Graph>::GetHash);
+            .def("graph_ptr", &PythonVertex<Graph>::get_graph_ptr)
+            .def("graph_type", &PythonVertex<Graph>::get_graph_type)
+            .def("__str__", &PythonEdge<Graph>::get_string)
+            .def("__hash__", &PythonEdge<Graph>::get_hash);
 
         boost::mpl::for_each<GraphViews>(std::bind(export_python_interface(),
                                                    gp, std::placeholders::_1,
@@ -466,14 +466,14 @@ PythonPropertyMap<GraphInterface::vertex_index_map_t>
 get_vertex_index(GraphInterface& g)
 {
     return PythonPropertyMap<GraphInterface::vertex_index_map_t>
-        (g.GetVertexIndex());
+        (g.get_vertex_index());
 }
 
 PythonPropertyMap<GraphInterface::edge_index_map_t>
 do_get_edge_index(GraphInterface& g)
 {
     return PythonPropertyMap<GraphInterface::edge_index_map_t>
-        (g.GetEdgeIndex());
+        (g.get_edge_index());
 }
 
 template <class ValueList>

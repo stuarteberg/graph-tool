@@ -58,5 +58,5 @@ void vertex_property_union(GraphInterface& ugi, GraphInterface& gi,
                         placeholders::_3, prop),
          get_pointers::apply<graph_tool::detail::always_directed>::type(),
          writable_vertex_properties())
-        (gi.GetGraphView(), uprop);
+        (gi.get_graph_view(), uprop);
 }

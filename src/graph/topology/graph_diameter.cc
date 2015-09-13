@@ -152,13 +152,13 @@ python::object get_diam(GraphInterface& gi, size_t source, boost::any weight)
     if (weight.empty())
     {
         run_action<>()
-            (gi, std::bind(do_bfs_search(), placeholders::_1, source, gi.GetVertexIndex(),
+            (gi, std::bind(do_bfs_search(), placeholders::_1, source, gi.get_vertex_index(),
                            std::ref(target), std::ref(max_dist)))();
     }
     else
     {
         run_action<>()
-            (gi, std::bind(do_djk_search(), placeholders::_1, source, gi.GetVertexIndex(),
+            (gi, std::bind(do_djk_search(), placeholders::_1, source, gi.get_vertex_index(),
                            placeholders::_2, std::ref(target), std::ref(max_dist)),
              edge_scalar_properties())(weight);
 

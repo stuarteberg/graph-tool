@@ -34,25 +34,25 @@ using namespace graph_tool;
 boost::python::tuple global_clustering(GraphInterface& g)
 {
     double c, c_err;
-    bool directed = g.GetDirected();
-    g.SetDirected(false);
+    bool directed = g.get_directed();
+    g.set_directed(false);
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(get_global_clustering(), std::placeholders::_1,
                       std::ref(c), std::ref(c_err)))();
-    g.SetDirected(directed);
+    g.set_directed(directed);
     return boost::python::make_tuple(c, c_err);
 }
 
 void local_clustering(GraphInterface& g, boost::any prop)
 {
-    bool directed = g.GetDirected();
-    g.SetDirected(false);
+    bool directed = g.get_directed();
+    g.set_directed(false);
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(set_clustering_to_property(),
                       std::placeholders::_1,
                       std::placeholders::_2),
          writable_vertex_scalar_properties())(prop);
-    g.SetDirected(directed);
+    g.set_directed(directed);
 }
 
 using namespace boost::python;

@@ -42,7 +42,7 @@ size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
         pers_props_t;
 
     if(pers.empty())
-        pers = pers_map_t(1.0 / g.GetNumberOfVertices());
+        pers = pers_map_t(1.0 / g.get_num_vertices());
 
     typedef ConstantPropertyMap<double, GraphInterface::edge_t> weight_map_t;
     typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
@@ -57,7 +57,7 @@ size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
     size_t iter;
     run_action<>()
         (g, std::bind(get_pagerank(),
-                      placeholders::_1, g.GetVertexIndex(), placeholders::_2,
+                      placeholders::_1, g.get_vertex_index(), placeholders::_2,
                       placeholders::_3, placeholders::_4, d,
                       epsilon, max_iter, std::ref(iter)),
          vertex_floating_properties(),

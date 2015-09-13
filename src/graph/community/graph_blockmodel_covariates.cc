@@ -151,13 +151,13 @@ struct cov_move_sweep_dispatch
     {
         vector<std::reference_wrapper<Graph>> gs;
         for (GraphInterface& ag : ags)
-            gs.push_back(*any_cast<Graph*>(ag.GetGraphView()));
+            gs.push_back(*any_cast<Graph*>(ag.get_graph_view()));
 
         if (is_directed::apply<Graph>::type::value)
         {
             vector<std::reference_wrapper<GraphInterface::multigraph_t>> bgs;
             for (GraphInterface& bgi : bgis)
-                bgs.push_back(bgi.GetGraph());
+                bgs.push_back(bgi.get_graph());
             dispatch(mrs, mrp, mrm, wr, b, bs, g, gs, emat, sampler,
                      cavity_sampler, bgs, weighted);
         }
@@ -165,7 +165,7 @@ struct cov_move_sweep_dispatch
         {
             vector<UndirectedAdaptor<GraphInterface::multigraph_t>> ubgs;
             for (GraphInterface& bgi : bgis)
-                ubgs.push_back(UndirectedAdaptor<GraphInterface::multigraph_t>(bgi.GetGraph()));
+                ubgs.push_back(UndirectedAdaptor<GraphInterface::multigraph_t>(bgi.get_graph()));
             vector<std::reference_wrapper<UndirectedAdaptor<GraphInterface::multigraph_t>>> rubgs;
             for (auto& bg : ubgs)
                 rubgs.push_back(bg);
@@ -577,7 +577,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
 
     vector<size_t> eidx;
     for (GraphInterface& g : gis)
-        eidx.push_back(g.GetMaxEdgeIndex());
+        eidx.push_back(g.get_max_edge_index());
 
     auto bgi = from_rlist<GraphInterface>(obgi);
 
@@ -606,7 +606,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
                         label, vlist, block_list, target_blocks, deg_corr, dense,
                         multigraph, beta, sequential, parallel, random_move,
                         node_coherent, confine_layers, c, verbose,
-                        gi.GetMaxEdgeIndex(), eidx, nmerges, niter, merge_map,
+                        gi.get_max_edge_index(), eidx, nmerges, niter, merge_map,
                         partition_stats, overlap_partition_stats, overlap_stats,
                         master, slave, rng, S, nmoves, bgi, bmap, brmap, free_blocks, B),
                        std::ref(mrs), std::ref(mrp), std::ref(mrm), std::ref(wr),
@@ -653,7 +653,7 @@ void do_ec_hist(GraphInterface& gi, boost::any& aevc, boost::any& aec)
                                      GraphInterface::edge_index_map_t>::type
         emap_t;
     typename emap_t::unchecked_t ec =
-        any_cast<emap_t&>(aec).get_unchecked(gi.GetMaxEdgeIndex());
+        any_cast<emap_t&>(aec).get_unchecked(gi.get_max_edge_index());
     run_action<>()(gi, std::bind<void>(ec_hist(), placeholders::_1,
                                        placeholders::_2, std::ref(ec)),
                    edge_properties())(aevc);

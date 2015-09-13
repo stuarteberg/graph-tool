@@ -104,7 +104,7 @@ struct do_dfs
 void dfs_search(GraphInterface& g, size_t s, python::object vis)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-        (g, std::bind(do_dfs(), placeholders::_1, g.GetVertexIndex(),
+        (g, std::bind(do_dfs(), placeholders::_1, g.get_vertex_index(),
                       s, DFSVisitorWrapper(g, vis)))();
 }
 

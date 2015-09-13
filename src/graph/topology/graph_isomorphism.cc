@@ -97,18 +97,18 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     auto inv_map1 = any_cast<inv_map_t>(ainv_map1);
     auto inv_map2 = any_cast<inv_map_t>(ainv_map2);
 
-    if (gi1.GetDirected() != gi2.GetDirected())
+    if (gi1.get_directed() != gi2.get_directed())
         return false;
-    if (gi1.GetDirected())
+    if (gi1.get_directed())
     {
         run_action<graph_tool::detail::always_directed>()
             (gi1, std::bind(check_iso(),
                             placeholders::_1, placeholders::_2,
                             inv_map1, inv_map2, max_inv, iso_map,
-                            gi1.GetVertexIndex(),
-                            gi2.GetVertexIndex(), std::ref(result)),
+                            gi1.get_vertex_index(),
+                            gi2.get_vertex_index(), std::ref(result)),
              directed_graph_view_pointers())
-            (gi2.GetGraphView());
+            (gi2.get_graph_view());
     }
     else
     {
@@ -116,10 +116,10 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
             (gi1, std::bind(check_iso(),
                             placeholders::_1, placeholders::_2,
                             inv_map1, inv_map2, max_inv, iso_map,
-                            gi1.GetVertexIndex(),
-                            gi2.GetVertexIndex(), std::ref(result)),
+                            gi1.get_vertex_index(),
+                            gi2.get_vertex_index(), std::ref(result)),
              undirected_graph_view_pointers())
-            (gi2.GetGraphView());
+            (gi2.get_graph_view());
     }
 
     return result;

@@ -41,5 +41,5 @@ void transitive_closure(GraphInterface& gi, GraphInterface& tcgi)
 {
     run_action<graph_tool::detail::always_directed>()
         (gi, std::bind(get_transitive_closure(), placeholders::_1,
-                       std::ref(tcgi.GetGraph())))();
+                       std::ref(tcgi.get_graph())))();
 }

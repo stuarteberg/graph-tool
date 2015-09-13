@@ -328,7 +328,7 @@ std::pair<FakeEdgeIterator<Graph>,
 
 
 //==============================================================================
-// ReadFromFile(file, pfile, format)
+// read_from_file(file, pfile, format)
 //==============================================================================
 
 void build_stream(boost::iostreams::filtering_stream<boost::iostreams::input>& stream,
@@ -361,12 +361,12 @@ void build_stream(boost::iostreams::filtering_stream<boost::iostreams::input>& s
 }
 
 
-boost::python::tuple GraphInterface::ReadFromFile(string file,
-                                                  boost::python::object pfile,
-                                                  string format,
-                                                  boost::python::list ignore_vp,
-                                                  boost::python::list ignore_ep,
-                                                  boost::python::list ignore_gp)
+boost::python::tuple GraphInterface::read_from_file(string file,
+                                                    boost::python::object pfile,
+                                                    string format,
+                                                    boost::python::list ignore_vp,
+                                                    boost::python::list ignore_ep,
+                                                    boost::python::list ignore_gp)
 {
     if (format != "gt" && format != "dot" && format != "xml" && format != "gml")
         throw ValueException("error reading from file '" + file +
@@ -467,7 +467,7 @@ string graphviz_insert_index(dynamic_properties& dp, IndexMap index_map,
 
 // writes a graph to a file
 
-struct write_to_file
+struct do_write_to_file
 {
     template <class Graph, class IndexMap>
     void operator()(ostream& stream, Graph& g, IndexMap index_map,
@@ -489,7 +489,7 @@ struct write_to_file
     }
 };
 
-struct write_to_file_fake_undir: public write_to_file
+struct do_write_to_file_fake_undir: public do_write_to_file
 {
     template <class Graph, class IndexMap>
     void operator()(ostream& stream, Graph& g, IndexMap index_map,
@@ -497,11 +497,11 @@ struct write_to_file_fake_undir: public write_to_file
     {
         typedef typename Graph::original_graph_t graph_t;
         FakeUndirGraph<graph_t> ug(g);
-        write_to_file(*this)(stream, ug, index_map, dp, format);
+        do_write_to_file(*this)(stream, ug, index_map, dp, format);
     }
 };
 
-struct write_to_binary_file
+struct do_write_to_binary_file
 {
     template <class Graph, class IndexMap>
     void operator()(ostream& stream, Graph& g, IndexMap index_map, size_t N,
@@ -525,8 +525,8 @@ struct generate_index
     }
 };
 
-void GraphInterface::WriteToFile(string file, boost::python::object pfile,
-                                 string format, boost::python::list props)
+void GraphInterface::write_to_file(string file, boost::python::object pfile,
+                                   string format, boost::python::list props)
 {
     if (format != "gt" && format != "xml" && format != "dot" && format != "gml")
         throw ValueException("error writing to file '" + file +
@@ -580,18 +580,18 @@ void GraphInterface::WriteToFile(string file, boost::python::object pfile,
             bool directed = _directed;
             _directed = true;
 
-            if (IsVertexFilterActive())
+            if (is_vertex_filter_active())
             {
                 // vertex indexes must be between the [0, HardNumVertices(g)] range
                 vector_property_map<size_t> index_map(_vertex_index);
                 run_action<>()(*this, std::bind(generate_index(),
                                                 std::placeholders::_1,
                                                 index_map))();
-                run_action<>()(*this, std::bind(write_to_binary_file(),
+                run_action<>()(*this, std::bind(do_write_to_binary_file(),
                                                 std::ref(stream),
                                                 std::placeholders::_1,
                                                 index_map,
-                                                GetNumberOfVertices(),
+                                                get_num_vertices(),
                                                 directed,
                                                 std::ref(agprops),
                                                 std::ref(avprops),
@@ -599,11 +599,11 @@ void GraphInterface::WriteToFile(string file, boost::python::object pfile,
             }
             else
             {
-                run_action<>()(*this, std::bind(write_to_binary_file(),
+                run_action<>()(*this, std::bind(do_write_to_binary_file(),
                                                 std::ref(stream),
                                                 std::placeholders::_1,
                                                 _vertex_index,
-                                                GetNumberOfVertices(),
+                                                get_num_vertices(),
                                                 directed,
                                                 std::ref(agprops),
                                                 std::ref(avprops),
@@ -625,7 +625,7 @@ void GraphInterface::WriteToFile(string file, boost::python::object pfile,
                           DP_SMART_PTR<dynamic_property_map>(pmap));
             }
 
-            if (IsVertexFilterActive())
+            if (is_vertex_filter_active())
             {
                 // vertex indexes must be between the [0, HardNumVertices(g)] range
                 vector_property_map<size_t> index_map(_vertex_index);
@@ -634,15 +634,15 @@ void GraphInterface::WriteToFile(string file, boost::python::object pfile,
                 if (format == "dot")
                     graphviz_insert_index(dp, index_map);
 
-                if (GetDirected())
+                if (get_directed())
                     run_action<detail::always_directed>()
-                        (*this, boost::bind<void>(write_to_file(),
+                        (*this, boost::bind<void>(do_write_to_file(),
                                                   boost::ref(stream), _1,
                                                   index_map, boost::ref(dp),
                                                   format))();
                 else
                     run_action<detail::never_directed>()
-                        (*this,boost::bind<void>(write_to_file_fake_undir(),
+                        (*this,boost::bind<void>(do_write_to_file_fake_undir(),
                                                  boost::ref(stream), _1, index_map,
                                                  boost::ref(dp), format))();
             }
@@ -651,15 +651,15 @@ void GraphInterface::WriteToFile(string file, boost::python::object pfile,
                 if (format == "dot")
                     graphviz_insert_index(dp, _vertex_index);
 
-                if (GetDirected())
+                if (get_directed())
                     run_action<detail::always_directed>()
-                        (*this, boost::bind<void>(write_to_file(),
+                        (*this, boost::bind<void>(do_write_to_file(),
                                                   boost::ref(stream), _1,
                                                   _vertex_index,  boost::ref(dp),
                                                   format))();
                 else
                     run_action<detail::never_directed>()
-                        (*this,boost::bind<void>(write_to_file_fake_undir(),
+                        (*this,boost::bind<void>(do_write_to_file_fake_undir(),
                                                  boost::ref(stream), _1,
                                                  _vertex_index, boost::ref(dp),
                                                  format))();

@@ -73,8 +73,8 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
                                    max_iter, adaptive),
                    placeholders::_1, placeholders::_2,
                    placeholders::_3, placeholders::_4,
-                   pin_map.get_unchecked(num_vertices(g.GetGraph())),
-                   groups.get_unchecked(num_vertices(g.GetGraph())), verbose,
+                   pin_map.get_unchecked(num_vertices(g.get_graph())),
+                   groups.get_unchecked(num_vertices(g.get_graph())), verbose,
                    std::ref(rng)),
          vertex_floating_vector_properties(), vertex_props_t(), edge_props_t())
         (pos, vweight, eweight);
@@ -140,7 +140,7 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                        cvmap, placeholders::_4, cpos, delta, std::ref(rng)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          vmaps_t(), vertex_floating_vector_properties())
-        (cgi.GetGraphView(), vmap, pos);
+        (cgi.get_graph_view(), vmap, pos);
 }
 
 struct do_propagate_pos_mivs

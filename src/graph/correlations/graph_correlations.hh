@@ -50,7 +50,7 @@ public:
         for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
         {
             k[1] = deg2(target(*e,g),g);
-            hist.PutValue(k, get(weight, *e));
+            hist.put_value(k, get(weight, *e));
         }
     }
 
@@ -67,9 +67,9 @@ public:
         for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
         {
             k2 = deg2(target(*e,g),g)*get(weight, *e);
-            sum.PutValue(k1, k2);
-            sum2.PutValue(k1, k2*k2);
-            count.PutValue(k1, get(weight, *e));
+            sum.put_value(k1, k2);
+            sum2.put_value(k1, k2*k2);
+            count.put_value(k1, get(weight, *e));
         }
     }
 };
@@ -87,7 +87,7 @@ public:
         typename Hist::point_t k;
         k[0] = deg1(v, g);
         k[1] = deg2(v, g);
-        hist.PutValue(k);
+        hist.put_value(k);
     }
 
     template <class Graph, class Deg1, class Deg2, class Sum, class Count,
@@ -100,9 +100,9 @@ public:
         k1[0] = deg1(v, g);
         typename Sum::count_type k2;
         k2 = deg2(v, g);
-        sum.PutValue(k1, k2);
-        sum2.PutValue(k1, k2*k2);
-        count.PutValue(k1, 1);
+        sum.put_value(k1, k2);
+        sum2.put_value(k1, k2*k2);
+        count.put_value(k1, 1);
     }
 };
 

@@ -53,7 +53,7 @@ void katz(GraphInterface& g, boost::any w, boost::any c, boost::any beta,
     if(beta.empty())
         beta = beta_map_t(1.);
 
-    run_action<>()(g, std::bind(get_katz(), placeholders::_1, g.GetVertexIndex(),
+    run_action<>()(g, std::bind(get_katz(), placeholders::_1, g.get_vertex_index(),
                                 placeholders::_2, placeholders::_3,
                                 placeholders::_4, alpha, epsilon, max_iter),
                    weight_props_t(),

@@ -78,54 +78,54 @@ public:
     // Basic manipulation
     //
 
-    size_t GetNumberOfVertices(bool filtered = true);
-    size_t GetNumberOfEdges(bool filtered = true);
-    void SetDirected(bool directed) {_directed = directed;}
-    bool GetDirected() {return _directed;}
-    void SetReversed(bool reversed) {_reversed = reversed;}
-    bool GetReversed() {return _reversed;}
-    void SetKeepEpos(bool keep) {_mg->set_keep_epos(keep);}
-    bool GetKeepEpos() {return _mg->get_keep_epos();}
+    size_t get_num_vertices(bool filtered = true);
+    size_t get_num_edges(bool filtered = true);
+    void set_directed(bool directed) {_directed = directed;}
+    bool get_directed() {return _directed;}
+    void set_reversed(bool reversed) {_reversed = reversed;}
+    bool get_reversed() {return _reversed;}
+    void set_keep_epos(bool keep) {_mg->set_keep_epos(keep);}
+    bool get_keep_epos() {return _mg->get_keep_epos();}
 
 
     // graph filtering
-    void SetVertexFilterProperty(boost::any prop, bool invert);
-    bool IsVertexFilterActive() const;
-    void SetEdgeFilterProperty(boost::any prop, bool invert);
-    bool IsEdgeFilterActive() const;
+    void set_vertex_filter_property(boost::any prop, bool invert);
+    bool is_vertex_filter_active() const;
+    void set_edge_filter_property(boost::any prop, bool invert);
+    bool is_edge_filter_active() const;
 
     // graph modification
-    void InsertPropertyMap(string name, boost::any map);
-    void ReIndexEdges();
-    void PurgeVertices(boost::any old_index); // removes filtered vertices
-    void PurgeEdges();    // removes filtered edges
-    void Clear();
-    void ClearEdges();
-    void ShiftVertexProperty(boost::any map, boost::python::object oindex) const;
-    void MoveVertexProperty(boost::any map, boost::python::object oindex) const;
-    void ReIndexVertexProperty(boost::any map, boost::any old_index) const;
-    void CopyVertexProperty(const GraphInterface& src, boost::any prop_src,
+    void insert_property_map(string name, boost::any map);
+    void re_index_edges();
+    void purge_vertices(boost::any old_index); // removes filtered vertices
+    void purge_edges();    // removes filtered edges
+    void clear();
+    void clear_edges();
+    void shift_vertex_property(boost::any map, boost::python::object oindex) const;
+    void move_vertex_property(boost::any map, boost::python::object oindex) const;
+    void re_index_vertex_property(boost::any map, boost::any old_index) const;
+    void copy_vertex_property(const GraphInterface& src, boost::any prop_src,
+                              boost::any prop_tgt);
+    void copy_edge_property(const GraphInterface& src, boost::any prop_src,
                             boost::any prop_tgt);
-    void CopyEdgeProperty(const GraphInterface& src, boost::any prop_src,
-                          boost::any prop_tgt);
 
     //
     // python interface
     //
-    boost::python::object DegreeMap(string deg, boost::any weight) const;
+    boost::python::object degree_map(string deg, boost::any weight) const;
 
     // used for graph properties
-    boost::graph_property_tag GetDescriptor() const { return boost::graph_property_tag(); }
-    bool CheckValid() const {return true;}
+    boost::graph_property_tag get_descriptor() const { return boost::graph_property_tag(); }
+    bool check_valid() const {return true;}
 
     // I/O
-    void WriteToFile(string s, boost::python::object pf, string format,
-                     boost::python::list properties);
-    boost::python::tuple ReadFromFile(string s, boost::python::object pf,
-                                      string format,
-                                      boost::python::list ignore_vp,
-                                      boost::python::list ignore_ep,
-                                      boost::python::list ignore_gp);
+    void write_to_file(string s, boost::python::object pf, string format,
+                       boost::python::list properties);
+    boost::python::tuple read_from_file(string s, boost::python::object pf,
+                                        string format,
+                                        boost::python::list ignore_vp,
+                                        boost::python::list ignore_ep,
+                                        boost::python::list ignore_gp);
 
     //
     // Internal types
@@ -151,17 +151,17 @@ public:
 
     // internal access
 
-    multigraph_t&      GetGraph() {return *_mg;}
-    std::shared_ptr<multigraph_t> GetGraphPtr() {return _mg;}
-    vertex_index_map_t GetVertexIndex() {return _vertex_index;}
-    edge_index_map_t   GetEdgeIndex()   {return _edge_index;}
-    size_t             GetMaxEdgeIndex(){return _mg->get_last_index();}
+    multigraph_t&      get_graph() {return *_mg;}
+    std::shared_ptr<multigraph_t> get_graph_ptr() {return _mg;}
+    vertex_index_map_t get_vertex_index()   {return _vertex_index;}
+    edge_index_map_t   get_edge_index()     {return _edge_index;}
+    size_t             get_max_edge_index() {return _mg->get_last_index();}
 
-    graph_index_map_t  GetGraphIndex()  {return graph_index_map_t(0);}
+    graph_index_map_t  get_graph_index()  {return graph_index_map_t(0);}
 
     // Gets the encapsulated graph view. See graph_filtering.cc for details
-    boost::any GetGraphView() const;
-    vector<boost::any>& GetGraphViews() {return _graph_views;}
+    boost::any get_graph_view() const;
+    vector<boost::any>& get_graph_views() {return _graph_views;}
 
 private:
 

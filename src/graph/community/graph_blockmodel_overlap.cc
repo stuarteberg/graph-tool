@@ -116,11 +116,11 @@ struct move_sweep_overlap_dispatch
         if (is_directed::apply<Graph>::type::value)
         {
             dispatch(mrs, mrp, mrm, wr, b, g, emat, sampler, cavity_sampler,
-                     bgi.GetGraph(), weighted);
+                     bgi.get_graph(), weighted);
         }
         else
         {
-            UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.GetGraph());
+            UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
             dispatch(mrs, mrp, mrm, wr, b, g, emat, sampler, cavity_sampler, ug,
                      weighted);
         }
@@ -324,7 +324,7 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
                         label, vlist, block_list, target_blocks, deg_corr, dense,
                         multigraph, parallel_edges, beta, sequential, parallel,
-                        random_move, c, node_coherent, verbose, gi.GetMaxEdgeIndex(),
+                        random_move, c, node_coherent, verbose, gi.get_max_edge_index(),
                         nmerges, niter, merge_map, overlap_stats, partition_stats,
                         rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,
@@ -476,7 +476,7 @@ void do_get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     emap_t eindex = any_cast<emap_t>(oeindex);
 
     run_action<>()(gi, std::bind(get_eg_overlap(), placeholders::_1,
-                                 std::ref(egi.GetGraph()), be, b, node_index,
+                                 std::ref(egi.get_graph()), be, b, node_index,
                                  half_edges, eindex))();
 }
 
@@ -534,7 +534,7 @@ void do_get_be_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     vimap_t node_index = any_cast<vimap_t>(onode_index);
 
     run_action<>()(gi, std::bind(get_be_overlap(), placeholders::_1,
-                                 std::ref(egi.GetGraph()), be, b,
+                                 std::ref(egi.get_graph()), be, b,
                                  node_index))();
 }
 

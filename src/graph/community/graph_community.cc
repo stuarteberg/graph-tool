@@ -66,7 +66,7 @@ void community_structure(GraphInterface& g, double gamma, string corr_name,
         throw ValueException("invalid correlation type: " + corr_name);
 
     run_action<graph_tool::detail::never_directed>()
-        (g, std::bind(get_communities_selector(corr, g.GetVertexIndex()),
+        (g, std::bind(get_communities_selector(corr, g.get_vertex_index()),
                       placeholders::_1, placeholders::_2, placeholders::_3, gamma, n_iter,
                       make_pair(Tmin, Tmax), Nspins,
                       std::ref(rng), make_pair(verbose,history_file)),

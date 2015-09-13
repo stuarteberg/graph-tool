@@ -140,10 +140,10 @@ void betweenness(GraphInterface& g, boost::any weight,
     {
         run_action<>()
             (g, std::bind<>(get_weighted_betweenness(),
-                            std::placeholders::_1, g.GetVertexIndex(),
+                            std::placeholders::_1, g.get_vertex_index(),
                             std::placeholders::_2,
                             std::placeholders::_3, weight, normalize,
-                            g.GetNumberOfVertices(), g.GetMaxEdgeIndex()),
+                            g.get_num_vertices(), g.get_max_edge_index()),
              edge_floating_properties(),
              vertex_floating_properties())
             (edge_betweenness, vertex_betweenness);
@@ -152,9 +152,9 @@ void betweenness(GraphInterface& g, boost::any weight,
     {
         run_action<>()
             (g, std::bind<void>(get_betweenness(), std::placeholders::_1,
-                                g.GetVertexIndex(), std::placeholders::_2,
+                                g.get_vertex_index(), std::placeholders::_2,
                                 std::placeholders::_3, normalize,
-                                g.GetNumberOfVertices()),
+                                g.get_num_vertices()),
              edge_floating_properties(),
              vertex_floating_properties())
             (edge_betweenness, vertex_betweenness);

@@ -51,7 +51,7 @@ find_edge_range(GraphInterface& gi, boost::any eprop, python::tuple range)
         all_edge_props;
 
     GraphInterface::edge_index_map_t eindex =
-        any_cast<GraphInterface::edge_index_map_t>(gi.GetEdgeIndex());
+        any_cast<GraphInterface::edge_index_map_t>(gi.get_edge_index());
     run_action<>()(gi, std::bind(find_edges(), placeholders::_1, std::ref(gi), eindex,
                                  placeholders::_2, std::ref(range), std::ref(ret)),
                    all_edge_props())(eprop);
