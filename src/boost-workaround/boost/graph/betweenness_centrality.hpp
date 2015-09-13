@@ -7,7 +7,7 @@
 //  Authors: Douglas Gregor
 //           Andrew Lumsdaine
 
-// Hacked by Tiago Peixoto, to enable openmp support for graph-tool
+//  Modified by Tiago Peixoto, to enable openmp support for graph-tool
 
 #ifndef BOOST_GRAPH_BRANDES_BETWEENNESS_CENTRALITY_HPP
 #define BOOST_GRAPH_BRANDES_BETWEENNESS_CENTRALITY_HPP
@@ -66,7 +66,7 @@ namespace detail { namespace graph {
      * for w is set to {(v, w)} and the shortest path count of w is set to
      * the number of paths that reach {v}.
      */
-    void edge_relaxed(edge_descriptor e, const Graph& g)
+    void edge_relaxed(const edge_descriptor& e, const Graph& g)
     {
       vertex_descriptor v = source(e, g), w = target(e, g);
       incoming[w].clear();
@@ -80,7 +80,7 @@ namespace detail { namespace graph {
      * incoming edges of w and add all of the shortest paths to v to the
      * shortest path count of w.
      */
-    void edge_not_relaxed(edge_descriptor e, const Graph& g)
+    void edge_not_relaxed(const edge_descriptor& e, const Graph& g)
     {
       typedef typename property_traits<WeightMap>::value_type weight_type;
       typedef typename property_traits<DistanceMap>::value_type distance_type;
@@ -182,7 +182,7 @@ namespace detail { namespace graph {
        * incoming edge list for w is set to {(v, w)} and the shortest
        * path count of w is set to the number of paths that reach {v}.
        */
-      void tree_edge(edge_descriptor e, Graph& g)
+      void tree_edge(const edge_descriptor& e, Graph& g)
       {
         vertex_descriptor v = source(e, g);
         vertex_descriptor w = target(e, g);
@@ -198,7 +198,7 @@ namespace detail { namespace graph {
        * in the incoming edge list of w and add all of the shortest
        * paths to v to the shortest path count of w.
        */
-      void non_tree_edge(edge_descriptor e, Graph& g)
+      void non_tree_edge(const edge_descriptor& e, Graph& g)
       {
         vertex_descriptor v = source(e, g);
         vertex_descriptor w = target(e, g);
@@ -311,8 +311,14 @@ namespace detail { namespace graph {
     init_centrality_map(vertices(g), centrality);
     init_centrality_map(edges(g), edge_centrality_map);
 
+    vector<typename property_traits<IncomingMap>::value_type> vincoming(num_vertices(g));
+    vector<typename property_traits<DistanceMap>::value_type> vdistance(num_vertices(g));
+    vector<typename property_traits<DependencyMap>::value_type> vdependency(num_vertices(g));
+    vector<typename property_traits<PathCountMap>::value_type> vpath_count(num_vertices(g));
+
     int i, N = num_vertices(g);
-    #pragma omp parallel for default(shared) private(i) schedule(dynamic)
+    #pragma omp parallel for default(shared) private(i) \
+        firstprivate(vincoming, vdistance, vdependency, vpath_count) schedule(dynamic)
     for (i = 0; i < N; ++i)
     {
       typename graph_traits<Graph>::vertex_descriptor s = vertex(i, g);
@@ -321,10 +327,10 @@ namespace detail { namespace graph {
 
       std::stack<vertex_descriptor> ordered_vertices;
 
-      vector_property_map<typename property_traits<IncomingMap>::value_type,VertexIndexMap> incoming(vertex_index);
-      vector_property_map<typename property_traits<DistanceMap>::value_type,VertexIndexMap> distance(vertex_index);
-      vector_property_map<typename property_traits<DependencyMap>::value_type,VertexIndexMap> dependency(vertex_index);
-      vector_property_map<typename property_traits<PathCountMap>::value_type,VertexIndexMap> path_count(vertex_index);
+      auto incoming = make_iterator_property_map(vincoming.begin(), vertex_index);
+      auto distance = make_iterator_property_map(vdistance.begin(), vertex_index);
+      auto dependency = make_iterator_property_map(vdependency.begin(), vertex_index);
+      auto path_count = make_iterator_property_map(vpath_count.begin(), vertex_index);
 
       // Initialize for this iteration
       vertex_iterator w, w_end;
