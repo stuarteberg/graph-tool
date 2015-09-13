@@ -97,36 +97,6 @@ __all__ = ["bfs_search", "BFSVisitor", "dfs_search", "DFSVisitor",
            "StopSearch"]
 
 
-class VisitorWrapper(object):
-    def __init__(self, g, visitor, edge_members, vertex_members):
-        self.visitor = visitor
-        self.g = g
-        self.edge_members = set(edge_members)
-        self.vertex_members = set(vertex_members)
-
-    def __getattr__(self, attr):
-        try:
-            orig_attr = self.visitor.__getattribute__(attr)
-        except AttributeError:
-            return object.__getattribute__(self, attr)
-        if callable(orig_attr):
-            def wrapped_visitor_member(*args, **kwargs):
-                old_perms = dict(self.g._Graph__perms)
-                perms ={"del_vertex": False, "del_edge": False, "add_edge": False}
-                if attr in self.edge_members:
-                    perms.update({"del_edge": True, "add_edge": True})
-                elif attr in self.vertex_members:
-                    perms.update({"add_vertex": False})
-                self.g._Graph__perms.update(perms)
-                try:
-                    ret = orig_attr(*args, **kwargs)
-                finally:
-                    self.g._Graph__perms.update(old_perms)
-                return ret
-            return wrapped_visitor_member
-        else:
-            return orig_attr
-
 class BFSVisitor(object):
     r"""A visitor object that is invoked at the event-points inside the
     :func:`~graph_tool.search.bfs_search` algorithm. By default, it performs no
@@ -307,10 +277,6 @@ def bfs_search(g, source, visitor=BFSVisitor()):
     .. [bfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/breadth_first_search.html
     .. [bfs-wikipedia] http://en.wikipedia.org/wiki/Breadth-first_search
     """
-
-    visitor = VisitorWrapper(g, visitor,
-                             ["initialize_vertex", "examine_vertex", "finish_vertex"],
-                             ["initialize_vertex"])
 
     try:
         libgraph_tool_search.bfs_search(g._Graph__graph,
@@ -538,10 +504,6 @@ def dfs_search(g, source, visitor=DFSVisitor()):
     .. [dfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/depth_first_search.html
     .. [dfs-wikipedia] http://en.wikipedia.org/wiki/Depth-first_search
     """
-
-    visitor = VisitorWrapper(g, visitor,
-                             ["initialize_vertex", "discover_vertex", "finish_vertex",
-                              "start_vertex"], ["initialize_vertex"])
 
     try:
         libgraph_tool_search.dfs_search(g._Graph__graph,
@@ -811,10 +773,6 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     .. [dijkstra-wikipedia] http://en.wikipedia.org/wiki/Dijkstra's_algorithm
     """
 
-    visitor = VisitorWrapper(g, visitor,
-                             ["initialize_vertex", "examine_vertex", "finish_vertex"],
-                             ["initialize_vertex"])
-
     if visitor is None:
         visitor = DijkstraVisitor()
     if dist_map is None:
@@ -1077,8 +1035,6 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
     .. [bellman-ford-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/bellman_ford_shortest.html
     .. [bellman-ford-wikipedia] http://en.wikipedia.org/wiki/Bellman-Ford_algorithm
     """
-
-    visitor = VisitorWrapper(g, visitor, [], [])
 
     if dist_map is None:
         dist_map = g.new_vertex_property(weight.value_type())
@@ -1537,10 +1493,6 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
     .. [astar-wikipedia] http://en.wikipedia.org/wiki/A*_search_algorithm
     """
 
-    visitor = VisitorWrapper(g, visitor,
-                             ["initialize_vertex", "examine_vertex", "finish_vertex"],
-                             ["initialize_vertex"])
-
     if dist_map is None:
         dist_map = g.new_vertex_property(weight.value_type())
     if pred_map is None:
@@ -1572,9 +1524,6 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
 
     try:
         if not implicit:
-            g._Graph__perms.update({"del_vertex": False, "del_edge": False,
-                                    "add_edge": False})
-
             libgraph_tool_search.astar_search(g._Graph__graph,
                                               int(source), _prop("v", g, dist_map),
                                               _prop("v", g, pred_map),
@@ -1587,19 +1536,13 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
             elif cost_map.value_type() != dist_map.value_type():
                 raise ValueError("The cost_map value type must be the same as" +
                                  " dist_map.")
-            g._Graph__perms.update({"del_vertex": False})
             libgraph_tool_search.astar_search_implicit\
                 (g._Graph__graph, int(source),
                  _prop("v", g, dist_map), _prop("v", g, pred_map),
                  _prop("v", g, cost_map), _prop("e", g, weight), visitor,
                  compare, combine, zero, infinity, h)
     except StopSearch:
-        g._Graph__perms.update({"del_vertex": True, "del_edge": True,
-                                "add_edge": True})
-    finally:
-        g._Graph__perms.update({"del_vertex": True, "del_edge": True,
-                                "add_edge": True})
-
+        pass
     return dist_map, pred_map
 
 

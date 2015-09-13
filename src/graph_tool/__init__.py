@@ -1621,10 +1621,6 @@ class Graph(object):
             # directedness is always a filter
             self.set_directed(g.is_directed())
 
-        # modification permissions
-        self.__perms = {"add_edge": True, "del_edge": True,
-                        "add_vertex": True, "del_vertex": True}
-
     def copy(self):
         """Return a deep copy of self. All :ref:`internal property maps <sec_internal_props>`
         are also copied."""
@@ -1654,10 +1650,6 @@ class Graph(object):
 
     # Graph access
     # ============
-
-    def __check_perms(self, ptype):
-        if not self.__perms[ptype]:
-            raise RuntimeError("the graph cannot be modified at this point!")
 
     def vertices(self):
         """Return an :meth:`iterator <iterator.__iter__>` over the vertices.
@@ -1759,7 +1751,6 @@ class Graph(object):
         if n == 0:
             return (None for i in range(0, 0))
 
-        self.__check_perms("add_vertex")
         v = libcore.add_vertex(self.__graph, n)
 
         vfilt = self.get_vertex_filter()
@@ -1815,8 +1806,6 @@ class Graph(object):
            the graph will no longer be the same.
 
         """
-        self.__check_perms("del_vertex")
-
         try:
             vs = numpy.array([int(vertex)], dtype="int64")
         except TypeError:
@@ -1862,7 +1851,6 @@ class Graph(object):
         in the graph if they don't yet exist.
 
         """
-        self.__check_perms("add_edge")
         e = libcore.add_edge(self.__graph,
                              self.vertex(int(source), add_missing=add_missing),
                              self.vertex(int(target), add_missing=add_missing))
@@ -1887,7 +1875,6 @@ class Graph(object):
            unchanged, unless :meth:`~Graph.set_fast_edge_removal` is set to
            `True`, in which case it can change.
         """
-        self.__check_perms("del_edge")
         return libcore.remove_edge(self.__graph, edge)
 
     def add_edge_list(self, edge_list, hashed=False, string_vals=False,
@@ -1911,7 +1898,6 @@ class Graph(object):
         If given, ``eprops`` specifies edge property maps that will be filled
         with the remaining values at each row, if there are more than two.
         """
-        self.__check_perms("add_edge")
         if eprops is None:
             eprops = ()
         else:
@@ -1954,13 +1940,10 @@ class Graph(object):
 
     def clear(self):
         """Remove all vertices and edges from the graph."""
-        self.__check_perms("del_vertex")
-        self.__check_perms("del_edge")
         self.__graph.Clear()
 
     def clear_edges(self):
         """Remove all edges from the graph."""
-        self.__check_perms("del_edge")
         self.__graph.ClearEdges()
 
     # Internal property maps
