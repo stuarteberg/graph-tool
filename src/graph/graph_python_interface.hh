@@ -363,19 +363,9 @@ public:
         other.check_valid();
         Graph& g = *std::shared_ptr<Graph>(_g);
         OGraph& og = *std::shared_ptr<OGraph>(other._g);
-        auto s = source(_e, g);
-        auto t = target(_e, g);
-        auto os = source(other._e, og);
-        auto ot = target(other._e, og);
-        if (not is_directed::apply<Graph>::type::value ||
-            not is_directed::apply<OGraph>::type::value)
-        {
-            if (t < s)
-                std::swap(s, t);
-            if (ot < os)
-                std::swap(os, ot);
-        }
-        return s < os && t < ot;
+        auto eindex = get(boost::edge_index_t(), g);
+        auto eindex2 = get(boost::edge_index_t(), og);
+        return eindex[_e] < eindex2[other._e];
     }
     template <class OGraph>
     bool operator<=(const PythonEdge<OGraph>& other) const {return *this < other || *this == other;}

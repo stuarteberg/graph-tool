@@ -109,12 +109,13 @@ boost::any
 check_filtered(const Graph &g, const EdgeFilter& edge_filter,
                const bool& e_invert, bool e_active, size_t max_eindex,
                const VertexFilter& vertex_filter, const bool& v_invert,
-               bool v_active, GraphInterface& gi, bool reverse,
-               bool directed)
+               bool v_active, GraphInterface& gi, bool reverse, bool directed)
 {
 #ifndef NO_GRAPH_FILTERING
-    MaskFilter<EdgeFilter> e_filter(edge_filter, e_invert);
-    MaskFilter<VertexFilter> v_filter(vertex_filter, v_invert);
+    MaskFilter<EdgeFilter> e_filter(const_cast<EdgeFilter&>(edge_filter),
+                                    e_invert);
+    MaskFilter<VertexFilter> v_filter(const_cast<VertexFilter&>(vertex_filter),
+                                      v_invert);
 
     if (e_active)
     {

@@ -141,7 +141,7 @@ class MaskFilter
 public:
     typedef typename boost::property_traits<DescriptorProperty>::value_type value_t;
     MaskFilter(){}
-    MaskFilter(const DescriptorProperty& filtered_property, bool invert)
+    MaskFilter(DescriptorProperty& filtered_property, bool invert)
         : _filtered_property(&filtered_property), _invert(invert) {}
 
     template <class Descriptor>
@@ -151,13 +151,15 @@ public:
 
         return get(*_filtered_property, std::forward<Descriptor>(d)) ^ _invert;
 
-        // This is a critical section. It will be called for every vertex
-        // or edge in the graph, every time they're iterated
-        // through.
+        // This is a critical section. It will be called for every vertex or
+        // edge in the graph, every time they're iterated through.
     }
 
+    DescriptorProperty& get_filter() { return *_filtered_property; }
+    bool is_inverted() { return _invert; }
+
 private:
-    const DescriptorProperty* _filtered_property;
+    DescriptorProperty* _filtered_property;
     bool _invert;
 };
 
@@ -553,5 +555,43 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
 }
 
 } //graph_tool namespace
+
+// Overload add_vertex() and add_edge() to filtered graphs, so that the new
+// descriptors are always valid
+
+namespace boost
+{
+template <class Graph, class EdgeProperty, class VertexProperty>
+typename graph_traits<filtered_graph<Graph,
+                                     graph_tool::detail::MaskFilter<EdgeProperty>,
+                                     graph_tool::detail::MaskFilter<VertexProperty>>>::vertex_descriptor
+add_vertex(boost::filtered_graph<Graph,
+                                 graph_tool::detail::MaskFilter<EdgeProperty>,
+                                 graph_tool::detail::MaskFilter<VertexProperty>>& g)
+{
+    auto v = add_vertex(const_cast<Graph&>(g.m_g));
+    auto& filt = g.m_vertex_pred.get_filter();
+    auto cfilt = filt.get_checked();
+    cfilt[v] = !g.m_vertex_pred.is_inverted();
+    return v;
+}
+
+template <class Graph, class EdgeProperty, class VertexProperty, class Vertex>
+std::pair<typename graph_traits<filtered_graph<Graph,
+                                               graph_tool::detail::MaskFilter<EdgeProperty>,
+                                               graph_tool::detail::MaskFilter<VertexProperty>>>::edge_descriptor, bool>
+add_edge(Vertex s, Vertex t, filtered_graph<Graph,
+                                            graph_tool::detail::MaskFilter<EdgeProperty>,
+                                            graph_tool::detail::MaskFilter<VertexProperty>>& g)
+{
+    auto e = add_edge(s, t, const_cast<Graph&>(g.m_g));
+    auto& filt = g.m_edge_pred.get_filter();
+    auto cfilt = filt.get_checked();
+    cfilt[e.first] = !g.m_edge_pred.is_inverted();
+    return e;
+}
+
+
+} // namespace boost
 
 #endif // FILTERING_HH

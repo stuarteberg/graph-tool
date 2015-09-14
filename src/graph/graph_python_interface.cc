@@ -71,7 +71,11 @@ struct get_vertex_soft
     void operator()(Graph& g, GraphInterface& gi, size_t i, python::object& v) const
     {
         std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
-        v = python::object(PythonVertex<Graph>(gp, vertex(i, g)));
+        if (i < num_vertices(g))
+            v = python::object(PythonVertex<Graph>(gp, vertex(i, g)));
+        else
+            v = python::object(PythonVertex<Graph>(gp,
+                                                   graph_traits<Graph>::null_vertex()));
     }
 };
 
@@ -96,10 +100,10 @@ struct get_vertex_hard
     }
 };
 
-python::object get_vertex(GraphInterface& gi, size_t i)
+python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
 {
     python::object v;
-    if (gi.is_vertex_filter_active())
+    if (!use_index)
         run_action<>()(gi,
                        std::bind(get_vertex_hard(), placeholders::_1,
                                  std::ref(gi), i, std::ref(v)))();
@@ -138,7 +142,7 @@ struct add_new_vertex
                     python::object& new_v) const
     {
         std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
-        if (n > 1)
+        if (n != 1)
         {
             for (size_t i = 0; i < n; ++i)
                 add_vertex(g);

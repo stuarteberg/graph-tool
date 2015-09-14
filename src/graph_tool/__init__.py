@@ -1674,17 +1674,7 @@ class Graph(object):
         the necessary number of missing vertices are inserted, and the new
         vertex is returned.
         """
-        vfilt = self.get_vertex_filter()
-        if vfilt[0] is None or not use_index:
-            v = libcore.get_vertex(self.__graph, int(i))
-        else:
-            try:
-                self.set_vertex_filter(None)
-                v = libcore.get_vertex(self.__graph, int(i))
-                if v.is_valid() and vfilt[0][v] == vfilt[1]:
-                    raise ValueError("Invalid vertex index: %d (filtered out)" % int(i))
-            finally:
-                self.set_vertex_filter(vfilt[0], vfilt[1])
+        v = libcore.get_vertex(self.__graph, int(i), use_index)
         if not v.is_valid():
             if add_missing:
                 self.add_vertex(int(i) - self.num_vertices(use_index) + 1)
@@ -1706,9 +1696,6 @@ class Graph(object):
         """
         s = self.vertex(int(s))
         t = self.vertex(int(t))
-        if s is None or t is None:
-            return None
-        efilt = self.get_edge_filter()
         edges = libcore.get_edge(self.__graph, int(s), int(t), all_edges)
         if add_missing and len(edges) == 0:
             edges.append(self.add_edge(s, t))
@@ -1740,17 +1727,9 @@ class Graph(object):
         vertices are inserted and an iterator over the new vertices is returned.
         This operation is :math:`O(n)`.
         """
-        if n == 0:
-            return (None for i in range(0, 0))
-
         v = libcore.add_vertex(self.__graph, n)
 
-        vfilt = self.get_vertex_filter()
-        if vfilt[0] is not None:
-            N = self.num_vertices(True)
-            vfilt[0].a[N - n: N] = not vfilt[1]
-
-        if n <= 1:
+        if n == 1:
             return v
         else:
             pos = self.num_vertices(True) - n
@@ -1841,14 +1820,10 @@ class Graph(object):
 
         If ``add_missing == True``, the source and target vertices are included
         in the graph if they don't yet exist.
-
         """
         e = libcore.add_edge(self.__graph,
                              self.vertex(int(source), add_missing=add_missing),
                              self.vertex(int(target), add_missing=add_missing))
-        efilt = self.get_edge_filter()
-        if efilt[0] is not None:
-            efilt[0][e] = not efilt[1]
         return e
 
     def remove_edge(self, edge):
