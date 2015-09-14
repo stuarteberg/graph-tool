@@ -1768,11 +1768,15 @@ def get_hierarchy_tree(state, empty_branches=True):
     label = t.vertex_index.copy("int")
 
     order = t.own_property(g.degree_property_map("total").copy())
+    t_vertices = list(t.vertices())
 
     last_pos = 0
     for l, s in enumerate(bstack):
         pos = t.num_vertices()
-        t.add_vertex(s.num_vertices())
+        if s.num_vertices() > 1:
+            t_vertices.extend(t.add_vertex(s.num_vertices()))
+        else:
+            t_vertices.append(t.add_vertex(s.num_vertices()))
         label.a[-s.num_vertices():] = arange(s.num_vertices())
 
         # relative ordering based on total degree
@@ -1783,7 +1787,7 @@ def get_hierarchy_tree(state, empty_branches=True):
         vs = []
         pvs = {}
         for vi in range(pos, t.num_vertices()):
-            vs.append(t.vertex(vi, use_index=False))
+            vs.append(t_vertices[vi])
             pvs[vs[-1]] = vi - pos
         vs = sorted(vs, key=lambda v: (s.vertex(pvs[v]).out_degree(count) + 
                                        s.vertex(pvs[v]).in_degree(count)))
@@ -1791,8 +1795,8 @@ def get_hierarchy_tree(state, empty_branches=True):
             order[v] = vi
 
         for vi, v in enumerate(g.vertices()):
-            w = t.vertex(vi + last_pos, use_index=False)
-            u = t.vertex(b[v] + pos, use_index=False)
+            w = t_vertices[vi + last_pos]
+            u = t_vertices[b[v] + pos]
             t.add_edge(u, w)
 
         last_pos = pos
@@ -1805,7 +1809,7 @@ def get_hierarchy_tree(state, empty_branches=True):
         vmask = t.new_vertex_property("bool")
         vmask.a = True
         for vi in range(state.g.num_vertices(), t.num_vertices()):
-            v = t.vertex(vi, use_index=False)
+            v = t_vertices[vi]
             if v.out_degree() == 0:
                 vmask[v] = False
                 while v.in_degree() > 0:
