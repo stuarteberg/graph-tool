@@ -2867,7 +2867,10 @@ for Vertex in libcore.get_vlist():
     Vertex.all_neighbours = _all_neighbours
     Vertex.in_degree = _in_degree
     Vertex.out_degree = _out_degree
-    Vertex.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing vertex in the graph, ``False`` otherwise."
+    try:
+        Vertex.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing vertex in the graph, ``False`` otherwise."
+    except AttributeError:
+        pass
     Vertex.__repr__ = _vertex_repr
     Vertex.__eq__ = v_eq
     Vertex.__ne__ = v_ne
@@ -2903,9 +2906,12 @@ for Edge in libcore.get_elist():
     Edge.__repr__ = _edge_repr
     Edge.__iter__ = _edge_iter
     Edge.__doc__ = _edge_doc
-    Edge.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing edge in the graph, ``False`` otherwise."
-    Edge.source.__doc__ = "Returns the source of the edge (a :class:`~graph_tool.Vertex` instance)."
-    Edge.target.__doc__ = "Returns the target of the edge (a :class:`~graph_tool.Vertex` instance)."
+    try:
+        Edge.is_valid.__doc__ = "Returns ``True`` if the descriptor corresponds to an existing edge in the graph, ``False`` otherwise."
+        Edge.source.__doc__ = "Returns the source of the edge (a :class:`~graph_tool.Vertex` instance)."
+        Edge.target.__doc__ = "Returns the target of the edge (a :class:`~graph_tool.Vertex` instance)."
+    except AttributeError:
+        pass
 
 # some shenanigans to make it seem there is only a single edge and vertex class
 EdgeBase.__doc__ = Edge.__doc__

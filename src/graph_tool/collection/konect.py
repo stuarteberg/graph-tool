@@ -25,7 +25,10 @@ if sys.version_info < (3,):
 
 import os.path
 import tempfile
-import urllib.request
+if sys.version_info < (3,):
+    from urllib2 import urlopen
+else:
+    from urllib.request import urlopen
 import tarfile
 import warnings
 import numpy
@@ -77,13 +80,13 @@ def load_koblenz_dir(dirname):
 
 def get_koblenz_network_data(name):
     with tempfile.TemporaryFile(mode='w+b') as ftemp:
-        with urllib.request.urlopen('http://konect.uni-koblenz.de/downloads/tsv/%s.tar.bz2' % name) as response:
-            buflen = 1 << 20
-            while True:
-                buf = response.read(buflen)
-                ftemp.write(buf)
-                if len(buf) < buflen:
-                    break
+        response = urlopen('http://konect.uni-koblenz.de/downloads/tsv/%s.tar.bz2' % name)
+        buflen = 1 << 20
+        while True:
+            buf = response.read(buflen)
+            ftemp.write(buf)
+            if len(buf) < buflen:
+                break
         ftemp.seek(0)
         with tempfile.TemporaryDirectory(suffix=name) as tempdir:
             with tarfile.open(fileobj=ftemp, mode='r:bz2') as tar:
