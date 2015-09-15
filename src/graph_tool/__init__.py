@@ -852,13 +852,9 @@ class PropertyMap(object):
         else:
             u = GraphView(g, skip_vfilt=True, skip_efilt=True)
             if key_type == "v":
-                pmap = g.new_vertex_property(value_type)
-                for i, v in enumerate(u.vertices()):
-                    pmap[v] = vals[i]
+                pmap = g.new_vertex_property(value_type, vals=vals)
             elif key_type == "e":
-                pmap = g.new_edge_property(value_type)
-                for i, e in enumerate(u.edges()):
-                    pmap[e] = vals[i]
+                pmap = g.new_edge_property(value_type, vals=vals)
             else:
                 pmap = g.new_graph_property(value_type)
                 pmap[g] = vals
