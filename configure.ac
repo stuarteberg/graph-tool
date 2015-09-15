@@ -2,17 +2,14 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl graph-tool package version number
 m4_define(graph_tool_version_major, 2)
-m4_define(graph_tool_version_minor, 2)
-m4_define(graph_tool_version_micro, 45dev)
+m4_define(graph_tool_version_minor, 3)
 
-AC_INIT([graph-tool],[graph_tool_version_major().graph_tool_version_minor().graph_tool_version_micro()],[http://graph-tool.skewed.de/tickets], [graph-tool], [http://graph-tool.skewed.de])
+AC_INIT([graph-tool],[graph_tool_version_major().graph_tool_version_minor()],[http://graph-tool.skewed.de/tickets], [graph-tool], [http://graph-tool.skewed.de])
 
 GRAPH_TOOL_VERSION_MAJOR=graph_tool_version_major()
 GRAPH_TOOL_VERSION_MINOR=graph_tool_version_minor()
-GRAPH_TOOL_VERSION_MICRO=graph_tool_version_micro()
 AC_SUBST(GRAPH_TOOL_VERSION_MAJOR)
 AC_SUBST(GRAPH_TOOL_VERSION_MINOR)
-AC_SUBST(GRAPH_TOOL_VERSION_MICRO)
 
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR(src)
