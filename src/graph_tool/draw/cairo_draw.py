@@ -1531,7 +1531,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                    vprops=None, eprops=None, hvprops=None, heprops=None,
                    subsample_edges=None, deg_order=True, deg_size=True,
                    vsize_scale=1, hsize_scale=1, hshortcuts=0, hide=0,
-                   empty_branches=True, **kwargs):
+                   bip_aspect=1., empty_branches=True, **kwargs):
     r"""Draw a nested block model state in a circular hierarchy layout with edge
     bundling.
 
@@ -1589,6 +1589,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         determined by this parameter.
     hide : ``int`` (optional, default: ``0``)
         Hide upper levels of the hierarchy.
+    bip_aspect : ``float`` (optional, default: ``1.``)
+        If ``layout == "bipartite"``, this will define the aspect ratio of layout.
     empty_branches : ``bool`` (optional, default: ``False``)
         If ``empty_branches == False``, dangling branches at the upper layers
         will be pruned.
@@ -1705,7 +1707,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                                   node_weight=node_weight,
                                   rel_order=vorder)
     elif layout == "bipartite":
-        tpos = get_bip_hierachy_pos(state,
+        tpos = get_bip_hierachy_pos(state, aspect=bip_aspect,
                                     node_weight=node_weight)
         tpos = t.own_property(tpos)
     elif layout == "sfdp":
@@ -1977,7 +1979,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     return pos, t_orig, tpos
 
 
-def get_bip_hierachy_pos(state, node_weight=None):
+def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 
     if state.overlap:
         g = state.g
@@ -2053,8 +2055,8 @@ def get_bip_hierachy_pos(state, node_weight=None):
         p1, p2 = p2, p1
 
     L = len(state.levels)
-    pos[p1] = (-1 / L * .5, 0)
-    pos[p2] = (+1 / L * .5, 0)
+    pos[p1] = (-1 / L * .5 * aspect, 0)
+    pos[p2] = (+1 / L * .5 * aspect, 0)
 
     for i, p in enumerate([p1, p2]):
         roots = [p]
@@ -2065,9 +2067,9 @@ def get_bip_hierachy_pos(state, node_weight=None):
                 for v in sorted(r.out_neighbours(), key=lambda a: order[a]):
                     pos[v] = (0, 0)
                     if i == 0:
-                        pos[v][0] = pos[r][0] - 1 / L * .5
+                        pos[v][0] = pos[r][0] - 1 / L * .5 * aspect
                     else:
-                        pos[v][0] = pos[r][0] + 1 / L * .5
+                        pos[v][0] = pos[r][0] + 1 / L * .5 * aspect
                     pos[v][1] = cw + w[v] / (2. * w[p])
                     cw += w[v] / w[p]
                     nroots.append(v)
