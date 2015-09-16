@@ -539,8 +539,8 @@ class NestedBlockState(object):
             print("l: %d, N: %d, B: %d" % (l, state.N, state.B))
 
 
-def nested_mcmc_sweep(state, beta=1., c=1., dl=False, sequential=True,
-                      parallel=False, verbose=False):
+def nested_mcmc_sweep(state, beta=1., c=1., dl=True, propagate_clabel=False,
+                      sequential=True, parallel=False, verbose=False):
     r"""Performs a Markov chain Monte Carlo sweep on all levels of the hierarchy.
 
     Parameters
@@ -554,9 +554,12 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=False, sequential=True,
         instead of more likely moves based on the inferred block partition.
         For ``c == 0``, no fully random moves are attempted, and for ``c == inf``
         they are always attempted.
-    dl : ``bool`` (optional, default: ``False``)
+    dl : ``bool`` (optional, default: ``True``)
         If ``True``, the change in the whole description length will be
         considered after each vertex move, not only the entropy.
+    propagate_clabel : ``bool`` (optional, default: ``False``)
+        If ``True``, clabel at the bottom hierarchical level is propagated to
+        the upper ones.
     sequential : ``bool`` (optional, default: ``True``)
         If ``True``, the move attempts on the vertices are done in sequential
         random order. Otherwise a total of `N` moves attempts are made, where
@@ -624,10 +627,13 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=False, sequential=True,
         else:
             clabel = bstate.g.new_vertex_property("int")
 
-        # propagate externally imposed clabel at the bottom
-        cclabel = state._NestedBlockState__propagate_clabel(l)
-        cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
-        continuous_map(cclabel)
+        if l > 0 and propagate_clabel:
+            # propagate externally imposed clabel at the bottom
+            cclabel = state._NestedBlockState__propagate_clabel(l)
+            cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
+            continuous_map(cclabel)
+        else:
+            cclabel = clabel
 
         bstate.clabel = cclabel
 
@@ -647,7 +653,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   sequential=True, parallel=False, dl=False, dense=False,
                   multigraph=True, sparse_thresh=100, verbose=False,
                   checkpoint=None, minimize_state=None, dl_ent=False,
-                  confine_layers=False):
+                  propagate_clabel=False, confine_layers=False):
     r"""Replaces level l with another state with a possibly different number of
     groups. This may change not only the state at level l, but also the one at
     level l + 1, which needs to be 'rebuilt' because of the label changes at
@@ -687,10 +693,13 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                             state.clabel.fa.max() + 1, clabel.fa.max() + 1, l)
 
     # propagate externally imposed clabel at the bottom
-    cclabel = state._NestedBlockState__propagate_clabel(l)
-    assert cclabel.fa.max() <= state.clabel.fa.max(),  (cclabel.fa.max(), state.clabel.fa.max())
-    cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
-    continuous_map(cclabel)
+    if l > 0 and propagate_clabel:
+        cclabel = state._NestedBlockState__propagate_clabel(l)
+        assert cclabel.fa.max() <= state.clabel.fa.max(),  (cclabel.fa.max(), state.clabel.fa.max())
+        cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
+        continuous_map(cclabel)
+    else:
+        cclabel = clabel
 
     min_B = max(min_B, cclabel.fa.max() + 1)
 
@@ -886,115 +895,31 @@ def get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent):
 def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                       epsilon=0., r=2., nmerge_sweeps=10, adaptive_sweeps=True,
                       c=0, dl=False, dense=False, multigraph=True,
-                      sequential=True, parallel=False, sparse_thresh=100,
-                      checkpoint=None, minimize_state=None, frozen_levels=None,
-                      confine_layers=False, verbose=False, **kwargs):
+                      propagate_clabel=False, sequential=True, parallel=False,
+                      sparse_thresh=100, checkpoint=None, minimize_state=None,
+                      frozen_levels=None, confine_layers=False, verbose=False,
+                      **kwargs):
     r"""Performs one greedy sweep in the entire hierarchy tree, attempting to
     decrease its description length.
 
-    Parameters
-    ----------
-    state : :class:`~graph_tool.community.NestedBlockState`
-        The nested block state.
-    min_B : ``int`` (optional, default: ``None``)
-        Minimum number of blocks at the lowest level.
-    max_B : ``int`` (optional, default: ``None``)
-        Maximum number of blocks at the lowest level.
-    max_b : ``int`` (optional, default: ``None``)
-        Block partition used for the maximum number of blocks at the lowest
-        level.
-    nsweeps : ``int`` (optional, default: ``10``)
-        The number of sweeps done after each merge step to reach the local
-        minimum.
-    epsilon : ``float`` (optional, default: ``0``)
-        Converge criterion for ``adaptive_sweeps``.
-    r : ``float`` (optional, default: ``2.``)
-        Agglomeration ratio for the merging steps. Each merge step will attempt
-        to find the best partition into :math:`B_{i-1} / r` blocks, where
-        :math:`B_{i-1}` is the number of blocks in the last step.
-    nmerge_sweeps : `int` (optional, default: `10`)
-        The number of merge sweeps done, where in each sweep a better merge
-        candidate is searched for every block.
-    c : ``float`` (optional, default: ``1.0``)
-        This parameter specifies how often fully random moves are attempted,
-        instead of more likely moves based on the inferred block partition.
-        For ``c == 0``, no fully random moves are attempted, and for ``c == inf``
-        they are always attempted.
-    dense : ``bool`` (optional, default: ``False``)
-        If ``True``, the "dense" variant of the entropy will be computed.
-    sequential : ``bool`` (optional, default: ``True``)
-        If ``True``, the move attempts on the vertices are done in sequential
-        random order. Otherwise a total of `N` moves attempts are made, where
-        `N` is the number of vertices, where each vertex can be selected with
-        equal probability.
-    sparse_thresh : ``int`` (optional, default: ``100``)
-        If the number of nodes in the higher level multigraphs exceeds this
-        number, the sparse entropy will be used to find the best partition,
-        but the dense entropy will be used to compare different partitions.
-    checkpoint : function (optional, default: ``None``)
-        If provided, this function will be called after each call to
-        :func:`mcmc_sweep`. This can be used to store the current state, so it
-        can be continued later. The function must have the following signature:
+    The meaning of the parameters are the same as in
+    :func:`~graph_tool.community.minimize_nested_blockmodel_dl`. The remaining keyword arguments are
+    passed to :func:`~graph_tool.community.mcmc_sweep`.
 
-        .. code-block:: python
-
-            def checkpoint(state, S, delta, nmoves, minimize_state):
-                ...
-
-        where `state` is either a :class:`~graph_tool.community.NestedBlockState`
-        instance or ``None``, `S` is the current entropy value, `delta` is
-        the entropy difference in the last MCMC sweep, and `nmoves` is the
-        number of accepted block membership moves. The ``minimize_state``
-        argument is a :class:`NestedMinimizeState` instance which specifies
-        the current state of the algorithm, which can be stored via :mod:`pickle`,
-        and supplied via the ``minimize_state`` option below to continue from an
-        interrupted run.
-
-        This function will also be called when the MCMC has finished for the
-        current value of :math:`B`, in which case ``state == None``, and the
-        remaining parameters will be zero, except the last.
-    minimize_state : :class:`NestedMinimizeState` (optional, default: ``None``)
-        If provided, this will specify an exact point of execution from which
-        the algorithm will continue. The expected object is a
-        :class:`NestedMinimizeState` instance which will be passed to the
-        callback of the ``checkpoint`` option above, and  can be stored by
-        :mod:`pickle`.
-    frozen_levels : :class:`list` (optional, default: ``None``)
-        List of levels (``int``s) which will remain unmodified during the
-        algorithm.
-    verbose : ``bool`` (optional, default: ``False``)
-        If ``True``, verbose information is displayed.
 
     Returns
     -------
-
     dS : ``float``
        The description length difference (per edge) after the move.
 
-
     Notes
     -----
-
     This algorithm performs a constrained agglomerative heuristic on each level
     of the network, via the function :func:`~graph_tool.community.multilevel_minimize`.
 
     This algorithm has worst-case complexity of :math:`O(N\ln^2 N \times L)`,
     where  :math:`N` is the number of nodes in the network, and :math:`L` is
     the depth of the hierarchy.
-
-    References
-    ----------
-
-    .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and greedy
-       heuristic for the inference of stochastic block models", Phys. Rev. E 89, 012804 (2014),
-       :doi:`10.1103/PhysRevE.89.012804`, :arxiv:`1310.4378`.
-    .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block structures and high-resolution
-       model selection in large networks ", Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
-       :arxiv:`1310.4377`.
-    .. [peixoto-model-2015] Tiago P. Peixoto, "Model selection and hypothesis
-       testing for large-scale network models with overlapping groups",
-       Phys. Rev. X 5, 011033 (2015), :doi:`10.1103/PhysRevX.5.011033`,
-       :arxiv:`1409.3059`.
     """
 
     dl_ent = kwargs.get("dl_ent", False)
@@ -1010,7 +935,8 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                 multigraph=multigraph, sparse_thresh=sparse_thresh, min_B=min_B,
                 max_B=max_B, max_b=max_b, checkpoint=checkpoint,
                 minimize_state=minimize_state, dl_ent=dl_ent,
-                confine_layers=confine_layers)
+                confine_layers=confine_layers,
+                propagate_clabel=propagate_clabel)
 
     #_Si = state.entropy(dense=dense, multigraph=dense)
     dS = 0
@@ -1161,108 +1087,22 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                       minimize_state=None, max_BE=1000, verbose=False, **kwargs):
     r"""Initializes a nested block hierarchy with sizes given by ``Bs``.
 
-    Parameters
-    ----------
-    g : :class:`~graph_tool.Graph`
-        The graph being modelled.
-    Bs : list of ``int`` (optional, default: ``None``)
-        Number of blocks for each hierarchy level.
-    deg_corr : ``bool`` (optional, default: ``True``)
-        If ``True``, the degree-corrected version of the blockmodel ensemble will
-        be used in the bottom level, otherwise the traditional variant will be used.
-    dense : ``bool`` (optional, default: ``False``)
-        If ``True``, the "dense" variant of the entropy will be computed.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Edge weights (i.e. multiplicity).
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Vertex weights (i.e. multiplicity).
-    nsweeps : ``int`` (optional, default: ``10``)
-        The number of sweeps done after each merge step to reach the local
-        minimum.
-    epsilon : ``float`` (optional, default: ``0``)
-        Converge criterion for ``adaptive_sweeps``.
-    r : ``float`` (optional, default: ``2.``)
-        Agglomeration ratio for the merging steps. Each merge step will attempt
-        to find the best partition into :math:`B_{i-1} / r` blocks, where
-        :math:`B_{i-1}` is the number of blocks in the last step.
-    nmerge_sweeps : `int` (optional, default: `10`)
-        The number of merge sweeps done, where in each sweep a better merge
-        candidate is searched for every block.
-    c : ``float`` (optional, default: ``0.``)
-        This parameter specifies how often fully random moves are attempted,
-        instead of more likely moves based on the inferred block partition.
-        For ``c == 0``, no fully random moves are attempted, and for ``c == inf``
-        they are always attempted.
-    sequential : ``bool`` (optional, default: ``True``)
-        If ``True``, the move attempts on the vertices are done in sequential
-        random order. Otherwise a total of `N` moves attempts are made, where
-        `N` is the number of vertices, where each vertex can be selected with
-        equal probability.
-    sparse_thresh : ``int`` (optional, default: ``100``)
-        If the number of nodes in the higher level multigraphs exceeds this
-        number, the sparse entropy will be used to find the best partition,
-        but the dense entropy will be used to compare different partitions.
-    checkpoint : function (optional, default: ``None``)
-        If provided, this function will be called after each call to
-        :func:`mcmc_sweep`. This can be used to store the current state, so it
-        can be continued later. The function must have the following signature:
-
-        .. code-block:: python
-
-            def checkpoint(state, S, delta, nmoves, minimize_state):
-                ...
-
-        where `state` is either a :class:`~graph_tool.community.NestedBlockState`
-        instance or ``None``, `S` is the current entropy value, `delta` is
-        the entropy difference in the last MCMC sweep, and `nmoves` is the
-        number of accepted block membership moves. The ``minimize_state``
-        argument is a :class:`NestedMinimizeState` instance which specifies
-        the current state of the algorithm, which can be stored via :mod:`pickle`,
-        and supplied via the ``minimize_state`` option below to continue from an
-        interrupted run.
-
-        This function will also be called when the MCMC has finished for the
-        current value of :math:`B`, in which case ``state == None``, and the
-        remaining parameters will be zero, except the last.
-    minimize_state : :class:`NestedMinimizeState` (optional, default: ``None``)
-        If provided, this will specify an exact point of execution from which
-        the algorithm will continue. The expected object is a
-        :class:`NestedMinimizeState` instance which will be passed to the
-        callback of the ``checkpoint`` option above, and  can be stored by
-        :mod:`pickle`.
-    verbose : ``bool`` (optional, default: ``False``)
-        If ``True``, verbose information is displayed.
+    The meaning of the parameters are the same as in
+    :func:`~graph_tool.community.minimize_nested_blockmodel_dl`.
 
     Returns
     -------
-
     state : :class:`~graph_tool.community.NestedBlockState`
        The initialized nested state.
 
-
     Notes
     -----
-
-    This algorithm performs an agglomerative heuristic on each level  of the
+    This algorithm performs an agglomerative heuristic on each level of the
     network, via the function :func:`~graph_tool.community.multilevel_minimize`.
 
     This algorithm has worst-case complexity of :math:`O(N\ln^2 N \times L)`,
     where  :math:`N` is the number of nodes in the network, and :math:`L` is
     the depth of the hierarchy.
-
-    References
-    ----------
-
-    .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and greedy
-       heuristic for the inference of stochastic block models", Phys. Rev. E 89, 012804 (2014),
-       :doi:`10.1103/PhysRevE.89.012804`, :arxiv:`1310.4378`.
-    .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block structures and high-resolution
-       model selection in large networks ", Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
-       :arxiv:`1310.4377`.
-    .. [peixoto-model-2015] Tiago P. Peixoto, "Model selection and hypothesis
-       testing for large-scale network models with overlapping groups",
-       Phys. Rev. X 5, 011033 (2015), :doi:`10.1103/PhysRevX.5.011033`,
-       :arxiv:`1409.3059`.
     """
 
     dl_ent = kwargs.get("dl_ent", False)
@@ -1370,18 +1210,19 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
 
     return state
 
-def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
-                                  max_B=None, max_b=None, deg_corr=True,
-                                  overlap=False, ec=None, layers=False,
-                                  confine_layers=False, nonoverlap_init=False,
-                                  dl=True, multigraph=True, dense=False,
-                                  eweight=None, vweight=None, clabel=None,
-                                  frozen_levels=None, nsweeps=10,
-                                  adaptive_sweeps=True, epsilon=1e-3, c=0,
-                                  nmerge_sweeps=10, r=2, sparse_thresh=100,
-                                  sequential=True, parallel=False,
-                                  verbose=False, checkpoint=None,
-                                  minimize_state=None, **kwargs):
+def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
+                                  max_b=None, deg_corr=True, overlap=False,
+                                  ec=None, layers=False, confine_layers=False,
+                                  nonoverlap_init=False, dl=True,
+                                  multigraph=True, dense=False, eweight=None,
+                                  vweight=None, clabel=None,
+                                  propagate_clabel=False,frozen_levels=None,
+                                  nsweeps=10, adaptive_sweeps=True,
+                                  epsilon=1e-3, c=0, nmerge_sweeps=10, r=2,
+                                  sparse_thresh=100, sequential=True,
+                                  parallel=False, verbose=False,
+                                  checkpoint=None, minimize_state=None,
+                                  **kwargs):
     r"""Find the block hierarchy of an unspecified size which minimizes the description
     length of the network, according to the nested stochastic blockmodel ensemble which
     best describes it.
@@ -1435,6 +1276,9 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
     clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
+    propagate_clabel : ``bool`` (optional, default: ``False``)
+        If ``True``, the clabel at the bottom hierarchical level is propagated
+        to the upper ones.
     frozen_levels : :class:`list` (optional, default: ``None``)
         List of levels (``int``s) which will remain unmodified during the
         algorithm.
@@ -1504,7 +1348,6 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
 
     Notes
     -----
-
     This algorithm attempts to find a block partition hierarchy of an unspecified size
     which minimizes the description length of the network,
 
@@ -1617,6 +1460,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
                                               eweight=eweight,
                                               vweight=vweight,
                                               clabel=clabel if isinstance(clabel, PropertyMap) else None,
+                                              propagate_clabel=propagate_clabel,
                                               nsweeps=nsweeps,
                                               adaptive_sweeps=adaptive_sweeps,
                                               epsilon=epsilon, c=c,
@@ -1680,14 +1524,15 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
         state = init_nested_state(g, Bs=Bs, ec=ec, layers=layers,
                                   confine_layers=confine_layers,
                                   deg_corr=deg_corr, overlap=overlap,
-                                  eweight=eweight, vweight=vweight,
-                                  clabel=clabel, verbose=verbose,
-                                  nsweeps=nsweeps, nmerge_sweeps=nmerge_sweeps,
-                                  adaptive_sweeps=adaptive_sweeps,
-                                  dl=dl, dense=dense, multigraph=multigraph,
+                                  eweight=eweight,
+                                  propagate_clabel=propagate_clabel,
+                                  vweight=vweight, clabel=clabel,
+                                  verbose=verbose, nsweeps=nsweeps,
+                                  nmerge_sweeps=nmerge_sweeps,
+                                  adaptive_sweeps=adaptive_sweeps, dl=dl,
+                                  dense=dense, multigraph=multigraph,
                                   epsilon=epsilon, sparse_thresh=sparse_thresh,
-                                  sequential=sequential,
-                                  parallel=parallel,
+                                  sequential=sequential, parallel=parallel,
                                   checkpoint=checkpoint,
                                   minimize_state=minimize_state, dl_ent=dl_ent,
                                   ignore_degrees=ignore_degrees)
@@ -1701,25 +1546,17 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None,
 
     chkp = get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent)
 
-    dS = nested_tree_sweep(state,
-                           min_B=min_B,
-                           max_B=max_B,
-                           max_b=max_b,
-                           verbose=verbose,
-                           nsweeps=nsweeps,
+    dS = nested_tree_sweep(state, min_B=min_B, max_B=max_B, max_b=max_b,
+                           verbose=verbose, nsweeps=nsweeps,
                            nmerge_sweeps=nmerge_sweeps,
-                           adaptive_sweeps=adaptive_sweeps,
-                           r=r, epsilon=epsilon,
-                           dense=dense, dl=dl,
-                           multigraph=multigraph,
-                           sequential=sequential,
-                           parallel=parallel,
-                           sparse_thresh=sparse_thresh,
-                           checkpoint=chkp,
-                           minimize_state=minimize_state,
-                           frozen_levels=frozen_levels,
-                           dl_ent=dl_ent,
-                           confine_layers=confine_layers)
+                           adaptive_sweeps=adaptive_sweeps, r=r,
+                           epsilon=epsilon, dense=dense, dl=dl,
+                           multigraph=multigraph, sequential=sequential,
+                           parallel=parallel, sparse_thresh=sparse_thresh,
+                           checkpoint=chkp, minimize_state=minimize_state,
+                           frozen_levels=frozen_levels, dl_ent=dl_ent,
+                           confine_layers=confine_layers,
+                           propagate_clabel=propagate_clabel)
 
     return state
 
