@@ -627,7 +627,7 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=True, propagate_clabel=False,
         else:
             clabel = bstate.g.new_vertex_property("int")
 
-        if l > 0 and propagate_clabel:
+        if l == 0 or propagate_clabel:
             # propagate externally imposed clabel at the bottom
             cclabel = state._NestedBlockState__propagate_clabel(l)
             cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
@@ -693,7 +693,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                             state.clabel.fa.max() + 1, clabel.fa.max() + 1, l)
 
     # propagate externally imposed clabel at the bottom
-    if l > 0 and propagate_clabel:
+    if l == 0 or propagate_clabel:
         cclabel = state._NestedBlockState__propagate_clabel(l)
         assert cclabel.fa.max() <= state.clabel.fa.max(),  (cclabel.fa.max(), state.clabel.fa.max())
         cclabel.fa += clabel.fa * (cclabel.fa.max() + 1)
