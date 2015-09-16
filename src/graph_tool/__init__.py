@@ -1309,7 +1309,7 @@ class InternalPropertyDict(dict):
                 self[k] = v
 
 
-class PropertyDict():
+class PropertyDict(object):
     """Wrapper for the dict of vertex, graph or edge properties, which sets the
     value on the property map when changed in the dict.
 

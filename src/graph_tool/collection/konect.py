@@ -27,8 +27,19 @@ import os.path
 import tempfile
 if sys.version_info < (3,):
     from urllib2 import urlopen
+    import shutil
+    class TemporaryDirectory(object):
+        def __init__(self, suffix="", prefix="", dir=None):
+            self.name = tempfile.mkdtemp(suffix, prefix, dir)
+
+        def __enter__(self):
+            return self.name
+
+        def __exit__(self, exc, value, tb):
+            shutil.rmtree(self.name)
 else:
     from urllib.request import urlopen
+    from tempfile import TemporaryDirectory
 import tarfile
 import warnings
 import numpy
@@ -88,7 +99,7 @@ def get_koblenz_network_data(name):
             if len(buf) < buflen:
                 break
         ftemp.seek(0)
-        with tempfile.TemporaryDirectory(suffix=name) as tempdir:
+        with TemporaryDirectory(suffix=name) as tempdir:
             with tarfile.open(fileobj=ftemp, mode='r:bz2') as tar:
                 tar.extractall(path=tempdir)
             g = load_koblenz_dir(tempdir)
