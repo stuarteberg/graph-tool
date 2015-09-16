@@ -297,11 +297,11 @@ class NestedBlockState(object):
             assert self.levels[j].B == self.levels[j+1].N, "inconsistency  at level %d after %s of level %d, different sizes" % (j + 1, op, l)
 
 
-            # verify hierarchy / clabel consistency
-            clabel = self.__project_partition(0, j)
-            self.levels[0].clabel.fa = self.clabel.fa
-            assert self.levels[0]._BlockState__check_clabel(),  "inconsistency at level %d after %s of level %d, clabel invalidated" % (j + 1, op, l)
-            self.levels[0].clabel.fa = 0
+            ## verify hierarchy / clabel consistency
+            # clabel = self.__project_partition(0, j)
+            # self.levels[0].clabel.fa = self.clabel.fa
+            # assert self.levels[0]._BlockState__check_clabel(),  "inconsistency at level %d after %s of level %d, clabel invalidated" % (j + 1, op, l)
+            # self.levels[0].clabel.fa = 0
 
             # verify hierarchy consistency
             clabel = self.__project_partition(j, j + 1)
