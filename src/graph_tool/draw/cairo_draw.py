@@ -1702,7 +1702,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         if node_weight is not None:
             node_weight = t.own_property(node_weight.copy())
             node_weight.a[node_weight.a == 0] = 1
-        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices(True) - 1,
+        tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1,
                                                    use_index=False),
                                   node_weight=node_weight,
                                   rel_order=vorder)
