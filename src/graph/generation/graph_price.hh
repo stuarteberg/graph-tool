@@ -70,7 +70,7 @@ struct get_price
             {
                 uniform_real_distribution<> sample(0, probs.rbegin()->first);
                 double r = sample(rng);
-                typeof(probs.begin()) iter = probs.lower_bound(r);
+                auto iter = probs.lower_bound(r);
                 typename graph_traits<Graph>::vertex_descriptor w =
                     iter->second;
 

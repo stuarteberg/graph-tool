@@ -160,8 +160,7 @@ struct get_communities
             }
             swap(s, temp_s);
 
-            for (typeof(updates.begin()) iter = updates.begin();
-                 iter != updates.end(); ++iter)
+            for (auto iter = updates.begin(); iter != updates.end(); ++iter)
                 Nnnks.Update(std::get<0>(*iter), std::get<1>(*iter),
                              std::get<2>(*iter));
 
@@ -171,8 +170,7 @@ struct get_communities
                     cout << "\b";
                 out_str.str("");
                 size_t ns = 0;
-                for (typeof(Ns.begin()) iter = Ns.begin(); iter != Ns.end();
-                     ++iter)
+                for (auto iter = Ns.begin(); iter != Ns.end(); ++iter)
                     if (iter->second > 0)
                         ns++;
                 out_str << setw(lexical_cast<string>(n_iter).size())
@@ -188,7 +186,7 @@ struct get_communities
                 try
                 {
                     size_t ns = 0;
-                    for (typeof(Ns.begin()) iter = Ns.begin(); iter != Ns.end();
+                    for (decltype(Ns.begin()) iter = Ns.begin(); iter != Ns.end();
                          ++iter)
                         if (iter->second > 0)
                             ns++;
@@ -259,7 +257,7 @@ public:
     double operator()(size_t, size_t s) const
     {
         size_t ns = 0;
-        typeof(_Ns.begin()) iter = _Ns.find(s);
+        auto iter = _Ns.find(s);
         if (iter != _Ns.end())
             ns = iter->second;
         return _p*ns;
@@ -296,7 +294,7 @@ public:
     double operator()(size_t k, size_t s) const
     {
         size_t ks = 0;
-        typeof(_Ks.begin()) iter = _Ks.find(s);
+        auto iter = _Ks.find(s);
         if (iter != _Ks.end())
             ks = iter->second;
         return k*ks/double(_K);
@@ -343,27 +341,25 @@ public:
             }
         }
 
-        for (typeof(_Pkk.begin()) iter1 = _Pkk.begin(); iter1 != _Pkk.end();
+        for (auto iter1 = _Pkk.begin(); iter1 != _Pkk.end();
              ++iter1)
         {
             double sum = 0;
-            for (typeof(iter1->second.begin()) iter2 = iter1->second.begin();
+            for (auto iter2 = iter1->second.begin();
                  iter2 != iter1->second.end(); ++iter2)
                 sum += iter2->second;
-            for (typeof(iter1->second.begin()) iter2 = iter1->second.begin();
+            for (auto iter2 = iter1->second.begin();
                  iter2 != iter1->second.end(); ++iter2)
                 iter2->second /= sum;
         }
 
-        for (typeof(_Nk.begin()) k_iter = _Nk.begin(); k_iter != _Nk.end();
+        for (auto k_iter = _Nk.begin(); k_iter != _Nk.end();
              ++k_iter)
         {
             size_t k1 = k_iter->first;
             _degs.push_back(k1);
-            for (typeof(spins.begin()) s_iter = spins.begin();
-                 s_iter != spins.end(); ++s_iter)
-                for (typeof(_Nk.begin()) k_iter2 = _Nk.begin();
-                     k_iter2 != _Nk.end(); ++k_iter2)
+            for (auto s_iter = spins.begin(); s_iter != spins.end(); ++s_iter)
+                for (auto k_iter2 = _Nk.begin(); k_iter2 != _Nk.end(); ++k_iter2)
                 {
                     size_t k2 = k_iter2->first;
                     if (_Nks[k2].find(*s_iter) != _Nks[k2].end())
@@ -425,7 +421,7 @@ public:
     double operator()(size_t k, size_t s) const
     {
         const gt_hash_map<size_t,double>& nnks = _NNks.find(k)->second;
-        const typeof(nnks.begin()) iter = nnks.find(s);
+        const auto iter = nnks.find(s);
         if (iter != nnks.end())
             return iter->second;
         return 0.0;

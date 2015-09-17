@@ -135,8 +135,7 @@ public:
             else // arbitrary bins widths. do a binary search
             {
                 std::vector<ValueType>& bins = _bins[i];
-                typeof(bins.begin()) iter = upper_bound(bins.begin(),
-                                                        bins.end(), v[i]);
+                auto iter = upper_bound(bins.begin(), bins.end(), v[i]);
                 if (iter == bins.end())
                 {
                     return;  // falls off from last bin, do not count
@@ -234,10 +233,10 @@ double get_map_mean(const Map &m)
 {
     int total = 0;
     double mean = 0;
-    for (typeof(m.begin()) iter = m.begin(); iter != m.end(); iter++)
+    for (auto& vc : m)
     {
-        mean += double(iter->first * iter->second);
-        total += iter->second;
+        mean += double(vc.first * vc.second);
+        total += vc.second;
     }
 
     return (total > 0)?mean/total:0.0;
@@ -249,11 +248,10 @@ double get_map_deviation(const Map &m, double avg)
 {
     double dev = 0.0;
     int total = 0;
-    for (typeof(m.begin()) iter = m.begin(); iter != m.end(); iter++)
+    for (auto& vc : m)
     {
-        dev += double( (iter->first - avg) *
-                       (iter->first - avg) * iter->second);
-        total += iter->second;
+        dev += double((vc.first - avg) * (vc.first - avg) * vc.second);
+        total += vc.second;
     }
     return (total > 1)?sqrt(dev/(total-1)):0.0;
 }

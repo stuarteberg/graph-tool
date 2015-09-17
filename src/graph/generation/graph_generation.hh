@@ -112,7 +112,7 @@ public:
 
         size_t sum_out_deg = 0;
         size_t j = 0;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
+        for(auto di = d.begin(); di != d.end(); ++di)
         {
             size_t out_deg = di->first.second;
             size_t count = di->second;
@@ -121,12 +121,12 @@ public:
             sum_out_deg += out_deg * count;
 
             size_t sum_in_deg = 0;
-            typeof(d.begin()) dj_end = di; ++dj_end;
-            for(typeof(d.begin()) dj = d.begin(); dj != dj_end; ++dj)
-                sum_in_deg += min(dj->first.first, j - one)*dj->second;
+            auto dj_end = di; ++dj_end;
+            for(auto dj = d.begin(); dj != dj_end; ++dj)
+                sum_in_deg += min(dj->first.first, j - one) * dj->second;
 
             size_t sum_rest = 0;
-            typeof(d.begin()) dj = di;
+            auto dj = di;
             for(++dj; dj != d.end(); ++dj)
                 sum_rest += min(dj->first.first, j)*dj->second;
 
@@ -142,9 +142,9 @@ public:
     bool is_graphical_parallel(DegSequence& d)
     {
         size_t sum_in_deg = 0;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
+        for(auto di = d.begin(); di != d.end(); ++di)
             sum_in_deg += di->first.first * di->second;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
+        for(auto di = d.begin(); di != d.end(); ++di)
         {
             if (di->first.second > sum_in_deg - di->first.first)
                 return false;
@@ -194,8 +194,7 @@ public:
             dvertex_t& v = vertices[i];
             if (_no_parallel || _no_self_loops)
             {
-                typeof(_deg_seq.begin()) iter =
-                    _deg_seq.find(make_pair(v.in_degree, v.out_degree));
+                auto iter = _deg_seq.find(make_pair(v.in_degree, v.out_degree));
                 iter->second--;
                 if (iter->second == 0)
                     _deg_seq.erase(iter);
@@ -263,12 +262,12 @@ public:
         size_t one = (_no_self_loops) ? 1 : 0;
         size_t sum_deg = 0;
         size_t j = 0;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
+        for(auto di = d.begin(); di != d.end(); ++di)
         {
             j += di->second;
             sum_deg += di->first * di->second;
             size_t sum_rest = 0;
-            typeof(d.begin()) dj = di;
+            auto dj = di;
             for(++dj; dj != d.end(); ++dj)
                 sum_rest += min(dj->first, j)*dj->second;
             if (sum_deg > j*(j-one) + sum_rest)
@@ -283,11 +282,11 @@ public:
     bool is_graphical_parallel(DegSequence& d)
     {
         size_t sum_deg = 0;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
-            sum_deg += di->first * di->second;
-        for(typeof(d.begin()) di = d.begin(); di != d.end(); ++di)
+        for(auto& di : d)
+            sum_deg += di.first * di.second;
+        for(auto& di : d)
         {
-            if (di->first > sum_deg - di->first)
+            if (di.first > sum_deg - di.first)
                 return false;
         }
         return true;
@@ -335,7 +334,7 @@ public:
             dvertex_t& v = vertices[i];
             if (_no_parallel || _no_self_loops)
             {
-                typeof(_deg_seq.begin()) iter = _deg_seq.find(v.out_degree);
+                auto iter = _deg_seq.find(v.out_degree);
                 iter->second--;
                 if(iter->second == 0)
                     _deg_seq.erase(iter);
@@ -495,7 +494,7 @@ struct gen_graph
             // find source. The out-degree must be non-zero, and there must be a
             // vertex with the chosen degree.
             deg_t s_deg = *sources.begin();
-            typeof(vset.begin()) sv_iter = vset.find(s_deg);
+            auto sv_iter = vset.find(s_deg);
             if (s_deg.second == 0 || sv_iter == vset.end() ||
                 sv_iter->second.empty())
             {
@@ -519,8 +518,8 @@ struct gen_graph
 
             // find the targets.
             // we will keep an iterator to the current target degree
-            typeof(targets.begin()) t_iter = targets.begin();
-            typeof(vset.begin()) v_iter = vset.find(*t_iter);
+            auto t_iter = targets.begin();
+            auto v_iter = vset.find(*t_iter);
             while (v_iter == vset.end() || v_iter->second.empty())
             {
                 targets.erase(t_iter);

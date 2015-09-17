@@ -47,10 +47,10 @@ struct do_astar_search
         dtype_t i = python::extract<dtype_t>(range.second);
 
         checked_vector_property_map<default_color_type,
-                                    typeof(get(vertex_index, g))>
+                                    decltype(get(vertex_index, g))>
             color(get(vertex_index, g));
         typedef typename property_map_type::
-            apply<int32_t, typeof(get(vertex_index, g))>::type pred_t;
+            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());

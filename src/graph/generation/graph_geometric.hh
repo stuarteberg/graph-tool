@@ -148,7 +148,7 @@ struct get_geometric
                 if (periodic_boundary)
                     periodic(box, box_ranges);
 
-                typeof(boxes.begin()) iter, end;
+                decltype(boxes.begin()) iter, end;
                 for (tie(iter, end) = boxes.equal_range(box);
                      iter != end; ++iter)
                 {

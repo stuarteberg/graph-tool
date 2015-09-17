@@ -133,7 +133,7 @@ struct do_djk_search
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
         typedef typename property_map_type::
-            apply<int32_t, typeof(get(vertex_index, g))>::type pred_t;
+            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
         pred_t pred = any_cast<pred_t>(pred_map);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
@@ -153,7 +153,7 @@ void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
                      python::object zero, python::object inf)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-        (g, std::bind(do_djk_search(), placeholders::_1, source, 
+        (g, std::bind(do_djk_search(), placeholders::_1, source,
                       placeholders::_2, pred_map, weight,
                       DJKVisitorWrapper(g, vis), DJKCmp(cmp), DJKCmb(cmb),
                       make_pair(zero, inf)),

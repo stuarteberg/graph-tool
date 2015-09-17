@@ -182,17 +182,14 @@ void GraphInterface::purge_edges()
         return;
 
     MaskFilter<edge_filter_t> filter(_edge_filter_map, _edge_filter_invert);
-    graph_traits<multigraph_t>::vertex_iterator v, v_end;
-    graph_traits<multigraph_t>::out_edge_iterator e, e_end;
     vector<graph_traits<multigraph_t>::edge_descriptor> deleted_edges;
-    for (tie(v, v_end) = vertices(*_mg); v != v_end; ++v)
+    for (auto v : vertices_range(*_mg))
     {
-        for (tie(e, e_end) = out_edges(*v, *_mg); e != e_end; ++e)
-            if (!filter(*e))
-                deleted_edges.push_back(*e);
-        for (typeof(deleted_edges.begin()) iter = deleted_edges.begin();
-             iter != deleted_edges.end(); ++iter)
-            remove_edge(*iter, *_mg);
+        for (auto e : out_edges_range(v, *_mg))
+            if (!filter(e))
+                deleted_edges.push_back(e);
+        for (auto& e  : deleted_edges)
+            remove_edge(e, *_mg);
         deleted_edges.clear();
     }
 }

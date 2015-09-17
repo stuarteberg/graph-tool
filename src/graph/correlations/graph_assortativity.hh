@@ -76,9 +76,11 @@ struct get_assortativity_coefficient
 
         double t1 = double(e_kk) / n_edges, t2 = 0.0;
 
-        for (typeof(a.begin()) iter = a.begin(); iter != a.end(); ++iter)
-            if (b.find(iter->second) != b.end())
-                t2 += double(iter->second * b[iter->first]);
+        for (auto& ai : a)
+        {
+            if (b.find(ai.second) != b.end())
+                t2 += double(ai.second * b[ai.first]);
+        }
         t2 /= n_edges*n_edges;
 
         r = (t1 - t2)/(1.0 - t2);

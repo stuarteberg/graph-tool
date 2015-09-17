@@ -417,7 +417,7 @@ boost::python::tuple GraphInterface::read_from_file(string file,
         }
         else
         {
-            for(typeof(dp.begin()) iter = dp.begin(); iter != dp.end(); ++iter)
+            for(auto iter = dp.begin(); iter != dp.end(); ++iter)
             {
                 if (iter->second->key() == typeid(vertex_t))
                     vprops[iter->first] = find_property_map(*iter->second,
@@ -452,8 +452,7 @@ string graphviz_insert_index(dynamic_properties& dp, IndexMap index_map,
 {
     typedef GraphInterface::vertex_t vertex_t;
     bool found = false;
-    for(typeof(dp.begin()) iter = dp.begin(); iter != dp.end();
-        ++iter)
+    for(auto iter = dp.begin(); iter != dp.end(); ++iter)
         if (iter->first == "vertex_name" &&
             iter->second->key() == typeid(vertex_t))
             found = true;

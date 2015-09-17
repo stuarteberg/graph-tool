@@ -50,13 +50,13 @@ struct do_astar_search
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
         typedef typename property_map_type::
-            apply<int32_t, typeof(get(vertex_index, g))>::type pred_t;
+            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
         pred_t pred = any_cast<pred_t>(pred_map);
         checked_vector_property_map<default_color_type,
-                                    typeof(get(vertex_index, g))>
+                                    decltype(get(vertex_index, g))>
             color(get(vertex_index, g));
         checked_vector_property_map<dtype_t,
-                                    typeof(get(vertex_index, g))>
+                                    decltype(get(vertex_index, g))>
             cost(get(vertex_index, g));
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());

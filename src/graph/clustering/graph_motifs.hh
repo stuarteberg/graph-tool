@@ -33,7 +33,7 @@ using namespace boost;
 template <class Value>
 void insert_sorted(std::vector<Value>& v, const Value& val)
 {
-    typeof(v.begin()) iter = lower_bound(v.begin(), v.end(), val);
+    auto iter = lower_bound(v.begin(), v.end(), val);
     if (iter != v.end() && *iter == val)
         return; // no repetitions
     v.insert(iter, val);
@@ -42,7 +42,7 @@ void insert_sorted(std::vector<Value>& v, const Value& val)
 template <class Value>
 bool has_val(std::vector<Value>& v, const Value& val)
 {
-    typeof(v.begin()) iter = lower_bound(v.begin(), v.end(), val);
+    auto iter = lower_bound(v.begin(), v.end(), val);
     if (iter == v.end())
         return false;
     return *iter == val;
@@ -211,8 +211,7 @@ void make_subgraph
         for (tie(e, e_end) = out_edges(ov, g); e != e_end; ++e)
         {
             ot = target(*e, g);
-            typeof(vlist.begin()) viter =
-                lower_bound(vlist.begin(), vlist.end(), ot);
+            auto viter = lower_bound(vlist.begin(), vlist.end(), ot);
             size_t ot_index = viter - vlist.begin();
             if (viter != vlist.end() && vlist[ot_index] == ot &&
                 (is_directed::apply<Graph>::type::value || ot < ov))
@@ -378,7 +377,7 @@ struct get_all_motifs
                 make_subgraph(subgraphs[j], g, sub);
                 get_sig(sub, sig);
 
-                typeof(sub_list.begin()) iter = sub_list.find(sig);
+                auto iter = sub_list.find(sig);
                 if(iter == sub_list.end())
                 {
                     if (!fill_list)
@@ -388,7 +387,7 @@ struct get_all_motifs
 
                 bool found = false;
                 size_t pos;
-                typeof(sub_list.begin()) sl = sub_list.find(sig);
+                auto sl = sub_list.find(sig);
                 if (sl != sub_list.end())
                 {
                     for (size_t l = 0; l < sl->second.size(); ++l)

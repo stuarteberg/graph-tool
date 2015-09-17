@@ -37,7 +37,7 @@ public:
     {
         if (_sum != 0)
         {
-            for (typeof(this->begin()) iter = this->begin();
+            for (decltype(this->begin()) iter = this->begin();
                  iter != this->end(); ++iter)
             {
                 #pragma omp critical
@@ -71,13 +71,10 @@ public:
     {
         if (_sum != 0)
         {
-            for (typeof(this->begin()) iter = this->begin();
-                 iter != this->end(); ++iter)
+            #pragma omp critical
             {
-                #pragma omp critical
-                {
-                    _sum->push_back(*iter);
-                }
+                for (auto& x : *this)
+                    _sum->push_back(x);
             }
             _sum = 0;
         }

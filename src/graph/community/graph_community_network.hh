@@ -52,7 +52,7 @@ struct get_community_network_vertices
         for (auto vi : vertices_range(g))
         {
             s_type s = get(s_map, vi);
-            typeof(comms.begin()) iter = comms.find(s);
+            auto iter = comms.find(s);
             cvertex_t v;
             if (iter == comms.end())
             {

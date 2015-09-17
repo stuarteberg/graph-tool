@@ -383,7 +383,7 @@ public:
         : _g(g), _edge_index(edge_index), _edges(edges),
           _vertices(HardNumVertices()(g)), _rng(rng)
     {
-        typeof(_vertices.begin()) viter = _vertices.begin();
+        decltype(_vertices.begin()) viter = _vertices.begin();
         typename graph_traits<Graph>::vertex_iterator v, v_end;
         for (tie(v, v_end) = vertices(_g); v != v_end; ++v)
             *(viter++) = *v;
@@ -933,7 +933,7 @@ public:
 
     ~AliasProbabilisticRewireStrategy()
     {
-        for (typeof(_sampler.begin()) iter = _sampler.begin();
+        for (decltype(_sampler.begin()) iter = _sampler.begin();
              iter != _sampler.end(); ++iter)
             delete iter->second;
     }

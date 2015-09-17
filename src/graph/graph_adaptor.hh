@@ -593,18 +593,13 @@ inline __attribute__((always_inline))
 void remove_out_edge_if(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
                         Predicate predicate, UndirectedAdaptor<Graph>& g)
 {
-    std::list<typename UndirectedAdaptor<Graph>::EdgeDescriptor> removed_edges;
-    typedef typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator
-        iter_t;
-    std::pair<iter_t, iter_t> edge_range;
-    edge_range = out_edges(v,g);
-    for(iter_t iter = edge_range.first; iter != edge_range.second; ++iter)
+    std::vector<typename UndirectedAdaptor<Graph>::EdgeDescriptor> removed_edges;
+    auto edge_range = out_edges(v,g);
+    for(auto iter = edge_range.first; iter != edge_range.second; ++iter)
         if (predicate(*iter))
-            removed_edges.push_front(*iter);
-
-    for(typeof(removed_edges.begin()) iter = removed_edges.begin();
-        iter != removed_edges.end(); ++iter)
-        remove_edge(*iter,g);
+            removed_edges.push_back(*iter);
+    for(auto& e : removed_edges)
+        remove_edge(e, g);
 }
 
 //==============================================================================
@@ -615,18 +610,13 @@ inline __attribute__((always_inline))
 void remove_in_edge_if(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
                        Predicate predicate, UndirectedAdaptor<Graph>& g)
 {
-    std::list<typename UndirectedAdaptor<Graph>::EdgeDescriptor> removed_edges;
-    typedef typename graph_traits<UndirectedAdaptor<Graph> >::in_edge_iterator
-        iter_t;
-    std::pair<iter_t, iter_t> edge_range;
-    edge_range = in_edges(v,g);
-    for(iter_t iter = edge_range.first; iter != edge_range.second; ++iter)
+    std::vector<typename UndirectedAdaptor<Graph>::EdgeDescriptor> removed_edges;
+    auto edge_range = in_edges(v,g);
+    for(auto iter = edge_range.first; iter != edge_range.second; ++iter)
         if (predicate(*iter))
-            removed_edges.push_front(*iter);
-
-    for(typeof(removed_edges.begin()) iter = removed_edges.begin();
-        iter != removed_edges.end(); ++iter)
-        remove_edge(*iter,g);
+            removed_edges.push_back(*iter);
+    for(auto& e : removed_edges)
+        remove_edge(e, g);
 }
 
 
