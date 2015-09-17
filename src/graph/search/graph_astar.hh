@@ -101,6 +101,7 @@ private:
 class AStarCmp
 {
 public:
+    AStarCmp() {}
     AStarCmp(python::object cmp): _cmp(cmp) {}
 
     template <class Value1, class Value2>
@@ -116,6 +117,7 @@ private:
 class AStarCmb
 {
 public:
+    AStarCmb() {}
     AStarCmb(python::object cmb): _cmb(cmb) {}
 
     template <class Value1, class Value2 >
@@ -132,8 +134,9 @@ template <class Graph, class Value>
 class AStarH
 {
 public:
+    AStarH() {}
     AStarH(GraphInterface& gi, Graph& g, python::object h)
-        : _gi(gi), _h(h), _gp(retrieve_graph_view<Graph>(gi, g)) {}
+        : _h(h), _gp(retrieve_graph_view<Graph>(gi, g)) {}
 
     Value operator()(GraphInterface::vertex_t v) const
     {
@@ -141,7 +144,6 @@ public:
     }
 
 private:
-    GraphInterface& _gi;
     python::object _h;
     std::shared_ptr<Graph> _gp;
 };

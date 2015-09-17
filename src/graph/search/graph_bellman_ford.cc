@@ -85,6 +85,7 @@ private:
 class BFCmp
 {
 public:
+    BFCmp() {}
     BFCmp(python::object cmp): _cmp(cmp) {}
 
     template <class Value1, class Value2>
@@ -100,6 +101,7 @@ private:
 class BFCmb
 {
 public:
+    BFCmb() {}
     BFCmb(python::object cmb): _cmb(cmb) {}
 
     template <class Value1, class Value2 >

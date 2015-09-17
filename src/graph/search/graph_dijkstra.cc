@@ -94,6 +94,7 @@ private:
 class DJKCmp
 {
 public:
+    DJKCmp() {}
     DJKCmp(python::object cmp): _cmp(cmp) {}
 
     template <class Value1, class Value2>
@@ -109,6 +110,7 @@ private:
 class DJKCmb
 {
 public:
+    DJKCmb() {}
     DJKCmb(python::object cmb): _cmb(cmb) {}
 
     template <class Value1, class Value2 >
