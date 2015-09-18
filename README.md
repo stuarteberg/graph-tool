@@ -20,7 +20,7 @@ website http://graph-tool.skewed.de.
 
 graph-tool is free software, you can redistribute it and/or modify it
 under the terms of the GNU General Public License, version 3 or
-above. See COPYING for details.
+above. See LICENSE for details.
 
 This program is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
