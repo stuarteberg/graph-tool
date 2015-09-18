@@ -64,3 +64,5 @@ please submit a ticket through the provided interface.
 
 --
 Tiago de Paula Peixoto <tiago@skewed.de>
+
+[![build status](https://ci.skewed.de/projects/1/status.png?ref=master)](https://ci.skewed.de/projects/1?ref=master)
