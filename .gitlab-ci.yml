@@ -2,22 +2,22 @@ job_gcc:
   script:
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python3 --with-boost-python=py34
-    - make
+    - CCACHE_BASEDIR=$PWD make
 
 job_clang:
   script:
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python3 --with-boost-python=py34
-    - make
+    - CCACHE_BASEDIR=$PWD make
 
 job_gcc_py2:
   script:
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python2
-    - make
+    - CCACHE_BASEDIR=$PWD make
 
 job_clang_py2:
   script:
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python2
-    - make
+    - CCACHE_BASEDIR=$PWD make
