@@ -1,32 +1,22 @@
-stages:
-  - build_gcc
-  - build_clang
-  - build_gcc_py2
-  - build_clang_py2
-
 job_gcc:
-  stage: build_gcc
   script:
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python3 --with-boost-python=py34
     - make
 
 job_clang:
-  stage: build_clang
   script:
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python3 --with-boost-python=py34
     - make
 
 job_gcc_py2:
-  stage: build_gcc_py2
   script:
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python2
     - make
 
 job_clang_py2:
-  stage: build_clang_py2
   script:
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python2
