@@ -183,6 +183,7 @@ def _type_alias(type_name):
              "boolean": "bool",
              "short": "int16_t",
              "int": "int32_t",
+             "unsigned int": "int32_t",
              "long": "int64_t",
              "long long": "int64_t",
              "unsigned long": "int64_t",

@@ -1919,11 +1919,11 @@ def edge_reciprocity(g):
     >>> g.add_vertex(2)
     <...>
     >>> g.add_edge(g.vertex(0), g.vertex(1))
-    <Edge object with source '0' and target '1' at 0x33bc710>
+    <...>
     >>> gt.edge_reciprocity(g)
     0.0
     >>> g.add_edge(g.vertex(1), g.vertex(0))
-    <Edge object with source '1' and target '0' at 0x33bc7a0>
+    <...>
     >>> gt.edge_reciprocity(g)
     1.0
 

@@ -231,7 +231,7 @@ def vertex_average(g, deg):
     >>> from numpy.random import poisson
     >>> g = gt.random_graph(1000, lambda: (poisson(5), poisson(5)))
     >>> print(gt.vertex_average(g, "in"))
-    (4.975, 0.0686758691244603)
+    (4.975, 0.068675869124460318)
     """
 
     if isinstance(deg, PropertyMap) and "string" in deg.value_type():
@@ -293,7 +293,7 @@ def edge_average(g, eprop):
     >>> eprop = g.new_edge_property("double")
     >>> eprop.get_array()[:] = random(g.num_edges())
     >>> print(gt.edge_average(g, eprop))
-    (0.4989741369720412, 0.004101065927783255)
+    (0.4989741369720412, 0.004101065927783254)
     """
 
     if "string" in eprop.value_type():

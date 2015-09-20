@@ -48,7 +48,13 @@ Examples
 
     >>> g = gt.collection.data["karate"]
     >>> print(g)
-    <Graph object, undirected, with 34 vertices and 78 edges at 0x9ca5d90>
+    <Graph object, undirected, with 34 vertices and 78 edges at 0x...>
+    >>> print(g.gp.readme)
+    The file karate.gml contains the network of friendships between the 34
+    members of a karate club at a US university, as described by Wayne Zachary
+    in 1977.  If you use these data in your work, please cite W. W. Zachary, An
+    information flow model for conflict and fission in small groups, Journal of
+    Anthropological Research 33, 452-473 (1977).
 
 
 .. data:: descriptions

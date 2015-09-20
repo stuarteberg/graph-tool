@@ -659,26 +659,26 @@ CPU-bound. Here is an example for a somewhat larger graph:
 
    >>> import timeit
    >>> g = gt.random_graph(100000, lambda: (10, 10))
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml")).timeit(number=1)
+   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml")).timeit(number=1)     # doctest: +SKIP
    0.3521119289798662
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml.xz")).timeit(number=1)
+   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml.xz")).timeit(number=1)  # doctest: +SKIP
    44.399905497033615
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt")).timeit(number=1)
+   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt")).timeit(number=1)      # doctest: +SKIP
    0.020239034027326852
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt.xz")).timeit(number=1)
+   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt.xz")).timeit(number=1)   # doctest: +SKIP
    2.712416768015828
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml")).timeit(number=1)
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml")).timeit(number=1)  # doctest: +SKIP
    4.102405193960294
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml.xz")).timeit(number=1)
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml.xz")).timeit(number=1) # doctest: +SKIP
    5.330099091981538
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt")).timeit(number=1)
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt")).timeit(number=1) # doctest: +SKIP
    0.34319842199329287
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt.xz")).timeit(number=1)
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt.xz")).timeit(number=1) # doctest: +SKIP
    0.6098227129550651
    >>> import subprocess
-   >>> print(subprocess.check_output("du /tmp/random_graph* | sort", shell=True).decode("utf-8"))
-   2296        /tmp/random_graph.gt.xz
-   4008        /tmp/random_graph.xml.xz
-   4688        /tmp/random_graph.gt
-   69492       /tmp/random_graph.xml
+   >>> print(subprocess.check_output("du /tmp/random_graph* | sort", shell=True).decode("utf-8")) # doctest: +NORMALIZE_WHITESPACE
+   2296         /tmp/random_graph.gt.xz
+   4008         /tmp/random_graph.xml.xz
+   4688         /tmp/random_graph.gt
+   69492        /tmp/random_graph.xml
    <BLANKLINE>

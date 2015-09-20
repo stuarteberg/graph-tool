@@ -617,7 +617,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
        gt.graph_draw(g, pos=pos, output="rewire_orig.png", output_size=(300, 300))
 
     >>> gt.random_rewire(g, "correlated")
-    601
+    607
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_corr.pdf", output_size=(300, 300))
     <...>
@@ -628,7 +628,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
        gt.graph_draw(g, pos=pos, output="rewire_corr.png", output_size=(300, 300))
 
     >>> gt.random_rewire(g)
-    215
+    211
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_uncorr.pdf", output_size=(300, 300))
     <...>
@@ -639,7 +639,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
        gt.graph_draw(g, pos=pos, output="rewire_uncorr.png", output_size=(300, 300))
 
     >>> gt.random_rewire(g, "erdos")
-    16
+    21
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_erdos.pdf", output_size=(300, 300))
     <...>
