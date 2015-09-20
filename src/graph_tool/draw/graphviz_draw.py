@@ -316,7 +316,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
         if gv_new_api:
             gvg = libgv.agopen("G".encode("utf8"),
                                libgv_directed if g.is_directed() else libgv_undirected,
-                               None)
+                               0)
         else:
             gvg = libgv.agopen("G".encode("utf8"),
                                libgv_directed if g.is_directed() else libgv_undirected)
@@ -422,9 +422,9 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
             vertices = g.vertices()
         for v in vertices:
             if gv_new_api:
-                n = libgv.agnode(gvg, str(int(v)).encode("utf8"))
+                n = libgv.agnode(gvg, str(int(v)).encode("utf8"), 1)
             else:
-                n = libgv.agnode(gvg, str(int(v)).encode("utf8"), True)
+                n = libgv.agnode(gvg, str(int(v)).encode("utf8"))
 
             if type(vsize) == PropertyMap:
                 vw = vh = vsize[v]
@@ -475,7 +475,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
                 ge = libgv.agedge(gvg,
                                   libgv.agnode(gvg, str(int(e.source())).encode("utf8"), False),
                                   libgv.agnode(gvg, str(int(e.target())).encode("utf8"), False),
-                                  str(g.edge_index[e]).encode("utf8"), True)
+                                  str(g.edge_index[e]).encode("utf8"), 1)
             else:
                 ge = libgv.agedge(gvg,
                                   libgv.agnode(gvg, str(int(e.source())).encode("utf8")),
