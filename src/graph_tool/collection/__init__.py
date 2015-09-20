@@ -55,6 +55,7 @@ Examples
     in 1977.  If you use these data in your work, please cite W. W. Zachary, An
     information flow model for conflict and fission in small groups, Journal of
     Anthropological Research 33, 452-473 (1977).
+    <BLANKLINE>
 
 
 .. data:: descriptions

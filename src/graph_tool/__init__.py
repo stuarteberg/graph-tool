@@ -1962,8 +1962,8 @@ class Graph(object):
         >>> g.graph_properties["gnat"] = g.new_graph_property("string", "hi there!")
         >>> g.list_properties()
         gnat           (graph)   (type: string, val: hi there!)
-        bar            (vertex)  (type: python::object)
         foo            (vertex)  (type: double)
+        bar            (vertex)  (type: python::object)
         foo            (edge)    (type: vector<double>)
         """
 

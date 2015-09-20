@@ -121,7 +121,7 @@ def local_clustering(g, prop=None, undirected=True):
     >>> g = gt.random_graph(1000, lambda: (5,5))
     >>> clust = gt.local_clustering(g)
     >>> print(gt.vertex_average(g, clust))
-    (0.006177777777777778, 0.0003696618407994121)
+    (0.006177777777777778, 0.00036966184079941211)
 
     References
     ----------
