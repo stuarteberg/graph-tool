@@ -269,10 +269,13 @@ def show_config():
     print("uname:", " ".join(os.uname()))
 
 def terminal_size():
-    import fcntl, termios, struct
-    h, w, hp, wp = struct.unpack('HHHH',
-        fcntl.ioctl(0, termios.TIOCGWINSZ,
-        struct.pack('HHHH', 0, 0, 0, 0)))
+    try:
+        import fcntl, termios, struct
+        h, w, hp, wp = struct.unpack('HHHH',
+            fcntl.ioctl(0, termios.TIOCGWINSZ,
+            struct.pack('HHHH', 0, 0, 0, 0)))
+    except IOError:
+        w, h = 80, 100
     return w, h
 
 try:
