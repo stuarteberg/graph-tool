@@ -367,7 +367,7 @@ def modularity(g, prop, weight=None):
     >>> g = gt.load_graph("community.xml")
     >>> b = gt.community_structure(g, 10000, 10)
     >>> gt.modularity(g, b)
-    0.5353141885624041
+    0.535314188562404...
 
     References
     ----------

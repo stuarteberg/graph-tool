@@ -1165,6 +1165,8 @@ def edge_endpoint_property(g, prop, endpoint, eprop=None):
     val_t = prop.value_type()
     if val_t == "unsigned long":
         val_t = "int64_t"
+    elif val_t == "unsigned int":
+        val_t = "int32_t"
     if eprop is None:
         eprop = g.new_edge_property(val_t)
     if eprop.value_type() != val_t:
@@ -1214,6 +1216,8 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
     val_t = eprop.value_type()
     if val_t == "unsigned long":
         val_t = "int64_t"
+    if val_t == "unsigned int":
+        val_t = "int32_t"
     if vprop is None:
         vprop = g.new_vertex_property(val_t)
     orig_vprop = vprop

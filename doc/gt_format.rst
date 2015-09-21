@@ -650,12 +650,21 @@ format tends to be about an order of magnitude faster than ``graphml``,
 and largely I/O-bound, instead of the latter, which is often
 CPU-bound. Here is an example for a somewhat larger graph:
 
-.. testsetup::
+.. testsetup:: gt_format
 
    import graph_tool.all as gt
    gt.seed_rng(42)
 
-.. doctest::
+.. doctest:: gt_format
+   :hide:
+   import timeit
+   g = gt.random_graph(100000, lambda: (10, 10))
+   g.save("/tmp/random_graph.xml")
+   g.save("/tmp/random_graph.xml.xz")
+   g.save("/tmp/random_graph.gt")
+   g.save("/tmp/random_graph.gt.xz")
+
+.. doctest:: gt_format
 
    >>> import timeit
    >>> g = gt.random_graph(100000, lambda: (10, 10))

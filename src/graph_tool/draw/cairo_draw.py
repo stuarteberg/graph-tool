@@ -397,7 +397,8 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
             if val.value_type() in ["vector<double>", "vector<long double>"]:
                 new_val = val
             elif val.value_type() in ["int32_t", "int64_t", "double",
-                                      "long double", "unsigned long", "bool"]:
+                                      "long double", "unsigned long",
+                                      "unsigned int", "bool"]:
                 g = val.get_graph()
                 try:
                     vrange = [val.fa.min(), val.fa.max()]

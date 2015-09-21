@@ -513,7 +513,7 @@ def central_point_dominance(g, betweenness):
     >>> g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
     >>> vp, ep = gt.betweenness(g)
     >>> print(gt.central_point_dominance(g, vp))
-    0.11610685614353008
+    0.116106856143530...
 
     References
     ----------

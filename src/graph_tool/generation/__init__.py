@@ -165,9 +165,9 @@ def random_graph(N, deg_sampler, directed=True,
     .. testcode::
        :hide:
 
-       from numpy.random import randint, random, seed, poisson
+       import numpy.random
        from pylab import *
-       seed(43)
+       np.random.seed(43)
        gt.seed_rng(42)
 
     This is a degree sampler which uses rejection sampling to sample from the
@@ -176,8 +176,8 @@ def random_graph(N, deg_sampler, directed=True,
     >>> def sample_k(max):
     ...     accept = False
     ...     while not accept:
-    ...         k = randint(1,max+1)
-    ...         accept = random() < 1.0/k
+    ...         k = np.random.randint(1,max+1)
+    ...         accept = np.random.random() < 1.0/k
     ...     return k
     ...
 
@@ -206,9 +206,9 @@ def random_graph(N, deg_sampler, directed=True,
 
     >>> def deg_sample():
     ...    if random() > 0.5:
-    ...        return poisson(4), poisson(4)
+    ...        return np.random.poisson(4), np.random.poisson(4)
     ...    else:
-    ...        return poisson(20), poisson(20)
+    ...        return np.random.poisson(20), np.random.poisson(20)
     ...
 
     The following generates a random directed graph with this distribution, and
@@ -606,7 +606,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
        seed(43)
        gt.seed_rng(42)
 
-    >>> g, pos = gt.triangulation(random((1000,2)))
+    >>> g, pos = gt.triangulation(np.random.random((1000,2)))
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_orig.pdf", output_size=(300, 300))
     <...>
@@ -616,8 +616,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
 
        gt.graph_draw(g, pos=pos, output="rewire_orig.png", output_size=(300, 300))
 
-    >>> gt.random_rewire(g, "correlated")
-    607
+    >>> ret = gt.random_rewire(g, "correlated")
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_corr.pdf", output_size=(300, 300))
     <...>
@@ -627,8 +626,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
 
        gt.graph_draw(g, pos=pos, output="rewire_corr.png", output_size=(300, 300))
 
-    >>> gt.random_rewire(g)
-    211
+    >>> ret = gt.random_rewire(g)
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_uncorr.pdf", output_size=(300, 300))
     <...>
@@ -638,8 +636,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
 
        gt.graph_draw(g, pos=pos, output="rewire_uncorr.png", output_size=(300, 300))
 
-    >>> gt.random_rewire(g, "erdos")
-    21
+    >>> ret = gt.random_rewire(g, "erdos")
     >>> pos = gt.arf_layout(g)
     >>> gt.graph_draw(g, pos=pos, output="rewire_erdos.pdf", output_size=(300, 300))
     <...>
@@ -669,18 +666,15 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
     >>> corr = gt.avg_neighbour_corr(g, "out", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-", label="Original")
     <...>
-    >>> gt.random_rewire(g, "correlated")
-    252
+    >>> ret = gt.random_rewire(g, "correlated")
     >>> corr = gt.avg_neighbour_corr(g, "out", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="*", label="Correlated")
     <...>
-    >>> gt.random_rewire(g)
-    92
+    >>> ret = gt.random_rewire(g)
     >>> corr = gt.avg_neighbour_corr(g, "out", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-", label="Uncorrelated")
     <...>
-    >>> gt.random_rewire(g, "erdos")
-    9
+    >>> ret = gt.random_rewire(g, "erdos")
     >>> corr = gt.avg_neighbour_corr(g, "out", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-", label=r"Erd\H{o}s")
     <...>
@@ -724,8 +718,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{i}\right>$ vs o")
     <...>
-    >>> gt.random_rewire(g, "correlated")
-    4199
+    >>> ret = gt.random_rewire(g, "correlated")
     >>> corr = gt.avg_neighbour_corr(g, "in", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{o}\right>$ vs i, corr.")
@@ -734,8 +727,7 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{i}\right>$ vs o, corr.")
     <...>
-    >>> gt.random_rewire(g, "uncorrelated")
-    193
+    >>> ret = gt.random_rewire(g, "uncorrelated")
     >>> corr = gt.avg_neighbour_corr(g, "in", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{o}\right>$ vs i, uncorr.")

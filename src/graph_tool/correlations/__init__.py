@@ -108,7 +108,7 @@ def assortativity(g, deg):
     ...     accept = False
     ...     while not accept:
     ...         k = np.random.randint(1,max+1)
-    ...         accept = random() < 1.0/k
+    ...         accept = np.random.random() < 1.0/k
     ...     return k
     ...
     >>> g = gt.random_graph(1000, lambda: sample_k(40), model="probabilistic",
@@ -184,7 +184,7 @@ def scalar_assortativity(g, deg):
     ...     accept = False
     ...     while not accept:
     ...         k = np.random.randint(1,max+1)
-    ...         accept = random() < 1.0/k
+    ...         accept = np.random.random() < 1.0/k
     ...     return k
     ...
     >>> g = gt.random_graph(1000, lambda: sample_k(40), model="probabilistic",
@@ -277,7 +277,7 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
     ...     accept = False
     ...     while not accept:
     ...         k = np.random.randint(1,max+1)
-    ...         accept = random() < 1.0/k
+    ...         accept = np.random.random() < 1.0/k
     ...     return k
     ...
     >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
@@ -372,9 +372,9 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
     >>> def sample_k(max):
     ...     accept = False
     ...     while not accept:
-    ...         i = randint(1, max + 1)
-    ...         j = randint(1, max + 1)
-    ...         accept = random() < (sin(i / pi) * sin(j / pi) + 1) / 2
+    ...         i = np.random.randint(1, max + 1)
+    ...         j = np.random.randint(1, max + 1)
+    ...         accept = np.random.random() < (sin(i / pi) * sin(j / pi) + 1) / 2
     ...     return i,j
     ...
     >>> g = gt.random_graph(10000, lambda: sample_k(40))
@@ -472,8 +472,8 @@ def avg_neighbour_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     >>> def sample_k(max):
     ...     accept = False
     ...     while not accept:
-    ...         k = randint(1,max+1)
-    ...         accept = random() < 1.0 / k
+    ...         k = np.random.randint(1,max+1)
+    ...         accept = np.random.random() < 1.0 / k
     ...     return k
     ...
     >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
@@ -559,9 +559,9 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     >>> def sample_k(max):
     ...     accept = False
     ...     while not accept:
-    ...         i = randint(1,max+1)
-    ...         j = randint(1,max+1)
-    ...         accept = random() < (sin(i/pi)*sin(j/pi)+1)/2
+    ...         i = np.random.randint(1,max+1)
+    ...         j = np.random.randint(1,max+1)
+    ...         accept = np.random.random() < (sin(i/pi)*sin(j/pi)+1)/2
     ...     return i,j
     ...
     >>> g = gt.random_graph(10000, lambda: sample_k(40))
