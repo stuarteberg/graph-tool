@@ -1965,8 +1965,8 @@ class Graph(object):
         >>> g.graph_properties["gnat"] = g.new_graph_property("string", "hi there!")
         >>> g.list_properties()
         gnat           (graph)   (type: string, val: hi there!)
-        foo            (vertex)  (type: double)
         bar            (vertex)  (type: python::object)
+        foo            (vertex)  (type: double)
         foo            (edge)    (type: vector<double>)
         """
 
@@ -1975,27 +1975,21 @@ class Graph(object):
         w = max([len(x[0]) for x in list(self.__properties.keys())]) + 4
         w = w if w > 14 else 14
 
-        for k, v in self.__properties.items():
-            if k[0] == "g":
-                pref="%%-%ds (graph)   (type: %%s, val: " % w % \
-                      (k[1], v.value_type())
-                val = str(v[self])
-                if len(val) > 1000:
-                    val = val[:1000] + "..."
-                tw = terminal_size()[0]
-                val = textwrap.indent(textwrap.fill(val,
-                                                    width=max(tw - len(pref), 1)),
-                                      " " * len(pref))
-                val = val[len(pref):]
-                print("%s%s)" % (pref, val))
-        for k, v in self.__properties.items():
-            if k[0] == "v":
-                print("%%-%ds (vertex)  (type: %%s)" % w % (k[1],
-                                                            v.value_type()))
-        for k, v in self.__properties.items():
-            if k[0] == "e":
-                print("%%-%ds (edge)    (type: %%s)" % w % (k[1],
-                                                            v.value_type()))
+        for k, v in sorted(self.graph_properties.items(), key=lambda k: k[0]):
+            pref="%%-%ds (graph)   (type: %%s, val: " % w %  (k, v.value_type())
+            val = str(v[self])
+            if len(val) > 1000:
+                val = val[:1000] + "..."
+            tw = terminal_size()[0]
+            val = textwrap.indent(textwrap.fill(val,
+                                                width=max(tw - len(pref), 1)),
+                                  " " * len(pref))
+            val = val[len(pref):]
+            print("%s%s)" % (pref, val))
+        for k, v in sorted(self.vertex_properties.items(), key=lambda k: k[0]):
+            print("%%-%ds (vertex)  (type: %%s)" % w % (k, v.value_type()))
+        for k, v in sorted(self.edge_properties.items(), key=lambda k: k[0]):
+            print("%%-%ds (edge)    (type: %%s)" % w % (k, v.value_type()))
 
     # index properties
 
