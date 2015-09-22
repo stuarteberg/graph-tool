@@ -114,7 +114,7 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     >>> g = gt.random_graph(1000, lambda: (poisson(5), poisson(5)))
     >>> print(gt.vertex_hist(g, "out"))
     [array([   7.,   33.,   91.,  145.,  165.,  164.,  152.,  115.,   62.,
-             29.,   28.,    6.,    1.,    1.,    0.,    1.]), array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16], dtype=uint64)]
+             29.,   28.,    6.,    1.,    1.,    0.,    1.]), array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16], dtype=uint...)]
     """
 
     ret = libgraph_tool_stats.\
