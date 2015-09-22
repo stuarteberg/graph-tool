@@ -18,6 +18,18 @@
 #ifndef GRAPH_UTIL_HH
 #define GRAPH_UTIL_HH
 
+// allow boost::python to bind to std::functions
+#include <boost/mpl/vector.hpp>
+#include <functional>
+namespace boost { namespace python { namespace detail {
+    template <class R_, class... PS_, class T=void>
+    boost::mpl::vector<R_, PS_...>
+    get_signature(std::function<R_ (PS_...)>&, T* = nullptr)
+    {
+        return boost::mpl::vector<R_, PS_...>();
+    }
+} } }
+
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #if (BOOST_VERSION / 100 % 1000 >= 48)

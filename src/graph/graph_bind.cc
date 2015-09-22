@@ -15,24 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <boost/mpl/vector.hpp>
-#include <functional>
-
-namespace boost { namespace python { namespace detail {
-    template <class R_, class P0_, class T=void>
-    boost::mpl::vector<R_, P0_>
-    get_signature(std::function<R_ (P0_)>&, T* = nullptr)
-    {
-        return boost::mpl::vector<R_, P0_>();
-    }
-} } }
-
+#include "graph.hh"
+#include "graph_util.hh"
 
 #define NUMPY_EXPORT
 #include "numpy_bind.hh"
 
-#include "graph.hh"
-#include "graph_util.hh"
 #include "graph_python_interface.hh"
 
 #include "random.hh"
