@@ -652,12 +652,14 @@ CPU-bound. Here is an example for a somewhat larger graph:
 
 .. testsetup:: gt_format
 
+   import tempfile
    g = gt.collection.data["pgp-strong-2009"]
    g.properties.clear()
-   g.save("/tmp/pgp_graph.xml")
-   g.save("/tmp/pgp_graph.xml.xz")
-   g.save("/tmp/pgp_graph.gt")
-   g.save("/tmp/pgp_graph.gt.xz")
+   tmpdir = tempfile.mkdtemp()
+   g.save("%s/pgp_graph.xml" % tmpdir)
+   g.save("%s/pgp_graph.xml.xz" % tmpdir)
+   g.save("%s/pgp_graph.gt" % tmpdir)
+   g.save("%s/pgp_graph.gt.xz" % tmpdir)
 
 .. doctest:: gt_format
 
