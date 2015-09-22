@@ -652,42 +652,38 @@ CPU-bound. Here is an example for a somewhat larger graph:
 
 .. testsetup:: gt_format
 
-   import numpy.random
-   import graph_tool.all as gt
-   numpy.random.seed(42)
-   gt.seed_rng(42)
-   g = gt.random_graph(100000, lambda: (10, 10))
-   g.save("/tmp/random_graph.xml")
-   g.save("/tmp/random_graph.xml.xz")
-   g.save("/tmp/random_graph.gt")
-   g.save("/tmp/random_graph.gt.xz")
-   numpy.random.seed(42)
-   gt.seed_rng(42)
+   g = gt.collection.data["pgp-strong-2009"]
+   g.properties.clear()
+   g.save("/tmp/pgp_graph.xml")
+   g.save("/tmp/pgp_graph.xml.xz")
+   g.save("/tmp/pgp_graph.gt")
+   g.save("/tmp/pgp_graph.gt.xz")
 
 .. doctest:: gt_format
 
    >>> import timeit
-   >>> g = gt.random_graph(100000, lambda: (10, 10))
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml")).timeit(number=1)     # doctest: +SKIP
-   0.3521119289798662
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.xml.xz")).timeit(number=1)  # doctest: +SKIP
-   44.399905497033615
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt")).timeit(number=1)      # doctest: +SKIP
-   0.020239034027326852
-   >>> timeit.Timer(lambda: g.save("/tmp/random_graph.gt.xz")).timeit(number=1)   # doctest: +SKIP
-   2.712416768015828
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml")).timeit(number=1)  # doctest: +SKIP
-   4.102405193960294
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.xml.xz")).timeit(number=1) # doctest: +SKIP
-   5.330099091981538
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt")).timeit(number=1) # doctest: +SKIP
-   0.34319842199329287
-   >>> timeit.Timer(lambda: gt.load_graph("/tmp/random_graph.gt.xz")).timeit(number=1) # doctest: +SKIP
-   0.6098227129550651
+   >>> g = gt.collection.data["pgp-strong-2009"]
+   >>> g.properties.clear()   # Use only topology for benchmark
+   >>> timeit.Timer(lambda: g.save("/tmp/pgp_graph.xml")).timeit(number=1)  # doctest: +SKIP
+   0.08416466903872788
+   >>> timeit.Timer(lambda: g.save("/tmp/pgp_graph.xml.xz")).timeit(number=1)  # doctest: +SKIP
+   14.706654848065227
+   >>> timeit.Timer(lambda: g.save("/tmp/pgp_graph.gt")).timeit(number=1)  # doctest: +SKIP
+   0.005980597110465169
+   >>> timeit.Timer(lambda: g.save("/tmp/pgp_graph.gt.xz")).timeit(number=1)  # doctest: +SKIP
+   0.43757575505878776
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/pgp_graph.xml")).timeit(number=1)  # doctest: +SKIP
+   0.9056955680716783
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/pgp_graph.xml.xz")).timeit(number=1)  # doctest: +SKIP
+   1.0840389159275219
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/pgp_graph.gt")).timeit(number=1)  # doctest: +SKIP
+   0.0512137800687924
+   >>> timeit.Timer(lambda: gt.load_graph("/tmp/pgp_graph.gt.xz")).timeit(number=1)  # doctest: +SKIP
+   0.07995201298035681
    >>> import subprocess
-   >>> print(subprocess.check_output("du /tmp/random_graph* | sort", shell=True).decode("utf-8")) # doctest: +NORMALIZE_WHITESPACE
-   2296         /tmp/random_graph.gt.xz
-   4008         /tmp/random_graph.xml.xz
-   4688         /tmp/random_graph.gt
-   69492        /tmp/random_graph.xml
+   >>> print(subprocess.check_output("du -b /tmp/pgp_graph* | sort -n", shell=True).decode("utf-8")) # doctest: +SKIP
+   395148       /tmp/pgp_graph.gt.xz
+   921619       /tmp/pgp_graph.gt
+   1010208      /tmp/pgp_graph.xml.xz
+   21324583     /tmp/pgp_graph.xml
    <BLANKLINE>
