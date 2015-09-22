@@ -97,25 +97,13 @@ def assortativity(g, deg):
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
-       np.random.seed(42)
-       gt.seed_rng(42)
-       from pylab import *
+    .. doctest:: assortativity
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         k = np.random.randint(1,max+1)
-    ...         accept = np.random.random() < 1.0/k
-    ...     return k
-    ...
-    >>> g = gt.random_graph(1000, lambda: sample_k(40), model="probabilistic",
-    ...                     vertex_corr=lambda i,k: 1.0 / (1 + abs(i - k)), directed=False,
-    ...                     n_iter=100)
-    >>> gt.assortativity(g, "out")
-    (0.1425854833491391, 0.005107908315851484)
+       >>> g = gt.collection.data["pgp-strong-2009"]
+       >>> g = gt.GraphView(g, directed=False)
+       >>> gt.assortativity(g, "out")
+       (0.033159070186109..., 0.00032590407570...)
 
     References
     ----------
@@ -173,31 +161,13 @@ def scalar_assortativity(g, deg):
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
-       np.random.seed(42)
-       gt.seed_rng(42)
-       from pylab import *
+    .. doctest:: scalar_assortativity
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         k = np.random.randint(1,max+1)
-    ...         accept = np.random.random() < 1.0/k
-    ...     return k
-    ...
-    >>> g = gt.random_graph(1000, lambda: sample_k(40), model="probabilistic",
-    ...                     vertex_corr=lambda i,k: abs(i-k),
-    ...                     directed=False, n_iter=100)
-    >>> gt.scalar_assortativity(g, "out")
-    (-0.44147938242732404, 0.01047064816533614)
-
-    >>> g = gt.random_graph(1000, lambda: sample_k(40), model="probabilistic",
-    ...                     vertex_corr=lambda i, k: 1.0 / (1 + abs(i - k)),
-    ...                     directed=False, n_iter=100)
-    >>> gt.scalar_assortativity(g, "out")
-    (0.6216815584946155, 0.011152910837726114)
+       >>> g = gt.collection.data["pgp-strong-2009"]
+       >>> g = gt.GraphView(g, directed=False)
+       >>> gt.scalar_assortativity(g, "out")
+       (0.0263849324180816..., 0.00129447062420...)
 
     References
     ----------
@@ -266,36 +236,38 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
+    .. testsetup:: corr_hist
+
+       from pylab import *
        np.random.seed(42)
        gt.seed_rng(42)
-       from pylab import *
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         k = np.random.randint(1,max+1)
-    ...         accept = np.random.random() < 1.0/k
-    ...     return k
-    ...
-    >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
-    ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
-    ...                     directed=False, n_iter=100)
-    >>> h = gt.corr_hist(g, "out", "out")
-    >>> clf()
-    >>> xlabel("Source out-degree")
-    <...>
-    >>> ylabel("Target out-degree")
-    <...>
-    >>> imshow(h[0].T, interpolation="nearest", origin="lower")
-    <...>
-    >>> colorbar()
-    <...>
-    >>> savefig("corr.pdf")
+    .. doctest:: corr_hist
 
-    .. testcode::
+       >>> def sample_k(max):
+       ...     accept = False
+       ...     while not accept:
+       ...         k = np.random.randint(1,max+1)
+       ...         accept = np.random.random() < 1.0/k
+       ...     return k
+       ...
+       >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
+       ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
+       ...                     directed=False, n_iter=100)
+       >>> h = gt.corr_hist(g, "out", "out")
+       >>> clf()
+       >>> xlabel("Source out-degree")
+       <...>
+       >>> ylabel("Target out-degree")
+       <...>
+       >>> imshow(h[0].T, interpolation="nearest", origin="lower")
+       <...>
+       >>> colorbar()
+       <...>
+       >>> savefig("corr.pdf")
+
+    .. testcode:: corr_hist
        :hide:
 
        savefig("corr.png")
@@ -362,35 +334,37 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
+    .. testsetup:: combined_corr_hist
+
+       from pylab import *
        np.random.seed(42)
        gt.seed_rng(42)
-       from pylab import *
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         i = np.random.randint(1, max + 1)
-    ...         j = np.random.randint(1, max + 1)
-    ...         accept = np.random.random() < (sin(i / pi) * sin(j / pi) + 1) / 2
-    ...     return i,j
-    ...
-    >>> g = gt.random_graph(10000, lambda: sample_k(40))
-    >>> h = gt.combined_corr_hist(g, "in", "out")
-    >>> clf()
-    >>> xlabel("In-degree")
-    <...>
-    >>> ylabel("Out-degree")
-    <...>
-    >>> imshow(h[0].T, interpolation="nearest", origin="lower")
-    <...>
-    >>> colorbar()
-    <...>
-    >>> savefig("combined_corr.pdf")
+    .. doctest:: combined_corr_hist
 
-    .. testcode::
+       >>> def sample_k(max):
+       ...     accept = False
+       ...     while not accept:
+       ...         i = np.random.randint(1, max + 1)
+       ...         j = np.random.randint(1, max + 1)
+       ...         accept = np.random.random() < (sin(i / pi) * sin(j / pi) + 1) / 2
+       ...     return i,j
+       ...
+       >>> g = gt.random_graph(10000, lambda: sample_k(40))
+       >>> h = gt.combined_corr_hist(g, "in", "out")
+       >>> clf()
+       >>> xlabel("In-degree")
+       <...>
+       >>> ylabel("Out-degree")
+       <...>
+       >>> imshow(h[0].T, interpolation="nearest", origin="lower")
+       <...>
+       >>> colorbar()
+       <...>
+       >>> savefig("combined_corr.pdf")
+
+    .. testcode:: combined_corr_hist
        :hide:
 
        savefig("combined_corr.png")
@@ -462,34 +436,37 @@ def avg_neighbour_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
+    .. testsetup:: avg_neighbour_corr
+
+       from pylab import *
        np.random.seed(42)
        gt.seed_rng(42)
-       from pylab import *
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         k = np.random.randint(1,max+1)
-    ...         accept = np.random.random() < 1.0 / k
-    ...     return k
-    ...
-    >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
-    ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
-    ...                     directed=False, n_iter=100)
-    >>> h = gt.avg_neighbour_corr(g, "out", "out")
-    >>> clf()
-    >>> xlabel("Source out-degree")
-    <...>
-    >>> ylabel("Target out-degree")
-    <...>
-    >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
-    <...>
-    >>> savefig("avg_corr.pdf")
 
-    .. testcode::
+    .. doctest:: avg_neighbour_corr
+
+       >>> def sample_k(max):
+       ...     accept = False
+       ...     while not accept:
+       ...         k = np.random.randint(1,max+1)
+       ...         accept = np.random.random() < 1.0 / k
+       ...     return k
+       ...
+       >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
+       ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
+       ...                     directed=False, n_iter=100)
+       >>> h = gt.avg_neighbour_corr(g, "out", "out")
+       >>> clf()
+       >>> xlabel("Source out-degree")
+       <...>
+       >>> ylabel("Target out-degree")
+       <...>
+       >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
+       <...>
+       >>> savefig("avg_corr.pdf")
+
+    .. testcode:: avg_neighbour_corr
        :hide:
 
        savefig("avg_corr.png")
@@ -549,33 +526,36 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
 
     Examples
     --------
-    .. testcode::
-       :hide:
 
+    .. testsetup:: avg_combined_corr
+
+       from pylab import *
        np.random.seed(42)
        gt.seed_rng(42)
-       from pylab import *
 
-    >>> def sample_k(max):
-    ...     accept = False
-    ...     while not accept:
-    ...         i = np.random.randint(1,max+1)
-    ...         j = np.random.randint(1,max+1)
-    ...         accept = np.random.random() < (sin(i/pi)*sin(j/pi)+1)/2
-    ...     return i,j
-    ...
-    >>> g = gt.random_graph(10000, lambda: sample_k(40))
-    >>> h = gt.avg_combined_corr(g, "in", "out")
-    >>> clf()
-    >>> xlabel("In-degree")
-    <...>
-    >>> ylabel("Out-degree")
-    <...>
-    >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
-    <...>
-    >>> savefig("combined_avg_corr.pdf")
 
-    .. testcode::
+    .. doctest:: avg_combined_corr
+
+       >>> def sample_k(max):
+       ...     accept = False
+       ...     while not accept:
+       ...         i = np.random.randint(1,max+1)
+       ...         j = np.random.randint(1,max+1)
+       ...         accept = np.random.random() < (sin(i/pi)*sin(j/pi)+1)/2
+       ...     return i,j
+       ...
+       >>> g = gt.random_graph(10000, lambda: sample_k(40))
+       >>> h = gt.avg_combined_corr(g, "in", "out")
+       >>> clf()
+       >>> xlabel("In-degree")
+       <...>
+       >>> ylabel("Out-degree")
+       <...>
+       >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
+       <...>
+       >>> savefig("combined_avg_corr.pdf")
+
+    .. testcode:: avg_combined_corr
        :hide:
 
        savefig("combined_avg_corr.png")
