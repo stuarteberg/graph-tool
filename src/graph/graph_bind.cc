@@ -15,6 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <boost/mpl/vector.hpp>
+#include <functional>
+
+namespace boost { namespace python { namespace detail {
+    template <class R_, class P0_, class T=void>
+    boost::mpl::vector<R_, P0_>
+    get_signature(std::function<R_ (P0_)>&, T* = nullptr)
+    {
+        return boost::mpl::vector<R_, P0_>();
+    }
+} } }
+
+
 #define NUMPY_EXPORT
 #include "numpy_bind.hh"
 
@@ -126,9 +139,12 @@ struct export_vector_types
         std::replace(type_name.begin(), type_name.end(), ' ', '_');
         string name = "Vector_" + type_name;
         class_<vector<ValueType> > vc(name.c_str());
+        std::function<size_t(const vector<ValueType>&)> hasher =
+            [] (const vector<ValueType>& v) -> size_t { return std::hash<vector<ValueType>>()(v); };
         vc.def(vector_indexing_suite<vector<ValueType> >())
             .def("__eq__", &vector_equal_compare<ValueType>)
-            .def("__ne__", &vector_nequal_compare<ValueType>);
+            .def("__ne__", &vector_nequal_compare<ValueType>)
+            .def("__hash__", hasher);
         wrap_array(vc, typename boost::mpl::has_key<numpy_types,ValueType>::type());
         vector_from_list<ValueType>();
     }
