@@ -867,6 +867,7 @@ class PropertyMap(object):
         self.__g = pmap.__g
         self.__base_g = pmap.__base_g
         self.__key_type = key_type
+        self.__convert = _converter(self.value_type())
         self.__register_map()
 
 
