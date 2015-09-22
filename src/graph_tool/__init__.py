@@ -1163,10 +1163,8 @@ def edge_endpoint_property(g, prop, endpoint, eprop=None):
     """
 
     val_t = prop.value_type()
-    if val_t == "unsigned long":
+    if val_t == "unsigned long" or val_t == "unsigned int":
         val_t = "int64_t"
-    elif val_t == "unsigned int":
-        val_t = "int32_t"
     if eprop is None:
         eprop = g.new_edge_property(val_t)
     if eprop.value_type() != val_t:
