@@ -1214,10 +1214,8 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
     """
 
     val_t = eprop.value_type()
-    if val_t == "unsigned long":
+    if val_t == "unsigned long" or val_t == "unsigned int":
         val_t = "int64_t"
-    if val_t == "unsigned int":
-        val_t = "int32_t"
     if vprop is None:
         vprop = g.new_vertex_property(val_t)
     orig_vprop = vprop
