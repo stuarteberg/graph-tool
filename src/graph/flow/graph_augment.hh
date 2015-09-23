@@ -27,49 +27,42 @@ template <class Graph, class AugmentedMap, class CapacityMap,
           class ReversedMap,  class ResidualMap>
 void augment_graph(Graph& g, AugmentedMap augmented, CapacityMap capacity,
                    ReversedMap rmap, ResidualMap res,
-                   bool detect_reversed = false)
+                   bool detect_reversed=false)
 {
-    for (auto e : edges_range(g))
-        augmented[e] = 0;
-
     vector<typename graph_traits<Graph>::edge_descriptor> e_list;
-    for (auto v : vertices_range(g))
+    for (auto e : edges_range(g))
+        augmented[e] = false;
+    for (auto e : edges_range(g))
     {
-        e_list.clear();
-
-        for (auto e : out_edges_range(v, g))
+        if (!detect_reversed)
         {
-            if (detect_reversed && augmented[e] == 0)
+            e_list.push_back(e);
+        }
+        else
+        {
+            for (auto ae : out_edges_range(target(e, g), g))
             {
-                for (auto e2 : out_edges_range(target(e, g), g))
+                if (target(ae, g) == source(e, g) && augmented[e] == false)
                 {
-                    if (augmented[e2] != 0)
-                        continue;
-
-                    if (target(e2, g) == v)
-                    {
-                        augmented[e] = 2;
-                        augmented[e2] = 2;
-                        rmap[e] = e2;
-                        rmap[e2] = e;
-                        break;
-                    }
+                    augmented[e] = augmented[ae] = 2;
+                    rmap[e] = ae;
+                    rmap[ae] = e;
+                    break;
                 }
             }
-
-            if (augmented[e] == 0)
+            if (augmented[e] == false)
                 e_list.push_back(e);
         }
+    }
 
-        for (auto& e : e_list)
-        {
-            auto ae = add_edge(target(e, g), source(e, g), g).first;
-            augmented[ae] = 1;
-            capacity[ae] = 0;
-            rmap[e] = ae;
-            rmap[ae] = e;
-            res[ae] = 0;
-        }
+    for (auto& e : e_list)
+    {
+        auto ae = add_edge(target(e, g), source(e, g), g).first;
+        augmented[ae] = true;
+        capacity[ae] = 0;
+        rmap[e] = ae;
+        rmap[ae] = e;
+        res[ae] = 0;
     }
 }
 
@@ -82,7 +75,7 @@ void deaugment_graph(Graph& g, AugmentedMap augmented)
         e_list.clear();
         for (auto e : out_edges_range(v, g))
         {
-            if (augmented[e] == 1)
+            if (augmented[e] == true)
                 e_list.push_back(e);
         }
 
