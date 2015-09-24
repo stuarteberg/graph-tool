@@ -3098,18 +3098,15 @@ struct init_neighbour_sampler
 template <class Graph, class Vprop, class MEprop>
 void collect_edge_marginals(size_t B, Vprop b, MEprop p, Graph& g, Graph&)
 {
-    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-
-    typename graph_traits<Graph>::edge_iterator e, e_end;
-    for(tie(e, e_end) = edges(g); e != e_end; ++e)
+    for (auto e : edges_range(g))
     {
-        vertex_t u = min(source(*e, g), target(*e, g));
-        vertex_t v = max(source(*e, g), target(*e, g));
+        auto u = min(source(e, g), target(e, g));
+        auto v = max(source(e, g), target(e, g));
 
-        vertex_t r = b[u];
-        vertex_t s = b[v];
+        auto r = b[u];
+        auto s = b[v];
 
-        typename property_traits<MEprop>::value_type& pv = p[*e];
+        auto& pv = p[e];
         if (pv.size() < B * B)
             pv.resize(B * B);
         size_t j = r + B * s;
@@ -3123,56 +3120,53 @@ struct bethe_entropy
     void operator()(Graph& g, size_t B, MEprop p, MVprop pv, double& H,
                     double& sH, double& Hmf, double& sHmf) const
     {
-        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        typename graph_traits<Graph>::vertex_iterator v, v_end;
-        for(tie(v, v_end) = vertices(g); v != v_end; ++v)
+        for (auto v : vertices_range(g))
         {
-            pv[*v].resize(B);
+            pv[v].resize(B);
             for (size_t i = 0; i < B; ++i)
-                pv[*v][i] = 0;
+                pv[v][i] = 0;
         }
 
         H = Hmf = sH = sHmf =  0;
 
-        typename graph_traits<Graph>::edge_iterator e, e_end;
-        for(tie(e, e_end) = edges(g); e != e_end; ++e)
+        for (auto e : edges_range(g))
         {
-            vertex_t u = min(source(*e, g), target(*e, g));
-            vertex_t v = max(source(*e, g), target(*e, g));
+            auto u = min(source(e, g), target(e, g));
+            auto v = max(source(e, g), target(e, g));
 
             double sum = 0;
             for (size_t r = 0; r < B; ++r)
                 for (size_t s = 0; s < B; ++s)
                 {
                     size_t i = r + B * s;
-                    pv[u][r] += p[*e][i];
-                    pv[v][s] += p[*e][i];
-                    sum += p[*e][i];
+                    pv[u][r] += p[e][i];
+                    pv[v][s] += p[e][i];
+                    sum += p[e][i];
                 }
 
             for (size_t i = 0; i < B * B; ++i)
             {
-                if (p[*e][i] == 0)
+                if (p[e][i] == 0)
                     continue;
-                double pi = double(p[*e][i]) / sum;
+                double pi = double(p[e][i]) / sum;
                 H -= pi * log(pi);
                 sH += pow((log(pi) + 1) * sqrt(pi / sum), 2);
             }
         }
 
-        for(tie(v, v_end) = vertices(g); v != v_end; ++v)
+        for (auto v : vertices_range(g))
         {
             double sum = 0;
             for (size_t i = 0; i < B; ++i)
-                sum += pv[*v][i];
+                sum += pv[v][i];
             for (size_t i = 0; i < B; ++i)
             {
-                if (pv[*v][i] == 0)
+                if (pv[v][i] == 0)
                     continue;
-                pv[*v][i] /= sum;
-                double pi = pv[*v][i];
-                double kt = (1 - double(in_degreeS()(*v, g)) - double(out_degree(*v, g)));
+                pv[v][i] /= sum;
+                double pi = pv[v][i];
+                double kt = (1 - double(in_degreeS()(v, g)) - double(out_degree(v, g)));
                 if (kt != 0)
                 {
                     H -= kt * (pi * log(pi));
@@ -3189,15 +3183,13 @@ struct bethe_entropy
 template <class Graph, class Vprop, class VVprop>
 void collect_vertex_marginals(Vprop b, VVprop p, Graph& g)
 {
-    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-
-    typename graph_traits<Graph>::vertex_iterator v, v_end;
-    for(tie(v, v_end) = vertices(g); v != v_end; ++v)
+    for (auto v : vertices_range(g))
     {
-        vertex_t r = b[*v];
-        if (p[*v].size() <= r)
-            p[*v].resize(r + 1);
-        p[*v][r]++;
+        auto r = b[v];
+        auto& pv = p[v];
+        if (pv.size() <= size_t(r))
+            pv.resize(r + 1);
+        pv[r]++;
     }
 }
 
