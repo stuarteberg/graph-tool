@@ -482,46 +482,39 @@ struct get_communities_selector
 struct get_modularity
 {
     template <class Graph, class WeightMap, class CommunityMap>
-    void operator()(const Graph& g, WeightMap weights, CommunityMap b, double& Q) const
+    void operator()(const Graph& g, WeightMap weights, CommunityMap b,
+                    double& Q) const
     {
-        vector<double> er, err;
+        size_t B = 0;
+        for (auto v : vertices_range(g))
+        {
+            auto r = get(b, v);
+            if (r < 0)
+                throw ValueException("invalid spin: negative value!");
+            B = std::max(size_t(r) + 1, B);
+        }
+
+        vector<double> er(B), err(B);
         double W = 0;
 
-        typename graph_traits<Graph>::edge_iterator e, e_end;
-        for (tie(e, e_end) = edges(g); e != e_end; ++e)
+        for (auto e : edges_range(g))
         {
-            size_t r = get(b, source(*e,g));
-            size_t s = get(b, target(*e,g));
+            size_t r = get(b, source(e, g));
+            size_t s = get(b, target(e, g));
 
-            double w = get(weights, *e);
+            auto w = get(weights, e);
             W += 2 * w;
-
-            if (er.size() <= r)
-                er.resize(r + 1);
             er[r] += w;
-
-            if (er.size() <= s)
-                er.resize(s + 1);
             er[s] += w;
 
             if (r == s)
-            {
-                if (err.size() <= r)
-                    err.resize(r + 1);
                 err[r] += 2 * w;
-            }
         }
 
         Q = 0;
-        for (size_t r = 0; r < er.size(); ++r)
-        {
-            if (err.size() <= r)
-                err.resize(r + 1);
-
+        for (size_t r = 0; r < B; ++r)
             Q += err[r] - (er[r] * er[r]) / W;
-        }
         Q /= W;
-
     }
 };
 
