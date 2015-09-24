@@ -76,11 +76,10 @@ struct get_communities
 
         // init spins from [0,N-1] and global info
         uniform_int_distribution<size_t> sample_spin(0, n_spins-1);
-        typename graph_traits<Graph>::vertex_iterator vi,vi_end;
-        for (tie(vi,vi_end) = vertices(g); vi != vi_end; ++vi)
+        for (auto v : vertices_range(g))
         {
-            s[*vi] = temp_s[*vi] = sample_spin(rng);
-            Ns[s[*vi]]++;
+            s[v] = temp_s[v] = sample_spin(rng);
+            Ns[s[v]]++;
         }
 
         NNKS<Graph,CommunityMap> Nnnks(g, s); // this will retrieve the expected
@@ -112,8 +111,9 @@ struct get_communities
                     continue;
 
                 size_t new_s;
+
+                #pragma omp critical
                 {
-                    #pragma omp critical
                     new_s = sample_spin(rng);
                 }
 
@@ -135,8 +135,8 @@ struct get_communities
                 double new_e = gamma*Nnnks(k,new_s) - ns[new_s];
 
                 double r;
+                #pragma omp critical
                 {
-                    #pragma omp critical
                     r = random();
                 }
 
@@ -144,8 +144,8 @@ struct get_communities
                 {
                     temp_s[v] = new_s;
                     curr_e = new_e;
+                    #pragma omp critical
                     {
-                        #pragma omp critical
                         updates.push_back(std::make_tuple(k, size_t(s[v]),
                                                           new_s));
                         Ns[s[v]]--;
@@ -217,13 +217,15 @@ struct get_communities
 
         // rename spins, starting from zero
         gt_hash_map<size_t,size_t> spins;
-        for (tie(vi,vi_end) = vertices(g); vi != vi_end; ++vi)
+        for (auto v : vertices_range(g))
         {
-            if (spins.find(s[*vi]) == spins.end())
-                spins[s[*vi]] = spins.size() - 1;
-            s[*vi] = spins[s[*vi]];
+            if (spins.find(s[v]) == spins.end())
+            {
+                size_t n = spins.size();
+                spins[s[v]] = n;
+            }
+            s[v] = spins[s[v]];
         }
-
     }
 };
 
