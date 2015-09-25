@@ -190,7 +190,8 @@ struct move_sweep_overlap_dispatch
         sampler_map_t cavity_sampler = any_cast<sampler_map_t>(acavity_sampler);
 
         ConstantPropertyMap<int, typename graph_traits<Graph>::edge_descriptor> ce(0);
-        ConstantPropertyMap<std::array<int, 1>, typename graph_traits<Graph>::vertex_descriptor> cv({-1});
+        ConstantPropertyMap<std::array<int, 1>, typename graph_traits<Graph>::vertex_descriptor>
+            cv(std::array<int, 1>({{-1}}));
         IdentityArrayPropertyMap<typename graph_traits<Graph>::vertex_descriptor> vmap;
         boost::typed_identity_property_map<int> identity;
 

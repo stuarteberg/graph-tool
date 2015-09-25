@@ -54,7 +54,7 @@ public:
     typedef Key key_type;
     typedef boost::readable_property_map_tag category;
 
-    const value_type operator[](const key_type& c) const { return {c}; }
+    const value_type operator[](const key_type& c) const { return {{c}}; }
 };
 
 // ====================
@@ -1216,7 +1216,7 @@ void move_vertex(size_t v, size_t nr, Eprop& mrs, Vprop& mrp, Vprop& mrm,
                  OStats& overlap_stats, PStats& partition_stats,
                  const NPolicy& npolicy = NPolicy())
 {
-    std::array<size_t, 1> vs = {v};
+    std::array<size_t, 1> vs = {{v}};
     move_vertex(vs, nr, mrs, mrp, mrm, wr, b, deg_corr, eweight, vweight, g, bg,
                 emat, overlap_stats, partition_stats, npolicy);
 }
@@ -1580,7 +1580,7 @@ double virtual_move_sparse(size_t v, size_t nr, Eprop& mrs, Vprop& mrp,
                            IL is_loop = IL())
 
 {
-    std::array<size_t, 1> vs = {v};
+    std::array<size_t, 1> vs = {{v}};
     return virtual_move_sparse(vs, nr, mrs, mrp, mrm, wr, b, deg_corr, eweight,
                                vweight, g, bg, emat, m_entries, overlap_stats,
                                parallel_edges, npolicy, is_loop);
@@ -1768,7 +1768,7 @@ double virtual_move_dense(size_t v, size_t nr, Eprop& mrs, Vprop& mrp,
                           OStats& overlap_stats, bool multigraph,
                           const NPolicy& npolicy = NPolicy(), IL is_loop = IL())
 {
-    std::array<size_t, 1> vs = {v};
+    std::array<size_t, 1> vs = {{v}};
     return virtual_move_dense(vs, nr, mrs, mrp, mrm, wr, b, deg_corr, eweight,
                               vweight, g, bg, emat, m_entries, overlap_stats,
                               multigraph, npolicy, is_loop);

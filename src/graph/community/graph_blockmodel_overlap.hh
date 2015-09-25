@@ -655,7 +655,7 @@ struct overlap_partition_stats_t
         if (!has_r || !has_nr)
         {
             is_same_bv = false;
-            std::array<size_t, 2> ss = {r, nr};
+            std::array<size_t, 2> ss = {{r, nr}};
             for (auto s : ss)
             {
                 auto& d_s = _deg_delta[s];
