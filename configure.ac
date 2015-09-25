@@ -30,7 +30,7 @@ AC_DISABLE_STATIC
 LT_INIT
 AC_PROG_INSTALL
 
-AX_CXX_COMPILE_STDCXX_11([ext],[mandatory])
+AX_CXX_COMPILE_STDCXX_14([ext],[mandatory])
 
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
