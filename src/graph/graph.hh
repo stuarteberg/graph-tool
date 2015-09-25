@@ -95,7 +95,6 @@ public:
     bool is_edge_filter_active() const;
 
     // graph modification
-    void insert_property_map(string name, boost::any map);
     void re_index_edges();
     void purge_vertices(boost::any old_index); // removes filtered vertices
     void purge_edges();    // removes filtered edges
