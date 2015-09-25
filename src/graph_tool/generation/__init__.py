@@ -45,15 +45,20 @@ Contents
 """
 
 from __future__ import division, absolute_import, print_function
+import sys
+if sys.version_info < (3,):
+    range = xrange
 
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_generation")
 
-from .. import Graph, GraphView, _check_prop_scalar, _prop, _limit_args, _gt_type, _get_rng, libcore
+from .. import Graph, GraphView, _check_prop_scalar, _prop, _limit_args, \
+    _gt_type, _get_rng, _c_str, libcore
 from .. stats import label_parallel_edges, label_self_loops
 import inspect
 import types
-import sys, numpy, numpy.random
+import numpy
+import numpy.random
 
 __all__ = ["random_graph", "random_rewire", "predecessor_tree", "line_graph",
            "graph_union", "triangulation", "lattice", "geometric_graph",
@@ -809,7 +814,8 @@ def random_rewire(g, model="uncorrelated", n_iter=1, edge_sweep=True,
     if pin.value_type() != "bool":
         pin = pin.copy(value_type="bool")
 
-    pcount = libgraph_tool_generation.random_rewire(g._Graph__graph, model,
+    pcount = libgraph_tool_generation.random_rewire(g._Graph__graph,
+                                                    _c_str(model),
                                                     n_iter, not edge_sweep,
                                                     self_loops, parallel_edges,
                                                     alias, traditional, persist,
@@ -1208,7 +1214,8 @@ def triangulation(points, type="simple", periodic=False):
     g = Graph(directed=False)
     pos = g.new_vertex_property("vector<double>")
     libgraph_tool_generation.triangulation(g._Graph__graph, points,
-                                           _prop("v", g, pos), type, periodic)
+                                           _prop("v", g, pos), _c_str(type),
+                                           periodic)
     return g, pos
 
 

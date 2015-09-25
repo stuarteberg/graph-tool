@@ -84,6 +84,8 @@ from __future__ import division, absolute_import, print_function
 import sys
 if sys.version_info < (3,):
     range = xrange
+else:
+    unicode = str
 
 __author__ = "Tiago de Paula Peixoto <tiago@skewed.de>"
 __copyright__ = "Copyright 2006-2015 Tiago de Paula Peixoto"
@@ -144,7 +146,7 @@ graph_tool = sys.modules[__name__]
 def _prop(t, g, prop):
     """Return either a property map, or an internal property map with a given
     name."""
-    if type(prop) == str:
+    if isinstance(prop, (str, unicode)):
         try:
             pmap = g.properties[(t, prop)]
         except KeyError:
@@ -232,7 +234,7 @@ def _gt_type(obj):
         return "double"
     if issubclass(t, numpy.float128):
         return "long double"
-    if issubclass(t, str):
+    if issubclass(t, (str, unicode)):
         return "string"
     if issubclass(t, bool):
         return "bool"
@@ -250,11 +252,12 @@ def _converter(val_type):
     elif vtype is object:
         def convert(val):
             return val
+    elif vtype is str:
+        return _c_str
     else:
         def convert(val):
             return vtype(val)
     return convert
-
 
 def show_config():
     """Show ``graph_tool`` build configuration."""
@@ -282,6 +285,15 @@ try:
     libcore.mod_info("wrong")
 except BaseException as e:
     ArgumentError = type(e)
+
+if sys.version_info < (3,):
+    def _c_str(s):
+        if isinstance(s, unicode):
+            return s.encode("utf-8")
+        return s
+else:
+    def _c_str(s):
+        return s
 
 ################################################################################
 # Property Maps
@@ -2221,14 +2233,14 @@ class Graph(object):
 
         """
 
-        if isinstance(file_name, str):
+        if isinstance(file_name, (str, unicode)):
             file_name = os.path.expanduser(file_name)
             f = open(file_name) # throw the appropriate exception, if not found
-        if fmt == 'auto' and isinstance(file_name, str):
+        if fmt == 'auto' and isinstance(file_name, (str, unicode)):
             fmt = self.__get_file_format(file_name)
         elif fmt == "auto":
             fmt = "gt"
-        if isinstance(file_name, str) and file_name.endswith(".xz"):
+        if isinstance(file_name, (str, unicode)) and file_name.endswith(".xz"):
             try:
                 import lzma
                 file_name = lzma.open(file_name, mode="rb")
@@ -2242,12 +2254,13 @@ class Graph(object):
             ignore_ep = []
         if ignore_gp is None:
             ignore_gp = []
-        if isinstance(file_name, str):
-            props = self.__graph.read_from_file(file_name, None, fmt, ignore_vp,
+        if isinstance(file_name, (str, unicode)):
+            props = self.__graph.read_from_file(_c_str(file_name), None,
+                                                _c_str(fmt), ignore_vp,
                                                 ignore_ep, ignore_gp)
         else:
-            props = self.__graph.read_from_file("", file_name, fmt, ignore_vp,
-                                                ignore_ep, ignore_gp)
+            props = self.__graph.read_from_file("", file_name, _c_str(fmt),
+                                                ignore_vp, ignore_ep, ignore_gp)
         for name, prop in props[0].items():
             self.vertex_properties[name] = PropertyMap(prop, self, "v")
         for name, prop in props[1].items():
@@ -2300,32 +2313,32 @@ class Graph(object):
             u.graph_properties["_Graph__reversed"] = self.new_graph_property("bool")
             u.graph_properties["_Graph__reversed"] = True
 
-        if type(file_name) == str:
+        if isinstance(file_name, (str, unicode)):
             file_name = os.path.expanduser(file_name)
-        if fmt == 'auto' and isinstance(file_name, str):
+        if fmt == 'auto' and isinstance(file_name, (str, unicode)):
             fmt = self.__get_file_format(file_name)
         elif fmt == "auto":
             fmt = "gt"
         if fmt == "graphml":
             fmt = "xml"
 
-        if isinstance(file_name, str) and file_name.endswith(".xz"):
+        if isinstance(file_name, (str, unicode)) and file_name.endswith(".xz"):
             try:
                 import lzma
                 file_name = lzma.open(file_name, mode="wb")
             except ImportError:
                 raise ValueError("lzma compression is only available in Python >= 3.3")
 
-        props = [(name[1], prop._PropertyMap__map) for name, prop in \
+        props = [(_c_str(name[1]), prop._PropertyMap__map) for name, prop in \
                  self.__properties.items()]
 
-        if isinstance(file_name, str):
+        if isinstance(file_name, (str, unicode)):
             f = open(file_name, "w") # throw the appropriate exception, if
                                      # unable to open
             f.close()
-            u.__graph.write_to_file(file_name, None, fmt, props)
+            u.__graph.write_to_file(_c_str(file_name), None, _c_str(fmt), props)
         else:
-            u.__graph.write_to_file("", file_name, fmt, props)
+            u.__graph.write_to_file("", file_name, _c_str(fmt), props)
 
 
     # Directedness

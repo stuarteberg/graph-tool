@@ -22,6 +22,8 @@ from __future__ import division, absolute_import, print_function
 import sys
 if sys.version_info < (3,):
     range = xrange
+else:
+    unicode = str
 
 import os
 import warnings
@@ -1089,7 +1091,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                                   nodesfirst, geometry=output_size,
                                   fit_area=fit_area, **kwargs)
     else:
-        if isinstance(output, str):
+        if isinstance(output, (str, unicode)):
             out, auto_fmt = open_file(output, mode="wb")
         else:
             out = output
@@ -1171,12 +1173,12 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                 img = IPython.display.Image(data=inl_out.getvalue())
             srf.finish()
             if output_file is not None:
-                if isinstance(output_file, str):
+                if isinstance(output_file, (str, unicode)):
                     ofile, auto_fmt = open_file(output_file, mode="wb")
                 else:
                     ofile = output_file
                 ofile.write(out.getvalue())
-                if isinstance(output_file, str):
+                if isinstance(output_file, (str, unicode)):
                     ofile.close()
             IPython.display.display(img)
         del srf
@@ -1263,7 +1265,7 @@ def get_bb(g, pos, size, pen_width, size_scale=1, text=None, font_family=None,
             if not isinstance(font_size, PropertyMap):
                 cr.set_font_size(fs)
             t = text[v] if isinstance(text, PropertyMap) else text
-            if not isinstance(t, str):
+            if not isinstance(t, (str, unicode)):
                 t = str(t)
             extents = cr.text_extents(t)
             s = max(extents[2], extents[3]) * 1.4
