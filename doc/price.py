@@ -58,7 +58,7 @@ for i in range(1, N):
 
 v = g.vertex(randint(0, g.num_vertices()))
 while True:
-    print("vertex:", v, "in-degree:", v.in_degree(), "out-degree:",\
+    print("vertex:", int(v), "in-degree:", v.in_degree(), "out-degree:",
           v.out_degree(), "age:", v_age[v])
 
     if v.out_degree() == 0:
