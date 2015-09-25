@@ -1,7 +1,11 @@
 #! /usr/bin/env python
 
-# We probably will need some things from several places
-import sys, os
+# We will need some things from several places
+from __future__ import division, absolute_import, print_function
+import sys
+if sys.version_info < (3,):
+    range = xrange
+import os
 from pylab import *  # for plotting
 from numpy.random import *  # for random sampling
 seed(42)
