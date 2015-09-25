@@ -291,7 +291,7 @@ struct do_graph_copy
 GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
                                python::object ovprops, python::object oeprops,
                                python::object vorder)
-    :_mg(keep_ref ? gi._mg : std::shared_ptr<multigraph_t>(new multigraph_t())),
+    :_mg(keep_ref ? gi._mg : std::make_shared<multigraph_t>()),
      _vertex_index(get(vertex_index, *_mg)),
      _edge_index(get(edge_index_t(), *_mg)),
      _reversed(gi._reversed),

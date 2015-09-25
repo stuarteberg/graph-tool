@@ -30,7 +30,7 @@ using namespace graph_tool;
 
 // this is the constructor for the graph interface
 GraphInterface::GraphInterface()
-    :_mg(new multigraph_t()),
+    :_mg(std::make_shared<multigraph_t>()),
      _vertex_index(get(vertex_index, *_mg)),
      _edge_index(get(edge_index_t(), *_mg)),
      _reversed(false),

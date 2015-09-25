@@ -537,7 +537,8 @@ public:
     typedef typename boost::property_traits<prop_map_t>::category category;
 
     HashedDescriptorMap(IndexMap index_map)
-        : _base_map(new map_t(0, hashfc_t(index_map))), _prop_map(*_base_map) {}
+        : _base_map(std::make_shared<map_t>(0, hashfc_t(index_map))),
+        _prop_map(*_base_map) {}
     HashedDescriptorMap(){}
 
     reference operator[](const key_type& k) { return _prop_map[k]; }

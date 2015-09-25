@@ -527,7 +527,7 @@ std::shared_ptr<Graph> get_graph_ptr(GraphInterface& gi, GraphInit&, std::true_t
 template <class Graph, class GraphInit>
 std::shared_ptr<Graph> get_graph_ptr(GraphInterface&, GraphInit& g, std::false_type)
 {
-    return std::shared_ptr<Graph>(new Graph(g));
+    return std::make_shared<Graph>(g);
 }
 
 // this function retrieves a graph view stored in graph_views, or stores one if
