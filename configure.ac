@@ -265,10 +265,6 @@ dnl [SCIPY_DIR="${PYTHON_SITE_PKG}/scipy"]
 AC_ARG_WITH([scipy], [AS_HELP_STRING([--with-scipy=DIR],[scipy install directory
                       [default=auto-detected] ])],
             [SCIPY_DIR=$withval])
-AC_CHECK_HEADER([${SCIPY_DIR}/weave/scxx/object.h],
-                [AC_DEFINE([HAVE_SCIPY], [1], [using scipy's weave])]
-                [CPPFLAGS="${CPPFLAGS} -I${SCIPY_DIR}"],
-                [AC_MSG_WARN([Scipy weave/scxx header not found! (Ignore this if python 3 is being used.)])])
 
 dnl expat
 AC_CHECK_HEADER([expat.h],
