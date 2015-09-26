@@ -59,14 +59,6 @@ public:
         _enabled = true;
         _block_nodes.resize(B);
 
-#ifdef HAVE_SPARSEHASH
-        for (auto& bnodes : _block_nodes)
-        {
-            bnodes.set_empty_key(numeric_limits<size_t>::max());
-            bnodes.set_deleted_key(numeric_limits<size_t>::max() - 1);
-        }
-#endif
-
         size_t N = 0;
         for (auto v : vertices_range(g))
         {
@@ -111,12 +103,6 @@ public:
                 {
                     _parallel_bundles.resize(_parallel_bundles.size() + 1);
                     auto& h = _parallel_bundles.back();
-#ifdef HAVE_SPARSEHASH
-                    h.set_empty_key(make_pair(numeric_limits<size_t>::max(),
-                                              numeric_limits<size_t>::max()));
-                    h.set_deleted_key(make_pair(numeric_limits<size_t>::max() - 1,
-                                                numeric_limits<size_t>::max() - 1));
-#endif
                     for (auto u : uc.second)
                     {
                         auto w = _out_neighbours[u];

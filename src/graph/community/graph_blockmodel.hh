@@ -1852,7 +1852,7 @@ struct egroups_manage
             if (empty)
                 return;
             build_dispatch(b, egroups_checked.get_unchecked(B),
-                           esrcpos, etgtpos, eweight, g, vertex_index, B);
+                           esrcpos, etgtpos, eweight, g, vertex_index);
         }
         else
         {
@@ -1864,7 +1864,7 @@ struct egroups_manage
             if (empty)
                 return;
             build_dispatch(b, egroups_checked.get_unchecked(B),
-                           esrcpos, etgtpos, eweight, g, vertex_index, B);
+                           esrcpos, etgtpos, eweight, g, vertex_index);
         }
     }
 
@@ -1872,18 +1872,16 @@ struct egroups_manage
               class VertexIndex, class Egroups>
     static void build_dispatch(Vprop b, Egroups egroups, VEprop esrcpos,
                                VEprop etgtpos, Eprop eweight, Graph& g,
-                               VertexIndex, size_t)
+                               VertexIndex)
     {
         for (auto e : edges_range(g))
         {
             size_t r = b[get_source(e, g)];
-            assert (r < B);
             auto& r_elist = egroups[r];
             esrcpos[e] = insert_edge(std::make_tuple(e, true), r_elist,
                                      eweight[e]);
 
             size_t s = b[get_target(e, g)];
-            assert (s < B);
             auto& s_elist = egroups[s];
             etgtpos[e] = insert_edge(std::make_tuple(e, false), s_elist,
                                      eweight[e]);
