@@ -513,7 +513,7 @@ def central_point_dominance(g, betweenness):
     >>> g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
     >>> vp, ep = gt.betweenness(g)
     >>> print(gt.central_point_dominance(g, vp))
-    0.116106856143530...
+    0.11610685614...
 
     References
     ----------
@@ -600,7 +600,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
        >>> w.a = np.random.random(len(w.a)) * 42
        >>> ee, x = gt.eigenvector(g, w)
        >>> print(ee)
-       724.3027459221508
+       724.302745922...
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=x,
        ...               vertex_size=gt.prop_to_size(x, mi=5, ma=15),
        ...               vcmap=matplotlib.cm.gist_heat,

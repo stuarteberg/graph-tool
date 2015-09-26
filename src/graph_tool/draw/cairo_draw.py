@@ -228,7 +228,7 @@ def shape_from_prop(shape, enum):
             prop.fa %= rg[1] - rg[0] + 1
             prop.fa += rg[0]
         return prop
-    if isinstance(shape, str):
+    if isinstance(shape, (str, unicode)):
         return int(getattr(enum, shape))
     else:
         return shape
@@ -292,7 +292,7 @@ def surface_from_prop(surface):
                                  surface.value_type())
         return prop
 
-    if isinstance(surface, str):
+    if isinstance(surface, (str, unicode)):
         return gen_surface(surface)
     elif isinstance(surface, cairo.Surface) or surface is None:
         return surface
@@ -393,7 +393,7 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
             new_val = val
         elif isinstance(val, (tuple, np.ndarray)):
             new_val = list(val)
-        elif isinstance(val, str):
+        elif isinstance(val, (str, unicode)):
             new_val = list(color_converter.to_rgba(val))
         elif isinstance(val, PropertyMap):
             if val.value_type() in ["vector<double>", "vector<long double>"]:
@@ -693,7 +693,7 @@ def color_contrast(color):
 
 def auto_colors(g, bg, pos, back):
     if not isinstance(bg, PropertyMap):
-        if isinstance(bg, str):
+        if isinstance(bg, (str, unicode)):
             bg = color_converter.to_rgba(bg)
         bg = g.new_vertex_property("vector<double>", val=bg)
     if not isinstance(pos, PropertyMap):

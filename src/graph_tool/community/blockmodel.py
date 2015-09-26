@@ -2143,7 +2143,8 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
 
        >>> g = gt.collection.data["polbooks"]
        >>> state = gt.minimize_blockmodel_dl(g, overlap=True)
-       >>> bv, *rest, bc = state.get_overlap_blocks()
+       >>> ret = state.get_overlap_blocks()
+       >>> bv, bc = ret[0], ret[-1]
        >>> eg = gt.get_block_edge_gradient(g, state.get_edge_blocks())
        >>> gt.graph_draw(g, g.vp["pos"], vertex_pie_fractions=bc,
        ...               vertex_pie_colors=bv, vertex_shape="pie",

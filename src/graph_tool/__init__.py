@@ -1994,10 +1994,9 @@ class Graph(object):
             if len(val) > 1000:
                 val = val[:1000] + "..."
             tw = terminal_size()[0]
-            val = textwrap.indent(textwrap.fill(val,
-                                                width=max(tw - len(pref), 1)),
-                                  " " * len(pref))
-            val = val[len(pref):]
+            val = textwrap.fill(val,
+                                width=max(tw - len(pref), 1))
+            val = val.replace("\n", "\n" + " " * len(pref))
             print("%s%s)" % (pref, val))
         for k, v in sorted(self.vertex_properties.items(), key=lambda k: k[0]):
             print("%%-%ds (vertex)  (type: %%s)" % w % (k, v.value_type()))
@@ -2101,7 +2100,7 @@ class Graph(object):
         provided, the values will be initialized by ``vals``, which should be
         sequence or by ``val`` which should be a single value.
         """
-        prop = PropertyMap(new_edge_property(_type_alias(value_type),
+        prop = PropertyMap(new_edge_property(_c_str(_type_alias(value_type)),
                                              self.__graph.get_edge_index(),
                                              libcore.any()),
                            self, "e")
@@ -2118,7 +2117,7 @@ class Graph(object):
     def new_graph_property(self, value_type, val=None):
         """Create a new graph property map of type ``value_type``, and return
         it. If ``val`` is not None, the property is initialized to its value."""
-        prop = PropertyMap(new_graph_property(_type_alias(value_type),
+        prop = PropertyMap(new_graph_property(_c_str(_type_alias(value_type)),
                                               self.__graph.get_graph_index(),
                                               libcore.any()),
                            self, "g")
@@ -2835,41 +2834,45 @@ This class represents a vertex in a :class:`~graph_tool.Graph` instance.
 integers, corresponding to its index (see :attr:`~graph_tool.Graph.vertex_index`).
 """
 
-def v_eq(v1, v2):
+def _v_eq(v1, v2):
     try:
         return int(v1) == int(v2)
     except TypeError:
         return False
 
-def v_ne(v1, v2):
+def _v_ne(v1, v2):
     try:
         return int(v1) != int(v2)
     except TypeError:
         return True
 
-def v_lt(v1, v2):
+def _v_lt(v1, v2):
     try:
         return int(v1) < int(v2)
     except TypeError:
         return False
 
-def v_gt(v1, v2):
+def _v_gt(v1, v2):
     try:
         return int(v1) > int(v2)
     except TypeError:
         return False
 
-def v_le(v1, v2):
+def _v_le(v1, v2):
     try:
         return int(v1) <= int(v2)
     except TypeError:
         return False
 
-def v_ge(v1, v2):
+def _v_ge(v1, v2):
     try:
         return int(v1) >= int(v2)
     except TypeError:
         return False
+
+if sys.version_info < (3,):
+    def _v_long(self):
+        return long(int(self))
 
 for Vertex in libcore.get_vlist():
     Vertex.__doc__ = _vertex_doc
@@ -2884,12 +2887,14 @@ for Vertex in libcore.get_vlist():
     except AttributeError:
         pass
     Vertex.__repr__ = _vertex_repr
-    Vertex.__eq__ = v_eq
-    Vertex.__ne__ = v_ne
-    Vertex.__lt__ = v_lt
-    Vertex.__gt__ = v_gt
-    Vertex.__le__ = v_le
-    Vertex.__ge__ = v_ge
+    Vertex.__eq__ = _v_eq
+    Vertex.__ne__ = _v_ne
+    Vertex.__lt__ = _v_lt
+    Vertex.__gt__ = _v_gt
+    Vertex.__le__ = _v_le
+    Vertex.__ge__ = _v_ge
+    if sys.version_info < (3,):
+        Vertex.__long__ = _v_long
 
 _edge_doc = """Edge descriptor.
 

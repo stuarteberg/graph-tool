@@ -1202,10 +1202,10 @@ def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
               4          6          4          4          4          4
               6          5          4          4]
     >>> dist = gt.shortest_distance(g, source=g.vertex(0), target=g.vertex(2))
-    >>> print (dist)
+    >>> print(dist)
     5
     >>> dist = gt.shortest_distance(g, source=g.vertex(0), target=[g.vertex(2), g.vertex(6)])
-    >>> print (dist)
+    >>> print(dist)
     [5 9]
 
     References
