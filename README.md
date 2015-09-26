@@ -40,7 +40,7 @@ consult the INSTALL file in this distribution for more detailed
 instructions.
 
 Note that recent versions of GCC (4.8 or above) or clang, with good
-c++11 support, are required for compilation. Due to the heavy use of
+C++14 support, are required for compilation. Due to the heavy use of
 template metaprogramming techniques, **relatively large amounts of RAM
 are required during compilation**. You have been warned!  For this
 reason, pre-compiled packages are available in the website.
