@@ -915,10 +915,7 @@ public:
 
                 double sum = 0;
                 for (size_t i = 0; i < iter->second.size(); ++i)
-                {
-                    deg_t t = iter->second[i];
                     sum += sprobs[s][i];
-                }
 
                 auto& pr = _sprob[s];
 
