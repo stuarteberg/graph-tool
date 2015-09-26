@@ -24,8 +24,7 @@
 #define GRAPH_TRIANGULATION_HH
 
 #include <tuple>
-
-#include <boost/functional/hash.hpp>
+#include <functional>
 
 #include "graph_util.hh"
 #include "hash_map_wrap.hh"
@@ -35,33 +34,20 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-
-template <class Graph>
-bool is_adjacent(typename graph_traits<Graph>::vertex_descriptor v1,
-                 typename graph_traits<Graph>::vertex_descriptor v2,
-                 Graph& g)
-{
-    typename graph_traits<Graph>::out_edge_iterator e, e_end;
-    for (tie(e, e_end) = out_edges(v1, g); e != e_end; ++e)
-        if (target(*e, g) == v2)
-            return true;
-    return false;
-}
-
 struct hash_point
 {
     template <class Vertex>
     std::size_t operator()(const Vertex& v) const
     {
         size_t seed = 42;
-        hash_combine(seed, v.point().x());
-        hash_combine(seed, v.point().y());
-        hash_combine(seed, v.point().z());
+        _hash_combine(seed, v.point().x());
+        _hash_combine(seed, v.point().y());
+        _hash_combine(seed, v.point().z());
         return seed;
     }
 };
 
-template <class Triang>
+template <class Triang, class IsPeriodic>
 struct get_triangulation
 {
     // this will insert edges in the graph
@@ -76,8 +62,8 @@ struct get_triangulation
         typedef typename graph_traits<Graph>::vertex_descriptor& reference;
 
         edge_inserter(Graph& g, const typename VertexMap::key_type& v,
-                      VertexMap& vertex_map): _g(g), _vertex_map(vertex_map),
-                                              _source(vertex_map[v]) {}
+                      VertexMap& vertex_map)
+            : _g(g), _vertex_map(vertex_map), _source(vertex_map[v]) {}
 
         edge_inserter& operator++() { return *this; }
         edge_inserter& operator++(int) { return *this; }
@@ -86,11 +72,10 @@ struct get_triangulation
         template <class Vertex>
         edge_inserter& operator=(const Vertex& v)
         {
-            typename VertexMap::iterator iter = _vertex_map.find(*v);
+            auto iter = _vertex_map.find(*v);
             if (iter != _vertex_map.end())
             {
-                typename graph_traits<Graph>::vertex_descriptor target
-                    = iter->second;
+                auto target = iter->second;
                 if (!is_adjacent(_source, target, _g) && _source != target)
                     add_edge(_source, target, _g);
             }
@@ -99,40 +84,53 @@ struct get_triangulation
 
     private:
         Graph& _g;
-        VertexMap _vertex_map;
+        VertexMap& _vertex_map;
         typename graph_traits<Graph>::vertex_descriptor _source;
     };
+
+
+    template <class T, class VIter, class Vis>
+    void incident_vertices(T& t, VIter& v_iter, Vis& vis, std::true_type) const
+    {
+        t.incident_vertices(v_iter, vis);
+    }
+
+    template <class T, class VIter, class Vis>
+    void incident_vertices(T& t, VIter& v_iter, Vis& vis, std::false_type) const
+    {
+        t.finite_incident_vertices(v_iter, vis);
+    }
 
     template <class Graph, class Points, class PosMap>
     void operator()(Graph& g, Points& points, PosMap pos) const
     {
-        typedef std::unordered_map
-            <typename Triang::Vertex,
-             typename graph_traits<Graph>::vertex_descriptor,
-             hash_point> vertex_map_t;
+        typedef std::unordered_map <typename Triang::Vertex,
+                                    typename graph_traits<Graph>::vertex_descriptor,
+                                    hash_point> vertex_map_t;
         vertex_map_t vertex_map;
 
         Triang T;
         for (size_t i = 0; i < points.shape()[0]; ++i)
         {
             typename Triang::Point p(points[i][0], points[i][1], points[i][2]);
-            typename graph_traits<Graph>::vertex_descriptor v = add_vertex(g);
+            auto v = add_vertex(g);
             vertex_map[*T.insert(p)] = v;
             pos[v].resize(3);
             for (size_t j = 0; j < 3; ++j)
                 pos[v][j] = points[i][j];
         }
 
-        typename Triang::Vertex_iterator v_begin, v_end;
-        v_begin = T.vertices_begin();
-        v_end = T.vertices_end();
-        while (v_begin != v_end)
+        auto v_iter = T.finite_vertices_begin();
+        auto v_end = T.finite_vertices_end();
+        while (v_iter != v_end)
         {
-            typename Triang::Vertex_handle v = v_begin++;
-            if (vertex_map.find(*v) == vertex_map.end())
-                continue;
-            edge_inserter<Graph, vertex_map_t> insert(g, *v, vertex_map);
-            T.incident_vertices(v, insert);
+            auto v = *v_iter;
+            if (vertex_map.find(v) != vertex_map.end())
+            {
+                edge_inserter<Graph, vertex_map_t> insert(g, v, vertex_map);
+                incident_vertices(T, v_iter, insert, IsPeriodic());
+            }
+            ++v_iter;
         }
     }
 

@@ -125,10 +125,9 @@ bool is_adjacent(typename boost::graph_traits<Graph>::vertex_descriptor u,
                  typename boost::graph_traits<Graph>::vertex_descriptor v,
                  const Graph& g )
 {
-    typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
-    for (tie(e, e_end) = out_edges(u, g); e != e_end; ++e)
+    for (const auto& e : out_edges_range(u, g))
     {
-        if (target(*e,g) == v)
+        if (target(e, g) == v)
             return true;
     }
     return false;

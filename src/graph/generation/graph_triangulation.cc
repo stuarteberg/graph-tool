@@ -85,20 +85,20 @@ void triangulation(GraphInterface& gi, boost::python::object points,
 
     if (type == "simple")
     {
-        get_triangulation<SimpleTriangulation>()(g, points_array, pos_map);
+        get_triangulation<SimpleTriangulation, std::false_type>()(g, points_array, pos_map);
     }
     else if (type == "delaunay")
     {
         if (!periodic)
         {
-            get_triangulation<DelaunayTriangulation>()(g, points_array,
-                                                       pos_map);
+            get_triangulation<DelaunayTriangulation, std::false_type>()
+                (g, points_array, pos_map);
         }
         else
         {
 #if (CGAL_VERSION_NR >= 1030500000)
-            get_triangulation<PeriodicDelaunayTriangulation>()(g, points_array,
-                                                               pos_map);
+            get_triangulation<PeriodicDelaunayTriangulation, std::true_type>()
+                (g, points_array, pos_map);
 #else
             throw ValueException("Periodic Delaunay triangulation is only "
                                  "available with versions of CGAL newer than "
