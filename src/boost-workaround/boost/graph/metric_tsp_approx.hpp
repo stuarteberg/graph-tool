@@ -51,9 +51,9 @@ namespace boost
         BOOST_CONCEPT_USAGE(TSPVertexVisitorConcept)
         {
             Visitor vis(vis_);  // require copy construction
-            Graph* g;
+            Graph* g = nullptr;
             Vertex v(*vertices(*g).first);
-            vis_.visit_vertex(v, *g); // require visit_vertex
+            vis.visit_vertex(v, *g); // require visit_vertex
         }
     };
 
