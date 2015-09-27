@@ -1869,14 +1869,15 @@ class Graph(object):
         Optionally, if ``hashed == True``, the vertex values in the edge list
         are not assumed to correspond to vertex indices directly. In this case
         they will be mapped to vertex indices according to the order in which
-        they are encountered. In this case, a vertex property map with the
-        vertex values is returned. If ``string_vals == True``, the algorithm
-        assumes that the vertex values are strings. Otherwise, they will be
-        assumed to be numeric if ``edge_list`` is a :class:`~numpy.ndarray`, or
-        arbitrary python objects if it is not.
+        they are encountered, and a vertex property map with the vertex values
+        is returned. If ``string_vals == True``, the algorithm assumes that the
+        vertex values are strings. Otherwise, they will be assumed to be numeric
+        if ``edge_list`` is a :class:`~numpy.ndarray`, or arbitrary python
+        objects if it is not.
 
         If given, ``eprops`` specifies edge property maps that will be filled
         with the remaining values at each row, if there are more than two.
+
         """
         if eprops is None:
             eprops = ()
