@@ -123,7 +123,7 @@ struct vertex_selector
 };
 
 struct graph_views:
-    boost::mpl::transform<graph_tool::detail::always_directed_never_reversed,
+    boost::mpl::transform<graph_tool::detail::all_graph_views,
                           boost::mpl::quote1<std::add_pointer> >::type {};
 
 void GraphInterface::copy_vertex_property(const GraphInterface& src,
