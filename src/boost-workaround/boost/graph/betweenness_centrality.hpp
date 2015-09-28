@@ -172,7 +172,7 @@ namespace detail { namespace graph {
           path_count(ipath_count), ordered_vertices(iordered_vertices) { }
 
       /// Keep track of vertices as they are reached
-      void examine_vertex(vertex_descriptor v, Graph&)
+      void examine_vertex(vertex_descriptor v, const Graph&)
       {
         ordered_vertices.push(v);
       }
@@ -182,7 +182,7 @@ namespace detail { namespace graph {
        * incoming edge list for w is set to {(v, w)} and the shortest
        * path count of w is set to the number of paths that reach {v}.
        */
-      void tree_edge(const edge_descriptor& e, Graph& g)
+      void tree_edge(const edge_descriptor& e, const Graph& g)
       {
         vertex_descriptor v = source(e, g);
         vertex_descriptor w = target(e, g);
@@ -198,7 +198,7 @@ namespace detail { namespace graph {
        * in the incoming edge list of w and add all of the shortest
        * paths to v to the shortest path count of w.
        */
-      void non_tree_edge(const edge_descriptor& e, Graph& g)
+      void non_tree_edge(const edge_descriptor& e, const Graph& g)
       {
         vertex_descriptor v = source(e, g);
         vertex_descriptor w = target(e, g);
