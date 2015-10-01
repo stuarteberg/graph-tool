@@ -191,10 +191,10 @@ def _type_alias(type_name):
              "unsigned long": "int64_t",
              "object": "python::object",
              "float": "double"}
-    if type_name in value_types():
-        return type_name
     if type_name in alias:
         return alias[type_name]
+    if type_name in value_types():
+        return type_name
     ma = re.compile(r"vector<(.*)>").match(type_name)
     if ma:
         t = ma.group(1)
@@ -215,7 +215,7 @@ def _python_type(type_name):
         return bool
     if "double" in type_name:
         return float
-    if "string" in type_name:
+    if type_name == "string":
         return str
     return object
 
@@ -290,10 +290,10 @@ if sys.version_info < (3,):
     def _c_str(s):
         if isinstance(s, unicode):
             return s.encode("utf-8")
-        return s
+        return str(s)
 else:
     def _c_str(s):
-        return s
+        return str(s)
 
 ################################################################################
 # Property Maps
@@ -495,7 +495,8 @@ class PropertyMap(object):
                     kt = "Vertex"
                 else:
                     kt = "Graph"
-                raise ValueError("invalid key '%s' of type '%s', wanted type: %s" % (str(k), str(type(k)), kt) )
+                raise ValueError("invalid key '%s' of type '%s', wanted type: %s"
+                                 % (str(k), str(type(k)), kt) )
 
     def __setitem__(self, k, v):
         key = self.__key_trans(k)
@@ -518,7 +519,11 @@ class PropertyMap(object):
                     kt = "Vertex"
                 else:
                     kt = "Graph"
-                raise ValueError("invalid key '%s' of type '%s', wanted type: %s" % (str(k), str(type(k)), kt) )
+                vt = self.value_type()
+                raise ValueError("invalid key value pair '(%s, %s)' of types "
+                                 "'(%s, %s)', wanted types: (%s, %s)" %
+                                 (str(k), str(v), str(type(k)),
+                                  str(type(v)), kt, vt))
 
     def __repr__(self):
         # provide some more useful information
