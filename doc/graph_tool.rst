@@ -82,8 +82,11 @@
 
     .. automethod:: new_property
     .. automethod:: new_vertex_property
+    .. automethod:: new_vp
     .. automethod:: new_edge_property
+    .. automethod:: new_ep
     .. automethod:: new_graph_property
+    .. automethod:: new_gp
 
     New property maps can be created by copying already existing
     ones.

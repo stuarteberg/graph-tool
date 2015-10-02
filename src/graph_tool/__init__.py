@@ -120,7 +120,7 @@ import collections
 if sys.version_info < (3,):
     import StringIO
 
-from .decorators import _wraps, _require, _attrs, _limit_args
+from .decorators import _wraps, _require, _attrs, _limit_args, _copy_func
 from inspect import ismethod
 
 __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
@@ -2101,6 +2101,9 @@ class Graph(object):
             prop.set_value(val)
         return prop
 
+    new_vp = _copy_func(new_vertex_property, "new_vp")
+    new_vp.__doc__ = "Alias to :func:`~graph_tool.Graph.new_vertex_property`."
+
     def new_edge_property(self, value_type, vals=None, val=None):
         """Create a new edge property map of type ``value_type``, and return it. If
         provided, the values will be initialized by ``vals``, which should be
@@ -2120,6 +2123,9 @@ class Graph(object):
             prop.set_value(val)
         return prop
 
+    new_ep = _copy_func(new_edge_property, "new_ep")
+    new_ep.__doc__ = "Alias to :func:`~graph_tool.Graph.new_edge_property`."
+
     def new_graph_property(self, value_type, val=None):
         """Create a new graph property map of type ``value_type``, and return
         it. If ``val`` is not None, the property is initialized to its value."""
@@ -2130,6 +2136,9 @@ class Graph(object):
         if val is not None:
             prop[self] = val
         return prop
+
+    new_gp = _copy_func(new_graph_property, "new_gp")
+    new_gp.__doc__ = "Alias to :func:`~graph_tool.Graph.new_graph_property`."
 
     # property map copying
     @_require("src", PropertyMap)

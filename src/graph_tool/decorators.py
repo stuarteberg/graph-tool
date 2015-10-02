@@ -30,6 +30,7 @@ __license__ = "GPL version 3 or above"
 import inspect
 import functools
 import sys
+import types
 
 ################################################################################
 # Decorators
@@ -145,3 +146,9 @@ def _require(arg_name, *allowed_types):
         wrapper.wrapped_args = wrapped_args
         return wrapper
     return make_wrapper
+
+def _copy_func(f, name=None):
+    fn = types.FunctionType(f.__code__, f.__globals__, name or f.__name__,
+                            f.__defaults__, f.__closure__)
+    fn.__dict__.update(f.__dict__)
+    return fn
