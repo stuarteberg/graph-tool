@@ -1164,8 +1164,8 @@ struct half_edge_neighbour_policy
     typedef edge_t* iter_t;
 
     half_edge_neighbour_policy(Graph& g)
-        : _in_edges(num_vertices(g), edge_t()),
-          _out_edges(num_vertices(g), edge_t())
+        : _in_edges(num_vertices(g)),
+          _out_edges(num_vertices(g))
     {
         for (auto v : vertices_range(g))
         {
