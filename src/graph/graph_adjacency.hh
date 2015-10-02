@@ -845,19 +845,20 @@ inline void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
     }
     else // O(1)
     {
-        assert(idx < g._epos.size());
+        if (idx < g._epos.size())
+        {
+            const auto& pos = g._epos[idx];
 
-        const auto& pos = g._epos[idx];
+            g._epos[oes.back().second].first = pos.first;
+            oes[pos.first] = oes.back();
+            oes.pop_back();
 
-        g._epos[oes.back().second].first = pos.first;
-        oes[pos.first] = oes.back();
-        oes.pop_back();
+            g._epos[ies.back().second].second = pos.second;
+            ies[pos.second] = ies.back();
+            ies.pop_back();
 
-        g._epos[ies.back().second].second = pos.second;
-        ies[pos.second] = ies.back();
-        ies.pop_back();
-
-        found = true;
+            found = true;
+        }
     }
 
     if (found)
