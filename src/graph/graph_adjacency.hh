@@ -854,7 +854,7 @@ inline void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
                                    {return s == ei.first && idx == ei.second;});
         if (iter_i != ies.end())
         {
-            oes.erase(iter_i);
+            ies.erase(iter_i);
             found = true;
         }
     }
