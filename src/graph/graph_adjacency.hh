@@ -597,47 +597,52 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
     if (!g._keep_epos)
     {
         auto& oes = g._out_edges[v];
-        for (size_t i = 0; i < oes.size(); ++i)
+        for (const auto& oe : oes)
         {
-            Vertex t = oes[i].first;
+            Vertex t = oe.first;
             auto& ies = g._in_edges[t];
-            for (size_t j = 0; j < ies.size(); ++j)
-            {
-                const auto& ej = ies[j];
-                if (ej.first == v)
-                {
-                    g._free_indexes.push_back(ej.second);
-                    ies.erase(ies.begin() + j);
-                }
-            }
+            auto iter =
+                std::remove_if(ies.begin(), ies.end(),
+                               [&](const auto& ei) -> bool
+                               {
+                                   if (ei.first == v)
+                                   {
+                                       g._free_indexes.push_back(ei.second);
+                                       return true;
+                                   }
+                                   return false;
+                               });
+            ies.erase(iter, ies.end());
         }
         g._n_edges -= oes.size();
         oes.clear();
 
         auto& ies = g._in_edges[v];
-        for (size_t i = 0; i < ies.size(); ++i)
+        for (const auto& ie : ies)
         {
-            Vertex s = ies[i].first;
+            Vertex s = ie.first;
             auto& oes = g._out_edges[s];
-            for (size_t j = 0; j < oes.size(); ++j)
-            {
-                const auto& ej = oes[j];
-                if (ej.first == v)
-                {
-                    g._free_indexes.push_back(ej.second);
-                    oes.erase(oes.begin() + j);
-                }
-            }
+            auto iter =
+                std::remove_if(oes.begin(), oes.end(),
+                               [&](const auto& ei) -> bool
+                               {
+                                   if (ei.first == v)
+                                   {
+                                       g._free_indexes.push_back(ei.second);
+                                       return true;
+                                   }
+                                   return false;
+                               });
+            oes.erase(iter, oes.end());
         }
         g._n_edges -= ies.size();
         ies.clear();
     }
     else
     {
-        typename adj_list<Vertex>::edge_list_t& oes = g._out_edges[v];
-        for (size_t i = 0; i < oes.size(); ++i)
+        auto& oes = g._out_edges[v];
+        for (const auto& ei : oes)
         {
-            const auto& ei = oes[i];
             Vertex t = ei.first;
             size_t idx = ei.second;
             auto& ies = g._in_edges[t];
@@ -651,10 +656,9 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
         g._n_edges -= oes.size();
         oes.clear();
 
-        typename adj_list<Vertex>::edge_list_t& ies = g._in_edges[v];
-        for (size_t i = 0; i < ies.size(); ++i)
+        auto& ies = g._in_edges[v];
+        for (const auto& ei : ies)
         {
-            const auto& ei = ies[i];
             Vertex s = ei.first;
             size_t idx = ei.second;
             auto& oes = g._out_edges[s];
@@ -684,17 +688,15 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
     for (i = 0; i < N; ++i)
     {
         auto& oes = g._out_edges[i];
-        for (size_t j = 0; j < oes.size(); ++j)
+        for (auto& oe : oes)
         {
-            auto& oe = oes[j];
             if (oe.first > v)
                 oe.first--;
         }
 
         auto& ies = g._in_edges[i];
-        for (size_t j = 0; j < ies.size(); ++j)
+        for (auto& ie : ies)
         {
-            auto& ie = ies[j];
             if (ie.first > v)
                 ie.first--;
         }
@@ -716,9 +718,8 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
         oes.swap(g._out_edges[back]);
         ies.swap(g._in_edges[back]);
 
-        for (size_t i = 0; i < oes.size(); ++i)
+        for (auto& eu : oes)
         {
-            auto& eu = oes[i];
             Vertex u = eu.first;
             if (u == back)
             {
@@ -727,18 +728,16 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
             else
             {
                 auto& ies = g._in_edges[u];
-                for (size_t j = 0; j < ies.size(); ++j)
+                for (auto& e : ies)
                 {
-                    auto& e = ies[j];
                     if (e.first == back)
                         e.first = v;
                 }
             }
         }
 
-        for (size_t i = 0; i < ies.size(); ++i)
+        for (auto& eu : ies)
         {
-            auto& eu = ies[i];
             Vertex u = eu.first;
             if (u == back)
             {
@@ -747,9 +746,8 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
             else
             {
                 auto& oes = g._out_edges[u];
-                for (size_t j = 0; j < oes.size(); ++j)
+                for (auto& e : oes)
                 {
-                    auto& e = oes[j];
                     if (e.first == back)
                         e.first = v;
                 }
