@@ -1415,7 +1415,7 @@ void remove_entries(Vertex v, Vertex r, Vprop& b, Eprop& eweights, CEprop& mrs,
     }
 
     if (self_weight > 0 && self_weight % 2 == 0)
-        m_entries.insert_delta(r,   r,  self_weight / 2, false);
+        m_entries.insert_delta(r, r, self_weight / 2, false);
 
     for (auto e : npolicy.get_in_edges(v, g))
     {
