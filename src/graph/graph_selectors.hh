@@ -74,7 +74,7 @@ struct in_degreeS
     in_degreeS() {}
 
     template <class Graph, class Vertex>
-    inline __attribute__((always_inline))
+    inline
     size_t operator()(const Vertex& v, const Graph &g) const
     {
         return in_degreeS::operator()(v, g, detail::no_weightS());
@@ -82,7 +82,7 @@ struct in_degreeS
 
     template <class Graph, class Vertex, class Weight>
     typename detail::get_weight_type<Weight>::type
-    inline __attribute__((always_inline))
+    inline
     operator()(const Vertex& v, const Graph &g, Weight&& weight) const
     {
         typedef typename is_convertible
@@ -92,7 +92,7 @@ struct in_degreeS
     }
 
     template <class Graph, class Vertex>
-    inline __attribute__((always_inline))
+    inline
     size_t get_in_degree(const Vertex& v, const Graph &g, std::true_type,
                          detail::no_weightS)
         const
@@ -114,7 +114,7 @@ struct in_degreeS
     }
 
     template <class Graph, class Vertex, class Weight>
-    inline __attribute__((always_inline))
+    inline
     size_t get_in_degree(const Vertex&, const Graph &, std::false_type, Weight&&)
         const
     {
@@ -129,14 +129,14 @@ struct out_degreeS
     out_degreeS() {}
 
     template <class Graph, class Vertex>
-    inline __attribute__((always_inline))
+    inline
     size_t operator()(const Vertex& v, const Graph &g) const
     {
         return out_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Vertex, class Weight>
-    inline __attribute__((always_inline))
+    inline
     typename detail::get_weight_type<Weight>::type
     operator()(const Vertex& v, const Graph &g, Weight&& weight) const
     {
@@ -156,7 +156,7 @@ struct out_degreeS
     }
 
     template <class Graph, class Vertex>
-    inline __attribute__((always_inline))
+    inline
     size_t get_out_degree(const Vertex& v, const Graph &g,
                           detail::no_weightS)
         const
@@ -171,14 +171,14 @@ struct total_degreeS
 
     total_degreeS() {}
     template <class Graph, class Vertex>
-    inline __attribute__((always_inline))
+    inline
     size_t operator()(const Vertex& v, const Graph &g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Vertex, class Weight>
-    inline __attribute__((always_inline))
+    inline
     typename detail::get_weight_type<Weight>::type
     operator()(const Vertex& v, const Graph &g, Weight&& weight) const
     {
@@ -189,7 +189,7 @@ struct total_degreeS
     }
 
     template <class Graph, class Vertex, class Weight>
-    inline __attribute__((always_inline))
+    inline
     typename detail::get_weight_type<Weight>::type
     get_total_degree(const Vertex& v, const Graph &g, std::true_type,
                      Weight& weight) const
@@ -198,7 +198,7 @@ struct total_degreeS
     }
 
     template <class Graph, class Vertex, class Weight>
-    inline __attribute__((always_inline))
+    inline
     typename detail::get_weight_type<Weight>::type
     get_total_degree(const Vertex& v, const Graph &g, std::false_type,
                      Weight& weight)
@@ -218,7 +218,7 @@ struct scalarS
     scalarS(PropertyMap pmap): _pmap(pmap) {}
 
     template <class Descriptor, class Graph>
-    inline __attribute__((always_inline))
+    inline
     typename boost::property_traits<PropertyMap>::value_type
     operator()(const Descriptor& d, const Graph &) const
     {
@@ -290,7 +290,7 @@ struct get_in_edges
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::in_edge_iterator type;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -308,7 +308,7 @@ struct get_in_edges<Graph,std::false_type>
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::out_edge_iterator type;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor,
                                           const Graph&)
     {
@@ -330,7 +330,7 @@ struct in_edge_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -346,7 +346,7 @@ struct out_edge_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -366,7 +366,7 @@ struct get_all_edges
         vertex_descriptor;
     typedef typename boost::graph_traits<boost::UndirectedAdaptor<Graph> >::out_edge_iterator
         type;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -407,7 +407,7 @@ struct all_edges_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -440,7 +440,7 @@ struct in_or_out_edge_iteratorS
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    inline __attribute__((always_inline))
+    inline
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -462,14 +462,14 @@ private:
 };
 
 template <class Iter>
-inline __attribute__((always_inline))
+inline
 IterRange<Iter> mk_range(const std::pair<Iter, Iter>& range)
 {
     return IterRange<Iter>(range);
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename boost::graph_traits<Graph>::vertex_iterator>
 vertices_range(const Graph& g)
 {
@@ -477,7 +477,7 @@ vertices_range(const Graph& g)
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename boost::graph_traits<Graph>::edge_iterator>
 edges_range(const Graph& g)
 {
@@ -485,7 +485,7 @@ edges_range(const Graph& g)
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename boost::graph_traits<Graph>::adjacency_iterator>
 adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g)
@@ -494,7 +494,7 @@ adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename out_edge_iteratorS<Graph>::type>
 out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
                 const Graph& g)
@@ -503,7 +503,7 @@ out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename in_edge_iteratorS<Graph>::type>
 in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
                const Graph& g)
@@ -512,7 +512,7 @@ in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename all_edges_iteratorS<Graph>::type>
 all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
                 const Graph& g)
@@ -521,7 +521,7 @@ all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline
 IterRange<typename in_or_out_edge_iteratorS<Graph>::type>
 in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
                       const Graph& g)

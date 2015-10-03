@@ -266,14 +266,17 @@ public:
         _in_edges.clear();
         _in_edges.resize(_out_edges.size());
         for (size_t i = 0; i < _out_edges.size(); ++i)
+        {
+            auto& oes = _out_edges[i];
             for (size_t j = 0; j < _out_edges[i].size(); ++j)
             {
-                auto& oe = _out_edges[i][j];
+                auto& oe = oes[j];
                 Vertex v = oe.first;
                 oe.second = _last_idx;
                 _in_edges[v].emplace_back(i, _last_idx);
                 _last_idx++;
             }
+        }
 
         if (_keep_epos)
             rebuild_epos();
@@ -320,13 +323,15 @@ private:
         _epos.resize(_last_idx + 1);
         for (size_t i = 0; i < _out_edges.size(); ++i)
         {
-            for (size_t j = 0; j < _out_edges[i].size(); ++j)
+            auto& oes = _out_edges[i];
+            for (size_t j = 0; j < oes.size(); ++j)
             {
-                size_t idx = _out_edges[i][j].second;
+                size_t idx = oes[j].second;
                 _epos[idx].first = j;
             }
 
-            for (size_t j = 0; j < _in_edges[i].size(); ++j)
+            auto& ies = _in_edges[i];
+            for (size_t j = 0; j < ies.size(); ++j)
             {
                 size_t idx = _in_edges[i][j].second;
                 _epos[idx].second = j;
@@ -835,26 +840,22 @@ inline void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
     bool found = false;
     if (!g._keep_epos) // O(k_s + k_t)
     {
-        for (size_t i = 0; i < oes.size(); ++i)
+        auto iter_o = std::find_if(oes.begin(), oes.end(),
+                                   [&] (const auto& ei) -> bool
+                                   {return t == ei.first && idx == ei.second;});
+        if (iter_o != oes.end())
         {
-            const auto& ei = oes[i];
-            if (t == ei.first && idx == ei.second)
-            {
-                oes.erase(oes.begin() + i);
-                found = true;
-                break;
-            }
+            oes.erase(iter_o);
+            found = true;
         }
 
-        for (size_t i = 0; i < ies.size(); ++i)
+        auto iter_i = std::find_if(ies.begin(), ies.end(),
+                                   [&] (const auto& ei) -> bool
+                                   {return s == ei.first && idx == ei.second;});
+        if (iter_i != ies.end())
         {
-            const auto& ei = ies[i];
-            if (s == ei.first && idx == ei.second)
-            {
-                ies.erase(ies.begin() + i);
-                found = true;
-                break;
-            }
+            oes.erase(iter_i);
+            found = true;
         }
     }
     else // O(1)
