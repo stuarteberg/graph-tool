@@ -803,22 +803,23 @@ inline void remove_edge(Vertex s, Vertex t,
     if (!g._keep_epos)
     {
         auto& oes = g._out_edges[s];
-        for (size_t i = 0; i < oes.size(); ++i)
+        auto iter_o = std::find_if(oes.begin(), oes.end(),
+                                   [&] (const auto& ei) -> bool
+                                   {return t == ei.first;});
+        if (iter_o != oes.end())
         {
-            const auto& ei = oes[i];
-            if (t == ei.first)
-            {
-                g._free_indexes.push_back(ei.second);
-                oes.erase(oes.begin() + i);
-                g._n_edges--;
-            }
+            g._free_indexes.push_back(iter_o->second);
+            oes.erase(iter_o);
+            g._n_edges--;
         }
 
         auto& ies = g._in_edges[t];
-        for (size_t i = 0; i < ies.size(); ++i)
+        auto iter_i = std::find_if(ies.begin(), ies.end(),
+                                   [&] (const auto& ei) -> bool
+                                   {return s == ei.first;});
+        if (iter_i != ies.end())
         {
-            if (s == ies[i].first)
-                ies.erase(ies.begin() + i);
+            ies.erase(iter_i);
         }
     }
     else
