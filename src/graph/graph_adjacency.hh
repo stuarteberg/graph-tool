@@ -689,47 +689,45 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 
     if (v < back)
     {
-        auto& oes = g._out_edges[v];
-        auto& ies = g._in_edges[v];
+        g._out_edges[v].swap(g._out_edges[back]);
+        g._in_edges[v].swap(g._in_edges[back]);
 
-        oes.swap(g._out_edges[back]);
-        ies.swap(g._in_edges[back]);
-
-        for (auto& eu : oes)
-        {
-            Vertex u = eu.first;
-            if (u == back)
+        auto remove_v = [&] (auto& out_edges, auto& in_edges,
+                             const auto& get_pos)
             {
-                eu.first = v;
-            }
-            else
-            {
-                auto& ies = g._in_edges[u];
-                for (auto& e : ies)
+                auto& oes = out_edges[v];
+                for (auto& eu : oes)
                 {
-                    if (e.first == back)
-                        e.first = v;
+                    Vertex u = eu.first;
+                    if (u == back)
+                    {
+                        eu.first = v;
+                    }
+                    else
+                    {
+                        auto& ies = in_edges[u];
+                        if (!g._keep_epos)
+                        {
+                            for (auto& e : ies)
+                            {
+                                if (e.first == back)
+                                    e.first = v;
+                            }
+                        }
+                        else
+                        {
+                            size_t idx = eu.second;
+                            auto pos = get_pos(idx);
+                            ies[pos].first = v;
+                        }
+                    }
                 }
-            }
-        }
+            };
 
-        for (auto& eu : ies)
-        {
-            Vertex u = eu.first;
-            if (u == back)
-            {
-                eu.first = v;
-            }
-            else
-            {
-                auto& oes = g._out_edges[u];
-                for (auto& e : oes)
-                {
-                    if (e.first == back)
-                        e.first = v;
-                }
-            }
-        }
+        remove_v(g._out_edges, g._in_edges,
+                 [&](size_t idx) -> auto {return g._epos[idx].first;});
+        remove_v(g._in_edges, g._out_edges,
+                 [&](size_t idx) -> auto {return g._epos[idx].second;});
     }
 
     g._out_edges.pop_back();
