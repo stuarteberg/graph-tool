@@ -316,7 +316,7 @@ private:
                                       // indexes, and unnecessary property map
                                       // memory use
     bool _keep_epos;
-    std::vector<std::pair<int32_t, int32_t> > _epos;
+    std::vector<std::pair<int32_t, int32_t>> _epos;
 
     void rebuild_epos()
     {
@@ -596,81 +596,59 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
 {
     if (!g._keep_epos)
     {
-        auto& oes = g._out_edges[v];
-        for (const auto& oe : oes)
-        {
-            Vertex t = oe.first;
-            auto& ies = g._in_edges[t];
-            auto iter =
-                std::remove_if(ies.begin(), ies.end(),
-                               [&](const auto& ei) -> bool
-                               {
-                                   if (ei.first == v)
-                                   {
-                                       g._free_indexes.push_back(ei.second);
-                                       return true;
-                                   }
-                                   return false;
-                               });
-            ies.erase(iter, ies.end());
-        }
-        g._n_edges -= oes.size();
-        oes.clear();
-
-        auto& ies = g._in_edges[v];
-        for (const auto& ie : ies)
-        {
-            Vertex s = ie.first;
-            auto& oes = g._out_edges[s];
-            auto iter =
-                std::remove_if(oes.begin(), oes.end(),
-                               [&](const auto& ei) -> bool
-                               {
-                                   if (ei.first == v)
-                                   {
-                                       g._free_indexes.push_back(ei.second);
-                                       return true;
-                                   }
-                                   return false;
-                               });
-            oes.erase(iter, oes.end());
-        }
-        g._n_edges -= ies.size();
-        ies.clear();
+        auto remove_es = [&] (auto& out_edges, auto& in_edges)
+            {
+                auto& oes = out_edges[v];
+                for (const auto& oe : oes)
+                {
+                    Vertex t = oe.first;
+                    auto& ies = in_edges[t];
+                    auto iter =
+                        std::remove_if(ies.begin(), ies.end(),
+                                       [&](const auto& ei) -> bool
+                                       {
+                                           if (ei.first == v)
+                                           {
+                                               g._free_indexes.push_back(ei.second);
+                                               return true;
+                                           }
+                                           return false;
+                                       });
+                    ies.erase(iter, ies.end());
+                }
+                g._n_edges -= oes.size();
+                oes.clear();
+            };
+        remove_es(g._out_edges, g._in_edges);
+        remove_es(g._in_edges, g._out_edges);
     }
     else
     {
-        auto& oes = g._out_edges[v];
-        for (const auto& ei : oes)
+        auto remove_es = [&] (auto& out_edges, auto& in_edges,
+                              const auto& get_pos)
         {
-            Vertex t = ei.first;
-            size_t idx = ei.second;
-            auto& ies = g._in_edges[t];
-            const auto& pos = g._epos[idx];
+            auto& oes = out_edges[v];
+            for (const auto& ei : oes)
+            {
+                Vertex t = ei.first;
+                size_t idx = ei.second;
+                auto& ies = in_edges[t];
 
-            g._epos[ies.back().second].second = pos.second;
-            ies[pos.second] = ies.back();
-            ies.pop_back();
-            g._free_indexes.push_back(idx);
-        }
-        g._n_edges -= oes.size();
-        oes.clear();
-
-        auto& ies = g._in_edges[v];
-        for (const auto& ei : ies)
-        {
-            Vertex s = ei.first;
-            size_t idx = ei.second;
-            auto& oes = g._out_edges[s];
-            const auto& pos = g._epos[idx];
-
-            g._epos[oes.back().second].first = pos.first;
-            oes[pos.first] = oes.back();
-            oes.pop_back();
-            g._free_indexes.push_back(idx);
-        }
-        g._n_edges -= ies.size();
-        ies.clear();
+                auto& back = ies.back();
+                auto& pos = get_pos(idx);
+                auto& bpos = get_pos(back.second);
+                bpos = pos;
+                ies[pos] = back;
+                ies.pop_back();
+                g._free_indexes.push_back(idx);
+            }
+            g._n_edges -= oes.size();
+            oes.clear();
+        };
+        remove_es(g._out_edges, g._in_edges,
+                  [&](size_t idx) -> auto& {return g._epos[idx].first;});
+        remove_es(g._in_edges, g._out_edges,
+                  [&](size_t idx) -> auto& {return g._epos[idx].second;});
     }
 }
 
@@ -682,24 +660,23 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
     g._out_edges.erase(g._out_edges.begin() + v);
     g._in_edges.erase(g._in_edges.begin() + v);
 
+    auto shift_es = [&](auto& edges, int i)
+    {
+        auto& es = edges[i];
+        for (auto& e : es)
+        {
+            if (e.first > v)
+                e.first--;
+        }
+    };
+
     int i, N = g._out_edges.size();
     #pragma omp parallel for default(shared) private(i) \
         schedule(runtime) if (N > 100)
     for (i = 0; i < N; ++i)
     {
-        auto& oes = g._out_edges[i];
-        for (auto& oe : oes)
-        {
-            if (oe.first > v)
-                oe.first--;
-        }
-
-        auto& ies = g._in_edges[i];
-        for (auto& ie : ies)
-        {
-            if (ie.first > v)
-                ie.first--;
-        }
+        shift_es(g._out_edges, i);
+        shift_es(g._in_edges, i);
     }
 }
 
@@ -839,39 +816,36 @@ inline void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
     bool found = false;
     if (!g._keep_epos) // O(k_s + k_t)
     {
-        auto iter_o = std::find_if(oes.begin(), oes.end(),
-                                   [&] (const auto& ei) -> bool
-                                   {return t == ei.first && idx == ei.second;});
-        if (iter_o != oes.end())
-        {
-            oes.erase(iter_o);
-            found = true;
-        }
+        auto remove_e = [&] (auto& elist, auto v)
+            {
+                auto iter = std::find_if(elist.begin(), elist.end(),
+                                         [&] (const auto& ei) -> bool
+                                         {return v == ei.first && idx == ei.second;});
+                if (iter != elist.end())
+                {
+                    elist.erase(iter);
+                    found = true;
+                }
+            };
 
-        auto iter_i = std::find_if(ies.begin(), ies.end(),
-                                   [&] (const auto& ei) -> bool
-                                   {return s == ei.first && idx == ei.second;});
-        if (iter_i != ies.end())
-        {
-            ies.erase(iter_i);
-            found = true;
-        }
+        remove_e(oes, t);
+        remove_e(ies, s);
     }
     else // O(1)
     {
         if (idx < g._epos.size())
         {
-            const auto& pos = g._epos[idx];
+            auto remove_e = [&] (auto& elist, const auto& get_pos)
+            {
+                const auto& back = elist.back();
+                auto pindex = get_pos(idx);
+                get_pos(back.second) = pindex;
+                elist[pindex] = back;
+                elist.pop_back();
+            };
 
-            const auto& oback = oes.back();
-            g._epos[oback.second].first = pos.first;
-            oes[pos.first] = oback;
-            oes.pop_back();
-
-            const auto& iback = ies.back();
-            g._epos[iback.second].second = pos.second;
-            ies[pos.second] = iback;
-            ies.pop_back();
+            remove_e(oes, [&](size_t idx) -> auto& {return g._epos[idx].first;});
+            remove_e(ies, [&](size_t idx) -> auto& {return g._epos[idx].second;});
 
             found = true;
         }
