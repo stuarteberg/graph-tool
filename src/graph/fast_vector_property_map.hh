@@ -96,8 +96,18 @@ public:
 
     void reserve(size_t size) const
     {
-        if (store->size() < size)
+        if (size > store->size())
             store->resize(size);
+    }
+
+    void resize(size_t size) const
+    {
+        store->resize(size);
+    }
+
+    void shrink_to_fit() const
+    {
+        store->shrink_to_fit();
     }
 
     std::vector<T>& get_storage() const { return (*store); }
@@ -170,6 +180,8 @@ public:
     }
 
     void reserve(size_t size) const { _checked.reserve(size); }
+    void resize(size_t size) const { _checked.resize(size); }
+    void shrink_to_fit() const { _checked.shrink_to_fit(); }
 
     reference operator[](const key_type& v) const
     {

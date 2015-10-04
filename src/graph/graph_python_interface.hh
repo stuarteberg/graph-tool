@@ -511,6 +511,63 @@ public:
                                    boost::writable_property_map_tag>::value;
     }
 
+    void reserve(size_t size)
+    {
+        typename boost::mpl::or_<
+            std::is_same<PropertyMap,
+                         GraphInterface::vertex_index_map_t>,
+            std::is_same<PropertyMap,
+                         GraphInterface::edge_index_map_t> >::type is_index;
+        reserve_dispatch(size, is_index);
+    }
+
+    void reserve_dispatch(size_t size, boost::mpl::bool_<false>)
+    {
+        _pmap.reserve(size);
+    }
+
+    void reserve_dispatch(size_t, boost::mpl::bool_<true>)
+    {
+    }
+
+    void resize(size_t size)
+    {
+        typename boost::mpl::or_<
+            std::is_same<PropertyMap,
+                         GraphInterface::vertex_index_map_t>,
+            std::is_same<PropertyMap,
+                         GraphInterface::edge_index_map_t> >::type is_index;
+        resize_dispatch(size, is_index);
+    }
+
+    void resize_dispatch(size_t size, boost::mpl::bool_<false>)
+    {
+        _pmap.resize(size);
+    }
+
+    void resize_dispatch(size_t, boost::mpl::bool_<true>)
+    {
+    }
+
+    void shrink_to_fit()
+    {
+        typename boost::mpl::or_<
+            std::is_same<PropertyMap,
+                         GraphInterface::vertex_index_map_t>,
+            std::is_same<PropertyMap,
+                         GraphInterface::edge_index_map_t> >::type is_index;
+        shrink_to_fit_dispatch(is_index);
+    }
+
+    void shrink_to_fit_dispatch(boost::mpl::bool_<false>)
+    {
+        _pmap.shrink_to_fit();
+    }
+
+    void shrink_to_fit_dispatch(boost::mpl::bool_<true>)
+    {
+    }
+
 private:
     PropertyMap _pmap; // hold an internal copy, since it's cheap
 };

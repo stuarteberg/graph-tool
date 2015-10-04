@@ -831,6 +831,25 @@ class PropertyMap(object):
         else:
             self[g] = val
 
+    def reserve(self, size):
+        """Reserve enough space for ``size`` elements in underlying container. If the
+           original size is larger, it will be reduced, and the remaining memory
+           will be freed."""
+        self.__map.reserve(size)
+
+    def shrink_to_fit(self):
+        """Shrink size of underlying container to accommodate only the necessary amount,
+        and thus potentially freeing memory."""
+        g = self.get_graph()
+        if self.key_type() == "v":
+            size = g.num_vertices(True)
+        elif self.key_type() == "e":
+            size = g.max_edge_index
+        else:
+            size = 1
+        self.__map.resize(size)
+        self.__map.shrink_to_fit()
+
     def __call__(self, a):
         p = self.copy()
         p.fa = a
@@ -2301,8 +2320,7 @@ class Graph(object):
         if "_Graph__reversed" in self.graph_properties:
             self.set_reversed(True)
             del self.graph_properties["_Graph__reversed"]
-
-
+        self.shrink_to_fit()
 
     def save(self, file_name, fmt="auto"):
         """Save graph to ``file_name`` (which can be either a string or a file-like

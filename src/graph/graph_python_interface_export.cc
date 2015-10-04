@@ -64,7 +64,10 @@ struct export_vertex_property_map
             .def("get_map", &pmap_t::get_map)
             .def("get_dynamic_map", &pmap_t::get_dynamic_map)
             .def("get_array", &pmap_t::get_array)
-            .def("is_writable", &pmap_t::is_writable);
+            .def("is_writable", &pmap_t::is_writable)
+            .def("reserve", &pmap_t::reserve)
+            .def("resize", &pmap_t::resize)
+            .def("shrink_to_fit", &pmap_t::shrink_to_fit);
 
         typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
                                       boost::mpl::quote1<std::add_const> >::type const_graph_views;
@@ -145,7 +148,10 @@ struct export_edge_property_map
             .def("get_map", &pmap_t::get_map)
             .def("get_dynamic_map", &pmap_t::get_dynamic_map)
             .def("get_array", &pmap_t::get_array)
-            .def("is_writable", &pmap_t::is_writable);
+            .def("is_writable", &pmap_t::is_writable)
+            .def("reserve", &pmap_t::reserve)
+            .def("resize", &pmap_t::resize)
+            .def("shrink_to_fit", &pmap_t::shrink_to_fit);
 
 
         typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
@@ -190,7 +196,10 @@ struct export_graph_property_map
             .def("get_map", &pmap_t::get_map)
             .def("get_dynamic_map", &pmap_t::get_dynamic_map)
             .def("get_array", &pmap_t::get_array)
-            .def("is_writable", &pmap_t::is_writable);
+            .def("is_writable", &pmap_t::is_writable)
+            .def("reserve", &pmap_t::reserve)
+            .def("resize", &pmap_t::resize)
+            .def("shrink_to_fit", &pmap_t::shrink_to_fit);
     }
 };
 
