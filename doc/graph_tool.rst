@@ -58,6 +58,11 @@
     .. automethod:: clear_vertex
     .. automethod:: clear_edges
 
+    After the removal of many edges and/or vertices, the underlying
+    containers may have a capacity that significantly exceeds the size
+    of the graph. The function below corrects this.
+    
+    .. automethod:: shrink_to_fit
 
     .. container:: sec_title
 

@@ -305,6 +305,33 @@ public:
 
     static Vertex null_vertex() { return std::numeric_limits<Vertex>::max(); }
 
+    void shrink_to_fit()
+    {
+        _in_edges.shrink_to_fit();
+        _out_edges.shrink_to_fit();
+        std::for_each(_in_edges.begin(), _in_edges.end(),
+                      [](auto &es){es.shrink_to_fit();});
+        std::for_each(_out_edges.begin(), _out_edges.end(),
+                      [](auto &es){es.shrink_to_fit();});
+        auto erange = boost::edges(*this);
+        auto iter = std::max_element(erange.first, erange.second,
+                                     [](const auto &a, const auto& b) -> bool
+                                     {return a.idx < b.idx;});
+        if (iter == erange.second)
+            _last_idx = 0;
+        else
+            _last_idx = iter->idx;
+        auto iter_idx = std::remove_if(_free_indexes.begin(),
+                                       _free_indexes.end(),
+                                       [&](auto idx) -> bool
+                                       {return idx > _last_idx;});
+        _free_indexes.erase(iter_idx, _free_indexes.end());
+        _free_indexes.shrink_to_fit();
+        if (_keep_epos)
+            _epos.resize(_last_idx + 1);
+        _epos.shrink_to_fit();
+    }
+
 private:
     typedef std::vector<edge_list_t> vertex_list_t;
     vertex_list_t _out_edges;

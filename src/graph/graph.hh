@@ -107,6 +107,7 @@ public:
                               boost::any prop_tgt);
     void copy_edge_property(const GraphInterface& src, boost::any prop_src,
                             boost::any prop_tgt);
+    void shrink_to_fit() { _mg->shrink_to_fit(); }
 
     //
     // python interface
@@ -130,16 +131,6 @@ public:
     // Internal types
     //
 
-    // // the following defines the edges' internal properties
-    // typedef property<edge_index_t, size_t> EdgeProperty;
-
-    // // this is the main graph type
-    // typedef adjacency_list <vecS, // edges
-    //                         vecS, // vertices
-    //                         bidirectionalS,
-    //                         no_property,
-    //                         EdgeProperty,
-    //                         vecS>  multigraph_t;
     typedef boost::adj_list<size_t> multigraph_t;
     typedef boost::graph_traits<multigraph_t>::vertex_descriptor vertex_t;
     typedef boost::graph_traits<multigraph_t>::edge_descriptor edge_t;

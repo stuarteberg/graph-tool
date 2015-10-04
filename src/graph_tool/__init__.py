@@ -2066,9 +2066,16 @@ class Graph(object):
         """
         self.__graph.re_index_edges()
 
+
+    def shrink_to_fit(self):
+        """Force the physical capacity of the underlying containers to match the graph's
+        actual size, potentially freeing memory back to the system."""
+        self.__graph.shrink_to_fit()
+
     # Property map creation
 
     def new_property(self, key_type, value_type, vals=None):
+
         """Create a new (uninitialized) vertex property map of key type
         ``key_type`` (``v``, ``e`` or ``g``), value type ``value_type``, and
         return it. If provided, the values will be initialized by ``vals``,
