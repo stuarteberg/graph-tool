@@ -320,7 +320,7 @@ public:
         if (iter == erange.second)
             _last_idx = 0;
         else
-            _last_idx = iter->idx;
+            _last_idx = iter->idx + 1;
         auto iter_idx = std::remove_if(_free_indexes.begin(),
                                        _free_indexes.end(),
                                        [&](auto idx) -> bool
@@ -328,7 +328,7 @@ public:
         _free_indexes.erase(iter_idx, _free_indexes.end());
         _free_indexes.shrink_to_fit();
         if (_keep_epos)
-            _epos.resize(_last_idx + 1);
+            _epos.resize(_last_idx);
         _epos.shrink_to_fit();
     }
 
@@ -347,7 +347,7 @@ private:
 
     void rebuild_epos()
     {
-        _epos.resize(_last_idx + 1);
+        _epos.resize(_last_idx);
         for (size_t i = 0; i < _out_edges.size(); ++i)
         {
             auto& oes = _out_edges[i];
@@ -660,7 +660,6 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
                 Vertex t = ei.first;
                 size_t idx = ei.second;
                 auto& ies = in_edges[t];
-
                 auto& back = ies.back();
                 auto& pos = get_pos(idx);
                 auto& bpos = get_pos(back.second);
@@ -673,9 +672,9 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
             oes.clear();
         };
         remove_es(g._out_edges, g._in_edges,
-                  [&](size_t idx) -> auto& {return g._epos[idx].first;});
-        remove_es(g._in_edges, g._out_edges,
                   [&](size_t idx) -> auto& {return g._epos[idx].second;});
+        remove_es(g._in_edges, g._out_edges,
+                  [&](size_t idx) -> auto& {return g._epos[idx].first;});
     }
 }
 
@@ -689,8 +688,7 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
 
     auto shift_es = [&](auto& edges, int i)
     {
-        auto& es = edges[i];
-        for (auto& e : es)
+        for (auto& e : edges[i])
         {
             if (e.first > v)
                 e.first--;
@@ -711,19 +709,20 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
 template <class Vertex>
 inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 {
-    clear_vertex(v, g);
     Vertex back = g._out_edges.size() - 1;
 
     if (v < back)
     {
+        clear_vertex(v, g);
         g._out_edges[v].swap(g._out_edges[back]);
         g._in_edges[v].swap(g._in_edges[back]);
+        g._out_edges.pop_back();
+        g._in_edges.pop_back();
 
-        auto remove_v = [&] (auto& out_edges, auto& in_edges,
+        auto rename_v = [&] (auto& out_edges, auto& in_edges,
                              const auto& get_pos)
             {
-                auto& oes = out_edges[v];
-                for (auto& eu : oes)
+                for (auto& eu : out_edges[v])
                 {
                     Vertex u = eu.first;
                     if (u == back)
@@ -732,10 +731,9 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
                     }
                     else
                     {
-                        auto& ies = in_edges[u];
                         if (!g._keep_epos)
                         {
-                            for (auto& e : ies)
+                            for (auto& e : in_edges[u])
                             {
                                 if (e.first == back)
                                     e.first = v;
@@ -745,20 +743,17 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
                         {
                             size_t idx = eu.second;
                             auto pos = get_pos(idx);
-                            ies[pos].first = v;
+                            in_edges[u][pos].first = v;
                         }
                     }
                 }
             };
 
-        remove_v(g._out_edges, g._in_edges,
-                 [&](size_t idx) -> auto {return g._epos[idx].first;});
-        remove_v(g._in_edges, g._out_edges,
+        rename_v(g._out_edges, g._in_edges,
                  [&](size_t idx) -> auto {return g._epos[idx].second;});
+        rename_v(g._in_edges, g._out_edges,
+                 [&](size_t idx) -> auto {return g._epos[idx].first;});
     }
-
-    g._out_edges.pop_back();
-    g._in_edges.pop_back();
 }
 
 template <class Vertex>
