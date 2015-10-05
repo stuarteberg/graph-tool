@@ -1845,11 +1845,7 @@ class Graph(object):
 
     def clear_vertex(self, vertex):
         """Remove all in and out-edges from the given vertex."""
-        del_es = set()
-        for e in vertex.all_edges():
-            del_es.add(e)
-        for e in del_es:
-            self.remove_edge(e)
+        libcore.clear_vertex(self.__graph, int(vertex))
 
     def add_edge(self, source, target, add_missing=True):
         """Add a new edge from ``source`` to ``target`` to the graph, and return

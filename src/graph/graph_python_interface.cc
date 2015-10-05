@@ -184,6 +184,19 @@ void remove_vertex(GraphInterface& gi, size_t v, bool fast)
     }
 }
 
+struct do_clear_vertex
+{
+    template <class Graph>
+    void operator()(Graph& g, size_t v) const
+    {
+        clear_vertex(vertex(v, g), g);
+    }
+};
+
+void clear_vertex(GraphInterface& gi, size_t v)
+{
+    run_action<>()(gi, std::bind(do_clear_vertex(), placeholders::_1, v))();
+}
 
 struct add_new_edge
 {
@@ -505,6 +518,8 @@ struct add_edge_list
                 for (; iter != end; ++iter)
                     eprops.emplace_back(*iter, writable_edge_properties());
 
+                size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
+
                 for (const auto& e : edge_list)
                 {
                     size_t s = e[0];
@@ -512,7 +527,7 @@ struct add_edge_list
                     while (s >= num_vertices(g) || t >= num_vertices(g))
                         add_vertex(g);
                     auto ne = add_edge(vertex(s, g), vertex(t, g), g).first;
-                    for (size_t i = 0; i < e.size() - 2; ++i)
+                    for (size_t i = 0; i < n_props; ++i)
                     {
                         try
                         {
@@ -918,6 +933,7 @@ void export_python_interface()
     def("add_vertex", graph_tool::add_vertex);
     def("add_edge", graph_tool::add_edge);
     def("remove_vertex", graph_tool::remove_vertex);
+    def("clear_vertex", graph_tool::clear_vertex);
     def("remove_edge", graph_tool::remove_edge);
     def("add_edge_list", graph_tool::do_add_edge_list);
     def("add_edge_list_hashed", graph_tool::do_add_edge_list_hashed);
