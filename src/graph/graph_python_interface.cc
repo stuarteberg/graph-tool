@@ -933,6 +933,7 @@ void export_python_interface()
     def("add_vertex", graph_tool::add_vertex);
     def("add_edge", graph_tool::add_edge);
     def("remove_vertex", graph_tool::remove_vertex);
+    def("remove_vertex_array", graph_tool::remove_vertex_array);
     def("clear_vertex", graph_tool::clear_vertex);
     def("remove_edge", graph_tool::remove_edge);
     def("add_edge_list", graph_tool::do_add_edge_list);

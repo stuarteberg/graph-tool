@@ -1815,26 +1815,26 @@ class Graph(object):
            the graph will no longer be the same.
 
         """
-        try:
-            vs = numpy.array([int(vertex)], dtype="int64")
-        except TypeError:
+        back = self.__graph.get_num_vertices(False) - 1
+        is_iter = isinstance(vertex, collections.Iterable)
+        if is_iter:
             try:
                 vs = numpy.asarray(vertex, dtype="int64")
             except TypeError:
                 vs = numpy.asarray([int(v) for v in vertex], dtype="int64")
-
             if len(vs) == 0:
                 return
-
             vs = numpy.sort(vs)[::-1]
-
-        back = self.__graph.get_num_vertices(False) - 1
-
-        if vs.max() > back:
-            raise ValueError("Vertex index %d is invalid" % vs.max())
+            vmax = vs[0]
+            if vs[0] > back:
+                raise ValueError("Vertex index %d is invalid" % vs[0])
+        else:
+            vmax = int(vertex)
 
         # move / shift all known property maps
-        if len(vs) > 0 or vs[0] != back:
+        if vmax != back:
+            if not is_iter:
+                vs = numpy.asarray((vertex,), dtype="int64")
             for pmap in self.__known_properties.values():
                 if pmap() is not None and pmap().key_type() == "v" and pmap().is_writable():
                     if fast:
@@ -1842,7 +1842,10 @@ class Graph(object):
                     else:
                         self.__graph.shift_vertex_property(pmap()._PropertyMap__map.get_map(), vs)
 
-        libcore.remove_vertex(self.__graph, vs, fast)
+        if is_iter:
+            libcore.remove_vertex_array(self.__graph, vs, fast)
+        else:
+            libcore.remove_vertex(self.__graph, vertex, fast)
 
     def clear_vertex(self, vertex):
         """Remove all in and out-edges from the given vertex."""
