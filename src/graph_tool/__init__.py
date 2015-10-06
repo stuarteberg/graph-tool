@@ -2365,7 +2365,7 @@ class Graph(object):
                 raise ValueError("lzma compression is only available in Python >= 3.3")
 
         props = [(_c_str(name[1]), prop._PropertyMap__map) for name, prop in \
-                 self.__properties.items()]
+                 u.__properties.items()]
 
         if isinstance(file_name, (str, unicode)):
             f = open(file_name, "w") # throw the appropriate exception, if
