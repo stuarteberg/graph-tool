@@ -2203,10 +2203,17 @@ class Graph(object):
         is_directed = g.is_directed()
         efilt = g.get_edge_filter()
         vfilt = g.get_vertex_filter()
+        if g is not self:
+            self_is_directed = self.is_directed()
+            self_efilt = self.get_edge_filter()
+            self_vfilt = self.get_vertex_filter()
         try:
-            g.set_directed(True)
-            g.set_edge_filter(None)
-            g.set_vertex_filter(None)
+            if full:
+                g.set_directed(True)
+                g.clear_filters()
+                if g is not self:
+                    self.set_directed(True)
+                    self.clear_filters()
             if src.key_type() == "v":
                 if g.num_vertices() > self.num_vertices():
                     raise ValueError("graphs with incompatible sizes (%d, %d)" %
@@ -2237,6 +2244,10 @@ class Graph(object):
             g.set_directed(is_directed)
             g.set_edge_filter(efilt[0], efilt[1])
             g.set_vertex_filter(vfilt[0], vfilt[1])
+            if g is not self:
+                self.set_directed(self_is_directed)
+                self.set_edge_filter(self_efilt[0], self_efilt[1])
+                self.set_vertex_filter(self_vfilt[0], self_vfilt[1])
         return ret
 
     # degree property map
@@ -2465,7 +2476,7 @@ class Graph(object):
             vfilt.a = not inverted
 
         self.__graph.set_vertex_filter_property(_prop("v", self, vfilt),
-                                             inverted)
+                                                inverted)
         self.__filter_state["vertex_filter"] = (vfilt, inverted)
 
         if efilt is not None:
@@ -2496,7 +2507,6 @@ class Graph(object):
         if vprop[0] is not None and efilt is None:
             efilt = self.new_edge_property("bool")
             efilt.a = not inverted
-
         self.__graph.set_edge_filter_property(_prop("e", self, efilt), inverted)
         self.__filter_state["edge_filter"] = (efilt, inverted)
 
