@@ -28,57 +28,6 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-template <class Descriptor, class GraphTgt, class GraphSrc, class IndexMap>
-struct copy_property_dispatch
-{
-    copy_property_dispatch(const Descriptor& src_d, const Descriptor& tgt_d,
-                           const GraphTgt& tgt, const GraphSrc& src,
-                           boost::any& prop_src, boost::any& prop_tgt,
-                           IndexMap& index_map, bool& found)
-        : src_d(src_d), tgt_d(tgt_d), tgt(tgt), src(src), prop_src(prop_src),
-          prop_tgt(prop_tgt), index_map(index_map), found(found) {}
-
-
-    const Descriptor& src_d;
-    const Descriptor& tgt_d;
-    const GraphTgt& tgt;
-    const GraphSrc& src;
-    boost::any& prop_src;
-    boost::any& prop_tgt;
-    IndexMap& index_map;
-    bool& found;
-
-    template <class PropertyMap>
-    void operator()(PropertyMap) const
-    {
-        PropertyMap* psrc = any_cast<PropertyMap>(&prop_src);
-        if (psrc == NULL)
-            return;
-        if (prop_tgt.empty())
-            prop_tgt = PropertyMap(index_map);
-        PropertyMap* ptgt = any_cast<PropertyMap>(&prop_tgt);
-        if (ptgt == NULL)
-            return;
-        (*ptgt)[tgt_d] = (*psrc)[src_d];
-        found = true;
-    }
-};
-
-template <class PropertyMaps, class Descriptor, class GraphTgt, class GraphSrc,
-          class IndexMap>
-void copy_property(const Descriptor& src_d, const Descriptor& tgt_d,
-                   boost::any& prop_src, boost::any& prop_tgt,
-                   const GraphTgt& tgt, const GraphSrc& src,
-                   IndexMap& index_map)
-{
-    bool found = false;
-    boost::mpl::for_each<PropertyMaps>(copy_property_dispatch<Descriptor, GraphTgt, GraphSrc, IndexMap>
-                                       (src_d, tgt_d, tgt, src, prop_src, prop_tgt, index_map,
-                                        found));
-    if (!found)
-        throw ValueException("Cannot find property map type.");
-}
-
 template <class GraphSrc, class GraphTgt, class IndexMap, class SrcIndexMap,
           class TgtIndexMap>
 struct copy_vertex_property_dispatch
@@ -196,8 +145,8 @@ struct copy_edge_property_dispatch
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, src);
-            if (v == graph_traits<GraphSrc>::null_vertex())
-                continue;
+            // if (v == graph_traits<GraphSrc>::null_vertex())
+            //     continue;
 
             for (auto e : out_edges_range(v, src))
             {
@@ -206,7 +155,7 @@ struct copy_edge_property_dispatch
                 if (!is_directed::apply<GraphSrc>::type::value && s > t)
                     continue;
                 size_t ei = src_edge_index[e];
-                auto new_e = index_map[ei];
+                const auto& new_e = index_map[ei];
                 p_tgt[new_e] = p_src[e];
             }
         }
