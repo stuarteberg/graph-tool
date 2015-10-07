@@ -2738,15 +2738,41 @@ class GraphView(Graph):
             for k, v in g.properties.items():
                 self.properties[k] = self.own_property(v)
 
-        # set already existent filters
-        if not skip_vfilt:
-            vf = g.get_vertex_filter()
-            if vf[0] is not None:
-                self.set_vertex_filter(vf[0].copy(), vf[1])
+        # set already existing filters
         if not skip_efilt:
-            ef = g.get_edge_filter()
+            ef = list(g.get_edge_filter())
             if ef[0] is not None:
-                self.set_edge_filter(ef[0].copy(), ef[1])
+                ef[0] = ef[0].copy()
+        else:
+            ef = [None, False]
+        if not skip_vfilt:
+            vf = list(g.get_vertex_filter())
+            if vf[0] is not None:
+                vf[0] = vf[0].copy()
+        else:
+            vf = [None, False]
+
+        self.set_filters(ef[0], vf[0], ef[1], vf[1])
+
+        if efilt is not None:
+            if type(efilt) is not PropertyMap:
+                emap = self.new_edge_property("bool")
+                if isinstance(efilt, collections.Iterable):
+                    emap.fa = efilt
+                else:
+                    for e in g.edges():
+                        emap[e] = efilt(e)
+                efilt = emap
+            efilt = self.own_property(efilt)
+            ef = self.get_edge_filter()
+            if ef[0] is not None:
+                if not ef[1]:
+                    ef[0].fa = efilt.fa
+                else:
+                    ef[0].fa = numpy.logical_not(efilt.fa)
+                self.set_edge_filter(ef[0], ef[1])
+            else:
+                self.set_edge_filter(efilt)
 
         if vfilt is not None:
             if type(vfilt) is not PropertyMap:
@@ -2768,25 +2794,6 @@ class GraphView(Graph):
             else:
                 self.set_vertex_filter(vfilt)
 
-        if efilt is not None:
-            if type(efilt) is not PropertyMap:
-                emap = self.new_edge_property("bool")
-                if isinstance(efilt, collections.Iterable):
-                    emap.fa = efilt
-                else:
-                    for e in g.edges():
-                        emap[e] = efilt(e)
-                efilt = emap
-            efilt = self.own_property(efilt)
-            ef = self.get_edge_filter()
-            if ef[0] is not None:
-                if not ef[1]:
-                    ef[0].fa = efilt.fa
-                else:
-                    ef[0].fa = numpy.logical_not(efilt.fa)
-                self.set_edge_filter(ef[0], ef[1])
-            else:
-                self.set_edge_filter(efilt)
 
         if directed is not None:
             self.set_directed(directed)
