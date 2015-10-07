@@ -541,10 +541,15 @@ class PropertyMap(object):
         return ("<PropertyMap object with key type '%s' and value type '%s',"
                 + " for %s, at 0x%x>") % (k, self.value_type(), g, id(self))
 
-    def copy(self, value_type=None):
-        """Return a copy of the property map. If ``value_type`` is specified, the
-        value type is converted to the chosen type."""
-        return self.get_graph().copy_property(self, value_type=value_type)
+    def copy(self, value_type=None, full=True):
+        """Return a copy of the property map. If ``value_type`` is specified, the value
+        type is converted to the chosen type. If ``full == False``, in the case
+        of filtered graphs only the unmasked values are copied (with the
+        remaining ones taking the type-dependent default value).
+
+        """
+        return self.get_graph().copy_property(self, value_type=value_type,
+                                              full=full)
 
     def __copy__(self):
         return self.copy()
@@ -647,15 +652,18 @@ class PropertyMap(object):
             N = g.num_vertices()
         elif self.__key_type == 'e':
             filt = g.get_edge_filter()
-            N = g.max_edge_index
             if g.get_vertex_filter()[0] is not None:
                 filt = (g.new_edge_property("bool"), filt[1])
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
                 if filt[1]:
-                    filt[0].a = 1 - filt[0].a
+                    filt[0].a = numpy.logical_not(filt[0].a)
             elif g.max_edge_index != g.num_edges():
                 filt = (g.new_edge_property("bool"), False)
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
+            if filt[0] is None:
+                N = g.max_edge_index
+            else:
+                N = (filt[0].a == (not filt[1])).sum()
         if get:
             if a is None:
                 return a
@@ -2169,13 +2177,14 @@ class Graph(object):
     # property map copying
     @_require("src", PropertyMap)
     @_require("tgt", (PropertyMap, type(None)))
-    def copy_property(self, src, tgt=None, value_type=None, g=None):
+    def copy_property(self, src, tgt=None, value_type=None, g=None, full=True):
         """Copy contents of ``src`` property to ``tgt`` property. If ``tgt`` is None,
         then a new property map of the same type (or with the type given by the
         optional ``value_type`` parameter) is created, and returned. The
         optional parameter ``g`` specifies the source graph to copy properties
-        from (defaults to self).
-
+        from (defaults to self). If ``full == False``, in the case of filtered
+        graphs only the unmasked values are copied (with the remaining ones
+        taking the type-dependent default value).
         """
         if tgt is None:
             tgt = self.new_property(src.key_type(),
