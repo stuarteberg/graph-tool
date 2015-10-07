@@ -496,7 +496,7 @@ public:
 
     boost::python::object get_array_dispatch(size_t size, boost::mpl::bool_<false>)
     {
-        _pmap.reserve(size);
+        _pmap.resize(size);
         return wrap_vector_not_owned(_pmap.get_storage());
     }
 
