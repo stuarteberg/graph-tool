@@ -205,6 +205,7 @@ class NestedBlockState(object):
     def __getstate__(self):
         state = dict(g=self.g,
                      ec=self.ec,
+                     layers=self.layers,
                      eweight=self.eweight,
                      vweight=self.vweight,
                      overlap=self.overlap,
