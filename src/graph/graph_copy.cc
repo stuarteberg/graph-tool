@@ -145,8 +145,8 @@ struct copy_edge_property_dispatch
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, src);
-            // if (v == graph_traits<GraphSrc>::null_vertex())
-            //     continue;
+            if (v == graph_traits<GraphSrc>::null_vertex())
+                continue;
 
             for (auto e : out_edges_range(v, src))
             {
