@@ -23,7 +23,8 @@ import sys
 if sys.version_info < (3,):
     range = xrange
 
-from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap
+from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
+    conv_pickle_state
 import random
 from numpy import *
 import numpy
@@ -465,6 +466,7 @@ class CovariateBlockState(BlockState):
         return state
 
     def __setstate__(self, state):
+        conv_pickle_state(state)
         self.__init__(**state)
         return state
 
