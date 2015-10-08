@@ -24,7 +24,7 @@ if sys.version_info < (3,):
     range = xrange
 
 from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
-    infect_vertex_property
+    infect_vertex_property, conv_pickle_state
 from .. stats import label_self_loops
 from .. generation import graph_union
 from .. topology import shortest_path
@@ -217,6 +217,7 @@ class NestedBlockState(object):
         return state
 
     def __setstate__(self, state):
+        conv_pickle_state(state)
         self.__init__(**state)
         return state
 

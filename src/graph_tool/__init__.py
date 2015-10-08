@@ -286,14 +286,40 @@ try:
 except BaseException as e:
     ArgumentError = type(e)
 
+# Python 2 vs 3 compatibility
+
 if sys.version_info < (3,):
     def _c_str(s):
         if isinstance(s, unicode):
             return s.encode("utf-8")
         return str(s)
+    def _str_decode(s):
+        return s
 else:
     def _c_str(s):
         return str(s)
+    def _str_decode(s):
+        if isinstance(s, bytes):
+            return s.decode("utf-8")
+        return s
+
+def get_bytes_io(buf=None):
+    """We want BytesIO for python 3, but StringIO for python 2."""
+    if sys.version_info < (3,):
+        return StringIO.StringIO(buf)
+    else:
+        return io.BytesIO(buf)
+
+def conv_pickle_state(state):
+    """State keys may be of type `bytes` if python 3 is being used, but state was
+    pickled with python 2."""
+
+    if sys.version_info >= (3,):
+        keys = [k for k in state.keys() if type(k) is bytes]
+        for k in keys:
+            state[k.decode("utf-8")] = state[k]
+            del state[k]
+
 
 ################################################################################
 # Property Maps
@@ -888,9 +914,10 @@ class PropertyMap(object):
         return state
 
     def __setstate__(self, state):
+        conv_pickle_state(state)
         g = state["g"]
-        key_type = state["key_type"]
-        value_type = state["value_type"]
+        key_type = _str_decode(state["key_type"])
+        value_type = _str_decode(state["value_type"])
         vals = state["vals"]
 
         if state["is_vindex"]:
@@ -2647,32 +2674,26 @@ class Graph(object):
 
     def __getstate__(self):
         state = dict()
-        if sys.version_info < (3,):
-            sio = StringIO.StringIO()
-        else:
-            sio = io.BytesIO()
-        stream = gzip.GzipFile(fileobj=sio, mode="wb")
-        self.save(stream, "gt")
-        stream.close()
+        sio = get_bytes_io()
+        self.save(sio, "gt")
         state["blob"] = sio.getvalue()
         return state
 
     def __setstate__(self, state):
+        conv_pickle_state(state)
         self.__init__()
         blob = state["blob"]
         if blob != "":
             try:
-                if sys.version_info < (3,):
-                    sio = StringIO.StringIO(blob)
-                else:
-                    sio = io.BytesIO(blob)
-                stream = gzip.GzipFile(fileobj=sio, mode="rb")
-                self.load(stream, "gt")
-            except OSError:
-                if sys.version_info < (3,):
-                    sio = StringIO.StringIO(blob)
-                else:
-                    sio = io.BytesIO(blob)
+                try:
+                    sio = get_bytes_io(blob)
+                    self.load(sio, "gt")
+                except IOError:
+                    sio = get_bytes_io(blob)
+                    stream = gzip.GzipFile(fileobj=sio, mode="rb")
+                    self.load(stream, "gt")
+            except IOError:
+                sio = get_bytes_io(blob)
                 stream = gzip.GzipFile(fileobj=sio, mode="rb")
                 self.load(stream, "xml")
 

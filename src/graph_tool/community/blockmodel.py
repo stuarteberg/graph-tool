@@ -23,7 +23,8 @@ import sys
 if sys.version_info < (3,):
     range = xrange
 
-from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap
+from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
+    conv_pickle_state
 from .. stats import label_self_loops
 from .. spectral import adjacency
 import random
@@ -287,6 +288,7 @@ class BlockState(object):
         return state
 
     def __setstate__(self, state):
+        conv_pickle_state(state)
         self.__init__(**state)
         return state
 
