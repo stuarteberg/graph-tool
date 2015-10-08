@@ -540,7 +540,7 @@ class NestedBlockState(object):
             print("l: %d, N: %d, B: %d" % (l, state.N, state.B))
 
 
-def nested_mcmc_sweep(state, beta=1., c=1., dl=True, propagate_clabel=False,
+def nested_mcmc_sweep(state, beta=1., c=1., dl=True, propagate_clabel=True,
                       sequential=True, parallel=False, verbose=False):
     r"""Performs a Markov chain Monte Carlo sweep on all levels of the hierarchy.
 
@@ -558,7 +558,7 @@ def nested_mcmc_sweep(state, beta=1., c=1., dl=True, propagate_clabel=False,
     dl : ``bool`` (optional, default: ``True``)
         If ``True``, the change in the whole description length will be
         considered after each vertex move, not only the entropy.
-    propagate_clabel : ``bool`` (optional, default: ``False``)
+    propagate_clabel : ``bool`` (optional, default: ``True``)
         If ``True``, clabel at the bottom hierarchical level is propagated to
         the upper ones.
     sequential : ``bool`` (optional, default: ``True``)
@@ -654,7 +654,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   sequential=True, parallel=False, dl=False, dense=False,
                   multigraph=True, sparse_thresh=100, verbose=False,
                   checkpoint=None, minimize_state=None, dl_ent=False,
-                  propagate_clabel=False, confine_layers=False):
+                  propagate_clabel=True, confine_layers=False):
     r"""Replaces level l with another state with a possibly different number of
     groups. This may change not only the state at level l, but also the one at
     level l + 1, which needs to be 'rebuilt' because of the label changes at
@@ -896,7 +896,7 @@ def get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent):
 def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                       epsilon=0., r=2., nmerge_sweeps=10, adaptive_sweeps=True,
                       c=0, dl=False, dense=False, multigraph=True,
-                      propagate_clabel=False, sequential=True, parallel=False,
+                      propagate_clabel=True, sequential=True, parallel=False,
                       sparse_thresh=100, checkpoint=None, minimize_state=None,
                       frozen_levels=None, confine_layers=False, verbose=False,
                       **kwargs):
@@ -1217,7 +1217,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                   nonoverlap_init=False, dl=True,
                                   multigraph=True, dense=False, eweight=None,
                                   vweight=None, clabel=None,
-                                  propagate_clabel=False,frozen_levels=None,
+                                  propagate_clabel=True, frozen_levels=None,
                                   nsweeps=10, adaptive_sweeps=True,
                                   epsilon=1e-3, c=0, nmerge_sweeps=10, r=2,
                                   sparse_thresh=100, sequential=True,
@@ -1277,7 +1277,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
     clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
-    propagate_clabel : ``bool`` (optional, default: ``False``)
+    propagate_clabel : ``bool`` (optional, default: ``True``)
         If ``True``, the clabel at the bottom hierarchical level is propagated
         to the upper ones.
     frozen_levels : :class:`list` (optional, default: ``None``)
