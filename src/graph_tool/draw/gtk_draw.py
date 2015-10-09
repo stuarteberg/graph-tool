@@ -581,8 +581,6 @@ class GraphWidget(Gtk.DrawingArea):
                                                      self.selected.fa),
                               efilt=self.sel_edge_filt)
 
-                self.sel_edge_filt.fa = False
-
                 eprops["pen_width"] = self.eprops.get("pen_width",
                                                       _edefaults["pen_width"])
 
