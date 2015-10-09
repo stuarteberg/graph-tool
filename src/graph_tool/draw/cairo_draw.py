@@ -822,7 +822,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         +---------------+---------------------------------------------------+------------------------+----------------------------------+
         | aspect        | The aspect ratio of the vertex.                   | ``float`` or ``int``   | ``1.0``                          |
         +---------------+---------------------------------------------------+------------------------+----------------------------------+
-        | rotation      | Angle (in radians) to rotate the vertex.          | ``float``              | ``0.``                          |
+        | rotation      | Angle (in radians) to rotate the vertex.          | ``float``              | ``0.``                           |
         +---------------+---------------------------------------------------+------------------------+----------------------------------+
         | anchor        | Specifies how the edges anchor to the vertices.   |  ``int``               | ``1``                            |
         |               | If `0`, the anchor is at the center of the vertex,|                        |                                  |
