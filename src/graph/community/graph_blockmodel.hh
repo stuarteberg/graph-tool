@@ -1331,10 +1331,10 @@ public:
 
     void clear()
     {
-        for (size_t i = 0; i < _entries.size(); ++i)
+        for (const auto& rs : _entries)
         {
-            size_t r = _entries[i].first;
-            size_t s = _entries[i].second;
+            size_t r = rs.first;
+            size_t s = rs.second;
             _r_field_t[r] = _nr_field_t[r] = _null;
             _r_field_t[s] = _nr_field_t[s] = _null;
             if (is_directed::apply<Graph>::type::value)
