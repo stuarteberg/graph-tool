@@ -90,15 +90,14 @@ struct get_closeness
             get_vertex_dists(g, v, vertex_index, dist_map, weights, comp_size);
 
             closeness[v] = 0;
-            typename graph_traits<Graph>::vertex_iterator v2, v_end;
-            for (tie(v2, v_end) = vertices(g); v2 != v_end; ++v2)
+            for (auto v2 : vertices_range(g))
             {
-                if (*v2 != v && dist_map[*v2] != numeric_limits<val_type>::max())
+                if (v2 != v && dist_map[v2] != numeric_limits<val_type>::max())
                 {
                     if (!harmonic)
-                        closeness[v] += dist_map[*v2];
+                        closeness[v] += dist_map[v2];
                     else
-                        closeness[v] += 1. / dist_map[*v2];
+                        closeness[v] += 1. / dist_map[v2];
                 }
             }
             if (!harmonic)

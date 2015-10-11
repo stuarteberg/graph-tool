@@ -63,22 +63,19 @@ struct get_eigenvector
                 schedule(runtime) if (N > 100) reduction(+:norm)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
 
                 c_temp[v] = 0;
-                typename in_or_out_edge_iteratorS<Graph>::type e, e_end;
-                for (tie(e, e_end) = in_or_out_edge_iteratorS<Graph>::get_edges(v, g);
-                     e != e_end; ++e)
+                for (const auto& e : in_or_out_edges_range(v, g))
                 {
                     typename graph_traits<Graph>::vertex_descriptor s;
                     if (is_directed::apply<Graph>::type::value)
-                        s = source(*e,g);
+                        s = source(e, g);
                     else
-                        s = target(*e,g);
-                    c_temp[v] += get(w, *e) * c[s];
+                        s = target(e, g);
+                    c_temp[v] += get(w, e) * c[s];
                 }
                 norm += power(c_temp[v], 2);
             }
@@ -89,8 +86,7 @@ struct get_eigenvector
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
                 c_temp[v] /= norm;
@@ -111,8 +107,7 @@ struct get_eigenvector
                 schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
                 c[v] = c_temp[v];

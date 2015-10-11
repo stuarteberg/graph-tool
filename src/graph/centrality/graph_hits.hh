@@ -57,7 +57,7 @@ struct get_hits
                 schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
+            auto v = vertex(i, g);
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
             x[v] = 1.0 / V;
@@ -81,26 +81,23 @@ struct get_hits
                     continue;
 
                 x_temp[v] = 0;
-                typename in_or_out_edge_iteratorS<Graph>::type ie, ie_end;
-                for (tie(ie, ie_end) = in_or_out_edge_iteratorS<Graph>::get_edges(v, g);
-                     ie != ie_end; ++ie)
+                for (const auto& ie : in_or_out_edges_range(v, g))
                 {
-                    typename graph_traits<Graph>::vertex_descriptor s =
-                        source(*ie, g);
+                    auto s = source(ie, g);
                     if (is_directed::apply<Graph>::type::value)
-                        s = source(*ie, g);
+                        s = source(ie, g);
                     else
-                        s = target(*ie,g);
-                    x_temp[v] += get(w, *ie) * y[s];
+                        s = target(ie, g);
+                    x_temp[v] += get(w, ie) * y[s];
                 }
                 x_norm += power(x_temp[v], 2);
 
                 y_temp[v] = 0;
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+
+                for (const auto& e : out_edges_range(v, g))
                 {
-                    typename graph_traits<Graph>::vertex_descriptor s = target(*e, g);
-                    y_temp[v] += get(w, *e) * x[s];
+                    auto s = target(e, g);
+                    y_temp[v] += get(w, e) * x[s];
                 }
                 y_norm += power(y_temp[v], 2);
             }
@@ -112,8 +109,7 @@ struct get_hits
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
                 x_temp[v] /= x_norm;
@@ -135,8 +131,7 @@ struct get_hits
                 schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
                 x[v] = x_temp[v];
