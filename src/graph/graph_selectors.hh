@@ -454,7 +454,8 @@ template <class Iter>
 class IterRange
 {
 public:
-    IterRange(const std::pair<Iter, Iter>& range): _range(range) {}
+    explicit IterRange(std::pair<Iter, Iter>&& range)
+        : _range(std::forward<std::pair<Iter, Iter>>(range)) {}
     const Iter& begin() { return _range.first; }
     const Iter& end() { return _range.second; }
 private:
@@ -463,9 +464,9 @@ private:
 
 template <class Iter>
 inline
-IterRange<Iter> mk_range(const std::pair<Iter, Iter>& range)
+IterRange<Iter> mk_range(std::pair<Iter, Iter>&& range)
 {
-    return IterRange<Iter>(range);
+    return IterRange<Iter>(std::forward<std::pair<Iter, Iter>>(range));
 }
 
 template <class Graph>
