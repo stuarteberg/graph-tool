@@ -270,8 +270,12 @@ namespace detail { namespace graph {
   // When we have a real edge centrality map, add the value to the map
   template<typename CentralityMap, typename Key, typename T>
   inline void
-  update_centrality(CentralityMap centrality_map, Key k, const T& x)
-  { put(centrality_map, k, get(centrality_map, k) + x); }
+  update_centrality(CentralityMap& centrality_map, const Key& k, const T& x)
+  {
+      auto& val = get(centrality_map, k);
+      #pragma omp atomic
+      val += x;
+  }
 
   template<typename Iter>
   inline void
@@ -318,10 +322,11 @@ namespace detail { namespace graph {
 
     int i, N = num_vertices(g);
     #pragma omp parallel for default(shared) private(i) \
-        firstprivate(vincoming, vdistance, vdependency, vpath_count) schedule(dynamic)
+        firstprivate(vincoming, vdistance, vdependency, vpath_count) \
+        schedule(runtime)
     for (i = 0; i < N; ++i)
     {
-      typename graph_traits<Graph>::vertex_descriptor s = vertex(i, g);
+      auto s = vertex(i, g);
       if (s == graph_traits<Graph>::null_vertex())
           continue;
 
@@ -347,32 +352,25 @@ namespace detail { namespace graph {
       shortest_paths(g, s, ordered_vertices, incoming, distance,
                      path_count, vertex_index);
 
-      #pragma omp critical
+      while (!ordered_vertices.empty())
       {
-          while (!ordered_vertices.empty())
-          {
-              vertex_descriptor u = ordered_vertices.top();
-              ordered_vertices.pop();
+          vertex_descriptor u = ordered_vertices.top();
+          ordered_vertices.pop();
 
-              typedef typename property_traits<IncomingMap>::value_type
-                  incoming_type;
-              typedef typename incoming_type::iterator incoming_iterator;
-              typedef typename property_traits<DependencyMap>::value_type
-                  dependency_type;
+          typedef typename property_traits<DependencyMap>::value_type
+              dependency_type;
 
-              for (incoming_iterator vw = incoming[u].begin();
-                   vw != incoming[u].end(); ++vw) {
-                  vertex_descriptor v = source(*vw, g);
-                  dependency_type factor = dependency_type(get(path_count, v))
-                      / dependency_type(get(path_count, u));
-                  factor *= (dependency_type(1) + get(dependency, u));
-                  put(dependency, v, get(dependency, v) + factor);
-                  update_centrality(edge_centrality_map, *vw, factor);
-              }
+          for (const auto& vw : incoming[u]) {
+              auto v = source(vw, g);
+              auto factor = dependency_type(get(path_count, v))
+                  / dependency_type(get(path_count, u));
+              factor *= (dependency_type(1) + get(dependency, u));
+              put(dependency, v, get(dependency, v) + factor);
+              update_centrality(edge_centrality_map, vw, factor);
+          }
 
-              if (u != s) {
-                  update_centrality(centrality, u, get(dependency, u));
-              }
+          if (u != s) {
+              update_centrality(centrality, u, get(dependency, u));
           }
       }
 
