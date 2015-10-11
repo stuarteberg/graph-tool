@@ -1095,9 +1095,9 @@ def kcore_decomposition(g, deg="out", vprop=None):
     return vprop
 
 
-def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
-                      directed=None, dense=False, dist_map=None,
-                      pred_map=False):
+def shortest_distance(g, source=None, target=None, weights=None,
+                      negative_weights=False, max_dist=None, directed=None,
+                      dense=False, dist_map=None, pred_map=False):
     """Calculate the distance from a source to a target vertex, or to of all
     vertices from a given source, or the all pairs shortest paths, if the source
     is not specified.
@@ -1106,50 +1106,59 @@ def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex` (optional, default: None)
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Source vertex of the search. If unspecified, the all pairs shortest
         distances are computed.
-    target : :class:`~graph_tool.Vertex` or iterable of such objects (optional, default: None)
+    target : :class:`~graph_tool.Vertex` or iterable of such objects (optional, default: ``None``)
         Target vertex (or vertices) of the search. If unspecified, the distance
         to all vertices from the source will be computed.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
-        The edge weights. If provided, the minimum spanning tree will minimize
-        the edge weights.
-    max_dist : scalar value (optional, default: None)
+    weights : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        The edge weights. If provided, the shortest path will correspond to the
+        minimal sum of weights.
+    negative_weights : ``bool`` (optional, default: ``False``)
+        If `True`, this will trigger the use of Bellman-Ford algorithm.
+        Ignored if ``source`` is ``None``.
+    max_dist : scalar value (optional, default: ``None``)
         If specified, this limits the maximum distance of the vertices
-        searched. This parameter has no effect if source is None.
-    directed : bool (optional, default:None)
+        searched. This parameter has no effect if source is ``None``, or if
+        `negative_weights=True`.
+    directed : ``bool`` (optional, default:``None``)
         Treat graph as directed or not, independently of its actual
         directionality.
-    dense : bool (optional, default: False)
-        If true, and source is None, the Floyd-Warshall algorithm is used,
-        otherwise the Johnson algorithm is used. If source is not None, this option
+    dense : ``bool`` (optional, default: ``False``)
+        If ``True``, and source is ``None``, the Floyd-Warshall algorithm is used,
+        otherwise the Johnson algorithm is used. If source is not ``None``, this option
         has no effect.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex property to store the distances. If none is supplied, one
         is created.
-    pred_map : bool (optional, default: False)
-        If true, a vertex property map with the predecessors is returned.
-        Ignored if source=None.
+    pred_map : ``bool`` (optional, default: ``False``)
+        If ``True``, a vertex property map with the predecessors is returned.
+        Ignored if ``source`` is ``None``.
 
     Returns
     -------
     dist_map : :class:`~graph_tool.PropertyMap`
-        Vertex property map with the distances from source. If source is 'None',
+        Vertex property map with the distances from source. If source is ``None``,
         it will have a vector value type, with the distances to every vertex.
+    pred_map : :class:`~graph_tool.PropertyMap` (optional, if ``pred_map == True``)
+        Vertex property map with the predecessors in the search tree.
 
     Notes
     -----
 
     If a source is given, the distances are calculated with a breadth-first
     search (BFS) or Dijkstra's algorithm [dijkstra]_, if weights are given. If
-    source is not given, the distances are calculated with Johnson's algorithm
-    [johnson-apsp]_. If dense=True, the Floyd-Warshall algorithm
-    [floyd-warshall-apsp]_ is used instead.
+    ``negative_weights == True``, the Bellman-Ford algorithm is used
+    [bellman_ford]_, which accepts negative weights, as long as there are no
+    negative loops. If source is not given, the distances are calculated with
+    Johnson's algorithm [johnson-apsp]_. If dense=True, the Floyd-Warshall
+    algorithm [floyd-warshall-apsp]_ is used instead.
 
     If source is specified, the algorithm runs in :math:`O(V + E)` time, or
-    :math:`O(V \log V)` if weights are given. If source is not specified, it
-    runs in :math:`O(VE\log V)` time, or :math:`O(V^3)` if dense == True.
+    :math:`O(V \log V)` if weights are given. If ``negative_weights == True``,
+    the complexity is :math:`O(VE)`. If source is not specified, it runs in
+    :math:`O(VE\log V)` time, or :math:`O(V^3)` if dense == True.
 
     Examples
     --------
@@ -1218,6 +1227,7 @@ def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
     .. [dijkstra-boost] http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html
     .. [johnson-apsp] http://www.boost.org/libs/graph/doc/johnson_all_pairs_shortest.html
     .. [floyd-warshall-apsp] http://www.boost.org/libs/graph/doc/floyd_warshall_shortest.html
+    .. [bellman-ford] http://www.boost.org/libs/graph/doc/bellman_ford_shortest.html
     """
 
     if isinstance(target, collections.Iterable):
@@ -1260,7 +1270,8 @@ def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
                                          _prop("v", g, dist_map),
                                          _prop("e", g, weights),
                                          _prop("v", g, pmap),
-                                         float(max_dist))
+                                         float(max_dist),
+                                         negative_weights)
     else:
         libgraph_tool_topology.get_all_dists(u._Graph__graph,
                                              _prop("v", g, dist_map),
@@ -1277,9 +1288,9 @@ def shortest_distance(g, source=None, target=None, weights=None, max_dist=None,
     else:
         return dist_map
 
-def shortest_path(g, source, target, weights=None, pred_map=None):
-    """
-    Return the shortest path from `source` to `target`.
+def shortest_path(g, source, target, weights=None, negative_weights=False,
+                  pred_map=None):
+    """Return the shortest path from `source` to `target`.
 
     Parameters
     ----------
@@ -1291,6 +1302,8 @@ def shortest_path(g, source, target, weights=None, pred_map=None):
         Target vertex of the search.
     weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
         The edge weights.
+    negative_weights : ``bool`` (optional, default: ``False``)
+        If `True`, this will trigger the use of Bellman-Ford algorithm.
     pred_map :  :class:`~graph_tool.PropertyMap` (optional, default: None)
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
@@ -1307,7 +1320,9 @@ def shortest_path(g, source, target, weights=None, pred_map=None):
     -----
 
     The paths are computed with a breadth-first search (BFS) or Dijkstra's
-    algorithm [dijkstra]_, if weights are given.
+    algorithm [dijkstra]_, if weights are given. If ``negative_weights ==
+    True``, the Bellman-Ford algorithm is used [bellman_ford]_, which accepts
+    negative weights, as long as there are no negative loops.
 
     The algorithm runs in :math:`O(V + E)` time, or :math:`O(V \log V)` if
     weights are given.
@@ -1338,11 +1353,12 @@ def shortest_path(g, source, target, weights=None, pred_map=None):
     .. [dijkstra] E. Dijkstra, "A note on two problems in connexion with
        graphs." Numerische Mathematik, 1:269-271, 1959.
     .. [dijkstra-boost] http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html
+    .. [bellman-ford] http://www.boost.org/libs/graph/doc/bellman_ford_shortest.html
     """
 
     if pred_map is None:
-        pred_map = shortest_distance(g, source, target,
-                                     weights=weights,
+        pred_map = shortest_distance(g, source, target, weights=weights,
+                                     negative_weights=negative_weights,
                                      pred_map=True)[1]
 
     if pred_map[target] == int(target):  # no path to target
