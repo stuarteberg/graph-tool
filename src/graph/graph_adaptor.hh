@@ -43,7 +43,7 @@ namespace boost {
 template <class Graph> class UndirectedAdaptor
 {
 public:
-    UndirectedAdaptor(const Graph& g):_g(const_cast<Graph&>(g)){}
+    UndirectedAdaptor(const Graph& g) : _g(const_cast<Graph&>(g)){}
 
     typedef typename vertex_property_type<Graph>::type vertex_property_type;
     typedef typename edge_property_type<Graph>::type edge_property_type;
@@ -72,8 +72,8 @@ public:
         operator[](Descriptor x) const { return this->m_g[x]; }
 #endif // BOOST_GRAPH_NO_BUNDLED_PROPERTIES
 
-    const Graph& OriginalGraph() const {return _g;}
-    Graph& OriginalGraph() {return _g;}
+    const Graph& original_graph() const {return _g;}
+    Graph& original_graph() {return _g;}
 
     static vertex_descriptor null_vertex() {graph_traits<Graph>::null_vertex();}
 
@@ -114,93 +114,73 @@ class joined_edge_iterator
     typedef typename mpl::if_<Inverted, in_iter_t, out_iter_t>::type iter2_t;
 
     joined_edge_iterator() {}
-    explicit joined_edge_iterator(const std::pair<iter1_t, iter1_t>& range1,
-                                  const std::pair<iter2_t, iter2_t>& range2,
-                                  const iter1_t& pos1, const iter2_t& pos2)
-        : _range1(range1), _range2(range2), _pos1(pos1), _pos2(pos2)
-    { _flip = (_pos1 == _range1.second); }
+    explicit joined_edge_iterator(std::pair<iter1_t, iter1_t>&& range1,
+                                  std::pair<iter2_t, iter2_t>&& range2,
+                                  bool begin)
+        : _range1(std::forward<std::pair<iter1_t, iter1_t>>(range1)),
+          _range2(std::forward<std::pair<iter2_t, iter2_t>>(range2))
+    {
+        if (!begin)
+        {
+            _range1.first = _range1.second;
+            _range2.first = _range2.second;
+        }
+    }
 
  private:
     friend class boost::iterator_core_access;
     void increment()
     {
-        if (_flip)
-        {
-            ++_pos2;
-        }
+        if (_range1.first == _range1.second)
+            ++_range2.first;
         else
-        {
-            ++_pos1;
-            _flip = (_pos1 == _range1.second);
-        }
-    }
-
-    void decrement()
-    {
-        if (_flip)
-        {
-            if (_pos2 == _range2.first)
-            {
-                _flip = false;
-                --_pos1;
-            }
-            else
-            {
-                --_pos2;
-            }
-        }
-        else
-        {
-            --_pos1;
-        }
+            ++_range1.first;
     }
 
     typedef typename std::iterator_traits<iter1_t>::difference_type diff_t;
     void advance(diff_t n)
     {
-        diff_t d1 = _range1.second - _pos1;
+        diff_t d1 = _range1.second - _range1.first;
         if (n < d1)
         {
-            _pos1 += n;
+            _range1.first += n;
         }
         else
         {
-            _pos1 = _range1.second;
-            _pos2 += n - d1;
-            _flip = true;
+            _range1.first = _range1.second;
+            _range2.first += n - d1;
         }
     }
 
     diff_t distance_to(joined_edge_iterator const& other)
     {
-        return (other._pos1 - _pos1) + (other._pos2 - _pos2);
+        return (other._range1.first - _range1.first) +
+            (other._range2.first - _range2.first);
     }
 
     bool equal(joined_edge_iterator const& other) const
     {
-        return (_pos2 == other._pos2 && _pos1 == other._pos1);
+        return (_range2.first == other._range2.first &&
+                _range1.first == other._range1.first);
+    }
+
+    template <class Edge>
+    Edge inv(Edge&& e) const
+    {
+        e.inv = true;
+        return e;
     }
 
     typename graph_traits<Graph>::edge_descriptor dereference() const
     {
-        typename graph_traits<Graph>::edge_descriptor e;
-        if (_flip)
-        {
-            e = *_pos2;
-        }
+        if (_range1.first == _range1.second)
+            return *_range2.first;
         else
-        {
-            e = *_pos1;
-            e.inv = true;
-        }
-        return e;
+            return inv(*_range1.first);
     }
 
     std::pair<iter1_t, iter1_t> _range1;
     std::pair<iter2_t, iter2_t> _range2;
-    iter1_t _pos1;
-    iter2_t _pos2;
-    bool _flip;
 };
 
 
@@ -275,9 +255,9 @@ source(const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& 
        const UndirectedAdaptor<Graph>& g)
 {
     if (e.inv)
-        return target(e, g.OriginalGraph());
+        return target(e, g.original_graph());
     else
-        return source(e, g.OriginalGraph());
+        return source(e, g.original_graph());
 }
 
 //==============================================================================
@@ -289,9 +269,9 @@ target(const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& 
        const UndirectedAdaptor<Graph>& g)
 {
     if (e.inv)
-        return source(e, g.OriginalGraph());
+        return source(e, g.original_graph());
     else
-        return target(e, g.OriginalGraph());
+        return target(e, g.original_graph());
 }
 
 //==============================================================================
@@ -303,7 +283,7 @@ typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
 vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertices_size_type n,
        const UndirectedAdaptor<Graph>& g)
 {
-    return vertex(n, g.OriginalGraph());
+    return vertex(n, g.original_graph());
 }
 
 //==============================================================================
@@ -315,7 +295,7 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::vertex_iterator,
           typename graph_traits<UndirectedAdaptor<Graph> >::vertex_iterator >
 vertices(const UndirectedAdaptor<Graph>& g)
 {
-    return vertices(g.OriginalGraph());
+    return vertices(g.original_graph());
 }
 
 //==============================================================================
@@ -327,7 +307,7 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::edge_iterator,
           typename graph_traits<UndirectedAdaptor<Graph> >::edge_iterator >
 edges(const UndirectedAdaptor<Graph>& g)
 {
-    return edges(g.OriginalGraph());
+    return edges(g.original_graph());
 }
 
 //==============================================================================
@@ -341,11 +321,11 @@ edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
      typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
      const UndirectedAdaptor<Graph>& g)
 {
-    auto res = edge(u, v, g.OriginalGraph());
+    auto res = edge(u, v, g.original_graph());
 
     if (!res.second)
     {
-        res = edge(v, u, g.OriginalGraph());
+        res = edge(v, u, g.original_graph());
         res.first.inv = true;
     }
 
@@ -362,13 +342,11 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator,
 out_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
           const UndirectedAdaptor<Graph>& g)
 {
-    auto range1 = in_edges(u, g.OriginalGraph());
-    auto range2 = out_edges(u, g.OriginalGraph());
-
-    joined_edge_iterator<Graph> begin(range1, range2, range1.first, range2.first);
-    joined_edge_iterator<Graph> end(range1, range2, range1.second, range2.second);
-
-    return std::make_pair(begin, end);
+    typedef joined_edge_iterator<Graph> iter_t;
+    return std::make_pair(iter_t(in_edges(u, g.original_graph()),
+                                 out_edges(u, g.original_graph()), true),
+                          iter_t(in_edges(u, g.original_graph()),
+                                 out_edges(u, g.original_graph()), false));
 }
 
 //==============================================================================
@@ -381,13 +359,11 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::in_edge_iterator,
 in_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
          const UndirectedAdaptor<Graph>& g)
 {
-    auto range1 = out_edges(u, g.OriginalGraph());
-    auto range2 = in_edges(u, g.OriginalGraph());
-
-    joined_edge_iterator<Graph, mpl::true_> begin(range1, range2, range1.first, range2.first);
-    joined_edge_iterator<Graph, mpl::true_> end(range1, range2, range1.second, range2.second);
-
-    return std::make_pair(begin, end);
+    typedef joined_edge_iterator<Graph, mpl::true_> iter_t;
+    return std::make_pair(iter_t(out_edges(u, g.original_graph()),
+                                 in_edges(u, g.original_graph()), true),
+                          iter_t(out_edges(u, g.original_graph()),
+                                 in_edges(u, g.original_graph()), false));
 }
 
 //==============================================================================
@@ -401,11 +377,9 @@ adjacent_vertices
     (typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
      const UndirectedAdaptor<Graph>& g)
 {
-    std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator,
-              typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator>
-        e_range = out_edges(u, g);
-
-    typedef typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator adjacency_iterator;
+    auto e_range = out_edges(u, g);
+    typedef typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator
+        adjacency_iterator;
     return std::make_pair(adjacency_iterator(e_range.first, &g),
                           adjacency_iterator(e_range.second, &g));
 }
@@ -418,7 +392,7 @@ inline
 typename graph_traits<UndirectedAdaptor<Graph> >::vertices_size_type
 num_vertices(const UndirectedAdaptor<Graph>& g)
 {
-    return num_vertices(g.OriginalGraph());
+    return num_vertices(g.original_graph());
 }
 
 //==============================================================================
@@ -428,7 +402,7 @@ template <class Graph>
 inline typename graph_traits<UndirectedAdaptor<Graph> >::edges_size_type
 num_edges(const UndirectedAdaptor<Graph>& g)
 {
-    return num_edges(g.OriginalGraph());
+    return num_edges(g.original_graph());
 }
 
 //==============================================================================
@@ -440,7 +414,8 @@ typename graph_traits<UndirectedAdaptor<Graph> >::degree_size_type
 out_degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
            const UndirectedAdaptor<Graph>& g)
 {
-    return (out_degree(u, g.OriginalGraph()) + in_degree(u, g.OriginalGraph()));
+    return (out_degree(u, g.original_graph()) +
+            in_degree(u, g.original_graph()));
 }
 
 //==============================================================================
@@ -476,7 +451,7 @@ inline
 typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
 add_vertex(UndirectedAdaptor<Graph>& g)
 {
-    return add_vertex(g.OriginalGraph());
+    return add_vertex(g.original_graph());
 }
 
 //==============================================================================
@@ -486,7 +461,7 @@ template <class Graph, class VertexProperties>
 inline typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
 add_vertex(const VertexProperties& p, UndirectedAdaptor<Graph>& g)
 {
-    return add_vertex(p, g.OriginalGraph());
+    return add_vertex(p, g.original_graph());
 }
 
 //==============================================================================
@@ -497,7 +472,7 @@ inline
 void clear_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                   UndirectedAdaptor<Graph>& g)
 {
-    clear_vertex(u, g.OriginalGraph());
+    clear_vertex(u, g.original_graph());
 }
 
 //==============================================================================
@@ -508,7 +483,7 @@ inline
 void remove_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                    UndirectedAdaptor<Graph>& g)
 {
-    remove_vertex(u, g.OriginalGraph());
+    remove_vertex(u, g.original_graph());
 }
 
 //==============================================================================
@@ -519,7 +494,7 @@ inline
 void remove_vertex_fast(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                         UndirectedAdaptor<Graph>& g)
 {
-    remove_vertex_fast(u, g.OriginalGraph());
+    remove_vertex_fast(u, g.original_graph());
 }
 
 //==============================================================================
@@ -533,7 +508,7 @@ add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
          typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
          UndirectedAdaptor<Graph>& g)
 {
-    return add_edge(u, v, g.OriginalGraph());
+    return add_edge(u, v, g.original_graph());
 }
 
 //==============================================================================
@@ -547,7 +522,7 @@ add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
          typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
          const EdgeProperties& ep, UndirectedAdaptor<Graph>& g)
 {
-    return add_edge(u, v, ep, g.OriginalGraph());
+    return add_edge(u, v, ep, g.original_graph());
 }
 
 //==============================================================================
@@ -559,8 +534,9 @@ void remove_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descri
                  typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
                  UndirectedAdaptor<Graph>& g)
 {
-    remove_edge(u, v, g.OriginalGraph());
-    remove_edge(v, u, g.OriginalGraph());
+    auto e = edge(u, v, g);
+    if (e.second)
+        remove_edge(e.first, g);
 }
 
 //==============================================================================
@@ -568,10 +544,10 @@ void remove_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descri
 //==============================================================================
 template <class Graph>
 inline
-void remove_edge (typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor e,
-                  UndirectedAdaptor<Graph>& g)
+void remove_edge(const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& e,
+                 UndirectedAdaptor<Graph>& g)
 {
-    remove_edge(e, g.OriginalGraph());
+    remove_edge(e, g.original_graph());
 }
 
 //==============================================================================
@@ -579,7 +555,7 @@ void remove_edge (typename graph_traits<UndirectedAdaptor<Graph> >::edge_descrip
 //==============================================================================
 template <class Graph>
 inline
-void remove_edge(typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator iter,
+void remove_edge(const typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator& iter,
                  UndirectedAdaptor<Graph>& g)
 {
     remove_edge(*iter, g);
@@ -695,7 +671,7 @@ inline
 typename property_map<UndirectedAdaptor<Graph>, PropertyTag>::type
 get(PropertyTag tag, UndirectedAdaptor<Graph>& g)
 {
-    return get(tag, g.OriginalGraph());
+    return get(tag, g.original_graph());
 }
 
 //==============================================================================
@@ -706,7 +682,7 @@ inline
 typename property_map<UndirectedAdaptor<Graph>, PropertyTag>::const_type
 get(PropertyTag tag, const UndirectedAdaptor<Graph>& g)
 {
-    return get(tag, g.OriginalGraph());
+    return get(tag, g.original_graph());
 }
 
 //==============================================================================
@@ -720,7 +696,7 @@ typename property_traits
 get(PropertyTag tag, const UndirectedAdaptor<Graph>& g,
     typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v)
 {
-    return get(tag, g.OriginalGraph(), v);
+    return get(tag, g.original_graph(), v);
 }
 
 //==============================================================================
@@ -732,9 +708,9 @@ typename property_traits
     <typename property_map<UndirectedAdaptor<Graph>,
                            PropertyTag>::const_type >::value_type
 get(PropertyTag tag, const UndirectedAdaptor<Graph>& g,
-    typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor e)
+    const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& e)
 {
-    return get(tag, g.OriginalGraph(), e.OriginalEdge());
+    return get(tag, g.original_graph(), e);
 }
 
 //==============================================================================
@@ -746,7 +722,7 @@ void put(PropertyTag tag, UndirectedAdaptor<Graph>& g,
          typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
          const Value& value)
 {
-    put(tag, g.OriginalGraph(), v, value);
+    put(tag, g.original_graph(), v, value);
 }
 
 //==============================================================================
@@ -755,10 +731,10 @@ void put(PropertyTag tag, UndirectedAdaptor<Graph>& g,
 template <class Graph, class PropertyTag, class X, class Value>
 inline
 void put(PropertyTag tag, const UndirectedAdaptor<Graph>& g,
-         typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor e,
+         const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& e,
          const Value &value)
 {
-    put(tag, g.OriginalGraph(), e.OriginalEdge(), value);
+    put(tag, g.original_graph(), e, value);
 }
 
 //==============================================================================
@@ -769,7 +745,7 @@ inline
 typename property_value<GraphProperties, GraphPropertyTag>::type&
 get_property(UndirectedAdaptor<Graph>& g, GraphPropertyTag tag)
 {
-    get_property(g.OriginalGraph(), tag);
+    get_property(g.original_graph(), tag);
 }
 
 //==============================================================================
@@ -780,7 +756,7 @@ inline
 const typename property_value<GraphProperties, GraphPropertyTag>::type&
 get_property(const UndirectedAdaptor<Graph>& g, GraphPropertyTag tag)
 {
-    get_property(g.OriginalGraph(), tag);
+    get_property(g.original_graph(), tag);
 }
 
 } // namespace boost
