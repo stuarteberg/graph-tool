@@ -499,11 +499,18 @@ edges(const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::edge_list_t::const_iterator ei_t;
     typedef typename adj_list<Vertex>::vertex_list_t::const_iterator vi_t;
-    ei_t ei_begin = g._out_edges.empty() ? ei_t() : g._out_edges[0].begin();
-    vi_t last_vi = g._out_edges.end();
-    if (!g._out_edges.empty())
-        --last_vi;
-    ei_t ei_end = g._out_edges.empty() ? ei_t() : last_vi->end();
+    ei_t ei_begin, ei_end;
+    vi_t last_vi;
+    if (g._out_edges.empty())
+    {
+        last_vi = g._out_edges.end();
+    }
+    else
+    {
+        ei_begin = g._out_edges[0].begin();
+        last_vi = g._out_edges.end() - 1;
+        ei_end = last_vi->end();
+    }
     typename adj_list<Vertex>::edge_iterator ebegin(g._out_edges.begin(),
                                                     g._out_edges.end(),
                                                     g._out_edges.begin(),
