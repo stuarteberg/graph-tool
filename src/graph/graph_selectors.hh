@@ -75,7 +75,7 @@ struct in_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t operator()(const Vertex& v, const Graph &g) const
+    size_t operator()(const Vertex& v, const Graph& g) const
     {
         return in_degreeS::operator()(v, g, detail::no_weightS());
     }
@@ -83,28 +83,26 @@ struct in_degreeS
     template <class Graph, class Vertex, class Weight>
     typename detail::get_weight_type<Weight>::type
     inline
-    operator()(const Vertex& v, const Graph &g, Weight&& weight) const
+    operator()(const Vertex& v, const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
              boost::directed_tag>::type is_directed;
-        return get_in_degree(v, g, is_directed(), weight);
+        return get_in_degree(v, g, is_directed(), std::forward<Weight>(weight));
     }
 
     template <class Graph, class Vertex>
     inline
-    size_t get_in_degree(const Vertex& v, const Graph &g, std::true_type,
-                         detail::no_weightS)
-        const
+    size_t get_in_degree(const Vertex& v, const Graph& g, std::true_type,
+                         detail::no_weightS) const
     {
         return in_degree(v, g);
     }
 
     template <class Graph, class Vertex, class Weight>
     typename detail::get_weight_type<Weight>::type
-    get_in_degree(const Vertex& v, const Graph &g, std::true_type,
-                  Weight& weight)
-        const
+    get_in_degree(const Vertex& v, const Graph& g, std::true_type,
+                  Weight& weight) const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
         typename boost::graph_traits<Graph>::in_edge_iterator e, e_end;
@@ -115,8 +113,8 @@ struct in_degreeS
 
     template <class Graph, class Vertex, class Weight>
     inline
-    size_t get_in_degree(const Vertex&, const Graph &, std::false_type, Weight&&)
-        const
+    size_t get_in_degree(const Vertex&, const Graph&, std::false_type,
+                         Weight&&)  const
     {
         return 0;
     }
@@ -130,7 +128,7 @@ struct out_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t operator()(const Vertex& v, const Graph &g) const
+    size_t operator()(const Vertex& v, const Graph& g) const
     {
         return out_degreeS::operator()(v, g, detail::no_weightS());
     }
@@ -138,14 +136,15 @@ struct out_degreeS
     template <class Graph, class Vertex, class Weight>
     inline
     typename detail::get_weight_type<Weight>::type
-    operator()(const Vertex& v, const Graph &g, Weight&& weight) const
+    operator()(const Vertex& v, const Graph& g, Weight&& weight) const
     {
-        return get_out_degree(v, g, weight);
+        return get_out_degree(v, g, std::forward<Weight>(weight));
     }
 
     template <class Graph, class Vertex, class Weight>
+    inline
     typename detail::get_weight_type<Weight>::type
-    get_out_degree(const Vertex& v, const Graph &g, Weight& weight)
+    get_out_degree(const Vertex& v, const Graph& g, const Weight& weight)
         const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
@@ -157,9 +156,8 @@ struct out_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t get_out_degree(const Vertex& v, const Graph &g,
-                          detail::no_weightS)
-        const
+    size_t get_out_degree(const Vertex& v, const Graph& g,
+                          detail::no_weightS) const
     {
         return out_degree(v, g);
     }
@@ -172,7 +170,7 @@ struct total_degreeS
     total_degreeS() {}
     template <class Graph, class Vertex>
     inline
-    size_t operator()(const Vertex& v, const Graph &g) const
+    size_t operator()(const Vertex& v, const Graph& g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
@@ -180,31 +178,32 @@ struct total_degreeS
     template <class Graph, class Vertex, class Weight>
     inline
     typename detail::get_weight_type<Weight>::type
-    operator()(const Vertex& v, const Graph &g, Weight&& weight) const
+    operator()(const Vertex& v, const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
              boost::directed_tag>::type is_directed;
-        return get_total_degree(v, g, is_directed(), weight);
+        return get_total_degree(v, g, is_directed(),
+                                std::forward<Weight>(weight));
     }
 
     template <class Graph, class Vertex, class Weight>
     inline
     typename detail::get_weight_type<Weight>::type
-    get_total_degree(const Vertex& v, const Graph &g, std::true_type,
-                     Weight& weight) const
+    get_total_degree(const Vertex& v, const Graph& g, std::true_type,
+                     Weight&& weight) const
     {
-        return in_degreeS()(v, g, weight) + out_degreeS()(v, g, weight);
+        return in_degreeS()(v, g, std::forward<Weight>(weight)) +
+            out_degreeS()(v, g, std::forward<Weight>(weight));
     }
 
     template <class Graph, class Vertex, class Weight>
     inline
     typename detail::get_weight_type<Weight>::type
-    get_total_degree(const Vertex& v, const Graph &g, std::false_type,
-                     Weight& weight)
-        const
+    get_total_degree(const Vertex& v, const Graph& g, std::false_type,
+                     Weight&& weight) const
     {
-        return out_degreeS()(v, g, weight);
+        return out_degreeS()(v, g, std::forward<Weight>(weight));
     }
 };
 
@@ -220,7 +219,7 @@ struct scalarS
     template <class Descriptor, class Graph>
     inline
     typename boost::property_traits<PropertyMap>::value_type
-    operator()(const Descriptor& d, const Graph &) const
+    operator()(const Descriptor& d, const Graph&) const
     {
         return get(_pmap, d);
     }
@@ -240,7 +239,7 @@ struct get_degree_selector
         degree_selector_index;
 
     template <class Selector>
-        void operator()(Selector, int deg_index, boost::any& deg) const
+    void operator()(Selector, int deg_index, boost::any& deg) const
     {
         if (boost::mpl::at<degree_selector_index, Selector>::type::value == deg_index)
             deg = Selector();
