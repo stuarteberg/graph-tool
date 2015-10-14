@@ -250,13 +250,34 @@ struct get_edge_dispatch
                     bool all_edges, boost::python::list& es) const
     {
         std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
-        for (auto e : out_edges_range(vertex(s, g), g))
+        size_t k_t = is_directed::apply<Graph>::type::value ?
+            in_degreeS()(t, g) : out_degree(t, g);
+        if (out_degree(s, g) <= k_t)
         {
-            if (target(e, g) == vertex(t, g))
+            for (auto e : out_edges_range(vertex(s, g), g))
             {
-                es.append(PythonEdge<Graph>(gp, e));
-                if (!all_edges)
-                    break;
+                if (target(e, g) == vertex(t, g))
+                {
+                    es.append(PythonEdge<Graph>(gp, e));
+                    if (!all_edges)
+                        break;
+                }
+            }
+        }
+        else
+        {
+            for (auto e : in_or_out_edges_range(vertex(t, g), g))
+            {
+                auto w = is_directed::apply<Graph>::type::value ?
+                    source(e, g) : target(e, g);
+                if (w == vertex(s, g))
+                {
+                    if (!is_directed::apply<Graph>::type::value)
+                        e.inv ^= true;
+                    es.append(PythonEdge<Graph>(gp, e));
+                    if (!all_edges)
+                        break;
+                }
             }
         }
     }

@@ -1763,8 +1763,9 @@ class Graph(object):
         If ``add_missing == True``, a new edge is created and returned, if none
         currently exists.
 
-        This operation will take :math:`O(k(s))` time, where :math:`k(s)` is the
-        out-degree of vertex :math:`s`.
+        This operation will take :math:`O(min(k(s), k(t)))` time, where
+        :math:`k(s)` and :math:`k(t)` are the out-degree and in-degree (or
+        out-degree if undirected) of vertices :math:`s` and :math:`t`.
 
         """
         s = self.vertex(int(s))
