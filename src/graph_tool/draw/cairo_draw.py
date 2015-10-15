@@ -1020,7 +1020,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     if "pen_width" in eprops and "marker_size" not in eprops:
         pw = eprops["pen_width"]
         if isinstance(pw, PropertyMap):
-            pw = pw.copy()
+            pw = pw.copy("double")
             pw.fa *= 2.75
             eprops["marker_size"] = pw
         else:
@@ -1029,7 +1029,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     if "text" in eprops and "text_distance" not in eprops and "pen_width" in eprops:
         pw = eprops["pen_width"]
         if isinstance(pw, PropertyMap):
-            pw = pw.copy()
+            pw = pw.copy("double")
             pw.fa *= 2
             eprops["text_distance"] = pw
         else:
