@@ -52,19 +52,19 @@ struct get_eigentrust
                 schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
 
                 c_type sum = 0;
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-                    sum += get(c, *e);
+                for (const auto& e : out_edges_range(v, g))
+                    sum += get(c, e);
 
                 if (sum > 0)
-                    for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-                        put(c_temp, *e, get(c, *e)/sum);
+                {
+                    for (const auto& e : out_edges_range(v, g))
+                        put(c_temp, e, get(c, e) / sum);
+                }
             }
             c = c_temp;
         }
@@ -76,15 +76,13 @@ struct get_eigentrust
                 schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
 
                 c_sum[v] = 0;
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-                    c_sum[v] += c[*e];
+                for (const auto& e : out_edges_range(v, g))
+                    c_sum[v] += c[e];
             }
         }
 
@@ -109,22 +107,22 @@ struct get_eigentrust
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
 
                 t_temp[v] = 0;
-                typename in_edge_iteratorS<Graph>::type e, e_end;
-                for (tie(e, e_end) = in_edge_iteratorS<Graph>::get_edges(v, g);
-                     e != e_end; ++e)
+                for (const auto& e : in_or_out_edges_range(v, g))
                 {
-                    typename graph_traits<Graph>::vertex_descriptor s =
-                        source(*e,g);
-                    if (!is_directed::apply<Graph>::type::value)
-                        t_temp[v] += get(c, *e)*t[s]/abs(c_sum[s]);
+                    typename graph_traits<Graph>::vertex_descriptor s;
+                    if (is_directed::apply<Graph>::type::value)
+                        s = source(e, g);
                     else
-                        t_temp[v] += get(c, *e)*t[s];
+                        s = target(e, g);
+                    if (!is_directed::apply<Graph>::type::value)
+                        t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
+                    else
+                        t_temp[v] += get(c, e) * t[s];
                 }
                 delta += abs(t_temp[v] - t[v]);
             }
@@ -141,8 +139,7 @@ struct get_eigentrust
                 schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
                 t[v] = t_temp[v];

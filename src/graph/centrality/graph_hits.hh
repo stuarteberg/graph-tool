@@ -75,15 +75,14 @@ struct get_hits
                 schedule(runtime) if (N > 100) reduction(+:x_norm, y_norm)
             for (i = 0; i < N; ++i)
             {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
+                auto v = vertex(i, g);
                 if (v == graph_traits<Graph>::null_vertex())
                     continue;
 
                 x_temp[v] = 0;
                 for (const auto& ie : in_or_out_edges_range(v, g))
                 {
-                    auto s = source(ie, g);
+                    typename graph_traits<Graph>::vertex_descriptor s;
                     if (is_directed::apply<Graph>::type::value)
                         s = source(ie, g);
                     else
