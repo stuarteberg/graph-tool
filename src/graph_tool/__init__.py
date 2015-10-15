@@ -2724,8 +2724,7 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
 
 
 class GraphView(Graph):
-    """
-    A view of selected vertices or edges of another graph.
+    """A view of selected vertices or edges of another graph.
 
     This class uses shared data from another :class:`~graph_tool.Graph`
     instance, but allows for local filtering of vertices and/or edges, edge
@@ -2742,17 +2741,16 @@ class GraphView(Graph):
 
     The argument ``g`` must be an instance of a :class:`~graph_tool.Graph`
     class. If specified, ``vfilt`` and ``efilt`` select which vertices and edges
-    are filtered, respectively. These parameters can either be a
-    boolean-valued :class:`~graph_tool.PropertyMap` or a
-    :class:`~numpy.ndarray`, which specify which vertices/edges are selected, or
-    an unary function which returns ``True`` if a given vertex/edge is to be
-    selected, or ``False`` otherwise.
+    are filtered, respectively. These parameters can either be a boolean-valued
+    :class:`~graph_tool.PropertyMap` or a :class:`~numpy.ndarray`, which specify
+    which vertices/edges are selected, or an unary function that returns
+    ``True`` if a given vertex/edge is to be selected, or ``False`` otherwise.
 
     The boolean parameter ``directed`` can be used to set the directionality of
-    the graph view. If ``directed = None``, the directionality is inherited from
-    ``g``.
+    the graph view. If ``directed == None``, the directionality is inherited
+    from ``g``.
 
-    If ``reversed = True``, the direction of the edges is reversed.
+    If ``reversed == True``, the direction of the edges is reversed.
 
     If ``vfilt`` or ``efilt`` is anything other than a
     :class:`~graph_tool.PropertyMap` instance, the instantiation running time is
