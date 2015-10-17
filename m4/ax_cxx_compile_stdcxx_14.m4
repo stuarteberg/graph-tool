@@ -64,6 +64,9 @@ m4_define([_AX_CXX_COMPILE_STDCXX_14_testbody], [[
     // Prevent Clang error: unused variable 'l' [-Werror,-Wunused-variable]
     struct use_l { use_l() { l(); } };
 
+    auto la = [](auto p){};
+    struct use_la { use_la() { int a=0; la(a); } };
+
     // http://stackoverflow.com/questions/13728184/template-aliases-and-sfinae
     // Clang 3.1 fails with headers of libstd++ 4.8.3 when using std::function because of this
     namespace test_template_alias_sfinae {
