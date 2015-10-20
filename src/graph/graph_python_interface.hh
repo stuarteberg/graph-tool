@@ -65,7 +65,7 @@ public:
     PythonIterator(std::shared_ptr<Graph>& gp,
                    std::pair<Iterator,Iterator> e)
         : _g(gp), _e(e) {}
-    Descriptor Next()
+    Descriptor next()
     {
         if (_e.first == _e.second)
             boost::python::objects::stop_iteration_error();

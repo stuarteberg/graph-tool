@@ -127,7 +127,7 @@ struct do_bf_search
         dtype_t i = python::extract<dtype_t>(range.second);
 
         typedef typename property_map_type::
-            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
+            apply<int64_t, decltype(get(vertex_index, g))>::type pred_t;
         pred_t pred = any_cast<pred_t>(pred_map);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,

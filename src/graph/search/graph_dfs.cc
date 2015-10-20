@@ -11,6 +11,7 @@
 #include <boost/python.hpp>
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/undirected_dfs.hpp>
+#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
@@ -89,9 +90,9 @@ private:
 
 struct do_dfs
 {
-    template <class Graph, class VertexIndexMap>
+    template <class Graph, class VertexIndexMap, class Visitor>
     void operator()(Graph& g, VertexIndexMap vertex_index, size_t s,
-                    DFSVisitorWrapper vis) const
+                    Visitor vis) const
     {
         typename property_map_type::apply<default_color_type,
                                           VertexIndexMap>::type
@@ -108,8 +109,68 @@ void dfs_search(GraphInterface& g, size_t s, python::object vis)
                       s, DFSVisitorWrapper(g, vis)))();
 }
 
+
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+class DFSGeneratorVisitor : public dfs_visitor<>
+{
+public:
+    DFSGeneratorVisitor(GraphInterface& gi,
+                        coro_t::push_type& yield)
+        : _gi(gi), _yield(yield) {}
+
+    template <class Edge, class Graph>
+    void tree_edge(const Edge& e, Graph& g)
+    {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+    }
+
+private:
+    GraphInterface& _gi;
+    coro_t::push_type& _yield;
+};
+
+class DFSGenerator
+{
+public:
+    template <class Dispatch>
+    DFSGenerator(Dispatch& dispatch)
+        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+          _iter(begin(*_coro)), _end(end(*_coro)) {}
+    boost::python::object next()
+    {
+        if (_iter == _end)
+            boost::python::objects::stop_iteration_error();
+        boost::python::object oe = *_iter;
+        ++_iter;
+        return oe;
+    }
+private:
+    std::shared_ptr<coro_t::pull_type> _coro;
+    coro_t::pull_type::iterator _iter;
+    coro_t::pull_type::iterator _end;
+};
+
+boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            DFSGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+                (g, std::bind(do_dfs(), placeholders::_1,
+                              g.get_vertex_index(), s, vis))();
+        };
+    return boost::python::object(DFSGenerator(dispatch));
+}
+
 void export_dfs()
 {
     using namespace boost::python;
     def("dfs_search", &dfs_search);
+    def("dfs_search_generator", &dfs_search_generator);
+    class_<DFSGenerator>("DFSGenerator", no_init)
+        .def("__iter__", objects::identity_function())
+        .def("next", &DFSGenerator::next)
+        .def("__next__", &DFSGenerator::next);
 }

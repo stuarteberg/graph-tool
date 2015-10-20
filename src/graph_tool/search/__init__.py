@@ -35,10 +35,14 @@ Summary
    :nosignatures:
 
    bfs_search
+   bfs_iterator
    dfs_search
+   dfs_iterator
    dijkstra_search
-   bellman_ford_search
+   dijkstra_iterator
    astar_search
+   astar_iterator
+   bellman_ford_search
    BFSVisitor
    DFSVisitor
    DijkstraVisitor
@@ -90,11 +94,12 @@ dl_import("from . import libgraph_tool_search")
 
 from .. import _prop, _python_type
 import weakref
+import numpy
 
-__all__ = ["bfs_search", "BFSVisitor", "dfs_search", "DFSVisitor",
-           "dijkstra_search", "DijkstraVisitor", "bellman_ford_search",
-           "BellmanFordVisitor", "astar_search", "AStarVisitor",
-           "StopSearch"]
+__all__ = ["bfs_search", "bfs_iterator", "BFSVisitor", "dfs_search",
+           "dfs_iterator", "DFSVisitor", "dijkstra_search", "dijkstra_iterator",
+           "DijkstraVisitor", "bellman_ford_search", "BellmanFordVisitor",
+           "astar_search", "astar_iterator", "AStarVisitor", "StopSearch"]
 
 
 class BFSVisitor(object):
@@ -242,7 +247,7 @@ def bfs_search(g, source, visitor=BFSVisitor()):
     With the above class defined, we can perform the BFS search as follows.
 
     >>> dist = g.new_vertex_property("int")
-    >>> pred = g.new_vertex_property("int")
+    >>> pred = g.new_vertex_property("int64_t")
     >>> gt.bfs_search(g, g.vertex(0), VisitorExample(name, pred, dist))
     --> Bob has been discovered!
     Bob has been examined...
@@ -283,6 +288,61 @@ def bfs_search(g, source, visitor=BFSVisitor()):
                                         int(source), visitor)
     except StopSearch:
         pass
+
+def bfs_iterator(g, source):
+    r"""Return an iterator of the edges corresponding to a breath-first traversal of
+    the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex.
+
+    Returns
+    -------
+    bfs_iterator : An iterator over the edges in breath-first order.
+
+    See Also
+    --------
+    dfs_iterator: Depth-first search
+    dijkstra_iterator: Dijkstra's search algorithm
+    astar_iterator: :math:`A^*` heuristic search algorithm
+
+    Notes
+    -----
+
+    See :func:`~graph_tool.search.bfs_search` for an explanation of the
+    algorithm.
+
+    The time complexity is :math:`O(1)` to create the generator and
+    :math:`O(V + E)` to traverse it completely.
+
+    Examples
+    --------
+
+    >>> for e in gt.bfs_iterator(g, g.vertex(0)):
+    ...    print(name[e.source()], "->", name[e.target()])
+    Bob -> Eve
+    Bob -> Chuck
+    Bob -> Carlos
+    Bob -> Isaac
+    Eve -> Carol
+    Eve -> Imothep
+    Carlos -> Alice
+    Alice -> Oscar
+    Alice -> Dave
+
+    References
+    ----------
+    .. [bfs] Edward Moore, "The shortest path through a maze", International
+             Symposium on the Theory of Switching, 1959
+    .. [bfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/breadth_first_search.html
+    .. [bfs-wikipedia] http://en.wikipedia.org/wiki/Breadth-first_search
+    """
+
+    return libgraph_tool_search.bfs_search_generator(g._Graph__graph, int(source))
 
 
 class DFSVisitor(object):
@@ -448,7 +508,7 @@ def dfs_search(g, source, visitor=DFSVisitor()):
     With the above class defined, we can perform the DFS search as follows.
 
     >>> time = g.new_vertex_property("int")
-    >>> pred = g.new_vertex_property("int")
+    >>> pred = g.new_vertex_property("int64_t")
     >>> gt.dfs_search(g, g.vertex(0), VisitorExample(name, pred, time))
     --> Bob has been discovered!
     edge (Bob, Eve) has been examined...
@@ -511,6 +571,58 @@ def dfs_search(g, source, visitor=DFSVisitor()):
     except StopSearch:
         pass
 
+def dfs_iterator(g, source):
+    r"""Return an iterator of the edges corresponding to a depth-first traversal of
+    the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex.
+
+    Returns
+    -------
+    dfs_iterator : An iterator over the edges in detpth-first order.
+
+    See Also
+    --------
+    bfs_iterator: Breadth-first search
+    dijkstra_iterator: Dijkstra's search algorithm
+    astar_iterator: :math:`A^*` heuristic search algorithm
+
+    Notes
+    -----
+
+    See :func:`~graph_tool.search.dfs_search` for an explanation of the
+    algorithm.
+
+    The time complexity is :math:`O(1)` to create the generator and
+    :math:`O(V + E)` to traverse it completely.
+
+    Examples
+    --------
+
+    >>> for e in gt.dfs_iterator(g, g.vertex(0)):
+    ...    print(name[e.source()], "->", name[e.target()])
+    Bob -> Eve
+    Eve -> Carol
+    Carol -> Imothep
+    Imothep -> Carlos
+    Carlos -> Alice
+    Alice -> Oscar
+    Oscar -> Dave
+    Imothep -> Chuck
+    Chuck -> Isaac
+
+    References
+    ----------
+    .. [dfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/depth_first_search.html
+    .. [dfs-wikipedia] http://en.wikipedia.org/wiki/Depth-first_search
+    """
+
+    return libgraph_tool_search.dfs_search_generator(g._Graph__graph, int(source))
 
 class DijkstraVisitor(object):
     r"""A visitor object that is invoked at the event-points inside the
@@ -576,7 +688,7 @@ class DijkstraVisitor(object):
 
 def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
                     pred_map=None, combine=lambda a, b: a + b,
-                    compare=lambda a, b: a < b, zero=0, infinity=float('inf')):
+                    compare=lambda a, b: a < b, zero=0, infinity=numpy.inf):
     r"""Dijsktra traversal of a directed or undirected graph, with non-negative weights.
 
     Parameters
@@ -596,7 +708,7 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
         stored.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
-        stored (must have value type "int").
+        stored (must have value type "int64_t").
     combine : binary function (optional, default: ``lambda a, b: a + b``)
         This function is used to combine distances to compute the distance of a
         path.
@@ -606,7 +718,7 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     zero : int or float (optional, default: ``0``)
          Value assumed to correspond to a distance of zero by the combine and
          compare functions.
-    infinity : int or float (optional, default: ``float('inf')``)
+    infinity : int or float (optional, default: ``numpy.inf``)
          Value assumed to correspond to a distance of infinity by the combine and
          compare functions.
 
@@ -639,7 +751,7 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     top of the priority queue. The algorithm finishes when the priority queue is
     empty.
 
-    The time complexity is :math:`O(V \log V)`.
+    The time complexity is :math:`O(E + V \log V)`.
 
     The pseudo-code for Dijkstra's algorithm is listed below, with the annotated
     event points, for which the given visitor object will be called with the
@@ -778,9 +890,9 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     if dist_map is None:
         dist_map = g.new_vertex_property(weight.value_type())
     if pred_map is None:
-        pred_map = g.new_vertex_property("int")
-    if pred_map.value_type() != "int32_t":
-        raise ValueError("pred_map must be of value type 'int32_t', not '%s'." % \
+        pred_map = g.new_vertex_property("int64_t")
+    if pred_map.value_type() != "int64_t":
+        raise ValueError("pred_map must be of value type 'int64_t', not '%s'." % \
                              pred_map.value_type())
 
     try:
@@ -808,6 +920,113 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
         pass
 
     return dist_map, pred_map
+
+def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
+                      compare=None, zero=0, infinity=numpy.inf):
+    r"""Return an iterator of the edges corresponding to a Dijkstra traversal of
+    the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex.
+    weight : :class:`~graph_tool.PropertyMap`
+        Edge property map with weight values.
+    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        A vertex property map where the distances from the source will be
+        stored.
+    combine : binary function (optional, default: ``lambda a, b: a + b``)
+        This function is used to combine distances to compute the distance of a
+        path.
+    compare : binary function (optional, default: ``lambda a, b: a < b``)
+        This function is use to compare distances to determine which vertex is
+        closer to the source vertex.
+    zero : int or float (optional, default: ``0``)
+         Value assumed to correspond to a distance of zero by the combine and
+         compare functions.
+    infinity : int or float (optional, default: ``numpy.inf``)
+         Value assumed to correspond to a distance of infinity by the combine and
+         compare functions.
+
+    Returns
+    -------
+    djk_iterator : An iterator over the edges in Dijkstra order.
+
+    See Also
+    --------
+    bfs_iterator: Breadth-first search
+    dfs_iterator: Depth-first search
+    astar_iterator: :math:`A^*` heuristic search algorithm
+
+    Notes
+    -----
+
+    See :func:`~graph_tool.search.dijkstra_search` for an explanation of the
+    algorithm.
+
+    The time complexity is :math:`O(1)` to create the generator and
+    :math:`O(E + V\log V)` to traverse it completely.
+
+    Examples
+    --------
+
+    >>> for e in gt.dijkstra_iterator(g, g.vertex(0), weight):
+    ...    print(name[e.source()], "->", name[e.target()])
+    Bob -> Eve
+    Bob -> Chuck
+    Bob -> Carlos
+    Bob -> Isaac
+    Eve -> Carol
+    Eve -> Imothep
+    Carlos -> Alice
+    Alice -> Oscar
+    Alice -> Dave
+
+
+    References
+    ----------
+    .. [dijkstra] E. Dijkstra, "A note on two problems in connexion with
+        graphs", Numerische Mathematik, 1:269-271, 1959.
+    .. [dijkstra-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/dijkstra_shortest_paths_no_color_map.html
+    .. [dijkstra-wikipedia] http://en.wikipedia.org/wiki/Dijkstra's_algorithm
+    """
+
+    if dist_map is None:
+        dist_map = g.new_vertex_property(weight.value_type())
+
+    try:
+        if dist_map.value_type() != "python::object":
+            zero = _python_type(dist_map.value_type())(zero)
+    except OverflowError:
+        zero = (weight.a.max() + 1) * g.num_vertices()
+        zero = _python_type(dist_map.value_type())(zero)
+
+    try:
+        if dist_map.value_type() != "python::object":
+            infinity = _python_type(dist_map.value_type())(infinity)
+    except OverflowError:
+        infinity = (weight.a.max() + 1) * g.num_vertices()
+        infinity = _python_type(dist_map.value_type())(infinity)
+
+    if compare is None and combine is None:
+        return libgraph_tool_search.dijkstra_generator_fast(g._Graph__graph,
+                                                            int(source),
+                                                            _prop("v", g, dist_map),
+                                                            _prop("e", g, weight),
+                                                            zero, infinity)
+    else:
+        if compare is None:
+            compare = lambda a, b: a < b
+        if combine is None:
+            combine = lambda a, b: a + b
+        return libgraph_tool_search.dijkstra_generator(g._Graph__graph,
+                                                       int(source),
+                                                       _prop("v", g, dist_map),
+                                                       _prop("e", g, weight),
+                                                       compare, combine,
+                                                       zero, infinity)
 
 
 class BellmanFordVisitor(object):
@@ -880,7 +1099,7 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
         stored.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
-        stored (must have value type "int").
+        stored (must have value type "int64_t").
     combine : binary function (optional, default: ``lambda a, b: a + b``)
         This function is used to combine distances to compute the distance of a
         path.
@@ -1039,9 +1258,9 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
     if dist_map is None:
         dist_map = g.new_vertex_property(weight.value_type())
     if pred_map is None:
-        pred_map = g.new_vertex_property("int")
-    if pred_map.value_type() != "int32_t":
-        raise ValueError("pred_map must be of value type 'int32_t', not '%s'." % \
+        pred_map = g.new_vertex_property("int64_t")
+    if pred_map.value_type() != "int64_t":
+        raise ValueError("pred_map must be of value type 'int64_t', not '%s'." % \
                              pred_map.value_type())
 
     try:
@@ -1173,7 +1392,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
         stored.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
-        stored (must have value type "int").
+        stored (must have value type "int64_t").
     cost_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         A vertex property map where the vertex costs will be stored. It must
         have the same value type as ``dist_map``. This parameter is only used if
@@ -1224,7 +1443,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
     efficiency of :math:`A^*` is highly dependent on the heuristic function with
     which it is used.
 
-    The time complexity is :math:`O((E + V) \log V)`.
+    The time complexity is :math:`O((E + V)\log V)`.
 
     The pseudo-code for the :math:`A^*` algorithm is listed below, with the
     annotated event points, for which the given visitor object will be called
@@ -1484,7 +1703,6 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
 
     References
     ----------
-
     .. [astar] Hart, P. E.; Nilsson, N. J.; Raphael, B. "A Formal Basis for the
        Heuristic Determination of Minimum Cost Paths". IEEE Transactions on
        Systems Science and Cybernetics SSC4 4 (2): 100-107, 1968.
@@ -1496,9 +1714,9 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
     if dist_map is None:
         dist_map = g.new_vertex_property(weight.value_type())
     if pred_map is None:
-        pred_map = g.new_vertex_property("int")
-    if pred_map.value_type() != "int32_t":
-        raise ValueError("pred_map must be of value type 'int32_t', not '%s'." % \
+        pred_map = g.new_vertex_property("int64_t")
+    if pred_map.value_type() != "int64_t":
+        raise ValueError("pred_map must be of value type 'int64_t', not '%s'." % \
                              pred_map.value_type())
 
     dist_type = dist_map.python_value_type()
@@ -1544,6 +1762,123 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
     except StopSearch:
         pass
     return dist_map, pred_map
+
+
+def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
+                   combine=None, compare=None, zero=0, infinity=numpy.inf):
+    r"""Return an iterator of the edges corresponding to an :math:`A^*` traversal of
+    the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex.
+    weight : :class:`~graph_tool.PropertyMap`
+        Edge property map with weight values.
+    heuristic : unary function (optional, default: ``lambda v: 1``)
+        The heuristic function that guides the search. It should take a single
+        argument which is a :class:`~graph_tool.Vertex`, and output an estimated
+        distance from the supplied vertex to the target vertex.
+    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        A vertex property map where the distances from the source will be
+        stored.
+    combine : binary function (optional, default: ``lambda a, b: a + b``)
+        This function is used to combine distances to compute the distance of a
+        path.
+    compare : binary function (optional, default: ``lambda a, b: a < b``)
+        This function is use to compare distances to determine which vertex is
+        closer to the source vertex.
+    zero : int or float (optional, default: ``0``)
+         Value assumed to correspond to a distance of zero by the combine and
+         compare functions.
+    infinity : int or float (optional, default: ``numpy.inf``)
+         Value assumed to correspond to a distance of infinity by the combine and
+         compare functions.
+
+    Returns
+    -------
+    astar_iterator : An iterator over the edges in :math:`A^*` order.
+
+    See Also
+    --------
+    bfs_iterator: Breadth-first search
+    dfs_iterator: Depth-first search
+    dijkstra_iterator: Dijkstra search algorithm
+
+    Notes
+    -----
+
+    See :func:`~graph_tool.search.astar_search` for an explanation of the
+    algorithm.
+
+    The time complexity is :math:`O(1)` to create the generator and
+    :math:`O((E + V)\log V)` to traverse it completely.
+
+    Examples
+    --------
+
+    >>> g = gt.load_graph("search_example.xml")
+    >>> name = g.vp["name"]
+    >>> weight = g.ep["weight"]
+    >>> for e in gt.astar_iterator(g, g.vertex(0), weight):
+    ...    print(name[e.source()], "->", name[e.target()])
+    Bob -> Eve
+    Bob -> Chuck
+    Bob -> Carlos
+    Bob -> Isaac
+    Eve -> Carol
+    Eve -> Imothep
+    Carlos -> Alice
+    Alice -> Oscar
+    Alice -> Dave
+
+    References
+    ----------
+    .. [astar] Hart, P. E.; Nilsson, N. J.; Raphael, B. "A Formal Basis for the
+       Heuristic Determination of Minimum Cost Paths". IEEE Transactions on
+       Systems Science and Cybernetics SSC4 4 (2): 100-107, 1968.
+       :doi:`10.1109/TSSC.1968.300136`
+    .. [astar-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/astar_search.html
+    .. [astar-wikipedia] http://en.wikipedia.org/wiki/A*_search_algorithm
+    """
+
+    if dist_map is None:
+        dist_map = g.new_vertex_property(weight.value_type())
+
+    try:
+        if dist_map.value_type() != "python::object":
+            zero = _python_type(dist_map.value_type())(zero)
+    except OverflowError:
+        zero = (weight.a.max() + 1) * g.num_vertices()
+        zero = _python_type(dist_map.value_type())(zero)
+
+    try:
+        if dist_map.value_type() != "python::object":
+            infinity = _python_type(dist_map.value_type())(infinity)
+    except OverflowError:
+        infinity = (weight.a.max() + 1) * g.num_vertices()
+        infinity = _python_type(dist_map.value_type())(infinity)
+
+    if compare is None and combine is None:
+        return libgraph_tool_search.astar_generator_fast(g._Graph__graph,
+                                                         int(source),
+                                                         _prop("v", g, dist_map),
+                                                         _prop("e", g, weight),
+                                                         zero, infinity, heuristic)
+    else:
+        if compare is None:
+            compare = lambda a, b: a < b
+        if combine is None:
+            combine = lambda a, b: a + b
+        return libgraph_tool_search.astar_generator(g._Graph__graph,
+                                                    int(source),
+                                                    _prop("v", g, dist_map),
+                                                    _prop("e", g, weight),
+                                                    compare, combine,
+                                                    zero, infinity, heuristic)
+
 
 
 class StopSearch(Exception):

@@ -202,7 +202,7 @@ echo "==========================="
 
 
 dnl boost
-AX_BOOST_BASE([[1.53.0]])
+AX_BOOST_BASE([[1.55.0]])
 AX_BOOST_PYTHON
 if test "$BOOST_PYTHON_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::python found])
@@ -215,7 +215,10 @@ AX_BOOST_REGEX
 if test "$BOOST_REGEX_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::regex found])
 fi
-
+AX_BOOST_COROUTINE
+if test "$BOOST_COROUTINE_LIB" = ""; then
+   AC_MSG_ERROR([No usable boost::coroutine found])
+fi
 AX_BOOST_GRAPH
 if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
@@ -407,7 +410,7 @@ AC_SUBST(MOD_CPPFLAGS)
 
 # default LIBADD flags for submodules
 [MOD_LIBADD="${PYTHON_LDFLAGS} -l${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} \
--l${BOOST_REGEX_LIB} ${OPENMP_LDFLAGS} -lexpat"]
+-l${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB} ${OPENMP_LDFLAGS} -lexpat"]
 AC_SUBST(MOD_LIBADD)
 
 # needed for typeinfo objects to work across DSO boundaries.

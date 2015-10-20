@@ -20,6 +20,7 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
+#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
@@ -125,26 +126,39 @@ private:
 
 struct do_djk_search
 {
-    template <class Graph, class DistanceMap>
+    template <class Graph, class DistanceMap, class PredMap, class Visitor>
     void operator()(const Graph& g, size_t s, DistanceMap dist,
-                    boost::any pred_map, boost::any aweight,
-                    DJKVisitorWrapper vis, const DJKCmp& cmp, const DJKCmb& cmb,
+                    PredMap pred_map, boost::any aweight,
+                    Visitor vis, const DJKCmp& cmp, const DJKCmb& cmb,
                     pair<python::object, python::object> range) const
     {
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
-        typedef typename property_map_type::
-            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
-        pred_t pred = any_cast<pred_t>(pred_map);
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());
         dijkstra_shortest_paths_no_color_map
             (g, vertex(s, g), visitor(vis).weight_map(weight).
-             predecessor_map(pred).
+             predecessor_map(pred_map).
              distance_map(dist).distance_compare(cmp).
              distance_combine(cmb).distance_inf(i).distance_zero(z));
+    }
+};
+
+struct do_djk_search_fast
+{
+    template <class Graph, class DistanceMap, class WeightMap, class Visitor>
+    void operator()(const Graph& g, size_t s, DistanceMap dist,
+                    WeightMap weight, Visitor vis,
+                    pair<python::object, python::object> range) const
+    {
+        typedef typename property_traits<DistanceMap>::value_type dtype_t;
+        dtype_t z = python::extract<dtype_t>(range.first);
+        dtype_t i = python::extract<dtype_t>(range.second);
+        dijkstra_shortest_paths_no_color_map
+            (g, vertex(s, g), visitor(vis).weight_map(weight).
+             distance_map(dist).distance_inf(i).distance_zero(z));
     }
 };
 
@@ -154,16 +168,109 @@ void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
                      python::object cmp, python::object cmb,
                      python::object zero, python::object inf)
 {
-    run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+    typedef typename property_map_type::
+        apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
+    pred_t pred = any_cast<pred_t>(pred_map);
+    run_action<graph_tool::detail::all_graph_views, mpl::true_>()
         (g, std::bind(do_djk_search(), placeholders::_1, source,
-                      placeholders::_2, pred_map, weight,
+                      placeholders::_2, pred, weight,
                       DJKVisitorWrapper(g, vis), DJKCmp(cmp), DJKCmb(cmb),
                       make_pair(zero, inf)),
          writable_vertex_properties())(dist_map);
+}
+
+
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+class DJKGeneratorVisitor : public dijkstra_visitor<>
+{
+public:
+    DJKGeneratorVisitor(GraphInterface& gi,
+                        coro_t::push_type& yield)
+        : _gi(gi), _yield(yield) {}
+
+    template <class Edge, class Graph>
+    void edge_relaxed(const Edge& e, Graph& g)
+    {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+    }
+
+private:
+    GraphInterface& _gi;
+    coro_t::push_type& _yield;
+};
+
+class DJKGenerator
+{
+public:
+    template <class Dispatch>
+    DJKGenerator(Dispatch& dispatch)
+        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+          _iter(begin(*_coro)), _end(end(*_coro)) {}
+    boost::python::object next()
+    {
+        if (_iter == _end)
+            boost::python::objects::stop_iteration_error();
+        boost::python::object oe = *_iter;
+        ++_iter;
+        return oe;
+    }
+private:
+    std::shared_ptr<coro_t::pull_type> _coro;
+    coro_t::pull_type::iterator _iter;
+    coro_t::pull_type::iterator _end;
+};
+
+boost::python::object dijkstra_search_generator(GraphInterface& g,
+                                                size_t source,
+                                                boost::any dist_map,
+                                                boost::any weight,
+                                                python::object cmp,
+                                                python::object cmb,
+                                                python::object zero,
+                                                python::object inf)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            DJKGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views, mpl::true_>()
+            (g, std::bind(do_djk_search(), placeholders::_1, source,
+                          placeholders::_2, dummy_property_map(), weight,
+                          vis, DJKCmp(cmp), DJKCmb(cmb),
+                          make_pair(zero, inf)),
+             writable_vertex_properties())(dist_map);
+        };
+    return boost::python::object(DJKGenerator(dispatch));
+}
+
+boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
+                                                     size_t source,
+                                                     boost::any dist_map,
+                                                     boost::any weight,
+                                                     python::object zero, python::object inf)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            DJKGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views, mpl::true_>()
+            (g, std::bind(do_djk_search_fast(), placeholders::_1, source,
+                          placeholders::_2, placeholders::_3,
+                          vis, make_pair(zero, inf)),
+             writable_vertex_scalar_properties(),
+             edge_scalar_properties())(dist_map, weight);
+        };
+    return boost::python::object(DJKGenerator(dispatch));
 }
 
 void export_dijkstra()
 {
     using namespace boost::python;
     def("dijkstra_search", &dijkstra_search);
+    def("dijkstra_generator", &dijkstra_search_generator);
+    def("dijkstra_generator_fast", &dijkstra_search_generator_fast);
+    class_<DJKGenerator>("DJKGenerator", no_init)
+        .def("__iter__", objects::identity_function())
+        .def("next", &DJKGenerator::next)
+        .def("__next__", &DJKGenerator::next);
 }

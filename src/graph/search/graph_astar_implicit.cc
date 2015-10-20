@@ -50,7 +50,7 @@ struct do_astar_search
                                     decltype(get(vertex_index, g))>
             color(get(vertex_index, g));
         typedef typename property_map_type::
-            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
+            apply<int64_t, decltype(get(vertex_index, g))>::type pred_t;
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());

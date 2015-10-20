@@ -20,6 +20,7 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/breadth_first_search.hpp>
+#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
@@ -105,8 +106,8 @@ private:
 
 struct do_bfs
 {
-    template <class Graph>
-    void operator()(Graph& g, size_t s, BFSVisitorWrapper vis) const
+    template <class Graph, class Visitor>
+    void operator()(Graph& g, size_t s, Visitor vis) const
     {
         breadth_first_search(g, vertex(s, g), visitor(vis));
     }
@@ -119,8 +120,66 @@ void bfs_search(GraphInterface& g, size_t s, python::object vis)
                       BFSVisitorWrapper(g, vis)))();
 }
 
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+class BFSGeneratorVisitor : public bfs_visitor<>
+{
+public:
+    BFSGeneratorVisitor(GraphInterface& gi,
+                        coro_t::push_type& yield)
+        : _gi(gi), _yield(yield) {}
+
+    template <class Edge, class Graph>
+    void tree_edge(const Edge& e, Graph& g)
+    {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+    }
+
+private:
+    GraphInterface& _gi;
+    coro_t::push_type& _yield;
+};
+
+class BFSGenerator
+{
+public:
+    template <class Dispatch>
+    BFSGenerator(Dispatch& dispatch)
+        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+          _iter(begin(*_coro)), _end(end(*_coro)) {}
+    boost::python::object next()
+    {
+        if (_iter == _end)
+            boost::python::objects::stop_iteration_error();
+        boost::python::object oe = *_iter;
+        ++_iter;
+        return oe;
+    }
+private:
+    std::shared_ptr<coro_t::pull_type> _coro;
+    coro_t::pull_type::iterator _iter;
+    coro_t::pull_type::iterator _end;
+};
+
+boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            BFSGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+                (g, std::bind(do_bfs(), placeholders::_1, s, vis))();
+        };
+    return boost::python::object(BFSGenerator(dispatch));
+}
+
 void export_bfs()
 {
     using namespace boost::python;
     def("bfs_search", &bfs_search);
+    def("bfs_search_generator", &bfs_search_generator);
+    class_<BFSGenerator>("BFSGenerator", no_init)
+        .def("__iter__", objects::identity_function())
+        .def("next", &BFSGenerator::next)
+        .def("__next__", &BFSGenerator::next);
 }

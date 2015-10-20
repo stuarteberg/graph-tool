@@ -2,7 +2,7 @@
 
 AM_CPPFLAGS = $(MOD_CPPFLAGS)
 
-AM_CFLAGS=$(AM_CXXFLAGS)
+AM_CFLAGS = $(AM_CXXFLAGS)
 
 libgraph_tool_topologydir = $(MOD_DIR)/topology
 

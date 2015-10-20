@@ -412,18 +412,18 @@ struct export_python_interface
             ("VertexIterator", no_init)
             .def("__iter__", objects::identity_function())
             .def("__next__", &PythonIterator<Graph, PythonVertex<Graph>,
-                                             vertex_iterator>::Next)
+                                             vertex_iterator>::next)
             .def("next", &PythonIterator<Graph, PythonVertex<Graph>,
-                                         vertex_iterator>::Next);
+                                         vertex_iterator>::next);
 
         typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
         class_<PythonIterator<Graph, PythonEdge<Graph>,
                               edge_iterator> >("EdgeIterator", no_init)
             .def("__iter__", objects::identity_function())
             .def("__next__", &PythonIterator<Graph, PythonEdge<Graph>,
-                                         edge_iterator>::Next)
+                                         edge_iterator>::next)
             .def("next", &PythonIterator<Graph, PythonEdge<Graph>,
-                                         edge_iterator>::Next);
+                                         edge_iterator>::next);
 
         typedef typename graph_traits<Graph>::out_edge_iterator
             out_edge_iterator;
@@ -431,9 +431,9 @@ struct export_python_interface
                               out_edge_iterator> >("OutEdgeIterator", no_init)
             .def("__iter__", objects::identity_function())
             .def("__next__", &PythonIterator<Graph, PythonEdge<Graph>,
-                                             out_edge_iterator>::Next)
+                                             out_edge_iterator>::next)
             .def("next", &PythonIterator<Graph, PythonEdge<Graph>,
-                                         out_edge_iterator>::Next);
+                                         out_edge_iterator>::next);
 
         typedef typename graph_traits<Graph>::directed_category
             directed_category;
@@ -446,9 +446,9 @@ struct export_python_interface
                                   in_edge_iterator> >("InEdgeIterator", no_init)
                 .def("__iter__", objects::identity_function())
                 .def("__next__", &PythonIterator<Graph, PythonEdge<Graph>,
-                                                 in_edge_iterator>::Next)
+                                                 in_edge_iterator>::next)
                 .def("next", &PythonIterator<Graph, PythonEdge<Graph>,
-                                             in_edge_iterator>::Next);
+                                             in_edge_iterator>::next);
         }
     }
 

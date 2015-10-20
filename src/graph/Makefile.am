@@ -12,7 +12,7 @@ AM_CXXFLAGS =\
     $(PYTHON_CPPFLAGS) \
     $(BOOST_CPPFLAGS)
 
-AM_CFLAGS=$(AM_CXXFLAGS)
+AM_CFLAGS = $(AM_CXXFLAGS)
 
 libgraph_tool_coredir = $(MOD_DIR)
 libgraph_tool_core_LTLIBRARIES = libgraph_tool_core.la

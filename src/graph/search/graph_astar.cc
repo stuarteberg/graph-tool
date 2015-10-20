@@ -20,6 +20,7 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/astar_search.hpp>
+#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
@@ -39,19 +40,16 @@ python::object operator |(const python::object& a, const T& b)
 
 struct do_astar_search
 {
-    template <class Graph, class DistanceMap>
-    void operator()(Graph& g, size_t s, DistanceMap dist, boost::any pred_map,
-                    boost::any aweight, AStarVisitorWrapper vis, pair<AStarCmp,
-                    AStarCmb> cmp, pair<python::object, python::object> range,
+    template <class Graph, class DistanceMap, class PredMap, class Visitor>
+    void operator()(Graph& g, size_t s, DistanceMap dist, PredMap pred,
+                    boost::any aweight, Visitor vis, pair<AStarCmp, AStarCmb> cmp,
+                    pair<python::object, python::object> range,
                     python::object h, GraphInterface& gi) const
     {
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
-        typedef typename property_map_type::
-            apply<int32_t, decltype(get(vertex_index, g))>::type pred_t;
-        pred_t pred = any_cast<pred_t>(pred_map);
         checked_vector_property_map<default_color_type,
                                     decltype(get(vertex_index, g))>
             color(get(vertex_index, g));
@@ -66,23 +64,138 @@ struct do_astar_search
    }
 };
 
+struct do_astar_search_fast
+{
+    template <class Graph, class DistanceMap, class WeightMap,
+              class Visitor>
+    void operator()(Graph& g, size_t s, DistanceMap dist,
+                    WeightMap weight, Visitor vis,
+                    pair<python::object, python::object> range,
+                    python::object h, GraphInterface& gi) const
+    {
+        typedef typename property_traits<DistanceMap>::value_type dtype_t;
+        dtype_t z = python::extract<dtype_t>(range.first);
+        dtype_t i = python::extract<dtype_t>(range.second);
+        astar_search(g, vertex(s, g), AStarH<Graph, dtype_t>(gi, g, h),
+                     weight_map(weight).distance_map(dist).distance_zero(z).
+                     distance_inf(i).visitor(vis));
+   }
+};
+
 
 void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
                    boost::any pred_map, boost::any weight, python::object vis,
                    python::object cmp, python::object cmb, python::object zero,
                    python::object inf, python::object h)
 {
+    typedef typename property_map_type::
+        apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
+    pred_t pred = any_cast<pred_t>(pred_map);
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
         (g, std::bind(do_astar_search(),  placeholders::_1, source,
-                      placeholders::_2, pred_map, weight,
+                      placeholders::_2, pred, weight,
                       AStarVisitorWrapper(g, vis), make_pair(AStarCmp(cmp),
                                                              AStarCmb(cmb)),
                       make_pair(zero, inf), h, std::ref(g)),
          writable_vertex_properties())(dist_map);
 }
 
+
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+class AStarGeneratorVisitor : public astar_visitor<>
+{
+public:
+    AStarGeneratorVisitor(GraphInterface& gi,
+                          coro_t::push_type& yield)
+        : _gi(gi), _yield(yield) {}
+
+    template <class Edge, class Graph>
+    void edge_relaxed(const Edge& e, Graph& g)
+    {
+        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
+    }
+
+private:
+    GraphInterface& _gi;
+    coro_t::push_type& _yield;
+};
+
+class AStarGenerator
+{
+public:
+    template <class Dispatch>
+    AStarGenerator(Dispatch& dispatch)
+        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+          _iter(begin(*_coro)), _end(end(*_coro)) {}
+    boost::python::object next()
+    {
+        if (_iter == _end)
+            boost::python::objects::stop_iteration_error();
+        boost::python::object oe = *_iter;
+        ++_iter;
+        return oe;
+    }
+private:
+    std::shared_ptr<coro_t::pull_type> _coro;
+    coro_t::pull_type::iterator _iter;
+    coro_t::pull_type::iterator _end;
+};
+
+boost::python::object astar_search_generator(GraphInterface& g,
+                                             size_t source,
+                                             boost::any dist_map,
+                                             boost::any weight,
+                                             python::object cmp,
+                                             python::object cmb,
+                                             python::object zero,
+                                             python::object inf,
+                                             python::object h)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            AStarGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+               (g, std::bind(do_astar_search(),  placeholders::_1, source,
+                             placeholders::_2, dummy_property_map(), weight,
+                             vis, make_pair(AStarCmp(cmp), AStarCmb(cmb)),
+                             make_pair(zero, inf), h, std::ref(g)),
+                writable_vertex_properties())(dist_map);
+        };
+    return boost::python::object(AStarGenerator(dispatch));
+}
+
+boost::python::object astar_search_generator_fast(GraphInterface& g,
+                                                  size_t source,
+                                                  boost::any dist_map,
+                                                  boost::any weight,
+                                                  python::object zero,
+                                                  python::object inf,
+                                                  python::object h)
+{
+    auto dispatch = [&](auto& yield)
+        {
+            AStarGeneratorVisitor vis(g, yield);
+            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+               (g, std::bind(do_astar_search_fast(),  placeholders::_1, source,
+                             placeholders::_2, placeholders::_3,
+                             vis, make_pair(zero, inf), h, std::ref(g)),
+                writable_vertex_scalar_properties(),
+                edge_scalar_properties())(dist_map, weight);
+        };
+    return boost::python::object(AStarGenerator(dispatch));
+}
+
+
 void export_astar()
 {
     using namespace boost::python;
     def("astar_search", &a_star_search);
+    def("astar_generator", &astar_search_generator);
+    def("astar_generator_fast", &astar_search_generator_fast);
+    class_<AStarGenerator>("AStarGenerator", no_init)
+        .def("__iter__", objects::identity_function())
+        .def("next", &AStarGenerator::next)
+        .def("__next__", &AStarGenerator::next);
 }
