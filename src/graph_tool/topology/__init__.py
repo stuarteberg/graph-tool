@@ -493,8 +493,7 @@ def min_spanning_tree(g, weights=None, root=None, tree_map=None):
 
 
 def random_spanning_tree(g, weights=None, root=None, tree_map=None):
-    """
-    Return a random spanning tree of a given graph, which can be directed or
+    r"""Return a random spanning tree of a given graph, which can be directed or
     undirected.
 
     Parameters
@@ -517,7 +516,11 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
 
     Notes
     -----
-    The typical running time for random graphs is :math:`O(N\log N)`.
+
+    The running time for this algorithm is :math:`O(\tau)`, with :math:`\tau`
+    being the mean hitting time of a random walk on the graph. In typical cases
+    (sparse random graphs) the running time is :math:`O(V)`, with :math:`V`
+    being the number of vertices in the graph.
 
     Examples
     --------
@@ -529,29 +532,37 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
        gt.seed_rng(42)
 
     >>> from numpy.random import random
-    >>> g, pos = gt.triangulation(random((400, 2)) * 10, type="delaunay")
+    >>> g, pos = gt.triangulation(random((400, 2)), type="delaunay")
     >>> weight = g.new_edge_property("double")
     >>> for e in g.edges():
     ...    weight[e] = linalg.norm(pos[e.target()].a - pos[e.source()].a)
     >>> tree = gt.random_spanning_tree(g, weights=weight)
+    >>> tree2 = gt.random_spanning_tree(g, weights=weight)
     >>> gt.graph_draw(g, pos=pos, output="rtriang_orig.pdf")
     <...>
-    >>> g.set_edge_filter(tree)
-    >>> gt.graph_draw(g, pos=pos, output="triang_random_span_tree.pdf")
+    >>> u = gt.GraphView(g, efilt=tree)
+    >>> gt.graph_draw(u, pos=pos, output="triang_random_span_tree.pdf")
+    <...>
+    >>> u2 = gt.GraphView(g, efilt=tree2)
+    >>> gt.graph_draw(u2, pos=pos, output="triang_random_span_tree2.pdf")
     <...>
 
     .. testcode::
        :hide:
 
        gt.graph_draw(g, pos=pos, output="rtriang_orig.png")
-       gt.graph_draw(g, pos=pos, output="triang_random_span_tree.png")
+       gt.graph_draw(u, pos=pos, output="triang_random_span_tree.png")
+       gt.graph_draw(u2, pos=pos, output="triang_random_span_tree2.png")
 
     .. image:: rtriang_orig.*
-        :width: 400px
+        :width: 300px
     .. image:: triang_random_span_tree.*
-        :width: 400px
+        :width: 300px
+    .. image:: triang_random_span_tree2.*
+        :width: 300px
 
-    *Left:* Original graph, *Right:* A random spanning tree.
+    *Left:* Original graph, *Middle:* A random spanning tree, *Right:* Another
+    random spanning tree
 
     References
     ----------
