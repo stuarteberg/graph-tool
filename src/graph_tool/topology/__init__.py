@@ -518,9 +518,10 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
     -----
 
     The running time for this algorithm is :math:`O(\tau)`, with :math:`\tau`
-    being the mean hitting time of a random walk on the graph. In typical cases
-    (sparse random graphs) the running time is :math:`O(V)`, with :math:`V`
-    being the number of vertices in the graph.
+    being the mean hitting time of a random walk on the graph. In the worse case,
+    we have :math:`\tau \sim O(V^3)`, with :math:`V` being the number of
+    vertices in the graph. However, in much more typical cases (e.g. sparse
+    random graphs) the running time is simply :math:`O(V)`.
 
     Examples
     --------
