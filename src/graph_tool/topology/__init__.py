@@ -881,7 +881,7 @@ def label_largest_component(g, directed=None):
     return label
 
 
-def label_out_component(g, root):
+def label_out_component(g, root, label=None):
     """
     Label the out-component (or simply the component for undirected graphs) of a
     root vertex.
@@ -892,10 +892,13 @@ def label_out_component(g, root):
         Graph to be used.
     root : :class:`~graph_tool.Vertex`
         The root vertex.
+    label : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        If provided, this must be an initialized Boolean vertex property map
+        where the out-component will be labeled.
 
     Returns
     -------
-    comp : :class:`~graph_tool.PropertyMap`
+    label : :class:`~graph_tool.PropertyMap`
          Boolean vertex property map which labels the out-component.
 
     Notes
@@ -928,7 +931,11 @@ def label_out_component(g, root):
      1 0 0 0 0 1 1 1 0 0 1 1 0 0 0 1 1 0 1 1 0 0 1 0 1 0]
     """
 
-    label = g.new_vertex_property("bool")
+    if label is None:
+        label = g.new_vertex_property("bool")
+    elif label.value_type() != "bool":
+        raise ValueError("value type of `label` must be `bool`, not %s" %
+                         label.value_type())
     libgraph_tool_topology.\
              label_out_component(g._Graph__graph, int(root),
                                  _prop("v", g, label))
