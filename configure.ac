@@ -217,7 +217,7 @@ if test "$BOOST_REGEX_LIB" = ""; then
 fi
 AX_BOOST_COROUTINE
 if test "$BOOST_COROUTINE_LIB" = ""; then
-   AC_MSG_ERROR([No usable boost::coroutine found])
+   AC_MSG_WARN([No usable boost::coroutine found! Some functionality will be disabled in the library.])
 fi
 AX_BOOST_GRAPH
 if test "$BOOST_GRAPH_LIB" = ""; then

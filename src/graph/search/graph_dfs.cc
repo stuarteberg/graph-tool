@@ -154,6 +154,7 @@ private:
 
 boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
 {
+#ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             DFSGeneratorVisitor vis(g, yield);
@@ -162,6 +163,9 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
                               g.get_vertex_index(), s, vis))();
         };
     return boost::python::object(DFSGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+#endif
 }
 
 void export_dfs()

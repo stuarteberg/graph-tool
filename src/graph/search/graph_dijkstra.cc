@@ -231,6 +231,7 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
                                                 python::object zero,
                                                 python::object inf)
 {
+#ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             DJKGeneratorVisitor vis(g, yield);
@@ -242,6 +243,9 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
              writable_vertex_properties())(dist_map);
         };
     return boost::python::object(DJKGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+#endif
 }
 
 boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
@@ -250,6 +254,7 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
                                                      boost::any weight,
                                                      python::object zero, python::object inf)
 {
+#ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             DJKGeneratorVisitor vis(g, yield);
@@ -261,6 +266,9 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
              edge_scalar_properties())(dist_map, weight);
         };
     return boost::python::object(DJKGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+#endif
 }
 
 void export_dijkstra()

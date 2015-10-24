@@ -164,6 +164,7 @@ private:
 
 boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
 {
+#ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             BFSGeneratorVisitor vis(g, yield);
@@ -171,6 +172,9 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
                 (g, std::bind(do_bfs(), placeholders::_1, s, vis))();
         };
     return boost::python::object(BFSGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+#endif
 }
 
 void export_bfs()
