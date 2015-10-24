@@ -183,7 +183,7 @@ template <class... TRS, class Action, class... Args>
 bool nested_for_each(Action a, Args... args)
 {
     bool found = false;
-    std::array<any, sizeof...(args)> as{args...};
+    std::array<any, sizeof...(args)> as{{args...}};
     auto b = dispatch<Action>(a, &as[0], found);
     nested_for_each_imp<TRS...>(b);
     return found;
