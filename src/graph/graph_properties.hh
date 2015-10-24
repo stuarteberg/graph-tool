@@ -64,24 +64,24 @@ using namespace std;
 //       broken, and use a vector<uint8_t> instead!
 //       see: http://www.gotw.ca/publications/N1211.pdf
 
-typedef boost::mpl::vector<uint8_t, int16_t, int32_t, int64_t, double, long double, string,
-                           vector<uint8_t>, vector<int16_t>, vector<int32_t>, vector<int64_t>,
-                           vector<double>, vector<long double>, vector<string>,
-                           boost::python::object>
+typedef boost::mpl::vector15<uint8_t, int16_t, int32_t, int64_t, double, long double, string,
+                             vector<uint8_t>, vector<int16_t>, vector<int32_t>, vector<int64_t>,
+                             vector<double>, vector<long double>, vector<string>,
+                             boost::python::object>
     value_types;
 
 extern const char* type_names[]; // respective type names (defined in
                                  // graph_properties.cc)
 
 // scalar types: types contained in value_types which are scalar
-typedef boost::mpl::vector<uint8_t, int16_t, int32_t, int64_t, double, long double>
+typedef boost::mpl::vector6<uint8_t, int16_t, int32_t, int64_t, double, long double>
     scalar_types;
 
 // integer_types: scalar types which are integer
-typedef boost::mpl::vector<uint8_t, int16_t, int32_t, int64_t> integer_types;
+typedef boost::mpl::vector4<uint8_t, int16_t, int32_t, int64_t> integer_types;
 
 // floating_types: scalar types which are floating point
-typedef boost::mpl::vector<double, long double> floating_types;
+typedef boost::mpl::vector2<double, long double> floating_types;
 
 struct make_vector
 {

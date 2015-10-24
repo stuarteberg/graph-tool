@@ -284,9 +284,9 @@ struct get_all_graph_views
         // filtered graphs
         struct filtered_graphs:
             boost::mpl::if_<NeverFiltered,
-                            boost::mpl::vector<GraphInterface::multigraph_t>,
-                            boost::mpl::vector<GraphInterface::multigraph_t,
-                                               typename get_graph_filtered::apply<FiltType>::type>
+                            boost::mpl::vector1<GraphInterface::multigraph_t>,
+                            boost::mpl::vector2<GraphInterface::multigraph_t,
+                                                typename get_graph_filtered::apply<FiltType>::type>
                             >::type {};
 
         // filtered + reversed graphs
@@ -323,39 +323,6 @@ struct get_all_graph_views
         typedef undirected_graphs type;
     };
 };
-
-// useful metafunction to split sequences in half
-struct split
-{
-    template <class Sequence>
-    struct get_element
-    {
-        template <class Index>
-        struct apply
-        {
-            typedef typename boost::mpl::at<Sequence,Index>::type type;
-        };
-    };
-
-    template <class Sequence>
-    struct apply
-    {
-        typedef typename boost::mpl::size<Sequence>::type size;
-        typedef typename boost::mpl::divides<size, boost::mpl::int_<2> >::type half_size;
-        typedef typename boost::mpl::transform<boost::mpl::range_c<int, 0, half_size::value>,
-                                               get_element<Sequence>,
-                                               boost::mpl::back_inserter<boost::mpl::vector<> > >
-            ::type first_part;
-        typedef typename boost::mpl::transform<boost::mpl::range_c<int, half_size::value,
-                                                                   size::value>,
-                                               get_element<Sequence>,
-                                               boost::mpl::back_inserter<boost::mpl::vector<> > >
-            ::type second_part;
-        typedef typename boost::mpl::pair<first_part,second_part> type;
-    };
-};
-
-
 
 typedef uint8_t filt_scalar_type;
 
@@ -485,10 +452,9 @@ struct graph_action
     template <class... Args>
     void operator()(Args&&... args) const
     {
-        bool found = false;
         boost::any gview = _g.get_graph_view();
-        boost::mpl::nested_for_each<graph_view_pointers,TRS...>
-            (boost::mpl::select_types(_a, found, gview, std::forward<Args>(args)...));
+        bool found = boost::mpl::nested_for_each<graph_view_pointers,TRS...>
+            (_a, gview, std::forward<Args>(args)...);
         if (!found)
         {
             vector<const std::type_info*> args_t = {(&(args).type())...};

@@ -532,103 +532,105 @@ in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descripto
 
 // useful type lists
 
-typedef boost::mpl::vector<in_degreeS, out_degreeS, total_degreeS>
-    degree_selectors;
+struct degree_selectors:
+        boost::mpl::vector<in_degreeS, out_degreeS, total_degreeS> {};
 
-typedef property_map_types::apply<value_types,
-                                  GraphInterface::vertex_index_map_t>::type
-    vertex_properties;
-typedef property_map_types::apply<value_types,
+struct vertex_properties:
+        property_map_types::apply<value_types,
+                                  GraphInterface::vertex_index_map_t>::type {};
+
+struct writable_vertex_properties:
+        property_map_types::apply<value_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    writable_vertex_properties;
+                                  boost::mpl::bool_<false> >::type {};
+struct edge_properties:
+        property_map_types::apply<value_types,
+                                  GraphInterface::edge_index_map_t>::type {};
 
-typedef property_map_types::apply<value_types,
-                                  GraphInterface::edge_index_map_t>::type
-    edge_properties;
-typedef property_map_types::apply<value_types,
+struct writable_edge_properties:
+        property_map_types::apply<value_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    writable_edge_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<scalar_types,
-                                  GraphInterface::vertex_index_map_t>::type
-    vertex_scalar_properties;
-typedef property_map_types::apply<scalar_types,
+struct vertex_scalar_properties:
+        property_map_types::apply<scalar_types,
+                                  GraphInterface::vertex_index_map_t>::type {};
+
+struct writable_vertex_scalar_properties:
+        property_map_types::apply<scalar_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    writable_vertex_scalar_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<integer_types,
-                                  GraphInterface::vertex_index_map_t>::type
-    vertex_integer_properties;
+struct vertex_integer_properties:
+        property_map_types::apply<integer_types,
+                                  GraphInterface::vertex_index_map_t>::type {};
 
-typedef property_map_types::apply<floating_types,
+struct vertex_floating_properties:
+        property_map_types::apply<floating_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    vertex_floating_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<scalar_vector_types,
+struct vertex_scalar_vector_properties:
+        property_map_types::apply<scalar_vector_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    vertex_scalar_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<integer_vector_types,
+struct vertex_integer_vector_properties:
+        property_map_types::apply<integer_vector_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    vertex_integer_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<floating_vector_types,
+struct vertex_floating_vector_properties:
+        property_map_types::apply<floating_vector_types,
                                   GraphInterface::vertex_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    vertex_floating_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<scalar_types,
-                                  GraphInterface::edge_index_map_t>::type
-    edge_scalar_properties;
+struct edge_scalar_properties:
+        property_map_types::apply<scalar_types,
+                                  GraphInterface::edge_index_map_t>::type {};
 
-typedef property_map_types::apply<scalar_types,
+struct writable_edge_scalar_properties:
+        property_map_types::apply<scalar_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    writable_edge_scalar_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<integer_types,
-                                  GraphInterface::edge_index_map_t>::type
-    edge_integer_properties;
+struct edge_integer_properties:
+        property_map_types::apply<integer_types,
+                                  GraphInterface::edge_index_map_t>::type {};
 
-typedef property_map_types::apply<floating_types,
+struct edge_floating_properties:
+        property_map_types::apply<floating_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    edge_floating_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<scalar_vector_types,
+struct edge_scalar_vector_properties:
+        property_map_types::apply<scalar_vector_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    edge_scalar_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<integer_vector_types,
+struct edge_integer_vector_properties:
+        property_map_types::apply<integer_vector_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    edge_integer_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
-typedef property_map_types::apply<floating_vector_types,
+struct edge_floating_vector_properties:
+        property_map_types::apply<floating_vector_types,
                                   GraphInterface::edge_index_map_t,
-                                  boost::mpl::bool_<false> >::type
-    edge_floating_vector_properties;
+                                  boost::mpl::bool_<false> >::type {};
 
 struct vertex_scalar_selectors:
-    boost::mpl::transform<vertex_scalar_properties,
-                          scalar_selector_type>::type {};
+        boost::mpl::transform<vertex_scalar_properties,
+                              scalar_selector_type>::type {};
 
 struct all_selectors:
-    boost::mpl::transform<vertex_properties,
-                          scalar_selector_type,
-                          boost::mpl::back_inserter<degree_selectors> >::type {};
+        boost::mpl::transform<vertex_properties,
+                              scalar_selector_type,
+                              boost::mpl::back_inserter<degree_selectors> >::type {};
 
 struct scalar_selectors:
-    boost::mpl::transform<vertex_scalar_properties,
-                          scalar_selector_type,
-                          boost::mpl::back_inserter<degree_selectors> >::type {};
+        boost::mpl::transform<vertex_scalar_properties,
+                              scalar_selector_type,
+                              boost::mpl::back_inserter<degree_selectors> >::type {};
 
 } //namespace graph_tool
 
