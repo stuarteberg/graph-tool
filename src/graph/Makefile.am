@@ -23,6 +23,7 @@ libgraph_tool_core_la_SOURCES = \
     graph_exceptions.cc \
     graph_bind.cc \
     graph_copy.cc \
+    graph_copy_imp1.cc \
     graph_filtering.cc \
     graph_io.cc \
     graph_openmp.cc \
@@ -33,6 +34,7 @@ libgraph_tool_core_la_SOURCES = \
     graph_properties_group.cc \
     graph_properties_ungroup.cc \
     graph_properties_map_values.cc \
+    graph_properties_map_values_imp1.cc \
     graph_python_interface.cc \
     graph_python_interface_export.cc \
     graph_selectors.cc \

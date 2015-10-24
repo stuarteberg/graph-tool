@@ -28,23 +28,13 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void edge_property_map_values(GraphInterface& g, boost::any src_prop,
-                              boost::any tgt_prop, boost::python::object mapper);
 
-void property_map_values(GraphInterface& g, boost::any src_prop,
-                         boost::any tgt_prop, boost::python::object mapper,
-                         bool edge)
+void edge_property_map_values(GraphInterface& g, boost::any src_prop,
+                              boost::any tgt_prop, boost::python::object mapper)
 {
-    if (!edge)
-    {
-        run_action<graph_tool::detail::always_directed_never_reversed>()
-            (g, std::bind(do_map_values(), placeholders::_1, placeholders::_2,
-                          placeholders::_3, std::ref(mapper)),
-             vertex_properties(), writable_vertex_properties())
-            (src_prop, tgt_prop);
-    }
-    else
-    {
-        edge_property_map_values(g, src_prop, tgt_prop, mapper);
-    }
+    run_action<graph_tool::detail::always_directed_never_reversed>()
+        (g, std::bind(do_map_values(), placeholders::_1, placeholders::_2,
+                      placeholders::_3, std::ref(mapper)),
+         edge_properties(), writable_edge_properties())
+        (src_prop, tgt_prop);
 }
