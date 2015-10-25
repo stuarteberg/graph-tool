@@ -178,6 +178,7 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
                                                   python::object inf,
                                                   python::object h)
 {
+#ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             AStarGeneratorVisitor vis(g, yield);
@@ -188,7 +189,9 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
                 writable_vertex_scalar_properties(),
                 edge_scalar_properties())(dist_map, weight);
         };
+#else
     return boost::python::object(AStarGenerator(dispatch));
+#endif
 }
 
 
