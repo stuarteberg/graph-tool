@@ -59,7 +59,7 @@ struct do_map_values
 
     template <class SrcProp, class TgtProp, class ValueMap, class Range>
     void dispatch_descriptor(SrcProp& src, TgtProp& tgt, ValueMap& value_map,
-                             python::object& mapper, Range && range) const
+                             python::object& mapper, Range&& range) const
     {
         typedef typename property_traits<TgtProp>::value_type tgt_value_type;
         for (const auto& v : range)

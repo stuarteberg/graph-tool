@@ -23,19 +23,22 @@ libgraph_tool_core_la_SOURCES = \
     graph_exceptions.cc \
     graph_bind.cc \
     graph_copy.cc \
-    graph_copy_imp1.cc \
     graph_filtering.cc \
     graph_io.cc \
     graph_openmp.cc \
     graph_properties.cc \
     graph_properties_imp1.cc \
     graph_properties_imp2.cc \
+    graph_properties_imp3.cc \
+    graph_properties_imp4.cc \
     graph_properties_copy.cc \
+    graph_properties_copy_imp1.cc \
     graph_properties_group.cc \
     graph_properties_ungroup.cc \
     graph_properties_map_values.cc \
     graph_properties_map_values_imp1.cc \
     graph_python_interface.cc \
+    graph_python_interface_imp1.cc \
     graph_python_interface_export.cc \
     graph_selectors.cc \
     graphml.cpp \
@@ -55,6 +58,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_filtering.hh \
     graph_io_binary.hh \
     graph_properties.hh \
+    graph_properties_copy.hh \
     graph_properties_group.hh \
     graph_properties_map_values.hh \
     graph_python_interface.hh \

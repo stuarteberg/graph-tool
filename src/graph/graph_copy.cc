@@ -70,7 +70,8 @@ struct copy_vertex_property_dispatch
         auto p_tgt = ptgt->get_unchecked(num_vertices(tgt));
 
         int i, N = num_vertices(src);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
+        #pragma omp parallel for default(shared) private(i) \
+            schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, src);
