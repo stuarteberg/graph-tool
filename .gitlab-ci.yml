@@ -5,7 +5,7 @@ job_gcc_386:
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
-    - cd doc; OMP_NUM_THREADS=1 python3 /usr/bin/sphinx-build -b doctest . build *.rst
+    - cd doc; OMP_NUM_THREADS=1 python3 /usr/bin/sphinx-build -b doctest . build centrality.rst clustering.rst collection.rst community.rst correlations.rst draw.rst faq.rst flow.rst generation.rst graph_tool.rst gt_format.rst index.rst modules.rst quickstart.rst spectral.rst stats.rst topology.rst util.rst
   tags:
     - i386
 
@@ -16,7 +16,7 @@ job_gcc_py2_386:
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
-    - cd doc; OMP_NUM_THREADS=1 python2 /usr/bin/sphinx-build -b doctest . build *.rst
+    - cd doc; OMP_NUM_THREADS=1 python2 /usr/bin/sphinx-build -b doctest . build centrality.rst clustering.rst collection.rst community.rst correlations.rst draw.rst faq.rst flow.rst generation.rst graph_tool.rst gt_format.rst index.rst modules.rst quickstart.rst spectral.rst stats.rst topology.rst util.rst
   tags:
     - i386
 
