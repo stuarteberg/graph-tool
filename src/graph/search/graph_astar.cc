@@ -189,8 +189,9 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
                 writable_vertex_scalar_properties(),
                 edge_scalar_properties())(dist_map, weight);
         };
-#else
     return boost::python::object(AStarGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
 #endif
 }
 
