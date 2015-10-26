@@ -377,43 +377,27 @@ struct action_wrap
         : _a(a), _g(g), _max_v(max_v), _max_e(max_e) {}
 
     template <class Type>
-    boost::checked_vector_property_map<Type,GraphInterface::vertex_index_map_t>&
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::true_) const
-    {
-        return a;
-    }
-
-    template <class Type>
-    boost::unchecked_vector_property_map<Type,GraphInterface::vertex_index_map_t>
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::vertex_index_map_t> a, boost::mpl::false_) const
+    auto
+    uncheck(boost::checked_vector_property_map<Type, GraphInterface::vertex_index_map_t> a,
+            boost::mpl::false_) const
     {
         return a.get_unchecked(_max_v);
     }
 
     template <class Type>
-    boost::checked_vector_property_map<Type,GraphInterface::edge_index_map_t>&
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::true_) const
-    {
-        return a;
-    }
-
-    template <class Type>
-    boost::unchecked_vector_property_map<Type,GraphInterface::edge_index_map_t>
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::edge_index_map_t> a, boost::mpl::false_) const
+    auto
+    uncheck(boost::checked_vector_property_map<Type,GraphInterface::edge_index_map_t> a,
+            boost::mpl::false_) const
     {
         return a.get_unchecked(_max_e);
     }
 
     template <class Type>
-    scalarS<typename Type::unchecked_t>
+    auto
     uncheck(scalarS<Type> a, boost::mpl::false_) const
     {
-        return scalarS<typename Type::unchecked_t>(uncheck(a._pmap,
-                                                           boost::mpl::false_()));
+        return scalarS<typename Type::unchecked_t>
+            (uncheck(a._pmap, boost::mpl::false_()));
     }
 
     //no op
@@ -422,14 +406,10 @@ struct action_wrap
 
     void operator()() const {};
 
-    template <class T1> void operator()(T1* a1) const
-    { _a(*a1); }
-
     template <class T1, class... Ts>
     void operator()(T1* a1, Ts&&... as) const
     {
         _a(*a1, uncheck(std::forward<Ts>(as), Wrap())...);
-
     }
 
     Action _a;

@@ -54,105 +54,95 @@ namespace mpl
 //
 // The code above will run iterate through all combinations of foo::operator(T1,
 // T2, T3) and call the one that corresponds to the actual types stored in x, y,
-// and z. If the types are not found during iteration, we have found = true,
-// otherwise found = false. This provides a more general compile-time to
+// and z. If the types are not found during iteration, we have found == true,
+// otherwise found == false. This provides a more general compile-time to
 // run-time bridge than the simpler mpl::for_each().
 
-template <class Action, class T>
-struct bind_arg
+
+struct stop_iteration: public std::exception {};
+
+// this is a functor wrapper that will perform an any_cast<> in each in an array
+// of arguments according to the called types. If the cast is successful, the
+// function will be called with those types, and stop_iteration will be thrown.
+template <class Action, std::size_t N>
+struct all_any_cast
 {
-    bind_arg(Action a, any& arg, bool& found)
-        : _a(a), _arg(arg), _found(found) {}
+    all_any_cast(Action a, std::array<any, N>& args)
+        : _a(a), _args(args) {}
 
     template <class... Ts>
     __attribute__((always_inline))
-    void operator()(Ts&&... args) const
+    void operator()(Ts&&... vs) const
     {
-        T* v = const_cast<T*>(any_cast<T>(&_arg));
-        if (v != 0)
-            _a(*v, args...);
+        dispatch(std::make_index_sequence<sizeof...(Ts)>(),
+                 std::forward<Ts>(vs)...);
     }
 
+    template <std::size_t... Idx, class... Ts>
     __attribute__((always_inline))
-    void operator()() const
+    void dispatch(std::index_sequence<Idx...>, Ts&&...) const
     {
-        T* v = const_cast<T*>(any_cast<T>(&_arg));
-        if (v != 0)
+        try
         {
-            _a(*v);
-            _found = true;
+            _a(any_cast<Ts&>(_args[Idx])...);
+            throw stop_iteration();
         }
+        catch (bad_any_cast) {}
     }
 
     Action _a;
-    any& _arg;
-    bool& _found;
+    std::array<any, N>& _args;
 };
 
+// recursion-free variadic version of for_each
+template <class...>
+struct for_each_variadic;
 
-template <class Action>
-struct dispatch
+template <class F, class... Ts>
+struct for_each_variadic<F,std::tuple<Ts...>>
 {
-    dispatch(Action a, any* args, bool& found)
-        : _a(a), _args(args), _found(found) {}
+    void operator()(F f)
+    {
+        auto call = [&](auto&& arg){f(std::forward<decltype(arg)>(arg)); return 0;};
+        (void) std::initializer_list<int> {call(Ts())...};
+    }
+};
+
+// convert mpl sequence to std::tuple
+template <class T, class R>
+struct to_tuple_imp;
+
+template <class... Ts, class X>
+struct to_tuple_imp<std::tuple<Ts...>, X>
+{
+    typedef std::tuple<Ts..., X> type;
+};
+
+template <class Seq>
+struct to_tuple
+{
+    typedef typename mpl::fold<Seq, std::tuple<>,
+                               to_tuple_imp<mpl::_1, mpl::_2>>::type type;
+};
+
+// nested type loops via variadic templates
+
+template <class...>
+struct inner_loop {};
+
+template <class Action, class... Ts>
+struct inner_loop<Action, std::tuple<Ts...>>
+{
+    inner_loop(Action a): _a(a) {}
 
     template <class T>
     __attribute__((always_inline))
-    auto get_next() const
-    {
-        bind_arg<Action, T> a(_a, *_args, _found);
-        return dispatch<bind_arg<Action, T>>(a, _args + 1, _found);
-    }
-
-    template <class T>
-    __attribute__((always_inline))
-    void operator()(T) const
-    {
-        bind_arg<Action, T> a(_a, *_args, _found);
-        a();
-    }
-
-    __attribute__((always_inline))
-    void operator()() const
-    {
-        _a();
-    }
-
+    void operator()(T) const { _a(Ts()..., T()); }  // innermost loop
     Action _a;
-    any* _args;
-    bool& _found;
 };
 
-template <class F>
-inline void for_each_pack(F)
-{};
-
-template <class F, class T, class... Ts>
-inline void for_each_pack(F f)
-{
-    f(T());
-    for_each_pack<F, Ts...>(f);
-};
-
-template <class F, class Seq, class Iter, class... Ts>
-inline void for_each_alt(F f, Iter)
-{
-    for_each_alt<F, Seq, typename next<Iter>::type, Ts...,
-                 typename deref<Iter>::type>
-        (f, typename next<Iter>::type());
-}
-
-template <class F, class Seq, class Iter, class... Ts>
-inline void for_each_alt(F f, typename end<Seq>::type)
-{
-    for_each_pack<F, Ts...>(f);
-}
-
-template <class TR1, class... TRS, class Action>
-void nested_for_each_imp(Action a);
-
-template <class Action, class... TRS>
-struct inner_loop
+template <class Action, class... Ts, class TR1, class... TRS>
+struct inner_loop<Action, std::tuple<Ts...>, TR1, TRS...>
 {
     inner_loop(Action a): _a(a) {}
 
@@ -160,33 +150,32 @@ struct inner_loop
     __attribute__((always_inline))
     void operator()(T) const
     {
-        nested_for_each_imp<TRS...>(_a.template get_next<T>());
+        typedef inner_loop<Action, std::tuple<Ts..., T>, TRS...> inner_loop_t;
+        typedef typename to_tuple<TR1>::type tr_tuple;
+        for_each_variadic<inner_loop_t, tr_tuple>()(inner_loop_t(_a));
     }
     Action _a;
 };
 
-template <class TR1, class... TRS, class Action>
-void nested_for_each_imp(Action a)
-{
-    for_each_alt<inner_loop<Action, TRS...>,
-                 TR1, typename begin<TR1>::type>
-        (inner_loop<Action, TRS...>(a), typename begin<TR1>::type());
-}
+// final function
 
-template <class Action>
-void nested_for_each_imp(Action a)
-{
-    a();
-}
-
-template <class... TRS, class Action, class... Args>
+template <class TR1, class... TRS, class Action, class... Args>
 bool nested_for_each(Action a, Args... args)
 {
-    bool found = false;
     std::array<any, sizeof...(args)> as{{args...}};
-    auto b = dispatch<Action>(a, &as[0], found);
-    nested_for_each_imp<TRS...>(b);
-    return found;
+    auto b = all_any_cast<Action, sizeof...(args)>(a, as);
+    try
+    {
+        typedef decltype(b) action_t;
+        typedef typename to_tuple<TR1>::type tr_tuple;
+        typedef inner_loop<action_t, std::tuple<>, TRS...> inner_loop_t;
+        for_each_variadic<inner_loop_t, tr_tuple>()(inner_loop_t(b));
+        return false;
+    }
+    catch (stop_iteration&)
+    {
+        return true;
+    }
 }
 
 } // mpl namespace
