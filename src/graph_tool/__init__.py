@@ -1459,15 +1459,15 @@ class PropertyDict(object):
             if k[0] == self.t:
                 yield k[0]
 
-    def haskey(self, key):
-        return self.properties.haskey(key)
-
     def items(self):
         for k, v in self.properties.items():
             if k[0] == self.t:
                 yield k[1], v
 
     if sys.version_info < (3,):
+        def has_key(self, key):
+            return self.properties.has_key((self.t, key))
+
         def iteritems(self):
             for k, v in self.properties.iteritems():
                 if k[0] == self.t:
