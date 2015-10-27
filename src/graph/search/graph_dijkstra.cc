@@ -20,11 +20,14 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
-#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
@@ -179,6 +182,7 @@ void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
          writable_vertex_properties())(dist_map);
 }
 
+#ifdef HAVE_BOOST_COROUTINE
 
 typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
 
@@ -222,6 +226,8 @@ private:
     coro_t::pull_type::iterator _end;
 };
 
+#endif // HAVE_BOOST_COROUTINE
+
 boost::python::object dijkstra_search_generator(GraphInterface& g,
                                                 size_t source,
                                                 boost::any dist_map,
@@ -244,7 +250,7 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
         };
     return boost::python::object(DJKGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -267,7 +273,7 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
         };
     return boost::python::object(DJKGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -277,8 +283,10 @@ void export_dijkstra()
     def("dijkstra_search", &dijkstra_search);
     def("dijkstra_generator", &dijkstra_search_generator);
     def("dijkstra_generator_fast", &dijkstra_search_generator_fast);
+#ifdef HAVE_BOOST_COROUTINE
     class_<DJKGenerator>("DJKGenerator", no_init)
         .def("__iter__", objects::identity_function())
         .def("next", &DJKGenerator::next)
         .def("__next__", &DJKGenerator::next);
+#endif
 }

@@ -11,11 +11,14 @@
 #include <boost/python.hpp>
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/undirected_dfs.hpp>
-#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
@@ -109,6 +112,7 @@ void dfs_search(GraphInterface& g, size_t s, python::object vis)
                       s, DFSVisitorWrapper(g, vis)))();
 }
 
+#ifdef HAVE_BOOST_COROUTINE
 
 typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
 
@@ -152,6 +156,9 @@ private:
     coro_t::pull_type::iterator _end;
 };
 
+#endif // HAVE_BOOST_COROUTINE
+
+
 boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
 {
 #ifdef HAVE_BOOST_COROUTINE
@@ -164,7 +171,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
         };
     return boost::python::object(DFSGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -173,8 +180,10 @@ void export_dfs()
     using namespace boost::python;
     def("dfs_search", &dfs_search);
     def("dfs_search_generator", &dfs_search_generator);
+#ifdef HAVE_BOOST_COROUTINE
     class_<DFSGenerator>("DFSGenerator", no_init)
         .def("__iter__", objects::identity_function())
         .def("next", &DFSGenerator::next)
         .def("__next__", &DFSGenerator::next);
+#endif
 }

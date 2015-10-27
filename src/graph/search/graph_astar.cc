@@ -20,13 +20,16 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/astar_search.hpp>
-#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 
 #include "graph_astar.hh"
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
@@ -100,6 +103,7 @@ void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
          writable_vertex_properties())(dist_map);
 }
 
+#ifdef HAVE_BOOST_COROUTINE
 
 typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
 
@@ -143,6 +147,8 @@ private:
     coro_t::pull_type::iterator _end;
 };
 
+#endif // HAVE_BOOST_COROUTINE
+
 boost::python::object astar_search_generator(GraphInterface& g,
                                              size_t source,
                                              boost::any dist_map,
@@ -166,7 +172,7 @@ boost::python::object astar_search_generator(GraphInterface& g,
         };
     return boost::python::object(AStarGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -191,7 +197,7 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
         };
     return boost::python::object(AStarGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -202,8 +208,10 @@ void export_astar()
     def("astar_search", &a_star_search);
     def("astar_generator", &astar_search_generator);
     def("astar_generator_fast", &astar_search_generator_fast);
+#ifdef HAVE_BOOST_COROUTINE
     class_<AStarGenerator>("AStarGenerator", no_init)
         .def("__iter__", objects::identity_function())
         .def("next", &AStarGenerator::next)
         .def("__next__", &AStarGenerator::next);
+#endif
 }

@@ -20,11 +20,14 @@
 
 #include <boost/python.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-#include <boost/coroutine/all.hpp>
 
 #include "graph.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
@@ -120,6 +123,8 @@ void bfs_search(GraphInterface& g, size_t s, python::object vis)
                       BFSVisitorWrapper(g, vis)))();
 }
 
+#ifdef HAVE_BOOST_COROUTINE
+
 typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
 
 class BFSGeneratorVisitor : public bfs_visitor<>
@@ -162,6 +167,8 @@ private:
     coro_t::pull_type::iterator _end;
 };
 
+#endif // HAVE_BOOST_COROUTINE
+
 boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
 {
 #ifdef HAVE_BOOST_COROUTINE
@@ -173,7 +180,7 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
         };
     return boost::python::object(BFSGenerator(dispatch));
 #else
-    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time")
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
 }
 
@@ -182,8 +189,10 @@ void export_bfs()
     using namespace boost::python;
     def("bfs_search", &bfs_search);
     def("bfs_search_generator", &bfs_search_generator);
+#ifdef HAVE_BOOST_COROUTINE
     class_<BFSGenerator>("BFSGenerator", no_init)
         .def("__iter__", objects::identity_function())
         .def("next", &BFSGenerator::next)
         .def("__next__", &BFSGenerator::next);
+#endif
 }
