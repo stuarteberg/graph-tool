@@ -445,15 +445,15 @@ def min_spanning_tree(g, weights=None, root=None, tree_map=None):
     >>> tree = gt.min_spanning_tree(g, weights=weight)
     >>> gt.graph_draw(g, pos=pos, output="triang_orig.pdf")
     <...>
-    >>> g.set_edge_filter(tree)
-    >>> gt.graph_draw(g, pos=pos, output="triang_min_span_tree.pdf")
+    >>> u = gt.GraphView(g, efilt=tree)
+    >>> gt.graph_draw(u, pos=pos, output="triang_min_span_tree.pdf")
     <...>
 
     .. testcode::
        :hide:
 
        gt.graph_draw(g, pos=pos, output="triang_orig.png")
-       gt.graph_draw(g, pos=pos, output="triang_min_span_tree.png")
+       gt.graph_draw(u, pos=pos, output="triang_min_span_tree.png")
 
     .. image:: triang_orig.*
         :width: 400px
