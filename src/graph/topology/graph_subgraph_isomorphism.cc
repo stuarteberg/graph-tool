@@ -158,8 +158,8 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     }
     else
     {
-        edge_label1 = any_cast<elabel_t>(edge_label1).get_unchecked(gi1.get_max_edge_index());
-        edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_max_edge_index());
+        edge_label1 = any_cast<elabel_t>(edge_label1).get_unchecked(gi1.get_edge_index_range());
+        edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_edge_index_range());
     }
 
     vector<vlabel_t> vmaps;

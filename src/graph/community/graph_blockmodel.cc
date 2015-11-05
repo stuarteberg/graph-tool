@@ -240,7 +240,7 @@ struct move_sweep_dispatch
                         vector<int64_t>& target_list, bool deg_corr, bool dense,
                         bool multigraph, double beta, bool sequential,
                         bool parallel, bool random_move, double c, bool verbose,
-                        size_t max_edge_index, size_t nmerges, size_t niter,
+                        size_t edge_index_range, size_t nmerges, size_t niter,
                         Vprop merge_map, partition_stats_t& partition_stats,
                         rng_t& rng, double& S, size_t& nmoves,
                         GraphInterface& bgi)
@@ -250,7 +250,7 @@ struct move_sweep_dispatch
           target_list(target_list), deg_corr(deg_corr), dense(dense),
           multigraph(multigraph), beta(beta), sequential(sequential),
           parallel(parallel), random_move(random_move),
-          c(c), verbose(verbose), max_edge_index(max_edge_index),
+          c(c), verbose(verbose), edge_index_range(edge_index_range),
           nmerges(nmerges), niter(niter), merge_map(merge_map),
           partition_stats(partition_stats), rng(rng), S(S),
           nmoves(nmoves), bgi(bgi)
@@ -275,7 +275,7 @@ struct move_sweep_dispatch
     bool random_move;
     double c;
     bool verbose;
-    size_t max_edge_index;
+    size_t edge_index_range;
     size_t nmerges;
     size_t niter;
     Vprop merge_map;
@@ -367,7 +367,7 @@ struct move_sweep_dispatch
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        size_t eidx = random_move ? 1 : max_edge_index;
+        size_t eidx = random_move ? 1 : edge_index_range;
 
         typedef typename property_map<Graph, vertex_index_t>::type vindex_map_t;
         typedef typename property_map_type::apply<Sampler<vertex_t, boost::mpl::false_>,
@@ -386,7 +386,7 @@ struct move_sweep_dispatch
 
         overlap_stats_t ostats;
         vector<size_t> free_blocks;
-        auto state = make_block_state(g, eweight.get_unchecked(max_edge_index),
+        auto state = make_block_state(g, eweight.get_unchecked(edge_index_range),
                                       vweight.get_unchecked(num_vertices(g)),
                                       b.get_unchecked(num_vertices(g)), bg,
                                       emat, mrs,
@@ -412,7 +412,7 @@ struct move_sweep_dispatch
                        label.get_unchecked(num_vertices(bg)),
                        vlist, block_list,
                        deg_corr, dense, multigraph, beta,
-                       eweight.get_unchecked(max_edge_index),
+                       eweight.get_unchecked(edge_index_range),
                        vweight.get_unchecked(num_vertices(g)),
                        g, sequential, parallel, random_move, c,
                        nmerges,
@@ -490,7 +490,7 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                         label, vlist, block_list,
                         target_list, deg_corr, dense, multigraph,
                         beta, sequential, parallel, random_move, c, verbose,
-                        gi.get_max_edge_index(), nmerges, niter, merge_map,
+                        gi.get_edge_index_range(), nmerges, niter, merge_map,
                         partition_stats, rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,
                        std::ref(emat), sampler, cavity_sampler, weighted))();
@@ -532,9 +532,9 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
     boost::any oegroups;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(build_egroups(), b, std::ref(oegroups),
-                             esrcpos.get_unchecked(gi.get_max_edge_index()),
-                             etgtpos.get_unchecked(gi.get_max_edge_index()),
-                             eweights.get_unchecked(gi.get_max_edge_index()),
+                             esrcpos.get_unchecked(gi.get_edge_index_range()),
+                             etgtpos.get_unchecked(gi.get_edge_index_range()),
+                             eweights.get_unchecked(gi.get_edge_index_range()),
                              placeholders::_1, bgi.get_vertex_index(),
                              bgi.get_num_vertices(), weighted, empty))();
     return oegroups;

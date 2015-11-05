@@ -31,7 +31,7 @@ struct do_edge_endpoint
 {
     template <class Graph, class EdgeIndexMap, class VertexPropertyMap>
     void operator()(Graph& g, EdgeIndexMap, VertexPropertyMap prop,
-                    boost::any aeprop, size_t max_edge_index) const
+                    boost::any aeprop, size_t edge_index_range) const
     {
         typedef typename property_traits<VertexPropertyMap>::value_type vval_t;
         typedef typename boost::mpl::if_<std::is_same<vval_t, size_t>, int64_t, vval_t>::type
@@ -39,7 +39,7 @@ struct do_edge_endpoint
         typedef typename property_map_type::apply<val_t, EdgeIndexMap>::type
             eprop_t;
         eprop_t eprop = any_cast<eprop_t>(aeprop);
-        eprop.reserve(max_edge_index);
+        eprop.reserve(edge_index_range);
 
         int i, N = num_vertices(g);
         #pragma omp parallel for default(shared) private(i)     \
@@ -67,15 +67,15 @@ struct do_edge_endpoint
 void edge_endpoint(GraphInterface& gi, boost::any prop,
                    boost::any eprop, std::string endpoint)
 {
-    size_t max_edge_index = gi.get_max_edge_index();
+    size_t edge_index_range = gi.get_edge_index_range();
     if (endpoint == "source")
         run_action<>()(gi, std::bind(do_edge_endpoint<true>(), placeholders::_1,
                                      gi.get_edge_index(), placeholders::_2, eprop,
-                                     max_edge_index),
+                                     edge_index_range),
                        vertex_properties())(prop);
     else
         run_action<>()(gi, std::bind(do_edge_endpoint<false>(), placeholders::_1,
                                      gi.get_edge_index(), placeholders::_2, eprop,
-                                     max_edge_index),
+                                     edge_index_range),
                        vertex_properties())(prop);
 }

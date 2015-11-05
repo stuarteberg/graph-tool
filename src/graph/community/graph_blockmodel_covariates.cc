@@ -62,7 +62,7 @@ struct cov_move_sweep_dispatch
                             bool sequential, bool parallel, bool random_move,
                             bool node_coherent, bool confine_layers, double c,
                             bool verbose, size_t meindex,
-                            vector<size_t> max_edge_index, size_t nmerges,
+                            vector<size_t> edge_index_range, size_t nmerges,
                             size_t niter, Vprop merge_map,
                             vector<std::reference_wrapper<partition_stats_t>>& partition_stats,
                             vector<std::reference_wrapper<overlap_partition_stats_t>>& overlap_partition_stats,
@@ -82,7 +82,7 @@ struct cov_move_sweep_dispatch
           sequential(sequential), parallel(parallel), random_move(random_move),
           node_coherent(node_coherent), confine_layers(confine_layers),
           c(c), verbose(verbose), meindex(meindex),
-          max_edge_index(max_edge_index),
+          edge_index_range(edge_index_range),
           nmerges(nmerges), niter(niter), merge_map(merge_map),
           partition_stats(partition_stats),
           overlap_partition_stats(overlap_partition_stats),
@@ -117,7 +117,7 @@ struct cov_move_sweep_dispatch
     double c;
     bool verbose;
     size_t meindex;
-    vector<size_t> max_edge_index;
+    vector<size_t> edge_index_range;
     size_t nmerges;
     size_t niter;
     Vprop merge_map;
@@ -300,10 +300,10 @@ struct cov_move_sweep_dispatch
 
             for (size_t i = 0; i < mrs.size(); ++i)
             {
-                size_t eidx = random_move ? 1 : max_edge_index[i];
+                size_t eidx = random_move ? 1 : edge_index_range[i];
 
                 state_t state = make_block_state(gs[i].get(),
-                                                 eweight[i].get().get_unchecked(max_edge_index[i]),
+                                                 eweight[i].get().get_unchecked(edge_index_range[i]),
                                                  vweight[i].get().get_unchecked(num_vertices(gs[i].get())),
                                                  bs[i].get().get_unchecked(num_vertices(gs[i].get())),
                                                  bgs[i].get(),
@@ -337,7 +337,7 @@ struct cov_move_sweep_dispatch
                            label.get_unchecked(B),
                            vlist, block_list, deg_corr,
                            dense, multigraph, beta,
-                           eweight[0].get().get_unchecked(max_edge_index[0]),
+                           eweight[0].get().get_unchecked(edge_index_range[0]),
                            vweight[0].get().get_unchecked(num_vertices(g)),
                            g, sequential, parallel, random_move, c,
                            nmerges,
@@ -375,10 +375,10 @@ struct cov_move_sweep_dispatch
             vector<state_t> states;
             for (size_t i = 0; i < mrs.size(); ++i)
             {
-                size_t eidx = random_move ? 1 : max_edge_index[i];
+                size_t eidx = random_move ? 1 : edge_index_range[i];
 
                 state_t state = make_block_state(gs[i].get(),
-                                                 eweight[i].get().get_unchecked(max_edge_index[i]),
+                                                 eweight[i].get().get_unchecked(edge_index_range[i]),
                                                  vweight[i].get().get_unchecked(num_vertices(gs[i].get())),
                                                  bs[i].get().get_unchecked(num_vertices(gs[i].get())),
                                                  bgs[i].get(),
@@ -577,7 +577,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
 
     vector<size_t> eidx;
     for (GraphInterface& g : gis)
-        eidx.push_back(g.get_max_edge_index());
+        eidx.push_back(g.get_edge_index_range());
 
     auto bgi = from_rlist<GraphInterface>(obgi);
 
@@ -606,7 +606,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
                         label, vlist, block_list, target_blocks, deg_corr, dense,
                         multigraph, beta, sequential, parallel, random_move,
                         node_coherent, confine_layers, c, verbose,
-                        gi.get_max_edge_index(), eidx, nmerges, niter, merge_map,
+                        gi.get_edge_index_range(), eidx, nmerges, niter, merge_map,
                         partition_stats, overlap_partition_stats, overlap_stats,
                         master, slave, rng, S, nmoves, bgi, bmap, brmap, free_blocks, B),
                        std::ref(mrs), std::ref(mrp), std::ref(mrm), std::ref(wr),
@@ -653,7 +653,7 @@ void do_ec_hist(GraphInterface& gi, boost::any& aevc, boost::any& aec)
                                      GraphInterface::edge_index_map_t>::type
         emap_t;
     typename emap_t::unchecked_t ec =
-        any_cast<emap_t&>(aec).get_unchecked(gi.get_max_edge_index());
+        any_cast<emap_t&>(aec).get_unchecked(gi.get_edge_index_range());
     run_action<>()(gi, std::bind<void>(ec_hist(), placeholders::_1,
                                        placeholders::_2, std::ref(ec)),
                    edge_properties())(aevc);

@@ -143,7 +143,7 @@ void betweenness(GraphInterface& g, boost::any weight,
                             std::placeholders::_1, g.get_vertex_index(),
                             std::placeholders::_2,
                             std::placeholders::_3, weight, normalize,
-                            g.get_num_vertices(), g.get_max_edge_index()),
+                            g.get_num_vertices(), g.get_edge_index_range()),
              edge_floating_properties(),
              vertex_floating_properties())
             (edge_betweenness, vertex_betweenness);

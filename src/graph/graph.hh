@@ -145,7 +145,7 @@ public:
     std::shared_ptr<multigraph_t> get_graph_ptr() {return _mg;}
     vertex_index_map_t get_vertex_index()   {return _vertex_index;}
     edge_index_map_t   get_edge_index()     {return _edge_index;}
-    size_t             get_max_edge_index() {return _mg->get_last_index();}
+    size_t             get_edge_index_range() {return _mg->get_edge_index_range();}
 
     graph_index_map_t  get_graph_index()  {return graph_index_map_t(0);}
 

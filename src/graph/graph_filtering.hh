@@ -445,7 +445,7 @@ struct graph_action
 
     graph_action(GraphInterface& g, Action a)
         : _g(g), _a(a, g, num_vertices(*g._mg),
-                    max(g._mg->get_last_index(), size_t(1))) {}
+                    max(g._mg->get_edge_index_range(), size_t(1))) {}
 
     template <class... Args>
     void operator()(Args&&... args) const

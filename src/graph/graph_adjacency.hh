@@ -164,7 +164,7 @@ public:
     typedef std::vector<std::pair<vertex_t, vertex_t> > edge_list_t;
     typedef typename integer_range<Vertex>::iterator vertex_iterator;
 
-    adj_list(): _n_edges(0), _last_idx(0), _keep_epos(false) {}
+    adj_list(): _n_edges(0), _edge_index_range(0), _keep_epos(false) {}
 
     struct get_vertex
     {
@@ -262,7 +262,7 @@ public:
     void reindex_edges()
     {
         _free_indexes.clear();
-        _last_idx = 0;
+        _edge_index_range = 0;
         _in_edges.clear();
         _in_edges.resize(_out_edges.size());
         for (size_t i = 0; i < _out_edges.size(); ++i)
@@ -272,9 +272,9 @@ public:
             {
                 auto& oe = oes[j];
                 Vertex v = oe.first;
-                oe.second = _last_idx;
-                _in_edges[v].emplace_back(i, _last_idx);
-                _last_idx++;
+                oe.second = _edge_index_range;
+                _in_edges[v].emplace_back(i, _edge_index_range);
+                _edge_index_range++;
             }
         }
 
@@ -301,7 +301,7 @@ public:
         return _keep_epos;
     }
 
-    size_t get_last_index() const { return _last_idx; }
+    size_t get_edge_index_range() const { return _edge_index_range; }
 
     static Vertex null_vertex() { return std::numeric_limits<Vertex>::max(); }
 
@@ -318,17 +318,17 @@ public:
                                      [](const auto &a, const auto& b) -> bool
                                      {return a.idx < b.idx;});
         if (iter == erange.second)
-            _last_idx = 0;
+            _edge_index_range = 0;
         else
-            _last_idx = iter->idx + 1;
+            _edge_index_range = iter->idx + 1;
         auto iter_idx = std::remove_if(_free_indexes.begin(),
                                        _free_indexes.end(),
                                        [&](auto idx) -> bool
-                                       {return idx > _last_idx;});
+                                       {return idx > _edge_index_range;});
         _free_indexes.erase(iter_idx, _free_indexes.end());
         _free_indexes.shrink_to_fit();
         if (_keep_epos)
-            _epos.resize(_last_idx);
+            _epos.resize(_edge_index_range);
         _epos.shrink_to_fit();
     }
 
@@ -337,7 +337,7 @@ private:
     vertex_list_t _out_edges;
     vertex_list_t _in_edges;
     size_t _n_edges;
-    size_t _last_idx;
+    size_t _edge_index_range;
     std::deque<size_t> _free_indexes; // indexes of deleted edges to be used up
                                       // for new edges to avoid very large
                                       // indexes, and unnecessary property map
@@ -347,7 +347,7 @@ private:
 
     void rebuild_epos()
     {
-        _epos.resize(_last_idx);
+        _epos.resize(_edge_index_range);
         for (size_t i = 0; i < _out_edges.size(); ++i)
         {
             auto& oes = _out_edges[i];
@@ -771,7 +771,7 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
     Vertex idx;
     if (g._free_indexes.empty())
     {
-        idx = g._last_idx++;
+        idx = g._edge_index_range++;
     }
     else
     {

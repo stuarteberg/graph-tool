@@ -279,7 +279,7 @@ GraphInterface::GraphInterface(const GraphInterface& gi, bool keep_ref,
     boost::any avorder = python::extract<boost::any>(vorder)();
     run_action<>()
         (const_cast<GraphInterface&>(gi),
-         std::bind(do_graph_copy(gi._mg->get_last_index()),
+         std::bind(do_graph_copy(gi._mg->get_edge_index_range()),
                    std::placeholders::_1, std::ref(*_mg),
                    gi._vertex_index, _vertex_index, gi._edge_index,
                    _edge_index, std::placeholders::_2, std::ref(vprops),

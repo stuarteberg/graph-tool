@@ -646,7 +646,7 @@ class PropertyMap(object):
         if self.__key_type == 'v':
             n = g._Graph__graph.get_num_vertices(False)
         elif self.__key_type == 'e':
-            n = g.max_edge_index
+            n = g.edge_index_range
         else:
             n = 1
         a = self.__map.get_array(n)
@@ -683,11 +683,11 @@ class PropertyMap(object):
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
                 if filt[1]:
                     filt[0].a = numpy.logical_not(filt[0].a)
-            elif g.max_edge_index != g.num_edges():
+            elif g.edge_index_range != g.num_edges():
                 filt = (g.new_edge_property("bool"), False)
                 libcore.mark_edges(g._Graph__graph, _prop("e", g, filt[0]))
             if filt[0] is None:
-                N = g.max_edge_index
+                N = g.edge_index_range
             else:
                 N = (filt[0].a == (not filt[1])).sum()
         if get:
@@ -786,7 +786,7 @@ class PropertyMap(object):
                 idx = g.vertex_index
                 filt = vfilt
             else:
-                N = g.max_edge_index + 1
+                N = g.edge_index_range
                 idx = g.edge_index
                 filt = efilt
             a = [["" for j in range(N)] for i in range(len(p))]
@@ -878,7 +878,7 @@ class PropertyMap(object):
         if self.key_type() == "v":
             size = g.num_vertices(True)
         elif self.key_type() == "e":
-            size = g.max_edge_index
+            size = g.edge_index_range
         else:
             size = 1
         self.__map.resize(size)
@@ -2100,11 +2100,11 @@ class Graph(object):
                                 However this will always happen whenever no
                                 edges are deleted from the graph.""")
 
-    def _get_max_edge_index(self):
-        return self.__graph.get_max_edge_index()
+    def _get_edge_index_range(self):
+        return self.__graph.get_edge_index_range()
 
-    max_edge_index = property(_get_max_edge_index,
-                              doc="The maximum value of the edge index map.")
+    edge_index_range = property(_get_edge_index_range,
+                                doc="The size of the range of edge indexes.")
 
     def reindex_edges(self):
         """

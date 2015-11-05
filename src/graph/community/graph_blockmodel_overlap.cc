@@ -58,7 +58,7 @@ struct move_sweep_overlap_dispatch
                                 bool parallel_edges, double beta,
                                 bool sequential, bool parallel,
                                 bool random_move, double c, bool node_coherent,
-                                bool verbose, size_t max_edge_index,
+                                bool verbose, size_t edge_index_range,
                                 size_t nmerges, size_t niter, Vprop merge_map,
                                 overlap_stats_t& overlap_stats,
                                 overlap_partition_stats_t& partition_stats,
@@ -71,7 +71,7 @@ struct move_sweep_overlap_dispatch
           multigraph(multigraph), parallel_edges(parallel_edges), beta(beta),
           sequential(sequential), parallel(parallel), random_move(random_move),
           c(c), node_coherent(node_coherent), verbose(verbose),
-          max_edge_index(max_edge_index), nmerges(nmerges),
+          edge_index_range(edge_index_range), nmerges(nmerges),
           niter(niter), merge_map(merge_map), overlap_stats(overlap_stats),
           partition_stats(partition_stats), rng(rng), S(S), nmoves(nmoves), bgi(bgi)
     {}
@@ -97,7 +97,7 @@ struct move_sweep_overlap_dispatch
     double c;
     bool node_coherent;
     bool verbose;
-    size_t max_edge_index;
+    size_t edge_index_range;
     size_t nmerges;
     size_t niter;
     Vprop merge_map;
@@ -180,7 +180,7 @@ struct move_sweep_overlap_dispatch
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        size_t eidx = random_move ? 1 : max_edge_index;
+        size_t eidx = random_move ? 1 : edge_index_range;
 
         typedef typename property_map<Graph, vertex_index_t>::type vindex_map_t;
         typedef typename property_map_type::apply<Sampler<vertex_t, boost::mpl::false_>,
@@ -197,7 +197,7 @@ struct move_sweep_overlap_dispatch
 
         vector<size_t> free_blocks;
         auto state = make_block_state(g,
-                                      eweight.get_unchecked(max_edge_index),
+                                      eweight.get_unchecked(edge_index_range),
                                       vweight.get_unchecked(num_vertices(g)),
                                       b.get_unchecked(num_vertices(g)),
                                       bg, emat, mrs,
@@ -325,7 +325,7 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
                         label, vlist, block_list, target_blocks, deg_corr, dense,
                         multigraph, parallel_edges, beta, sequential, parallel,
-                        random_move, c, node_coherent, verbose, gi.get_max_edge_index(),
+                        random_move, c, node_coherent, verbose, gi.get_edge_index_range(),
                         nmerges, niter, merge_map, overlap_stats, partition_stats,
                         rng, S, nmoves, bgi),
                        mrs, mrp, mrm, wr, b, placeholders::_1,

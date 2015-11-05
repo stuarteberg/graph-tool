@@ -151,7 +151,7 @@ boost::any GraphInterface::get_graph_view() const
 {
     boost::any graph =
         check_filtered(*_mg, _edge_filter_map, _edge_filter_invert,
-                       _edge_filter_active, _mg->get_last_index(),
+                       _edge_filter_active, _mg->get_edge_index_range(),
                        _vertex_filter_map, _vertex_filter_invert,
                        _vertex_filter_active,
                        const_cast<GraphInterface&>(*this), _reversed,

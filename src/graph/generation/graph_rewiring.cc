@@ -139,7 +139,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         emap_t;
 
     emap_t::unchecked_t pin =
-        any_cast<emap_t>(apin).get_unchecked(gi.get_max_edge_index());
+        any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());
 
 
     if (strat == "erdos")
