@@ -70,7 +70,7 @@ AC_DEFUN([AX_BOOST_COROUTINE],
 
                         AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
                                 [[@%:@include <boost/coroutine/all.hpp>]],
-                                [[boost::coroutines::coroutine< void() > f;]])],
+                                [[boost::coroutines::asymmetric_coroutine< void() > f;]])],
                                 ax_cv_boost_coroutine=yes, ax_cv_boost_coroutine=no)
                                 CXXFLAGS=$CXXFLAGS_SAVE
                         AC_LANG_POP([C++])
