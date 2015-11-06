@@ -80,22 +80,22 @@ void to_bezier(const vector<point_t> &x, vector<point_t>& ncp)
 void transform(vector<point_t>& cp)
 {
     point_t origin = cp[0];
-    for (size_t i = 0; i < cp.size(); ++i)
+    for (auto& xy : cp)
     {
-        cp[i].first -= origin.first;
-        cp[i].second -= origin.second;
+        xy.first -= origin.first;
+        xy.second -= origin.second;
     }
 
     double t = atan2(cp.back().second - cp.front().second,
                      cp.back().first - cp.front().first);
 
-    for (size_t i = 0; i < cp.size(); ++i)
+    for (auto& xy : cp)
     {
-        double x = cp[i].first;
-        double y = cp[i].second;
+        double x = xy.first;
+        double y = xy.second;
 
-        cp[i].first = cos(t) * x + sin(t) * y;
-        cp[i].second = -sin(t) * x + cos(t) * y;
+        xy.first = cos(t) * x + sin(t) * y;
+        xy.second = -sin(t) * x + cos(t) * y;
     }
 
     point_t d;
@@ -103,8 +103,8 @@ void transform(vector<point_t>& cp)
     d.second = cp.back().second - cp.front().second;
     double r = sqrt(d.first * d.first + d.second * d.second);
 
-    for (size_t i = 0; i < cp.size(); ++i)
-        cp[i].first /= r;
+    for (auto& xy : cp)
+        xy.first /= r;
 
     d.first = d.second = 0;
     cp.insert(cp.begin(), d);
@@ -162,8 +162,7 @@ void tree_path(Graph& g, size_t s, size_t t, vector<size_t>& path,
             t_root.push_back(u);
     }
     path = s_root;
-    for (auto iter = t_root.rbegin(); iter != t_root.rend(); ++iter)
-        path.push_back(*iter);
+    std::copy(t_root.rbegin(), t_root.rend(), std::back_inserter(path));
 }
 
 
@@ -171,7 +170,7 @@ template <class Graph>
 void graph_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
 {
     typename property_map_type::apply<size_t,
-                                     typename property_map<Graph, vertex_index_t>::type>::type
+                                      typename property_map<Graph, vertex_index_t>::type>::type
         cpred;
     auto pred = cpred.get_unchecked(num_vertices(g));
 
