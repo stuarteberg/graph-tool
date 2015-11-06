@@ -2671,6 +2671,23 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
             std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
             rngs.push_back(new rng_t(seq));
         }
+
+        // pre-init function cache to prevent race condition
+        size_t E = 0;
+        int i = 0, N = num_vertices(g);
+        #pragma omp parallel for default(shared) private(i) \
+            reduction(+:E) schedule(runtime)
+        for (i = 0; i < N; ++i)
+        {
+            auto v = vertex(i, g);
+            if (v == graph_traits<Graph>::null_vertex())
+                continue;
+            for (auto e : out_edges_range(v, g))
+                E += eweight[e];
+        }
+        init_lgamma(2 * E);
+        init_xlogx(2 * E);
+        init_safelog(2 * E);
     }
     else
     {
