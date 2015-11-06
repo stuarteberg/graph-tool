@@ -1439,6 +1439,7 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True,
         max_depth = t.num_vertices()
 
     tu = GraphView(tu, skip_vfilt=True)
+    tpos = tu.own_property(tpos)
     libgraph_tool_draw.get_cts(u._Graph__graph,
                                tu._Graph__graph,
                                _prop("v", tu, tpos),

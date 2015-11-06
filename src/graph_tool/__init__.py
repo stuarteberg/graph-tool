@@ -155,13 +155,21 @@ def _prop(t, g, prop):
                             ("edge" if t == "e" else "graph"), prop))
     else:
         pmap = prop
-    if pmap == None:
+    if pmap is None:
         return libcore.any()
     else:
         if t != prop.key_type():
             names = {'e': 'edge', 'v': 'vertex', 'g': 'graph'}
             raise ValueError("Expected '%s' property map, got '%s'" %
                              (names[t], names[prop.key_type()]))
+        if g is not None:
+            if t == "v":
+                N = g.num_vertices(True)
+            elif t == "e":
+                N = g.edge_index_range
+            else:
+                N = 1
+            pmap.reserve(N)
         return pmap._PropertyMap__map.get_map()
 
 
@@ -327,7 +335,10 @@ def conv_pickle_state(state):
 
 
 class PropertyArray(numpy.ndarray):
-    """This is a :class:`~numpy.ndarray` subclass which keeps a reference of its :class:`~graph_tool.PropertyMap` owner, and detects if the underlying data has been invalidated."""
+    """This is a :class:`~numpy.ndarray` subclass which keeps a reference of its
+    :class:`~graph_tool.PropertyMap` owner, and detects if the underlying data
+    has been invalidated.
+    """
 
     __array_priority__ = -10
 
@@ -427,7 +438,8 @@ class PropertyArray(numpy.ndarray):
 
 
 class PropertyMap(object):
-    """This class provides a mapping from vertices, edges or whole graphs to arbitrary properties.
+    """This class provides a mapping from vertices, edges or whole graphs to
+    arbitrary properties.
 
     See :ref:`sec_property_maps` for more details.
 
@@ -867,9 +879,12 @@ class PropertyMap(object):
 
     def reserve(self, size):
         """Reserve enough space for ``size`` elements in underlying container. If the
-           original size is larger, it will be reduced, and the remaining memory
-           will be freed."""
+           original size is already equal or larger, nothing will happen."""
         self.__map.reserve(size)
+
+    def resize(self, size):
+        """Resize the underlying container to contain exactly ``size`` elements."""
+        self.__map.resize(size)
 
     def shrink_to_fit(self):
         """Shrink size of underlying container to accommodate only the necessary amount,
@@ -1417,6 +1432,18 @@ class PropertyDict(object):
             p = self.properties[k]
             p[p.get_graph()] = val
         else:
+            if not isinstance(val, PropertyMap):
+                raise ValueError("value must be of type PropertyMap, not %s" % str(type(val)))
+            if val.key_type() != self.t:
+                def name(t):
+                    if t == "e":
+                        return "Edge"
+                    if t == "v":
+                        return "Vertex"
+                    if t == "g":
+                        return "Graph"
+                raise ValueError("wanted a property map of type '%s', not '%s'" %
+                                 (name(self.t), name(val.key_type())))
             self.properties[k] = val
 
     def setdefault(self, key, default=None):
