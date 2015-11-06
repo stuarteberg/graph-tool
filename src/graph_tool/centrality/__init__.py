@@ -394,11 +394,11 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     If ``norm == True``, the values of :math:`c_i` are normalized by
     :math:`n_i-1` where :math:`n_i` is the size of the (out-) component of
     :math:`i`. If ``harmonic == True``, they are instead simply normalized by
-    :math:`N-1`.
+    :math:`V-1`.
 
-    The algorithm complexity of :math:`O(N(N + E))` for unweighted graphs and
-    :math:`O(N(N+E) \log N)` for weighted graphs. If the option ``source`` is
-    specified, this drops to :math:`O(N + E)` and :math:`O((N+E)\log N)`
+    The algorithm complexity of :math:`O(V(V + E))` for unweighted graphs and
+    :math:`O(V(v+E) \log V)` for weighted graphs. If the option ``source`` is
+    specified, this drops to :math:`O(V + E)` and :math:`O((V+E)\log V)`
     respectively.
 
     If enabled during compilation, this algorithm runs in parallel.
@@ -1079,11 +1079,11 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     maximum weight, using Dijkstra's algorithm, to all in-neighbours of a given
     target. This search needs to be performed repeatedly for every target, since
     it needs to be removed from the graph first. For each given source, the
-    resulting complexity is therefore :math:`O(N^2\log N)` for all targets, and
-    :math:`O(N\log N)` for a single target. For a given target, the complexity
-    for obtaining the trust from all given sources is :math:`O(kN\log N)`, where
+    resulting complexity is therefore :math:`O(V^2\log V)` for all targets, and
+    :math:`O(V\log V)` for a single target. For a given target, the complexity
+    for obtaining the trust from all given sources is :math:`O(kV\log V)`, where
     :math:`k` is the in-degree of the target. Thus, the complexity for obtaining
-    the complete trust matrix is :math:`O(EN\log N)`, where :math:`E` is the
+    the complete trust matrix is :math:`O(EV\log V)`, where :math:`E` is the
     number of edges in the network.
 
     If enabled during compilation, this algorithm runs in parallel.

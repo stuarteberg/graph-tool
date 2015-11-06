@@ -919,10 +919,9 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     This algorithm performs a constrained agglomerative heuristic on each level
     of the network, via the function :func:`~graph_tool.community.multilevel_minimize`.
 
-    This algorithm has worst-case complexity of :math:`O(N\ln^2 N \times L)`,
-    where  :math:`N` is the number of nodes in the network, and :math:`L` is
-    the depth of the hierarchy.
-    """
+    This algorithm has worst-case complexity of :math:`O(V\ln^2 V \times L)`,
+    where :math:`V` is the number of nodes in the network, and :math:`L` is the
+    depth of the hierarchy.  """
 
     dl_ent = kwargs.get("dl_ent", False)
 
@@ -1102,10 +1101,9 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
     This algorithm performs an agglomerative heuristic on each level of the
     network, via the function :func:`~graph_tool.community.multilevel_minimize`.
 
-    This algorithm has worst-case complexity of :math:`O(N\ln^2 N \times L)`,
-    where  :math:`N` is the number of nodes in the network, and :math:`L` is
-    the depth of the hierarchy.
-    """
+    This algorithm has worst-case complexity of :math:`O(V\ln^2 V \times L)`,
+    where :math:`V` is the number of nodes in the network, and :math:`L` is the
+    depth of the hierarchy.  """
 
     dl_ent = kwargs.get("dl_ent", False)
     ignore_degrees = kwargs.get("ignore_degrees", None)
@@ -1376,8 +1374,8 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
 
     See [peixoto-hierarchical-2014]_ for details on the algorithm.
 
-    This algorithm has a complexity of :math:`O(N \ln^2 N)`, where :math:`N`
-    is the number of nodes in the network.
+    This algorithm has a complexity of :math:`O(V \ln^2 V)`, where :math:`V` is
+    the number of nodes in the network.
 
     Examples
     --------

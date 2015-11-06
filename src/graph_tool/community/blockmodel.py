@@ -1649,7 +1649,7 @@ def multilevel_minimize(state, B, nsweeps=10, adaptive_sweeps=True, epsilon=0,
     the :func:`mcmc_sweep` moves, at different scales. See [peixoto-efficient-2014]_
     for more details.
 
-    This algorithm has a complexity of :math:`O(N\ln^2 N)`, where :math:`N` is the
+    This algorithm has a complexity of :math:`O(V\ln^2 V)`, where :math:`V` is the
     number of nodes in the network.
 
     Examples
@@ -2102,8 +2102,8 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
     one-dimensional Fibonacci search on :math:`B`. See
     [peixoto-parsimonious-2013]_ and [peixoto-efficient-2014]_ for more details.
 
-    This algorithm has a complexity of :math:`O(\tau N\ln^2 B_{\text{max}})`,
-    where :math:`N` is the number of nodes in the network, :math:`\tau` is the
+    This algorithm has a complexity of :math:`O(\tau V\ln^2 B_{\text{max}})`,
+    where :math:`V` is the number of nodes in the network, :math:`\tau` is the
     mixing time of the MCMC, and :math:`B_{\text{max}}` is the maximum number of
     blocks considered. If :math:`B_{\text{max}}` is not supplied, it is computed
     as :math:`\sim\sqrt{E}` via :func:`get_max_B`, in which case the complexity

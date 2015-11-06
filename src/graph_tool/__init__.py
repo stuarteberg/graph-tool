@@ -1843,7 +1843,7 @@ class Graph(object):
         .. note::
 
            If the option ``fast == False`` is given, this operation is
-           :math:`O(N + E)` (this is the default). Otherwise it is
+           :math:`O(V + E)` (this is the default). Otherwise it is
            :math:`O(k + k_{\text{last}})`, where :math:`k` is the (total)
            degree of the vertex being deleted, and :math:`k_{\text{last}}` is
            the (total) degree of the vertex with the largest index.
@@ -2587,13 +2587,13 @@ class Graph(object):
 
         If the option ``in_place == True`` is given, the algorithm will remove
         the filtered vertices and re-index all property maps which are tied with
-        the graph. This is a slow operation which has an :math:`O(N^2)`
+        the graph. This is a slow operation which has an :math:`O(V^2)`
         complexity.
 
         If ``in_place == False``, the graph and its vertex and edge property
         maps are temporarily copied to a new unfiltered graph, which will
         replace the contents of the original graph. This is a fast operation
-        with an :math:`O(N + E)` complexity. This is the default behaviour if no
+        with an :math:`O(V + E)` complexity. This is the default behaviour if no
         option is given.
 
         .. note :
@@ -2679,7 +2679,7 @@ class Graph(object):
         .. note::
 
             If the vertices are being filtered, and ``ignore_filter == False``,
-            this operation is :math:`O(N)`. Otherwise it is :math:`O(1)`.
+            this operation is :math:`O(V)`. Otherwise it is :math:`O(1)`.
 
         """
         return self.__graph.get_num_vertices(not ignore_filter)

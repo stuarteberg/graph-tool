@@ -1544,11 +1544,11 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     Note that if `seed_graph` is not given, the algorithm will *always* start
     with one node if :math:`c > 0`, or with two nodes with a link between them
     otherwise. If :math:`m > 1`, the degree of the newly added vertices will be
-    vary dynamically as :math:`m'(t) = \min(m, N(t))`, where :math:`N(t)` is the
+    vary dynamically as :math:`m'(t) = \min(m, V(t))`, where :math:`V(t)` is the
     number of vertices added so far. If this behaviour is undesired, a proper
-    seed graph with :math:`N \ge m` vertices must be provided.
+    seed graph with :math:`V \ge m` vertices must be provided.
 
-    This algorithm runs in :math:`O(N\log N)` time.
+    This algorithm runs in :math:`O(V\log V)` time.
 
     See Also
     --------
