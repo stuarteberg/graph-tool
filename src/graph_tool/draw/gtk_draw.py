@@ -288,6 +288,7 @@ class GraphWidget(Gtk.DrawingArea):
         self.regenerate_offset = 0
         self.regenerate_max_time = max_render_time
         self.max_render_time = max_render_time
+        self.lazy_regenerate = False
 
         self.layout_callback_id = None
         self.layout_K = layout_K
@@ -313,13 +314,13 @@ class GraphWidget(Gtk.DrawingArea):
             self.reset_layout()
 
         # Event signals
-        self.connect("motion_notify_event", self.motion_notify_event)
-        self.connect("button_press_event", self.button_press_event)
-        self.connect("button_release_event", self.button_release_event)
-        self.connect("scroll_event", self.scroll_event)
-        self.connect("key_press_event", self.key_press_event)
-        self.connect("key_release_event", self.key_release_event)
-        self.connect("destroy_event", self.cleanup)
+        self.connect("motion-notify-event", self.motion_notify_event)
+        self.connect("button-press-event", self.button_press_event)
+        self.connect("button-release-event", self.button_release_event)
+        self.connect("scroll-event", self.scroll_event)
+        self.connect("key-press-event", self.key_press_event)
+        self.connect("key-release-event", self.key_release_event)
+        self.connect("destroy-event", self.cleanup)
 
         self.set_events(Gdk.EventMask.EXPOSURE_MASK
                         | Gdk.EventMask.LEAVE_NOTIFY_MASK
@@ -329,6 +330,7 @@ class GraphWidget(Gtk.DrawingArea):
                         | Gdk.EventMask.POINTER_MOTION_MASK
                         | Gdk.EventMask.POINTER_MOTION_HINT_MASK
                         | Gdk.EventMask.SCROLL_MASK
+                        | Gdk.EventMask.SMOOTH_SCROLL_MASK
                         | Gdk.EventMask.KEY_PRESS_MASK
                         | Gdk.EventMask.KEY_RELEASE_MASK)
 
@@ -488,6 +490,7 @@ class GraphWidget(Gtk.DrawingArea):
                            render_offset=self.regenerate_offset,
                            max_render_time=mtime, **self.kwargs)
         self.regenerate_offset = count
+        self.lazy_regenerate = False
 
     def draw(self, da, cr):
         r"""Redraw the widget."""
@@ -512,8 +515,9 @@ class GraphWidget(Gtk.DrawingArea):
         lr = [max([x[0] for x in c]), max([x[1] for x in c])]
         cr.restore()
 
-        if (ul[0] > 0 or lr[0] < geometry[0] or
-            ul[1] > 0 or lr[1] < geometry[1]):
+        if ((ul[0] > 0 or lr[0] < geometry[0] or
+             ul[1] > 0 or lr[1] < geometry[1]) or
+            self.lazy_regenerate):
             self.regenerate_surface(reset=True)
         elif self.regenerate_offset > 0:
             self.regenerate_surface()
@@ -905,26 +909,37 @@ class GraphWidget(Gtk.DrawingArea):
         angle = 0
         zoom = 1.
 
-        if event.direction == Gdk.ScrollDirection.UP:
+        if event.direction == Gdk.ScrollDirection.SMOOTH:
+            is_smooth, dx, dy = event.get_scroll_deltas()
+            if dy == 0:
+                return
+        else:
+            dy = 1
+
+        if (event.direction == Gdk.ScrollDirection.UP or
+            event.direction == Gdk.ScrollDirection.SMOOTH):
             if state & Gdk.ModifierType.CONTROL_MASK:
                 if state & Gdk.ModifierType.SHIFT_MASK:
-                    angle = 0.01
+                    angle = .01 * dy
                 else:
-                    angle = 0.1
+                    angle = .1 * dy
             else:
-                zoom = 1. / 0.9
+                if dy > 0:
+                    zoom = 1. + (1. / .9 - 1) * abs(dy)
+                else:
+                    zoom = 1. / (1. + abs(dy) / 9)
                 if state & Gdk.ModifierType.SHIFT_MASK:
-                    scale_ink(1. / 0.9, self.vprops, self.eprops)
+                    scale_ink(zoom, self.vprops, self.eprops)
         elif event.direction == Gdk.ScrollDirection.DOWN:
             if state & Gdk.ModifierType.CONTROL_MASK:
                 if state & Gdk.ModifierType.SHIFT_MASK:
-                    angle = -0.01
+                    angle = -.01
                 else:
-                    angle = -0.1
+                    angle = -.1
             else:
-                zoom = 0.9
+                zoom = .9
                 if state & Gdk.ModifierType.SHIFT_MASK:
-                    scale_ink(0.9, self.vprops, self.eprops)
+                    scale_ink(zoom, self.vprops, self.eprops)
 
         # keep centered
         if zoom != 1:
@@ -938,7 +953,7 @@ class GraphWidget(Gtk.DrawingArea):
             ncpos = self.pos_from_device(center)
             self.tmatrix.translate(ncpos[0] - cpos[0],
                                    ncpos[1] - cpos[1])
-            self.regenerate_surface(reset=True)
+            self.lazy_regenerate = True
 
         if angle != 0:
             if not isinstance(self.picked, PropertyMap):
