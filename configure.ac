@@ -30,6 +30,10 @@ AC_DISABLE_STATIC
 LT_INIT
 AC_PROG_INSTALL
 
+# pkg-config generation
+PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
+
 AX_CXX_COMPILE_STDCXX_14([ext],[mandatory])
 
 dnl turn on warnings
@@ -187,9 +191,10 @@ AC_PYTHON_DEVEL([== '${PYTHON_FULL_VERSION}'])
 
 # default directory for submodules
 [MOD_DIR="${PYTHON_SITE_PKG}"]
-AC_ARG_WITH([python-module-path], [AS_HELP_STRING([--with-python-module-path=DIR],
-                    [directory where python module will be installed
-                                [default=auto-detected] ])],
+AC_ARG_WITH([python-module-path],
+            [AS_HELP_STRING([--with-python-module-path=DIR],
+                            [directory where python module will be installed
+                             [default=auto-detected]])],
             MOD_DIR=$withval)
 echo "graph-tool will be installed at: ${MOD_DIR}"
 
@@ -424,6 +429,11 @@ fi
 
 AC_SUBST(MOD_LDFLAGS)
 
+AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
+                         [${PYTHON_LDFLAGS} -l${BOOST_PYTHON_LIB}],
+                         [graph-tool Python library],
+                         [-ftemplate-depth-250 ${SPARSEHASH_CFLAGS} ${PYTHON_CPPFLAGS} -I${NUMPY_DIR} ${BOOST_CPPFLAGS} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
+                         [])
 
 AC_CONFIG_FILES([
 Makefile

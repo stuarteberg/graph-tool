@@ -54,6 +54,8 @@ nobase_dist_graphtooldoc_DATA = \
 
 EXTRA_DIST = $(graphtooldoc_DATA) autogen.sh
 
+pkgconfig_DATA = graph-tool-py${PYTHON_VERSION}.pc
+
 # Copy all the spec files. Of cource, only one is actually used.
 dist-hook:
 	for specfile in *.spec; do \
