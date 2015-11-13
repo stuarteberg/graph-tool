@@ -35,11 +35,12 @@ void dominator_tree(GraphInterface& gi, size_t entry, boost::any pred_map);
 void transitive_closure(GraphInterface& gi, GraphInterface& tcgi);
 bool is_planar(GraphInterface& gi, boost::any embed_map, boost::any kur_map);
 void maximal_planar(GraphInterface& gi);
-void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
-                          boost::any vertex_label1, boost::any vertex_label2,
-                          boost::any edge_label1, boost::any edge_label2,
-                          python::list vmapping, size_t max_n, bool induced,
-                          bool iso);
+python::object subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
+                                    boost::any vertex_label1,
+                                    boost::any vertex_label2,
+                                    boost::any edge_label1,
+                                    boost::any edge_label2, size_t max_n,
+                                    bool induced, bool iso, bool generator);
 double reciprocity(GraphInterface& gi);
 size_t sequential_coloring(GraphInterface& gi, boost::any order,
                            boost::any color);

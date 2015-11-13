@@ -184,8 +184,6 @@ void dijkstra_search(GraphInterface& g, size_t source, boost::any dist_map,
 
 #ifdef HAVE_BOOST_COROUTINE
 
-typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
-
 class DJKGeneratorVisitor : public dijkstra_visitor<>
 {
 public:
@@ -203,27 +201,6 @@ public:
 private:
     GraphInterface& _gi;
     coro_t::push_type& _yield;
-};
-
-class DJKGenerator
-{
-public:
-    template <class Dispatch>
-    DJKGenerator(Dispatch& dispatch)
-        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
-          _iter(begin(*_coro)), _end(end(*_coro)) {}
-    boost::python::object next()
-    {
-        if (_iter == _end)
-            boost::python::objects::stop_iteration_error();
-        boost::python::object oe = *_iter;
-        ++_iter;
-        return oe;
-    }
-private:
-    std::shared_ptr<coro_t::pull_type> _coro;
-    coro_t::pull_type::iterator _iter;
-    coro_t::pull_type::iterator _end;
 };
 
 #endif // HAVE_BOOST_COROUTINE
@@ -248,7 +225,7 @@ boost::python::object dijkstra_search_generator(GraphInterface& g,
                           make_pair(zero, inf)),
              writable_vertex_properties())(dist_map);
         };
-    return boost::python::object(DJKGenerator(dispatch));
+    return boost::python::object(CoroGenerator(dispatch));
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
@@ -271,7 +248,7 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
              writable_vertex_scalar_properties(),
              edge_scalar_properties())(dist_map, weight);
         };
-    return boost::python::object(DJKGenerator(dispatch));
+    return boost::python::object(CoroGenerator(dispatch));
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
@@ -283,10 +260,4 @@ void export_dijkstra()
     def("dijkstra_search", &dijkstra_search);
     def("dijkstra_generator", &dijkstra_search_generator);
     def("dijkstra_generator_fast", &dijkstra_search_generator_fast);
-#ifdef HAVE_BOOST_COROUTINE
-    class_<DJKGenerator>("DJKGenerator", no_init)
-        .def("__iter__", objects::identity_function())
-        .def("next", &DJKGenerator::next)
-        .def("__next__", &DJKGenerator::next);
-#endif
 }

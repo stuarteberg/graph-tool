@@ -46,8 +46,11 @@ namespace std
 #include "graph_selectors.hh"
 #include "numpy_bind.hh"
 
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
-// this file includes a simple python interface for the internally kept
+// This file includes a simple python interface for the internally kept
 // graph. It defines a PythonVertex, PythonEdge and PythonIterator template
 // classes, which contain the proper member functions for graph traversal. These
 // types are then specialized for each version of the adapted graph (directed,
@@ -78,6 +81,34 @@ private:
     std::pair<Iterator,Iterator> _e;
 };
 
+#ifdef HAVE_BOOST_COROUTINE
+
+// generic coroutine generator adaptor
+
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+class CoroGenerator
+{
+public:
+    template <class Dispatch>
+    CoroGenerator(Dispatch& dispatch)
+        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+          _iter(begin(*_coro)), _end(end(*_coro)) {}
+    boost::python::object next()
+    {
+        if (_iter == _end)
+            boost::python::objects::stop_iteration_error();
+        boost::python::object oe = *_iter;
+        ++_iter;
+        return oe;
+    }
+private:
+    std::shared_ptr<coro_t::pull_type> _coro;
+    coro_t::pull_type::iterator _iter;
+    coro_t::pull_type::iterator _end;
+};
+
+#endif // HAVE_BOOST_COROUTINE
 
 // forward declaration of PythonEdge
 template <class Graph>

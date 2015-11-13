@@ -580,4 +580,11 @@ void export_python_interface()
 
     def("get_vlist", get_vlist);
     def("get_elist", get_elist);
+
+#ifdef HAVE_BOOST_COROUTINE
+    class_<CoroGenerator>("CoroGenerator", no_init)
+        .def("__iter__", objects::identity_function())
+        .def("next", &CoroGenerator::next)
+        .def("__next__", &CoroGenerator::next);
+#endif
 }

@@ -125,8 +125,6 @@ void bfs_search(GraphInterface& g, size_t s, python::object vis)
 
 #ifdef HAVE_BOOST_COROUTINE
 
-typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
-
 class BFSGeneratorVisitor : public bfs_visitor<>
 {
 public:
@@ -146,27 +144,6 @@ private:
     coro_t::push_type& _yield;
 };
 
-class BFSGenerator
-{
-public:
-    template <class Dispatch>
-    BFSGenerator(Dispatch& dispatch)
-        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
-          _iter(begin(*_coro)), _end(end(*_coro)) {}
-    boost::python::object next()
-    {
-        if (_iter == _end)
-            boost::python::objects::stop_iteration_error();
-        boost::python::object oe = *_iter;
-        ++_iter;
-        return oe;
-    }
-private:
-    std::shared_ptr<coro_t::pull_type> _coro;
-    coro_t::pull_type::iterator _iter;
-    coro_t::pull_type::iterator _end;
-};
-
 #endif // HAVE_BOOST_COROUTINE
 
 boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
@@ -178,7 +155,7 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
             run_action<graph_tool::detail::all_graph_views,mpl::true_>()
                 (g, std::bind(do_bfs(), placeholders::_1, s, vis))();
         };
-    return boost::python::object(BFSGenerator(dispatch));
+    return boost::python::object(CoroGenerator(dispatch));
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
@@ -189,10 +166,4 @@ void export_bfs()
     using namespace boost::python;
     def("bfs_search", &bfs_search);
     def("bfs_search_generator", &bfs_search_generator);
-#ifdef HAVE_BOOST_COROUTINE
-    class_<BFSGenerator>("BFSGenerator", no_init)
-        .def("__iter__", objects::identity_function())
-        .def("next", &BFSGenerator::next)
-        .def("__next__", &BFSGenerator::next);
-#endif
 }

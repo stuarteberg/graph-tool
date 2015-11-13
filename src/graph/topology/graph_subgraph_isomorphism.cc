@@ -15,67 +15,134 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <graph_python_interface.hh>
-
 #include "graph.hh"
 #include "graph_filtering.hh"
 
 #include "random.hh"
 
 #include <boost/graph/vf2_sub_graph_iso.hpp>
+#include <graph_python_interface.hh>
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace graph_tool;
 using namespace boost;
 
-template <class Graph1, class Graph2, class VertexMap>
-struct get_match
+struct ListMatch
 {
-    get_match(const Graph1& sub, const Graph2& g, vector<VertexMap>& vmaps,
-              size_t max_n) : _sub(sub), _g(g), _vmaps(vmaps), _max_n(max_n)
-    {}
-
-    template <class CorrespondenceMap1To2,
-              class CorrespondenceMap2To1>
-    bool operator()(const CorrespondenceMap1To2& f,
-                    const CorrespondenceMap2To1&)
+    template <class Graph1, class Graph2, class VertexMap>
+    struct GetMatch
     {
-        VertexMap c_vmap(get(vertex_index, _sub));
-        auto vmap = c_vmap.get_unchecked(num_vertices(_sub));
-        for (auto v : vertices_range(_sub))
+        GetMatch(const Graph1& sub, const Graph2& g, vector<VertexMap>& vmaps,
+                 size_t max_n) : _sub(sub), _g(g), _vmaps(vmaps), _max_n(max_n)
+        {}
+
+        template <class CorrespondenceMap1To2,
+                  class CorrespondenceMap2To1>
+        bool operator()(const CorrespondenceMap1To2& f,
+                        const CorrespondenceMap2To1&)
         {
-            auto w = f[v];
-            if (w == graph_traits<Graph2>::null_vertex())
-                return true;
-            vmap[v] = w;
+            VertexMap c_vmap(get(vertex_index, _sub));
+            auto vmap = c_vmap.get_unchecked(num_vertices(_sub));
+            for (auto v : vertices_range(_sub))
+            {
+                auto w = f[v];
+                if (w == graph_traits<Graph2>::null_vertex())
+                    return true;
+                vmap[v] = w;
+            }
+            _vmaps.push_back(c_vmap);
+            if (_max_n > 0 && _vmaps.size() >= _max_n)
+                return false;
+            return true;
         }
-        _vmaps.push_back(c_vmap);
-        if (_max_n > 0 && _vmaps.size() >= _max_n)
-            return false;
-        return true;
+
+        const Graph1& _sub;
+        const Graph2& _g;
+
+        vector<VertexMap>& _vmaps;
+        size_t _max_n;
+    };
+
+    template <class Graph1, class Graph2, class VertexMap>
+    GetMatch<Graph1, Graph2, VertexMap> get_match(const Graph1& sub,
+                                                  const Graph2& g,
+                                                  vector<VertexMap>& vmaps,
+                                                  size_t max_n)
+    {
+        return GetMatch<Graph1, Graph2, VertexMap>(sub, g, vmaps, max_n);
     }
-
-    const Graph1& _sub;
-    const Graph2& _g;
-
-    vector<VertexMap>& _vmaps;
-    size_t _max_n;
 };
 
+#ifdef HAVE_BOOST_COROUTINE
+
+typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+
+struct GenMatch
+{
+    GenMatch(coro_t::push_type& yield): _yield(yield) {}
+
+    template <class Graph1, class Graph2, class VertexMap>
+    struct GetMatch
+    {
+        GetMatch(const Graph1& sub, const Graph2& g,
+                 coro_t::push_type& yield)
+            : _sub(sub), _g(g), _yield(yield)
+        {}
+
+        template <class CorrespondenceMap1To2,
+                  class CorrespondenceMap2To1>
+        bool operator()(const CorrespondenceMap1To2& f,
+                        const CorrespondenceMap2To1&)
+        {
+            VertexMap c_vmap(get(vertex_index, _sub));
+            auto vmap = c_vmap.get_unchecked(num_vertices(_sub));
+            for (auto v : vertices_range(_sub))
+            {
+                auto w = f[v];
+                if (w == graph_traits<Graph2>::null_vertex())
+                    return true;
+                vmap[v] = w;
+            }
+            _yield(boost::python::object(PythonPropertyMap<VertexMap>(c_vmap)));
+            return true;
+        }
+
+        const Graph1& _sub;
+        const Graph2& _g;
+        coro_t::push_type& _yield;
+    };
+
+    template <class Graph1, class Graph2, class VertexMap>
+    GetMatch<Graph1, Graph2, VertexMap> get_match(const Graph1& sub,
+                                                  const Graph2& g,
+                                                  vector<VertexMap>&,
+                                                  size_t)
+    {
+        return GetMatch<Graph1, Graph2, VertexMap>(sub, g, _yield);
+    }
+
+    coro_t::push_type& _yield;
+};
+
+#endif // HAVE_BOOST_COROUTINE
 
 struct get_subgraphs
 {
     template <class Graph1, class Graph2, class VertexLabel,
-              class EdgeLabel, class VertexMap>
+              class EdgeLabel, class VertexMap, class Matcher>
     void operator()(const Graph1& sub, const Graph2* g,
                     VertexLabel vertex_label1, boost::any avertex_label2,
                     EdgeLabel edge_label1, boost::any aedge_label2,
                     vector<VertexMap>& vmaps, size_t max_n, bool induced,
-                    bool iso) const
+                    bool iso, Matcher m) const
     {
         VertexLabel vertex_label2 = any_cast<VertexLabel>(avertex_label2);
         EdgeLabel edge_label2 = any_cast<EdgeLabel>(aedge_label2);
 
-        get_match<Graph1, Graph2, VertexMap> matcher(sub, *g, vmaps, max_n);
+        auto matcher = m.get_match(sub, *g, vmaps,max_n);
 
         typedef typename graph_traits<Graph1>::vertex_descriptor vertex_t;
         vector<vertex_t> vorder;
@@ -110,11 +177,11 @@ struct get_subgraphs
 
 };
 
-void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
-                          boost::any vertex_label1, boost::any vertex_label2,
-                          boost::any edge_label1, boost::any edge_label2,
-                          python::list vmapping, size_t max_n, bool induced,
-                          bool iso)
+boost::python::object
+subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
+                     boost::any vertex_label1, boost::any vertex_label2,
+                     boost::any edge_label1, boost::any edge_label2,
+                     size_t max_n, bool induced, bool iso, bool generator)
 {
     // typedef mpl::push_back<vertex_properties,
     //                        ConstantPropertyMap<bool,GraphInterface::vertex_t> >
@@ -138,7 +205,7 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
 
 
     if (gi1.get_directed() != gi2.get_directed())
-        return;
+        return boost::python::object();
 
     if (vertex_label1.empty() || vertex_label2.empty())
     {
@@ -162,20 +229,44 @@ void subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
         edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_edge_index_range());
     }
 
-    vector<vlabel_t> vmaps;
-
     typedef mpl::transform<graph_tool::detail::all_graph_views,
                            mpl::quote1<std::add_pointer> >::type graph_view_pointers;
 
-    run_action<>()
-        (gi1, std::bind(get_subgraphs(), placeholders::_1, placeholders::_2,
-                        placeholders::_3, vertex_label2, placeholders::_4,
-                        edge_label2, std::ref(vmaps), max_n, induced, iso),
-         graph_view_pointers(), vertex_props_t(),
-         edge_props_t())
-        (gi2.get_graph_view(), vertex_label1, edge_label1);
+    vector<vlabel_t> vmaps;
+    if (!generator)
+    {
+        run_action<>()
+            (gi1, std::bind(get_subgraphs(), placeholders::_1, placeholders::_2,
+                            placeholders::_3, vertex_label2, placeholders::_4,
+                            edge_label2, std::ref(vmaps), max_n, induced, iso,
+                            ListMatch()),
+             graph_view_pointers(), vertex_props_t(),
+             edge_props_t())
+            (gi2.get_graph_view(), vertex_label1, edge_label1);
 
-
-    for (auto& vmap: vmaps)
-        vmapping.append(PythonPropertyMap<vlabel_t>(vmap));
+        python::list vmapping;
+        for (auto& vmap: vmaps)
+            vmapping.append(PythonPropertyMap<vlabel_t>(vmap));
+        return vmapping;
+    }
+    else
+    {
+#ifdef HAVE_BOOST_COROUTINE
+        auto dispatch = [&](auto& yield)
+            {
+                run_action<>()
+                    (gi1, std::bind(get_subgraphs(), placeholders::_1, placeholders::_2,
+                                    placeholders::_3, vertex_label2, placeholders::_4,
+                                    edge_label2, std::ref(vmaps), max_n, induced, iso,
+                                    GenMatch(yield)),
+                     graph_view_pointers(), vertex_props_t(),
+                     edge_props_t())(gi2.get_graph_view(),
+                                     vertex_label1, edge_label1);
+            };
+        CoroGenerator gen(dispatch);
+        return boost::python::object(gen);
+#else
+        throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif
+    }
 }

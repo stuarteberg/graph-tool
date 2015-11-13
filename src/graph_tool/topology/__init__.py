@@ -242,7 +242,7 @@ def isomorphism(g1, g2, vertex_inv1=None, vertex_inv2=None, isomap=False):
 
 
 def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
-                         induced=False, subgraph=True):
+                         induced=False, subgraph=True, generator=False):
     r"""Obtain all subgraph isomorphisms of `sub` in `g` (or at most `max_n` subgraphs, if `max_n > 0`).
 
 
@@ -252,29 +252,35 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
         Subgraph for which to be searched.
     g : :class:`~graph_tool.Graph`
         Graph in which the search is performed.
-    max_n : int (optional, default: `0`)
+    max_n : int (optional, default: ``0``)
         Maximum number of matches to find. If `max_n == 0`, all matches are
         found.
-    vertex_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    vertex_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         If provided, this should be a pair of :class:`~graph_tool.PropertyMap`
-        objects, belonging to `sub` and `g` (in this order), which specify vertex labels
-        which should match, in addition to the topological isomorphism.
-    edge_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+        objects, belonging to ``sub`` and ``g`` (in this order), which specify
+        vertex labels which should match, in addition to the topological
+        isomorphism.
+    edge_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         If provided, this should be a pair of :class:`~graph_tool.PropertyMap`
-        objects, belonging to `sub` and `g` (in this order), which specify edge labels
-        which should match, in addition to the topological isomorphism.
-    induced : bool (optional, default: False)
-        If `True`, only node-induced subgraphs are found.
-    subgraph : bool (optional, default: True)
-        If `False`, all non-subgraph isomorphisms between `sub` and `g` are
+        objects, belonging to ``sub`` and ``g`` (in this order), which specify
+        edge labels which should match, in addition to the topological
+        isomorphism.
+    induced : bool (optional, default: ``False``)
+        If ``True``, only node-induced subgraphs are found.
+    subgraph : bool (optional, default: ``True``)
+        If ``False``, all non-subgraph isomorphisms between `sub` and `g` are
         found.
+    generator : bool (optional, default: ``False``)
+        If ``True``, a generator will be returned, instead of a list. This is
+        useful if the number of isomorphisms is too large to store in memory. If
+        ``generator == True``, the option ``max_n`` is ignored.
 
     Returns
     -------
-    vertex_maps : list of :class:`~graph_tool.PropertyMap` objects
-        List containing vertex property map objects which indicate different
-        isomorphism mappings. The property maps vertices in `sub` to the
-        corresponding vertex index in `g`.
+    vertex_maps : list (or generator) of :class:`~graph_tool.PropertyMap` objects
+        List (or generator) containing vertex property map objects which
+        indicate different isomorphism mappings. The property maps vertices in
+        `sub` to the corresponding vertex index in `g`.
 
     Notes
     -----
@@ -355,17 +361,21 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
     elif edge_label[0].value_type() != "int32_t":
         edge_label = perfect_prop_hash(edge_label, htype="int32_t")
 
-    vmaps = []
-    libgraph_tool_topology.\
-           subgraph_isomorphism(sub._Graph__graph, g._Graph__graph,
-                                _prop("v", sub, vertex_label[0]),
-                                _prop("v", g, vertex_label[1]),
-                                _prop("e", sub, edge_label[0]),
-                                _prop("e", g, edge_label[1]),
-                                vmaps, max_n, induced, not subgraph)
-    for i in range(len(vmaps)):
-        vmaps[i] = PropertyMap(vmaps[i], sub, "v")
-    return vmaps
+    vmaps = libgraph_tool_topology.\
+            subgraph_isomorphism(sub._Graph__graph, g._Graph__graph,
+                                 _prop("v", sub, vertex_label[0]),
+                                 _prop("v", g, vertex_label[1]),
+                                 _prop("e", sub, edge_label[0]),
+                                 _prop("e", g, edge_label[1]),
+                                 max_n, induced, not subgraph,
+                                 generator)
+    if generator:
+        for vmap in vmaps:
+            yield PropertyMap(vmap, sub, "v")
+    else:
+        for i in range(len(vmaps)):
+            vmaps[i] = PropertyMap(vmaps[i], sub, "v")
+        return vmaps
 
 
 def mark_subgraph(g, sub, vmap, vmask=None, emask=None):

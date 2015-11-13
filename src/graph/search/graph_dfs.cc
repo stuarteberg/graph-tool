@@ -114,8 +114,6 @@ void dfs_search(GraphInterface& g, size_t s, python::object vis)
 
 #ifdef HAVE_BOOST_COROUTINE
 
-typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
-
 class DFSGeneratorVisitor : public dfs_visitor<>
 {
 public:
@@ -135,27 +133,6 @@ private:
     coro_t::push_type& _yield;
 };
 
-class DFSGenerator
-{
-public:
-    template <class Dispatch>
-    DFSGenerator(Dispatch& dispatch)
-        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
-          _iter(begin(*_coro)), _end(end(*_coro)) {}
-    boost::python::object next()
-    {
-        if (_iter == _end)
-            boost::python::objects::stop_iteration_error();
-        boost::python::object oe = *_iter;
-        ++_iter;
-        return oe;
-    }
-private:
-    std::shared_ptr<coro_t::pull_type> _coro;
-    coro_t::pull_type::iterator _iter;
-    coro_t::pull_type::iterator _end;
-};
-
 #endif // HAVE_BOOST_COROUTINE
 
 
@@ -169,7 +146,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
                 (g, std::bind(do_dfs(), placeholders::_1,
                               g.get_vertex_index(), s, vis))();
         };
-    return boost::python::object(DFSGenerator(dispatch));
+    return boost::python::object(CoroGenerator(dispatch));
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif
@@ -180,10 +157,4 @@ void export_dfs()
     using namespace boost::python;
     def("dfs_search", &dfs_search);
     def("dfs_search_generator", &dfs_search_generator);
-#ifdef HAVE_BOOST_COROUTINE
-    class_<DFSGenerator>("DFSGenerator", no_init)
-        .def("__iter__", objects::identity_function())
-        .def("next", &DFSGenerator::next)
-        .def("__next__", &DFSGenerator::next);
-#endif
 }
