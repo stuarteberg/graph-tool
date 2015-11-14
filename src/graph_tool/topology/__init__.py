@@ -370,12 +370,9 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
                                  max_n, induced, not subgraph,
                                  generator)
     if generator:
-        for vmap in vmaps:
-            yield PropertyMap(vmap, sub, "v")
+        return (PropertyMap(vmap, sub, "v") for vmap in vmaps)
     else:
-        for i in range(len(vmaps)):
-            vmaps[i] = PropertyMap(vmaps[i], sub, "v")
-        return vmaps
+        return [PropertyMap(vmap, sub, "v") for vmap in vmaps]
 
 
 def mark_subgraph(g, sub, vmap, vmask=None, emask=None):
