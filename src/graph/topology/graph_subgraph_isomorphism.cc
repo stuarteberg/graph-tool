@@ -191,17 +191,17 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     //                        ConstantPropertyMap<bool,GraphInterface::edge_t> >
     //     ::type edge_props_t;
 
-    typedef property_map_type::apply<int32_t,
+    typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type vlabel_t;
-    typedef mpl::vector<typename vlabel_t::unchecked_t,
-                        ConstantPropertyMap<bool,
-                                            GraphInterface::vertex_t> > vertex_props_t;
+    typedef mpl::vector2<typename vlabel_t::unchecked_t,
+                         ConstantPropertyMap<bool,
+                                             GraphInterface::vertex_t> > vertex_props_t;
 
-    typedef property_map_type::apply<int32_t,
+    typedef property_map_type::apply<int64_t,
                                      GraphInterface::edge_index_map_t>::type elabel_t;
-    typedef mpl::vector<typename elabel_t::unchecked_t,
-                        ConstantPropertyMap<bool,
-                                            GraphInterface::edge_t> > edge_props_t;
+    typedef mpl::vector2<typename elabel_t::unchecked_t,
+                         ConstantPropertyMap<bool,
+                                             GraphInterface::edge_t> > edge_props_t;
 
 
     if (gi1.get_directed() != gi2.get_directed())

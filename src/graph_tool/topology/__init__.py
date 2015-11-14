@@ -351,15 +351,15 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
         vertex_label = (None, None)
     elif vertex_label[0].value_type() != vertex_label[1].value_type():
         raise ValueError("Both vertex label property maps must be of the same type!")
-    elif vertex_label[0].value_type() != "int32_t":
-        vertex_label = perfect_prop_hash(vertex_label, htype="int32_t")
+    elif vertex_label[0].value_type() != "int64_t":
+        vertex_label = perfect_prop_hash(vertex_label, htype="int64_t")
 
     if edge_label is None:
         edge_label = (None, None)
     elif edge_label[0].value_type() != edge_label[1].value_type():
         raise ValueError("Both edge label property maps must be of the same type!")
-    elif edge_label[0].value_type() != "int32_t":
-        edge_label = perfect_prop_hash(edge_label, htype="int32_t")
+    elif edge_label[0].value_type() != "int64_t":
+        edge_label = perfect_prop_hash(edge_label, htype="int64_t")
 
     vmaps = libgraph_tool_topology.\
             subgraph_isomorphism(sub._Graph__graph, g._Graph__graph,
