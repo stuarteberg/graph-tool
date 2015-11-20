@@ -2591,7 +2591,6 @@ def collect_vertex_marginals(state, p=None):
        "Soft" block partition of a political books network with :math:`B=4`.
 
     """
-    B = state.B
 
     if p is None:
         p = state.g.new_vertex_property("vector<int>")
