@@ -29,45 +29,47 @@ struct kcore_decomposition
     void operator()(Graph& g, VertexIndex vertex_index, CoreMap core_map,
                     DegSelector degS) const
     {
+        unchecked_vector_property_map<size_t, VertexIndex>
+            deg(vertex_index, num_vertices(g));
+        unchecked_vector_property_map<size_t, VertexIndex>
+            pos(vertex_index, num_vertices(g));
+
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        unchecked_vector_property_map<size_t, VertexIndex> deg(vertex_index,
-                                                               num_vertices(g));
-        unchecked_vector_property_map<size_t, VertexIndex> pos(vertex_index,
-                                                               num_vertices(g));
-        vector<vector<vertex_t> > bins;
+        vector<vector<vertex_t>> bins;
 
-        typename graph_traits<Graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
+        for (auto v : vertices_range(g))
         {
-            size_t k = degS(*vi, g);
-            deg[*vi] = k;
+            size_t k = degS(v, g);
+            deg[v] = k;
             if (k >= bins.size())
                 bins.resize(k + 1);
-            bins[k].push_back(*vi);
-            pos[*vi] = bins[k].size() - 1;
+            bins[k].push_back(v);
+            pos[v] = bins[k].size() - 1;
         }
 
         for (size_t k = 0; k < bins.size(); ++k)
         {
-            while (!bins[k].empty())
+            auto& bins_k = bins[k];
+            while (!bins_k.empty())
             {
-                vertex_t v = bins[k].back();
-                bins[k].pop_back();
+                vertex_t v = bins_k.back();
+                bins_k.pop_back();
                 core_map[v] = k;
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                for (auto e : out_edges_range(v, g))
                 {
-                    vertex_t u = target(*e, g);
-                    if (deg[u] > deg[v])
+                    vertex_t u = target(e, g);
+                    size_t ku = deg[u];
+                    if (ku > deg[v])
                     {
-                        size_t ku = deg[u];
-                        vertex_t w = bins[ku].back();
-                        pos[w] = pos[u];
-                        bins[ku][pos[w]] = w;
-                        bins[ku].pop_back();
-                        bins[ku - 1].push_back(u);
-                        pos[u] = bins[ku - 1].size() - 1;
+                        auto& bins_ku = bins[ku];
+                        vertex_t w = bins_ku.back();
+                        auto pos_w = pos[w] = pos[u];
+                        bins_ku[pos_w] = w;
+                        bins_ku.pop_back();
+                        auto& bins_ku_m = bins[ku - 1];
+                        bins_ku_m.push_back(u);
+                        pos[u] = bins_ku_m.size() - 1;
                         --deg[u];
                     }
                 }
