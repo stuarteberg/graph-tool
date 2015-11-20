@@ -128,11 +128,23 @@ struct export_vector_types
         string name = "Vector_" + type_name;
         class_<vector<ValueType> > vc(name.c_str());
         std::function<size_t(const vector<ValueType>&)> hasher =
-            [] (const vector<ValueType>& v) -> size_t { return std::hash<vector<ValueType>>()(v); };
+            [] (const vector<ValueType>& v) -> size_t
+            { return std::hash<vector<ValueType>>()(v); };
+        std::function<void(vector<ValueType>&, size_t size)> resize =
+            [] (vector<ValueType>& v, size_t n) { v.resize(n); };
+        std::function<void(vector<ValueType>&, size_t n)> reserve =
+            [] (vector<ValueType>& v, size_t n) { v.reserve(n); };
+        std::function<void(vector<ValueType>&)> shrink_to_fit =
+            [] (vector<ValueType>& v) { v.shrink_to_fit(); };
+        std::function<bool(vector<ValueType>&)> empty =
+            [] (vector<ValueType>& v) -> bool { return v.empty(); };
         vc.def(vector_indexing_suite<vector<ValueType> >())
             .def("__eq__", &vector_equal_compare<ValueType>)
             .def("__ne__", &vector_nequal_compare<ValueType>)
-            .def("__hash__", hasher);
+            .def("__hash__", hasher)
+            .def("resize", resize)
+            .def("shrink_to_fit", shrink_to_fit)
+            .def("empty", empty);
         wrap_array(vc, typename boost::mpl::has_key<numpy_types,ValueType>::type());
         vector_from_list<ValueType>();
     }
