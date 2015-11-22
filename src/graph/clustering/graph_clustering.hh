@@ -23,6 +23,10 @@
 #include "hash_map_wrap.hh"
 #include <boost/mpl/if.hpp>
 
+#ifdef USING_OPENMP
+#include "omp.h"
+#endif
+
 #ifndef __clang__
 #include <ext/numeric>
 using __gnu_cxx::power;
@@ -39,42 +43,38 @@ namespace graph_tool
 using namespace boost;
 
 // calculates the number of triangles to which v belongs
-template <class Graph>
+template <class Graph, class VProp>
 pair<int,int>
-get_triangles(typename graph_traits<Graph>::vertex_descriptor v, const Graph &g)
+get_triangles(typename graph_traits<Graph>::vertex_descriptor v, VProp& mark,
+              const Graph &g)
 {
-    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-
-    typedef gt_hash_set<vertex_t> set_t;
-
-    set_t neighbour_set;
-
-    neighbour_set.resize(out_degree(v, g));
-
     size_t triangles = 0;
 
-    typename graph_traits<Graph>::adjacency_iterator n, n_end;
-    for (tie(n, n_end) = adjacent_vertices(v, g); n != n_end; ++n)
+    for (auto n : adjacent_vertices_range(v, g))
     {
-        if (*n == v) // no self-loops
+        if (n == v)
             continue;
-        neighbour_set.insert(*n);
+        mark[n] = true;
     }
 
-    for (tie(n, n_end) = adjacent_vertices(v, g); n != n_end; ++n)
+    for (auto n : adjacent_vertices_range(v, g))
     {
-        typename graph_traits<Graph>::adjacency_iterator n2, n2_end;
-        for (tie(n2, n2_end) = adjacent_vertices(*n, g); n2 != n2_end; ++n2)
+        if (n == v)
+            continue;
+        for (auto n2 : adjacent_vertices_range(n, g))
         {
-            if (*n2 == *n) // no self-loops
+            if (n2 == n)
                 continue;
-            if (neighbour_set.find(*n2) != neighbour_set.end())
+            if (mark[n2])
                 ++triangles;
         }
     }
 
+    for (auto n : adjacent_vertices_range(v, g))
+        mark[n] = false;
+
     size_t k = out_degree(v, g);
-    return make_pair(triangles/2,(k*(k-1))/2);
+    return make_pair(triangles / 2, (k * (k - 1)) / 2);
 }
 
 
@@ -87,8 +87,17 @@ struct get_global_clustering
         size_t triangles = 0, n = 0;
         pair<size_t, size_t> temp;
 
-        int i, N = num_vertices(g);
+#ifdef USING_OPENMP
+        size_t n_threads = omp_get_max_threads();
+#else
+        size_t n_threads = 1;
+#endif
 
+        vector<vector<bool>> mask(n_threads);
+        for (auto& m : mask)
+            m.resize(num_vertices(g), false);
+
+        int i, N = num_vertices(g);
         #pragma omp parallel for default(shared) private(i,temp) \
             schedule(runtime) if (N > 100) reduction(+:triangles, n)
         for (i = 0; i < N; ++i)
@@ -97,7 +106,12 @@ struct get_global_clustering
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
 
-            temp = get_triangles(v, g);
+#ifdef USING_OPENMP
+            size_t tid = omp_get_thread_num();
+#else
+            size_t tid = 0;
+#endif
+            temp = get_triangles(v, mask[tid], g);
             triangles += temp.first;
             n += temp.second;
         }
@@ -115,7 +129,12 @@ struct get_global_clustering
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
 
-            temp = get_triangles(v, g);
+#ifdef USING_OPENMP
+            size_t tid = omp_get_thread_num();
+#else
+            size_t tid = 0;
+#endif
+            temp = get_triangles(v, mask[tid], g);
             double cl = double(triangles - temp.first) / (n - temp.second);
 
             cerr += power(c - cl, 2);
@@ -134,14 +153,30 @@ struct set_clustering_to_property
         typename get_undirected_graph<Graph>::type ug(g);
         int i, N = num_vertices(g);
 
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
+#ifdef USING_OPENMP
+        size_t n_threads = omp_get_max_threads();
+#else
+        size_t n_threads = 1;
+#endif
+
+        vector<vector<bool>> mask(n_threads);
+        for (auto& m : mask)
+            m.resize(num_vertices(g), false);
+
+        #pragma omp parallel for default(shared) private(i) \
+            schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
             typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
             if (v == graph_traits<Graph>::null_vertex())
                 continue;
 
-            pair<size_t,size_t> triangles = get_triangles(v,ug); // get from ug
+#ifdef USING_OPENMP
+            size_t tid = omp_get_thread_num();
+#else
+            size_t tid = 0;
+#endif
+            auto triangles = get_triangles(v, mask[tid], ug); // get from ug
             double clustering = (triangles.second > 0) ?
                 double(triangles.first)/triangles.second :
                 0.0;
