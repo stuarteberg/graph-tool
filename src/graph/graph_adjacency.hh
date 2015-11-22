@@ -268,7 +268,7 @@ public:
         for (size_t i = 0; i < _out_edges.size(); ++i)
         {
             auto& oes = _out_edges[i];
-            for (size_t j = 0; j < _out_edges[i].size(); ++j)
+            for (size_t j = 0; j < oes.size(); ++j)
             {
                 auto& oe = oes[j];
                 Vertex v = oe.first;
