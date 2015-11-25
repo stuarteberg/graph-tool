@@ -965,7 +965,7 @@ def _check_prop_writable(prop, name=None):
 
 
 def _check_prop_scalar(prop, name=None, floating=False):
-    scalars = ["bool", "int32_t", "int64_t", "unsigned long",
+    scalars = ["bool", "int16_t", "int32_t", "int64_t", "unsigned long",
                "double", "long double"]
     if floating:
         scalars = ["double", "long double"]
@@ -977,7 +977,7 @@ def _check_prop_scalar(prop, name=None, floating=False):
 
 
 def _check_prop_vector(prop, name=None, scalar=True, floating=False):
-    scalars = ["bool", "int32_t", "int64_t", "unsigned long",
+    scalars = ["bool", "int16_t", "int32_t", "int64_t", "unsigned long",
                "double", "long double"]
     if not scalar:
         scalars += ["string"]
