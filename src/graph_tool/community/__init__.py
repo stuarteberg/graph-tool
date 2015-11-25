@@ -95,7 +95,8 @@ import sys
 if sys.version_info < (3,):
     range = xrange
 
-from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng
+from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, \
+    perfect_prop_hash
 import random
 import sys
 
@@ -376,6 +377,8 @@ def modularity(g, prop, weight=None):
        :doi:`10.1073/pnas.0601602103`, :arxiv:`physics/0602124`
     """
 
+    if prop.value_type() not in ["bool", "int16_t", "int32_t", "int64_t", "unsigned long"]:
+        prop = perfect_prop_hash([prop])[0]
     ug = GraphView(g, directed=False)
     m = libgraph_tool_community.modularity(ug._Graph__graph,
                                            _prop("e", ug, weight),
