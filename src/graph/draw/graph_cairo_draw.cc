@@ -1161,6 +1161,10 @@ public:
             cr.set_line_width(pw);
             draw_edge_line(pos_begin, pos_end, controls, cr);
             cr.get_stroke_extents(sx1, sy1, sx2, sy2);
+            sx1 -= pw;
+            sx2 += pw;
+            sy1 -= pw;
+            sy2 += pw;
             cr.begin_new_path();
             cr.rectangle(sx1, sy1, sx2 - sx1, sy2 - sy1);
             _s.draw(cr, true);
@@ -1230,6 +1234,10 @@ public:
                 double sx1, sy1, sx2, sy2;
                 draw_edge_line(pos_begin, pos_end, controls, cr);
                 cr.get_stroke_extents(sx1, sy1, sx2, sy2);
+                sx1 -= pw;
+                sx2 += pw;
+                sy1 -= pw;
+                sy2 += pw;
                 cr.begin_new_path();
                 cr.rectangle(sx1, sy1, sx2 - sx1, sy2 - sy1);
                 draw_edge_markers(pos_begin_marker, pos_begin_d, pos_end_marker,
