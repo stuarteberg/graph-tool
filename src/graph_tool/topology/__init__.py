@@ -30,6 +30,8 @@ Summary
 
    shortest_distance
    shortest_path
+   all_shortest_paths
+   all_predecessors
    pseudo_diameter
    similarity
    isomorphism
@@ -78,9 +80,9 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "sequential_vertex_coloring", "label_components",
            "label_largest_component", "label_biconnected_components",
            "label_out_component", "kcore_decomposition", "shortest_distance",
-           "shortest_path", "pseudo_diameter", "is_bipartite", "is_DAG",
-           "is_planar", "make_maximal_planar", "similarity", "edge_reciprocity"]
-
+           "shortest_path", "all_shortest_paths", "all_predecessors",
+           "pseudo_diameter", "is_bipartite", "is_DAG", "is_planar",
+           "make_maximal_planar", "similarity", "edge_reciprocity"]
 
 def similarity(g1, g2, label1=None, label2=None, norm=True):
     r"""Return the adjacency similarity between the two graphs.
@@ -339,7 +341,7 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
        http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.101.5342
     .. [cordella-subgraph-2004] L. P. Cordella, P. Foggia, C. Sansone, and M. Vento,
        "A (Sub)Graph Isomorphism Algorithm for Matching Large Graphs.",
-       IEEE Trans. Pattern Anal. Mach. Intell., vol. 26, no. 10, pp. 1367-1372, 2004. 
+       IEEE Trans. Pattern Anal. Mach. Intell., vol. 26, no. 10, pp. 1367-1372, 2004.
        :doi:`10.1109/TPAMI.2004.75`
     .. [boost-subgraph-iso] http://www.boost.org/libs/graph/doc/vf2_sub_graph_iso.html
     .. [subgraph-isormophism-wikipedia] http://en.wikipedia.org/wiki/Subgraph_isomorphism_problem
@@ -1142,7 +1144,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
         The edge weights. If provided, the shortest path will correspond to the
         minimal sum of weights.
     negative_weights : ``bool`` (optional, default: ``False``)
-        If `True`, this will trigger the use of Bellman-Ford algorithm.
+        If `True`, this will trigger the use of the Bellman-Ford algorithm.
         Ignored if ``source`` is ``None``.
     max_dist : scalar value (optional, default: ``None``)
         If specified, this limits the maximum distance of the vertices
@@ -1316,7 +1318,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
 def shortest_path(g, source, target, weights=None, negative_weights=False,
                   pred_map=None):
-    """Return the shortest path from `source` to `target`.
+    """Return the shortest path from ``source`` to ``target``.
 
     Parameters
     ----------
@@ -1329,7 +1331,7 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
     weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
         The edge weights.
     negative_weights : ``bool`` (optional, default: ``False``)
-        If `True`, this will trigger the use of Bellman-Ford algorithm.
+        If ``True``, this will trigger the use of the Bellman-Ford algorithm.
     pred_map :  :class:`~graph_tool.PropertyMap` (optional, default: None)
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
@@ -1418,6 +1420,117 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         vlist.insert(0, p)
         v = p
     return vlist, elist
+
+def all_predecessors(g, dist_map, pred_map):
+    """Return a property map with all possible predecessors in the search tree
+        determined by ``dist_map`` and ``pred_map``.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    dist_map : :class:`~graph_tool.PropertyMap`
+        Vertex property map with the distances from ``source`` to all other
+        vertices.
+    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Vertex property map with the predecessors in the search tree.
+
+    Returns
+    -------
+    all_preds_map : :class:`~graph_tool.PropertyMap`
+        Vector-valued vertex property map with all possible predecessors in the
+        search tree.
+
+    """
+
+    preds = g.new_vertex_property("vector<int64_t>")
+    libgraph_tool_topology.get_all_preds(g._Graph__graph,
+                                         _prop("v", g, dist_map),
+                                         _prop("v", g, pred_map),
+                                         _prop("v", g, preds))
+    return preds
+
+def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
+                       dist_map=None, pred_map=None, all_preds_map=None):
+    """Return an iterator over all shortest paths from `source` to `target`.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex of the search.
+    target : :class:`~graph_tool.Vertex`
+        Target vertex of the search.
+    weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        The edge weights.
+    negative_weights : ``bool`` (optional, default: ``False``)
+        If ``True``, this will trigger the use of the Bellman-Ford algorithm.
+    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Vertex property map with the distances from ``source`` to all other
+        vertices.
+    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Vertex property map with the predecessors in the search tree. If this is
+        provided, the shortest paths are not computed, and are obtained directly
+        from this map.
+    all_preds_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Vector-valued vertex property map with all possible predecessors in the
+        search tree. If this is provided, the shortest paths are obtained
+        directly from this map.
+
+    Returns
+    -------
+    path_iterator : iterator over a sequence of integers
+        Iterator over sequences of vertices from `source` to `target` in the
+        shortest path.
+
+    Notes
+    -----
+
+    The paths are computed with a breadth-first search (BFS) or Dijkstra's
+    algorithm [dijkstra]_, if weights are given. If ``negative_weights ==
+    True``, the Bellman-Ford algorithm is used [bellman_ford]_, which accepts
+    negative weights, as long as there are no negative loops.
+
+    If both ``dist_map`` and ``pred_map` are provided, the search is not
+    actually performed.
+
+    Examples
+    --------
+
+    >>> g = gt.collection.data["pgp-strong-2009"]
+    >>> for path in gt.all_shortest_paths(g, 92, 45):
+    ...     print(path)
+    [  92  107 2176 7027   26   21   45]
+    [  92  107 2176 7033   26   21   45]
+    [  92   82   94 5877 5879   34   45]
+    [  92   89   94 5877 5879   34   45]
+
+    References
+    ----------
+    .. [bfs] Edward Moore, "The shortest path through a maze", International
+       Symposium on the Theory of Switching (1959), Harvard University
+       Press
+    .. [bfs-boost] http://www.boost.org/libs/graph/doc/breadth_first_search.html
+    .. [dijkstra] E. Dijkstra, "A note on two problems in connexion with
+       graphs." Numerische Mathematik, 1:269-271, 1959.
+    .. [dijkstra-boost] http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html
+    .. [bellman-ford] http://www.boost.org/libs/graph/doc/bellman_ford_shortest.html
+
+    """
+
+    if dist_map is None or pred_map is None:
+        dist_map, pred_map = shortest_distance(g, source, weights=weights,
+                                               negative_weights=negative_weights,
+                                               pred_map=True)
+    if all_preds_map is None:
+        all_preds_map = all_predecessors(g, dist_map, pred_map)
+
+    path_iterator = libgraph_tool_topology.get_all_paths(g._Graph__graph,
+                                                         int(source),
+                                                         int(target),
+                                                         _prop("v", g, all_preds_map))
+    return path_iterator
 
 
 def pseudo_diameter(g, source=None, weights=None):

@@ -19,6 +19,7 @@
 #include "graph_filtering.hh"
 #include "graph_properties.hh"
 #include "graph_selectors.hh"
+#include "graph_python_interface.hh"
 #include "numpy_bind.hh"
 #include "hash_map_wrap.hh"
 
@@ -27,6 +28,10 @@
 #include <boost/graph/bellman_ford_shortest_paths.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python.hpp>
+
+#ifdef HAVE_BOOST_COROUTINE
+#include <boost/coroutine/all.hpp>
+#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
@@ -407,7 +412,96 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
     }
 }
 
+template <class Graph, class Dist, class Pred, class Preds>
+void get_all_preds(Graph g, Dist dist, Pred pred, Preds preds)
+{
+    int i, N = num_vertices(g);
+    #pragma omp parallel for default(shared) private(i)     \
+        schedule(runtime) if (N > 100)
+    for (i = 0; i < N; ++i)
+    {
+        size_t v = vertex(i, g);
+        if (v == graph_traits<Graph>::null_vertex())
+            continue;
+        if (size_t(pred[v]) == v)
+            continue;
+        auto d = dist[pred[v]];
+        for (auto e : in_or_out_edges_range(v, g))
+        {
+            auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
+            if (dist[u] == d)
+                preds[v].push_back(u);
+        }
+    }
+};
+
+void do_get_all_preds(GraphInterface& gi, boost::any adist,
+                      boost::any apred, boost::any apreds)
+{
+    typedef property_map_type
+        ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
+    typedef property_map_type
+        ::apply<vector<int64_t>, GraphInterface::vertex_index_map_t>::type preds_map_t;
+
+    pred_map_t pred = any_cast<pred_map_t>(apred);
+    preds_map_t preds = any_cast<preds_map_t>(apreds);
+
+    run_action<>()
+        (gi, [&](auto& g, auto dist)
+             {get_all_preds(g, dist, pred.get_unchecked(num_vertices(g)),
+                            preds.get_unchecked(num_vertices(g)));},
+         vertex_scalar_properties())(adist);
+}
+
+
+template <class Pred, class Yield>
+void get_all_paths(size_t s, size_t t, Pred pred, Yield& yield)
+{
+    vector<size_t> path;
+    vector<pair<size_t, size_t>> stack = {{t, 0}};
+    while (!stack.empty())
+    {
+        size_t v, i;
+        std::tie(v, i) = stack.back();
+        if (v == s)
+        {
+            path.clear();
+            for (auto iter = stack.rbegin(); iter != stack.rend(); ++iter)
+                path.push_back(iter->first);
+            yield(wrap_vector_owned<size_t>(path));
+        }
+        if (pred[v].size() > i)
+        {
+            stack.emplace_back(pred[v][i], 0);
+        }
+        else
+        {
+            stack.pop_back();
+            if (!stack.empty())
+                ++stack.back().second;
+        }
+    }
+};
+
+python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
+                                boost::any apred)
+{
+#ifdef HAVE_BOOST_COROUTINE
+    auto dispatch = [&](auto& yield)
+        {
+            run_action<>()
+                (gi, [&](auto&, auto pred) {get_all_paths(s, t, pred, yield);},
+                 vertex_scalar_vector_properties())(apred);
+        };
+    return python::object(CoroGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif // HAVE_BOOST_COROUTINE
+}
+
 void export_dists()
 {
     python::def("get_dists", &get_dists);
+    python::def("get_all_preds", &do_get_all_preds);
+    python::def("get_all_paths", &do_get_all_paths);
 };
