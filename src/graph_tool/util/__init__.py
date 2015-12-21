@@ -51,7 +51,10 @@ def find_vertex(g, prop, match):
     """Find all vertices `v` for which `prop[v] = match`. The parameter prop
     can be either a :class:`~graph_tool.PropertyMap` or string with value "in",
     "out" or "total", representing a degree type."""
-    val = _converter(prop.value_type())(match)
+    if prop in ["in", "out", "total"]:
+        val = int(match)
+    else:
+        val = _converter(prop.value_type())(match)
     ret = libgraph_tool_util.\
           find_vertex_range(g._Graph__graph, _degree(g, prop),
                             (val, val))
@@ -62,7 +65,10 @@ def find_vertex_range(g, prop, range):
     """Find all vertices `v` for which `range[0] <= prop[v] <= range[1]`. The
     parameter prop can be either a :class:`~graph_tool.PropertyMap` or string
     with value"in", "out" or "total", representing a degree type."""
-    convert = _converter(prop.value_type())
+    if prop in ["in", "out", "total"]:
+        convert = lambda x: int(x)
+    else:
+        convert = _converter(prop.value_type())
     ret = libgraph_tool_util.\
           find_vertex_range(g._Graph__graph, _degree(g, prop),
                             (convert(range[0]), convert(range[1])))
