@@ -54,7 +54,6 @@ nobase_dist_graphtooldoc_DATA = \
 
 EXTRA_DIST = $(graphtooldoc_DATA) autogen.sh
 
-pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = graph-tool-py${PYTHON_VERSION}.pc
 
 # Copy all the spec files. Of cource, only one is actually used.
