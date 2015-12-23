@@ -602,13 +602,18 @@ public:
     typedef Key key_type;
     typedef boost::readable_property_map_tag category;
 
-    ConstantPropertyMap(const value_type& c): _c(c) {}
-    ConstantPropertyMap(): _c(value_type()) {}
+    ConstantPropertyMap(const value_type& c): c(c) {}
+    ConstantPropertyMap(): c() {}
 
-    const value_type& operator[](const key_type&) const { return _c; }
+    const value_type& operator[](const key_type&) const { return c; }
 
-private:
-    value_type _c;
+    ConstantPropertyMap& operator=(const ConstantPropertyMap& other)
+    {
+        const_cast<value_type&>(c) = other.c;
+        return *this;
+    }
+
+    const value_type c;
 };
 
 
