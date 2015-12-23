@@ -1509,6 +1509,10 @@ class GraphArtist(matplotlib.artist.Artist):
             raise NotImplementedError("graph plotting is supported only on Cairo backends")
 
         ctx = renderer.gc.ctx
+
+        if not isinstance(ctx, cairo.Context):
+            ctx = _UNSAFE_cairocffi_context_to_pycairo(ctx)
+
         ctx.save()
 
         if self.ax is not None:
@@ -2083,6 +2087,40 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
     return pos
 
 
+# Handle cairo contexts from cairocffi
+
+try:
+    import cairocffi
+    import ctypes
+    pycairo = ctypes.PyDLL(cairo._cairo.__file__)
+    pycairo.PycairoContext_FromContext.restype = ctypes.c_void_p
+    pycairo.PycairoContext_FromContext.argtypes = 3 * [ctypes.c_void_p]
+    ctypes.pythonapi.PyList_Append.argtypes = 2 * [ctypes.c_void_p]
+except ImportError:
+    pass
+
+def _UNSAFE_cairocffi_context_to_pycairo(cairocffi_context):
+    # Sanity check. Continuing with another type would probably segfault.
+    if not isinstance(cairocffi_context, cairocffi.Context):
+        raise TypeError('Expected a cairocffi.Context, got %r'
+                        % cairocffi_context)
+
+    # Create a reference for PycairoContext_FromContext to take ownership of.
+    cairocffi.cairo.cairo_reference(cairocffi_context._pointer)
+    # Casting the pointer to uintptr_t (the integer type as wide as a pointer)
+    # gets the context’s integer address.
+    # On CPython id(cairo.Context) gives the address to the Context type,
+    # as expected by PycairoContext_FromContext.
+    address = pycairo.PycairoContext_FromContext(
+        int(cairocffi.ffi.cast('uintptr_t', cairocffi_context._pointer)),
+        id(cairo.Context),
+        None)
+    assert address
+    # This trick uses Python’s C API
+    # to get a reference to a Python object from its address.
+    temp_list = []
+    assert ctypes.pythonapi.PyList_Append(id(temp_list), address) == 0
+    return temp_list[0]
 
 # Bottom imports to avoid circular dependency issues
 from .. community import get_hierarchy_tree, NestedBlockState, BlockState, OverlapBlockState
