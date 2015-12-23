@@ -81,7 +81,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
             GraphInterface& sub =
                  boost::python::extract<GraphInterface&>(subgraph_list[i]);
             run_action<>()(sub, std::bind(append_to_list(),
-                                          placeholders::_1,
+                                          std::placeholders::_1,
                                           std::ref(list)))();
         }
     }
@@ -114,8 +114,8 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
     run_action<>()
         (g, std::bind(get_all_motifs(collect_vmaps, plist[0], comp_iso,
                                      fill_list, rng),
-                      placeholders::_1, k, std::ref(list), std::ref(phist),
-                      std::ref(vmaps), placeholders::_2),
+                      std::placeholders::_1, k, std::ref(list), std::ref(phist),
+                      std::ref(vmaps), std::placeholders::_2),
          boost::mpl::vector<sample_all,sample_some>())(sampler);
 
     for (size_t i = 0; i < phist.size(); ++i)
@@ -146,7 +146,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
                  boost::mpl::bool_<false>, boost::mpl::bool_<true>,
                  boost::mpl::bool_<true> >::type gviews;
             run_action<gviews>()
-                (sub, std::bind(retrieve_from_list(), placeholders::_1,
+                (sub, std::bind(retrieve_from_list(), std::placeholders::_1,
                                 std::ref(list), std::ref(done)))();
             if (!done)
                 subgraph_list.append(sub);

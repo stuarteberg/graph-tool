@@ -195,7 +195,7 @@ public:
         if (_all_names.empty())
         {
             boost::mpl::for_each<TypeSequence>
-                (bind(get_all_names(), placeholders::_1,
+                (bind(get_all_names(), std::placeholders::_1,
                       ref(_type_names), ref(_all_names)));
         }
     }
@@ -204,7 +204,7 @@ public:
     {
         string const* name;
         boost::mpl::for_each<TypeSequence>
-            (bind(find_name(), placeholders::_1, ref(type),
+            (bind(find_name(), std::placeholders::_1, ref(type),
                   ref(_all_names), ref(name)));
         return *name;
     }
@@ -382,7 +382,7 @@ public:
     {
         ValueConverter* converter = 0;
         boost::mpl::for_each<PropertyTypes>
-            (std::bind(choose_converter(), placeholders::_1, std::ref(pmap),
+            (std::bind(choose_converter(), std::placeholders::_1, std::ref(pmap),
                        std::ref(converter)));
         if (converter == 0)
             throw boost::bad_lexical_cast();

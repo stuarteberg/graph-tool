@@ -71,8 +71,8 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
          std::bind(get_sfdp_layout(C, K, p, theta, gamma, mu, mu_p, init_step,
                                    step_schedule, max_level, epsilon,
                                    max_iter, adaptive),
-                   placeholders::_1, placeholders::_2,
-                   placeholders::_3, placeholders::_4,
+                   std::placeholders::_1, std::placeholders::_2,
+                   std::placeholders::_3, std::placeholders::_4,
                    pin_map.get_unchecked(num_vertices(g.get_graph())),
                    groups.get_unchecked(num_vertices(g.get_graph())), verbose,
                    std::ref(rng)),
@@ -136,8 +136,8 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
 
     run_action<>()
         (gi, std::bind(do_propagate_pos(),
-                       placeholders::_1, placeholders::_2, placeholders::_3,
-                       cvmap, placeholders::_4, cpos, delta, std::ref(rng)),
+                       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                       cvmap, std::placeholders::_4, cpos, delta, std::ref(rng)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          vmaps_t(), vertex_floating_vector_properties())
         (cgi.get_graph_view(), vmap, pos);
@@ -196,7 +196,7 @@ void propagate_pos_mivs(GraphInterface& gi, boost::any mivs, boost::any pos,
 {
     run_action<>()
         (gi, std::bind(do_propagate_pos_mivs(),
-                       placeholders::_1, placeholders::_2, placeholders::_3,
+                       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                        delta, std::ref(rng)),
          vertex_scalar_properties(), vertex_floating_vector_properties())
         (mivs, pos);
@@ -236,8 +236,8 @@ double avg_dist(GraphInterface& gi, boost::any pos)
 {
     double d;
     run_action<>()
-        (gi, std::bind(do_avg_dist(), placeholders::_1,
-                       placeholders::_2, std::ref(d)),
+        (gi, std::bind(do_avg_dist(), std::placeholders::_1,
+                       std::placeholders::_2, std::ref(d)),
          vertex_scalar_vector_properties()) (pos);
     return d;
 }
@@ -265,7 +265,7 @@ struct do_sanitize_pos
 void sanitize_pos(GraphInterface& gi, boost::any pos)
 {
     run_action<>()
-        (gi, std::bind(do_sanitize_pos(), placeholders::_1, placeholders::_2),
+        (gi, std::bind(do_sanitize_pos(), std::placeholders::_1, std::placeholders::_2),
          vertex_scalar_vector_properties()) (pos);
 }
 

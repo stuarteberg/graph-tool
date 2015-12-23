@@ -68,9 +68,9 @@ void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
 
     run_action<graph_tool::detail::always_directed>()
         (gi, std::bind(get_edge_sum_dispatch(),
-                       placeholders::_1, std::ref(cgi.get_graph()),
-                       placeholders::_2,
-                       condensed_community_property, placeholders::_3, ceprop,
+                       std::placeholders::_1, std::ref(cgi.get_graph()),
+                       std::placeholders::_2,
+                       condensed_community_property, std::placeholders::_3, ceprop,
                        self_loops),
          writable_vertex_properties(), eprops_t())
         (community_property, eprop);

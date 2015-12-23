@@ -99,18 +99,18 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
             // compute weighted values to temp
             run_action<graph_tool::detail::always_directed_never_reversed>()
                 (gi, std::bind(get_weighted_vertex_property_dispatch(),
-                               placeholders::_1, placeholders::_2,
-                               placeholders::_3, temp),
+                               std::placeholders::_1, std::placeholders::_2,
+                               std::placeholders::_3, temp),
                  vweight_properties(), vprops_t())
                 (vweight, vprop);
 
             // sum weighted values
             run_action<graph_tool::detail::always_directed_never_reversed>()
                 (gi, std::bind(get_vertex_sum_dispatch(),
-                               placeholders::_1, std::ref(cgi.get_graph()),
-                               placeholders::_2,
+                               std::placeholders::_1, std::ref(cgi.get_graph()),
+                               std::placeholders::_2,
                                condensed_community_property,
-                               placeholders::_3, cvprop),
+                               std::placeholders::_3, cvprop),
                  writable_vertex_properties(), vprops_t())
                 (community_property, temp);
         }
@@ -119,10 +119,10 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
             // sum unweighted values
             run_action<graph_tool::detail::always_directed_never_reversed>()
                 (gi, std::bind(get_vertex_sum_dispatch(),
-                               placeholders::_1, std::ref(cgi.get_graph()),
-                               placeholders::_2,
+                               std::placeholders::_1, std::ref(cgi.get_graph()),
+                               std::placeholders::_2,
                                condensed_community_property,
-                               placeholders::_3, cvprop),
+                               std::placeholders::_3, cvprop),
                  writable_vertex_properties(), vprops_t())
                 (community_property, vprop);
         }

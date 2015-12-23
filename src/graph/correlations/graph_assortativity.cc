@@ -31,7 +31,7 @@ assortativity_coefficient(GraphInterface& gi,
 {
     double a, a_err;
     run_action<>()(gi,std::bind(get_assortativity_coefficient(),
-                                placeholders::_1, placeholders::_2,
+                                std::placeholders::_1, std::placeholders::_2,
                                 std::ref(a), std::ref(a_err)),
                    scalar_selectors())
         (degree_selector(deg));
@@ -44,7 +44,7 @@ scalar_assortativity_coefficient(GraphInterface& gi,
 {
     double a, a_err;
     run_action<>()(gi, std::bind(get_scalar_assortativity_coefficient(),
-                                 placeholders::_1, placeholders::_2,
+                                 std::placeholders::_1, std::placeholders::_2,
                                  std::ref(a), std::ref(a_err)),
                    scalar_selectors())
         (degree_selector(deg));

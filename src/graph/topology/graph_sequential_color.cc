@@ -44,8 +44,8 @@ size_t sequential_coloring(GraphInterface& gi, boost::any order,
 {
     size_t nc = 0;
     run_action<>()
-        (gi, std::bind(get_coloring(), placeholders::_1, placeholders::_2,
-                       placeholders::_3, std::ref(nc)),
+        (gi, std::bind(get_coloring(), std::placeholders::_1, std::placeholders::_2,
+                       std::placeholders::_3, std::ref(nc)),
          vertex_integer_properties(), int_properties())(order, color);
     return nc;
 }

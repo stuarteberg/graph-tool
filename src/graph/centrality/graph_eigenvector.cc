@@ -42,8 +42,8 @@ long double eigenvector(GraphInterface& g, boost::any w, boost::any c,
 
     long double eig = 0;
     run_action<>()
-        (g, std::bind(get_eigenvector(), placeholders::_1, g.get_vertex_index(),
-                      placeholders::_2, placeholders::_3, epsilon, max_iter,
+        (g, std::bind(get_eigenvector(), std::placeholders::_1, g.get_vertex_index(),
+                      std::placeholders::_2, std::placeholders::_3, epsilon, max_iter,
                       std::ref(eig)),
          weight_props_t(),
          vertex_floating_properties())(w, c);

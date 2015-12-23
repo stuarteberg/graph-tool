@@ -236,8 +236,8 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     if (!generator)
     {
         run_action<>()
-            (gi1, std::bind(get_subgraphs(), placeholders::_1, placeholders::_2,
-                            placeholders::_3, vertex_label2, placeholders::_4,
+            (gi1, std::bind(get_subgraphs(), std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3, vertex_label2, std::placeholders::_4,
                             edge_label2, std::ref(vmaps), max_n, induced, iso,
                             ListMatch()),
              graph_view_pointers(), vertex_props_t(),
@@ -255,8 +255,8 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
         auto dispatch = [&](auto& yield)
             {
                 run_action<>()
-                    (gi1, std::bind(get_subgraphs(), placeholders::_1, placeholders::_2,
-                                    placeholders::_3, vertex_label2, placeholders::_4,
+                    (gi1, std::bind(get_subgraphs(), std::placeholders::_1, std::placeholders::_2,
+                                    std::placeholders::_3, vertex_label2, std::placeholders::_4,
                                     edge_label2, std::ref(vmaps), max_n, induced, iso,
                                     GenMatch(yield)),
                      graph_view_pointers(), vertex_props_t(),

@@ -131,7 +131,7 @@ double do_get_ent(GraphInterface& gi, boost::any omrs, boost::any omrp,
     double S = 0;
     run_action<>()
         (gi, std::bind(entropy(), mrs, mrp, mrm, wr, deg_corr,
-                       placeholders::_1,
+                       std::placeholders::_1,
                        std::ref(S)))();
     return S;
 }
@@ -151,7 +151,7 @@ double do_get_ent_dense(GraphInterface& gi, boost::any omrs, boost::any owr,
     double S = 0;
     run_action<>()
         (gi, std::bind(entropy_dense(), mrs, wr, multigraph,
-                       placeholders::_1, std::ref(S)))();
+                       std::placeholders::_1, std::ref(S)))();
     return S;
 }
 
@@ -165,7 +165,7 @@ double do_get_ent_parallel(GraphInterface& gi, boost::any oweight)
     double S = 0;
     run_action<>()
         (gi, std::bind(entropy_parallel_edges(),
-                       placeholders::_1, weight, std::ref(S)))();
+                       std::placeholders::_1, weight, std::ref(S)))();
     return S;
 }
 
@@ -181,7 +181,7 @@ boost::any do_create_emat(GraphInterface& gi, boost::any ob,
 
     if (gi.get_directed())
     {
-        run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
+        run_action<>()(gi, std::bind<void>(create_emat(), std::placeholders::_1,
                                            std::ref(b),
                                            std::ref(bgi.get_graph()),
                                            std::ref(emat)))();
@@ -189,7 +189,7 @@ boost::any do_create_emat(GraphInterface& gi, boost::any ob,
     else
     {
         UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
-        run_action<>()(gi, std::bind<void>(create_emat(), placeholders::_1,
+        run_action<>()(gi, std::bind<void>(create_emat(), std::placeholders::_1,
                                            std::ref(b),
                                            std::ref(ug),
                                            std::ref(emat)))();
@@ -208,7 +208,7 @@ boost::any do_create_ehash(GraphInterface& gi, boost::any ob,
 
     if (gi.get_directed())
     {
-        run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
+        run_action<>()(gi, std::bind<void>(create_ehash(), std::placeholders::_1,
                                            std::ref(b),
                                            std::ref(bgi.get_graph()),
                                            std::ref(emat),
@@ -217,7 +217,7 @@ boost::any do_create_ehash(GraphInterface& gi, boost::any ob,
     else
     {
         UndirectedAdaptor<GraphInterface::multigraph_t> ug(bgi.get_graph());
-        run_action<>()(gi, std::bind<void>(create_ehash(), placeholders::_1,
+        run_action<>()(gi, std::bind<void>(create_ehash(), std::placeholders::_1,
                                            std::ref(b),
                                            std::ref(ug),
                                            std::ref(emat),
@@ -492,7 +492,7 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                         beta, sequential, parallel, random_move, c, verbose,
                         gi.get_edge_index_range(), nmerges, niter, merge_map,
                         partition_stats, rng, S, nmoves, bgi),
-                       mrs, mrp, mrm, wr, b, placeholders::_1,
+                       mrs, mrp, mrm, wr, b, std::placeholders::_1,
                        std::ref(emat), sampler, cavity_sampler, weighted))();
     return boost::python::make_tuple(S, nmoves);
 }
@@ -535,7 +535,7 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
                              esrcpos.get_unchecked(gi.get_edge_index_range()),
                              etgtpos.get_unchecked(gi.get_edge_index_range()),
                              eweights.get_unchecked(gi.get_edge_index_range()),
-                             placeholders::_1, bgi.get_vertex_index(),
+                             std::placeholders::_1, bgi.get_vertex_index(),
                              bgi.get_num_vertices(), weighted, empty))();
     return oegroups;
 }
@@ -550,7 +550,7 @@ boost::any do_init_neighbour_sampler(GraphInterface& gi, boost::any oeweights,
 
     boost::any osampler;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
-        (gi, std::bind(init_neighbour_sampler(), placeholders::_1, eweights,
+        (gi, std::bind(init_neighbour_sampler(), std::placeholders::_1, eweights,
                        self_loops, empty, std::ref(osampler)))();
     return osampler;
 }
@@ -580,7 +580,7 @@ void do_collect_edge_marginals(GraphInterface& gi, GraphInterface& gbi,
 
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(collect_edge_marginals_dispatch(),
-                             placeholders::_1, B, b, p,
+                             std::placeholders::_1, B, b, p,
                              std::tuple<boost::any, GraphInterface&>(gbi.get_graph_view(), gbi)))();
 }
 
@@ -599,7 +599,7 @@ boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any o
     double H=0, sH=0, Hmf=0, sHmf=0;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(bethe_entropy(),
-                             placeholders::_1, B, p, pv, std::ref(H), std::ref(sH),
+                             std::placeholders::_1, B, p, pv, std::ref(H), std::ref(sH),
                              std::ref(Hmf), std::ref(sHmf)))();
     return boost::python::make_tuple(H, sH, Hmf, sHmf);
 }
@@ -626,7 +626,7 @@ void do_collect_vertex_marginals(GraphInterface& gi, boost::any ob,
 
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(collect_vertex_marginals_dispatch(),
-                       placeholders::_1, b, placeholders::_2),
+                       std::placeholders::_1, b, std::placeholders::_2),
          vertex_scalar_vector_properties())(op);
 }
 
@@ -700,7 +700,7 @@ double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
         vmap_t b = any_cast<vmap_t>(ob);
         run_action<>()
             (gi, std::bind(get_deg_entropy_term_overlap(),
-                           placeholders::_1, b, std::ref(overlap_stats), N,
+                           std::placeholders::_1, b, std::ref(overlap_stats), N,
                            std::ref(S)))();
     }
     else
@@ -709,7 +709,7 @@ double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
         vimap_t ignore_degrees = any_cast<vimap_t>(aignore_degrees);
         run_action<>()
             (gi, std::bind(get_deg_entropy_term(),
-                           placeholders::_1, eweight, ignore_degrees,
+                           std::placeholders::_1, eweight, ignore_degrees,
                            std::ref(S)))();
     }
 
@@ -810,7 +810,7 @@ do_get_partition_stats(GraphInterface& gi, boost::any ob, boost::any aeweight,
     mvmap_t ignore_degrees = any_cast<mvmap_t>(aignore_degrees);
 
     run_action<>()(gi, std::bind(get_partition_stats(),
-                                 placeholders::_1, b, eweight, N, B, edges_dl,
+                                 std::placeholders::_1, b, eweight, N, B, edges_dl,
                                  std::ref(partition_stats), ignore_degrees))();
     return partition_stats;
 }

@@ -57,8 +57,8 @@ size_t pagerank(GraphInterface& g, boost::any rank, boost::any pers,
     size_t iter;
     run_action<>()
         (g, std::bind(get_pagerank(),
-                      placeholders::_1, g.get_vertex_index(), placeholders::_2,
-                      placeholders::_3, placeholders::_4, d,
+                      std::placeholders::_1, g.get_vertex_index(), std::placeholders::_2,
+                      std::placeholders::_3, std::placeholders::_4, d,
                       epsilon, max_iter, std::ref(iter)),
          vertex_floating_properties(),
          pers_props_t(), weight_props_t())(rank, pers, weight);

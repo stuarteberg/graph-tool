@@ -76,9 +76,9 @@ void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
 
     run_action<>()
         (gi, std::bind(get_community_network_edges_dispatch(self_loops, parallel_edges),
-                       placeholders::_1, std::ref(cgi.get_graph()), cgi.get_edge_index(),
-                       placeholders::_2, condensed_community_property,
-                       placeholders::_3, edge_count),
+                       std::placeholders::_1, std::ref(cgi.get_graph()), cgi.get_edge_index(),
+                       std::placeholders::_2, condensed_community_property,
+                       std::placeholders::_3, edge_count),
          writable_vertex_properties(), eweight_properties())
         (community_property, eweight);
 }

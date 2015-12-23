@@ -90,8 +90,8 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
             // compute weighted values to temp
             run_action<graph_tool::detail::always_directed>()
                 (gi, std::bind(get_weighted_edge_property_dispatch(),
-                               placeholders::_1, placeholders::_2,
-                               placeholders::_3, temp),
+                               std::placeholders::_1, std::placeholders::_2,
+                               std::placeholders::_3, temp),
                  eweight_properties(), eprops_t())
                 (eweight, eprop);
 

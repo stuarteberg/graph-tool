@@ -95,8 +95,8 @@ void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
         apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
     pred_t pred = any_cast<pred_t>(pred_map);
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-        (g, std::bind(do_astar_search(),  placeholders::_1, source,
-                      placeholders::_2, pred, weight,
+        (g, std::bind(do_astar_search(),  std::placeholders::_1, source,
+                      std::placeholders::_2, pred, weight,
                       AStarVisitorWrapper(g, vis), make_pair(AStarCmp(cmp),
                                                              AStarCmb(cmb)),
                       make_pair(zero, inf), h, std::ref(g)),
@@ -141,8 +141,8 @@ boost::python::object astar_search_generator(GraphInterface& g,
         {
             AStarGeneratorVisitor vis(g, yield);
             run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-               (g, std::bind(do_astar_search(),  placeholders::_1, source,
-                             placeholders::_2, dummy_property_map(), weight,
+               (g, std::bind(do_astar_search(),  std::placeholders::_1, source,
+                             std::placeholders::_2, dummy_property_map(), weight,
                              vis, make_pair(AStarCmp(cmp), AStarCmb(cmb)),
                              make_pair(zero, inf), h, std::ref(g)),
                 writable_vertex_properties())(dist_map);
@@ -166,8 +166,8 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
         {
             AStarGeneratorVisitor vis(g, yield);
             run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-               (g, std::bind(do_astar_search_fast(),  placeholders::_1, source,
-                             placeholders::_2, placeholders::_3,
+               (g, std::bind(do_astar_search_fast(),  std::placeholders::_1, source,
+                             std::placeholders::_2, std::placeholders::_3,
                              vis, make_pair(zero, inf), h, std::ref(g)),
                 writable_vertex_scalar_properties(),
                 edge_scalar_properties())(dist_map, weight);

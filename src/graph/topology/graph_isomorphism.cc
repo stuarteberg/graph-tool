@@ -103,7 +103,7 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     {
         run_action<graph_tool::detail::always_directed>()
             (gi1, std::bind(check_iso(),
-                            placeholders::_1, placeholders::_2,
+                            std::placeholders::_1, std::placeholders::_2,
                             inv_map1, inv_map2, max_inv, iso_map,
                             gi1.get_vertex_index(),
                             gi2.get_vertex_index(), std::ref(result)),
@@ -114,7 +114,7 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     {
         run_action<graph_tool::detail::never_directed>()
             (gi1, std::bind(check_iso(),
-                            placeholders::_1, placeholders::_2,
+                            std::placeholders::_1, std::placeholders::_2,
                             inv_map1, inv_map2, max_inv, iso_map,
                             gi1.get_vertex_index(),
                             gi2.get_vertex_index(), std::ref(result)),

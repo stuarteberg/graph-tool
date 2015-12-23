@@ -36,7 +36,7 @@ struct prop_vector
     {
         boost::any prop_vec;
         boost::mpl::for_each<PropertySequence>
-            (std::bind(get_prop_vector(), placeholders::_1, std::ref(props),
+            (std::bind(get_prop_vector(), std::placeholders::_1, std::ref(props),
                        std::ref(prop_vec), size));
         return prop_vec;
     }
@@ -92,8 +92,8 @@ void extended_clustering(GraphInterface& g, boost::python::list props)
         properties_vector;
 
     run_action<>()
-        (g, std::bind<void>(get_extended_clustering(), placeholders::_1,
+        (g, std::bind<void>(get_extended_clustering(), std::placeholders::_1,
                             any_cast<GraphInterface::vertex_index_map_t>(g.get_vertex_index()),
-                            placeholders::_2),
+                            std::placeholders::_2),
          properties_vector()) (vprop);
 }

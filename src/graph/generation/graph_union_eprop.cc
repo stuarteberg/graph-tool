@@ -56,8 +56,8 @@ void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
 
     run_action<graph_tool::detail::always_directed>()
         (ugi, std::bind(graph_tool::property_union(),
-                        placeholders::_1, placeholders::_2, vprop, eprop,
-                        placeholders::_3, prop),
+                        std::placeholders::_1, std::placeholders::_2, vprop, eprop,
+                        std::placeholders::_3, prop),
          get_pointers::apply<graph_tool::detail::always_directed>::type(),
          writable_edge_properties())
         (gi.get_graph_view(), uprop);

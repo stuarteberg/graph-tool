@@ -45,8 +45,8 @@ size_t similarity(GraphInterface& gi1, GraphInterface& gi2, boost::any label1,
 {
     size_t s = 0;
     run_action<>()
-        (gi1, std::bind(get_similarity(), placeholders::_1, placeholders::_2,
-                        placeholders::_3, label2, std::ref(s)),
+        (gi1, std::bind(get_similarity(), std::placeholders::_1, std::placeholders::_2,
+                        std::placeholders::_3, label2, std::ref(s)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          writable_vertex_properties())
         (gi2.get_graph_view(), label1);
@@ -58,8 +58,8 @@ size_t similarity_fast(GraphInterface& gi1, GraphInterface& gi2, boost::any labe
 {
     size_t s = 0;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
-        (gi1, std::bind(get_similarity_fast(), placeholders::_1, placeholders::_2,
-                        placeholders::_3, label2, std::ref(s)),
+        (gi1, std::bind(get_similarity_fast(), std::placeholders::_1, std::placeholders::_2,
+                        std::placeholders::_3, label2, std::ref(s)),
          get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
          vertex_integer_properties())
         (gi2.get_graph_view(), label1);

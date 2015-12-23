@@ -610,7 +610,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
                         partition_stats, overlap_partition_stats, overlap_stats,
                         master, slave, rng, S, nmoves, bgi, bmap, brmap, free_blocks, B),
                        std::ref(mrs), std::ref(mrp), std::ref(mrm), std::ref(wr),
-                       std::ref(b), std::ref(bs), std::ref(bgi), placeholders::_1, std::ref(gis),
+                       std::ref(b), std::ref(bs), std::ref(bgi), std::placeholders::_1, std::ref(gis),
                        std::ref(emat), std::ref(sampler), std::ref(cavity_sampler), weighted))();
 
     return boost::python::make_tuple(S, nmoves);
@@ -636,14 +636,14 @@ double do_covariate_entropy(GraphInterface& gi, boost::any omrs)
     double S = 0;
     run_action<>()
         (gi, std::bind(covariate_entropy(),
-                       placeholders::_1, mrs, std::ref(S)))();
+                       std::placeholders::_1, mrs, std::ref(S)))();
     return S;
 }
 
 // void do_create_echash(GraphInterface& gi, size_t l, size_t L,
 //                       boost::any& emat_orig, boost::any& emat)
 // {
-//     run_action<>()(gi, std::bind<void>(create_echash(), placeholders::_1, l, L,
+//     run_action<>()(gi, std::bind<void>(create_echash(), std::placeholders::_1, l, L,
 //                                        std::ref(emat_orig), std::ref(emat)))();
 // }
 
@@ -654,8 +654,8 @@ void do_ec_hist(GraphInterface& gi, boost::any& aevc, boost::any& aec)
         emap_t;
     typename emap_t::unchecked_t ec =
         any_cast<emap_t&>(aec).get_unchecked(gi.get_edge_index_range());
-    run_action<>()(gi, std::bind<void>(ec_hist(), placeholders::_1,
-                                       placeholders::_2, std::ref(ec)),
+    run_action<>()(gi, std::bind<void>(ec_hist(), std::placeholders::_1,
+                                       std::placeholders::_2, std::ref(ec)),
                    edge_properties())(aevc);
 }
 
@@ -695,7 +695,7 @@ void do_split_graph(GraphInterface& gi, boost::any& aec, boost::any& ab,
     auto rbmap = from_any_list<vmap_t>(obrmap);
     auto uvmap = from_any_list<vmap_t>(ouvmap);
 
-    run_action<>()(gi, std::bind<void>(split_graph(), placeholders::_1,
+    run_action<>()(gi, std::bind<void>(split_graph(), std::placeholders::_1,
                                        std::ref(ec), std::ref(b),
                                        std::ref(eweight),
                                        std::ref(vweight), std::ref(vc),

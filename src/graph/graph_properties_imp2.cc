@@ -178,29 +178,29 @@ void out_edges_op(GraphInterface& gi, boost::any eprop, boost::any vprop,
 {
     if (op == "sum")
     {
-        run_action<>()(gi, std::bind(do_out_edges_op(), placeholders::_1,
-                                     placeholders::_2, vprop, SumOp()),
+        run_action<>()(gi, std::bind(do_out_edges_op(), std::placeholders::_1,
+                                     std::placeholders::_2, vprop, SumOp()),
                        edge_properties())
             (eprop);
     }
     else if (op == "prod")
     {
-        run_action<>()(gi, std::bind(do_out_edges_op(), placeholders::_1,
-                                     placeholders::_2, vprop, ProdOp()),
+        run_action<>()(gi, std::bind(do_out_edges_op(), std::placeholders::_1,
+                                     std::placeholders::_2, vprop, ProdOp()),
                        edge_properties())
             (eprop);
     }
     else if (op == "min")
     {
-        run_action<>()(gi, std::bind(do_out_edges_op(), placeholders::_1,
-                                     placeholders::_2, vprop, MinOp()),
+        run_action<>()(gi, std::bind(do_out_edges_op(), std::placeholders::_1,
+                                     std::placeholders::_2, vprop, MinOp()),
                        edge_properties())
             (eprop);
     }
     else if (op == "max")
     {
-        run_action<>()(gi, std::bind(do_out_edges_op(), placeholders::_1,
-                                     placeholders::_2, vprop, MaxOp()),
+        run_action<>()(gi, std::bind(do_out_edges_op(), std::placeholders::_1,
+                                     std::placeholders::_2, vprop, MaxOp()),
                        edge_properties())
             (eprop);
     }

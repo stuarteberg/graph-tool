@@ -1818,7 +1818,7 @@ size_t cairo_draw(GraphInterface& gi,
     populate_defaults(ovdefaults, vdefaults);
 
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(populate_edge_attrs(), placeholders::_1, oeattrs,
+        (gi, std::bind(populate_edge_attrs(), std::placeholders::_1, oeattrs,
                        std::ref(eattrs), oedefaults, std::ref(edefaults)))();
 
     typedef boost::mpl::push_back<vertex_scalar_properties, no_order>::type
@@ -1841,8 +1841,8 @@ size_t cairo_draw(GraphInterface& gi,
     Cairo::Context cr(PycairoContext_GET(ocr.ptr()));
     if (nodesfirst)
         run_action<graph_tool::detail::always_directed>()
-            (gi, std::bind(do_cairo_draw_vertices(), placeholders::_1,
-                           placeholders::_2, placeholders::_3,
+            (gi, std::bind(do_cairo_draw_vertices(), std::placeholders::_1,
+                           std::placeholders::_2, std::placeholders::_3,
                            std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
                            std::ref(edefaults), offset, mtime, std::ref(count),
                            std::ref(cr)),
@@ -1853,8 +1853,8 @@ size_t cairo_draw(GraphInterface& gi,
         return count;
 
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(do_cairo_draw_edges(), placeholders::_1, placeholders::_2,
-                       placeholders::_3, std::ref(vattrs), std::ref(eattrs),
+        (gi, std::bind(do_cairo_draw_edges(), std::placeholders::_1, std::placeholders::_2,
+                       std::placeholders::_3, std::ref(vattrs), std::ref(eattrs),
                        std::ref(vdefaults), std::ref(edefaults), res, offset,
                        mtime, std::ref(count), std::ref(cr)),
          vertex_scalar_vector_properties(),
@@ -1866,8 +1866,8 @@ size_t cairo_draw(GraphInterface& gi,
             return count;
 
         run_action<graph_tool::detail::always_directed>()
-            (gi, std::bind(do_cairo_draw_vertices(), placeholders::_1,
-                           placeholders::_2, placeholders::_3,
+            (gi, std::bind(do_cairo_draw_vertices(), std::placeholders::_1,
+                           std::placeholders::_2, std::placeholders::_3,
                            std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
                            std::ref(edefaults), offset, mtime, std::ref(count),
                            std::ref(cr)),
@@ -1903,8 +1903,8 @@ void apply_transforms(GraphInterface& gi, boost::any pos, double xx, double yx,
 {
     Cairo::Matrix m(xx, yx, xy, yy, x0, y0);
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(do_apply_transforms(), placeholders::_1,
-                       placeholders::_2, std::ref(m)),
+        (gi, std::bind(do_apply_transforms(), std::placeholders::_1,
+                       std::placeholders::_2, std::ref(m)),
          vertex_scalar_vector_properties())(pos);
 }
 
@@ -2050,8 +2050,8 @@ void put_parallel_splines(GraphInterface& gi, boost::any opos,
         angle(loop_angle, vertex_scalar_properties());
 
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(do_put_parallel_splines(), placeholders::_1, pos, l,
-                       placeholders::_2, angle, parallel_distance),
+        (gi, std::bind(do_put_parallel_splines(), std::placeholders::_1, pos, l,
+                       std::placeholders::_2, angle, parallel_distance),
          edge_scalar_vector_properties())(splines);
 }
 

@@ -42,7 +42,7 @@ typedef property_map_types::apply<mpl::vector<int32_t>,
 void dominator_tree(GraphInterface& gi, size_t entry, boost::any pred_map)
 {
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(get_dominator_tree(), placeholders::_1, entry,
-                       placeholders::_2),
+        (gi, std::bind(get_dominator_tree(), std::placeholders::_1, entry,
+                       std::placeholders::_2),
          pred_properties())(pred_map);
 }

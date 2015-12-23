@@ -174,16 +174,16 @@ void fruchterman_reingold_layout(GraphInterface& g, boost::any pos,
     if (square)
         run_action<graph_tool::detail::never_directed>()
             (g,
-             std::bind(get_layout<square_topology<> >(), placeholders::_1,
-                       placeholders::_2, placeholders::_3, make_pair(a, r), scale,
+             std::bind(get_layout<square_topology<> >(), std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3, make_pair(a, r), scale,
                        grid, make_pair(ti, tf), max_iter),
              vertex_floating_vector_properties(), edge_props_t())
             (pos, weight);
     else
         run_action<graph_tool::detail::never_directed>()
             (g,
-             std::bind(get_layout<circle_topology<> >(), placeholders::_1,
-                       placeholders::_2, placeholders::_3, make_pair(a, r),
+             std::bind(get_layout<circle_topology<> >(), std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3, make_pair(a, r),
                        scale, grid, make_pair(ti, tf), max_iter),
              vertex_floating_vector_properties(), edge_props_t()) (pos, weight);
 }

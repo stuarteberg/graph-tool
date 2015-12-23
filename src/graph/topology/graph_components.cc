@@ -34,8 +34,8 @@ python::object do_label_components(GraphInterface& gi, boost::any prop)
 {
     vector<size_t> hist;
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-        (gi, std::bind(label_components(), placeholders::_1,
-                       placeholders::_2, std::ref(hist)),
+        (gi, std::bind(label_components(), std::placeholders::_1,
+                       std::placeholders::_2, std::ref(hist)),
          writable_vertex_scalar_properties())(prop);
     return wrap_vector_owned(hist);
 }
@@ -46,8 +46,8 @@ do_label_biconnected_components(GraphInterface& gi, boost::any comp,
 {
     vector<size_t> hist;
     run_action<graph_tool::detail::never_directed>()
-        (gi, std::bind(label_biconnected_components(), placeholders::_1,
-                       placeholders::_2, placeholders::_3,
+        (gi, std::bind(label_biconnected_components(), std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3,
                        std::ref(hist)),
          writable_edge_scalar_properties(),
          writable_vertex_scalar_properties())
@@ -58,7 +58,7 @@ do_label_biconnected_components(GraphInterface& gi, boost::any comp,
 void do_label_out_component(GraphInterface& gi, size_t root, boost::any prop)
 {
     run_action<graph_tool::detail::all_graph_views,mpl::true_>()
-        (gi, std::bind(label_out_component(), placeholders::_1, placeholders::_2, root),
+        (gi, std::bind(label_out_component(), std::placeholders::_1, std::placeholders::_2, root),
          writable_vertex_scalar_properties())(prop);
 }
 
@@ -67,8 +67,8 @@ void do_label_attractors(GraphInterface& gi, boost::any cprop, python::object oa
 
     multi_array_ref<bool,1> avec = get_array<bool,1>(oavec);
 
-    run_action<>()(gi, std::bind(label_attractors(), placeholders::_1,
-                                 placeholders::_2, avec),
+    run_action<>()(gi, std::bind(label_attractors(), std::placeholders::_1,
+                                 std::placeholders::_2, avec),
                    vertex_scalar_properties())(cprop);
 }
 

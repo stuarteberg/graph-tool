@@ -38,8 +38,8 @@ void property_map_values(GraphInterface& g, boost::any src_prop,
     if (!edge)
     {
         run_action<graph_tool::detail::always_directed_never_reversed>()
-            (g, std::bind(do_map_values(), placeholders::_1, placeholders::_2,
-                          placeholders::_3, std::ref(mapper)),
+            (g, std::bind(do_map_values(), std::placeholders::_1, std::placeholders::_2,
+                          std::placeholders::_3, std::ref(mapper)),
              vertex_properties(), writable_vertex_properties())
             (src_prop, tgt_prop);
     }

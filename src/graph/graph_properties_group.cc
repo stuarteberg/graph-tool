@@ -46,13 +46,13 @@ void group_vector_property(GraphInterface& g, boost::any vector_prop,
     if (edge)
         run_action<graph_tool::detail::always_directed_never_reversed>()
             (g, bind(do_group_vector_property<boost::mpl::true_,boost::mpl::true_>(),
-                     placeholders::_1, placeholders::_2, placeholders::_3, pos),
+                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, pos),
              edge_vector_properties(), edge_properties())
             (vector_prop, prop);
     else
         run_action<graph_tool::detail::always_directed_never_reversed>()
             (g, bind(do_group_vector_property<boost::mpl::true_,boost::mpl::false_>(),
-                     placeholders::_1, placeholders::_2, placeholders::_3, pos),
+                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, pos),
              vertex_vector_properties(), vertex_properties())
             (vector_prop, prop);
 }

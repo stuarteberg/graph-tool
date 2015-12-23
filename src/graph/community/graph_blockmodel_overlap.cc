@@ -328,7 +328,7 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                         random_move, c, node_coherent, verbose, gi.get_edge_index_range(),
                         nmerges, niter, merge_map, overlap_stats, partition_stats,
                         rng, S, nmoves, bgi),
-                       mrs, mrp, mrm, wr, b, placeholders::_1,
+                       mrs, mrp, mrm, wr, b, std::placeholders::_1,
                        std::ref(emat), sampler, cavity_sampler, weighted))();
     return boost::python::make_tuple(S, nmoves);
 }
@@ -366,7 +366,7 @@ do_get_overlap_stats(GraphInterface& gi, boost::any ob,
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
     vimap_t node_index = any_cast<vimap_t>(onode_index);
 
-    run_action<>()(gi, std::bind(get_overlap_stats(), placeholders::_1, b,
+    run_action<>()(gi, std::bind(get_overlap_stats(), std::placeholders::_1, b,
                                  half_edges.get_unchecked(NN), node_index, B,
                                  std::ref(overlap_stats)))();
     return overlap_stats;
@@ -402,7 +402,7 @@ do_get_overlap_partition_stats(GraphInterface& gi, boost::any ob,
     emap_t eweight = any_cast<emap_t>(aeweight);
 
     run_action<>()(gi, std::bind(get_overlap_partition_stats(),
-                                 placeholders::_1, b, eweight, N, B, edges_dl,
+                                 std::placeholders::_1, b, eweight, N, B, edges_dl,
                                  std::ref(overlap_stats),
                                  std::ref(partition_stats)))();
 
@@ -415,7 +415,7 @@ double do_get_overlap_parallel_entropy(GraphInterface& gi,
     double S = 0;
     run_action<>()
         (gi, std::bind(entropy_parallel_edges_overlap(),
-                       placeholders::_1, std::ref(overlap_stats),
+                       std::placeholders::_1, std::ref(overlap_stats),
                        std::ref(S)))();
     return S;
 }
@@ -476,7 +476,7 @@ void do_get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
     emap_t eindex = any_cast<emap_t>(oeindex);
 
-    run_action<>()(gi, std::bind(get_eg_overlap(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_eg_overlap(), std::placeholders::_1,
                                  std::ref(egi.get_graph()), be, b, node_index,
                                  half_edges, eindex))();
 }
@@ -534,7 +534,7 @@ void do_get_be_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     evmap_t be = any_cast<evmap_t>(obe);
     vimap_t node_index = any_cast<vimap_t>(onode_index);
 
-    run_action<>()(gi, std::bind(get_be_overlap(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_be_overlap(), std::placeholders::_1,
                                  std::ref(egi.get_graph()), be, b,
                                  node_index))();
 }
@@ -569,7 +569,7 @@ void do_get_be_from_b_overlap(GraphInterface& gi, boost::any obe, boost::any ob)
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
 
-    run_action<>()(gi, std::bind(get_be_from_b_overlap(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_be_from_b_overlap(), std::placeholders::_1,
                                  be, b))();
 }
 
@@ -663,7 +663,7 @@ void do_get_bv_overlap(GraphInterface& gi, boost::any ob,  boost::any onode_inde
     vvmap_t bc_out = any_cast<vvmap_t>(obc_out);
     vvmap_t bc_total = any_cast<vvmap_t>(obc_total);
 
-    run_action<>()(gi, std::bind(get_bv_overlap(), placeholders::_1, b,
+    run_action<>()(gi, std::bind(get_bv_overlap(), std::placeholders::_1, b,
                                  node_index, bv, bc_in, bc_out, bc_total))();
  }
 
@@ -693,7 +693,7 @@ void do_get_wr_overlap(GraphInterface& gi, boost::any obv,
     vvmap_t bv = any_cast<vvmap_t>(obv);
     vmap_t wr = any_cast<vmap_t>(owr);
 
-    run_action<>()(gi, std::bind(get_wr_overlap(), placeholders::_1, bv, wr))();
+    run_action<>()(gi, std::bind(get_wr_overlap(), std::placeholders::_1, bv, wr))();
 }
 
 struct get_nodeset_overlap
@@ -726,7 +726,7 @@ void do_get_nodeset_overlap(GraphInterface& gi, boost::any onode_index,
     vmap_t node_index = any_cast<vmap_t>(onode_index);
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
 
-    run_action<>()(gi, std::bind(get_nodeset_overlap(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_nodeset_overlap(), std::placeholders::_1,
                                  node_index, half_edges))();
 }
 
@@ -783,7 +783,7 @@ void do_get_augmented_overlap(GraphInterface& gi, boost::any ob,
     vimap_t node_index = any_cast<vimap_t>(onode_index);
     vmap_t br_map = any_cast<vmap_t>(obr_map);
 
-    run_action<>()(gi, std::bind(get_augmented_overlap(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_augmented_overlap(), std::placeholders::_1,
                                  b, node_index, br_map, std::ref(br_b),
                                  std::ref(br_ni)))();
 }
@@ -820,7 +820,7 @@ void do_get_overlap_split(GraphInterface& gi, boost::any obv, boost::any ob)
     vmap_t b = any_cast<vmap_t>(ob);
 
     run_action<>()(gi, std::bind(get_overlap_split(),
-                                 placeholders::_1, bv, b))();
+                                 std::placeholders::_1, bv, b))();
 }
 
 
@@ -859,7 +859,7 @@ void do_get_maj_overlap(GraphInterface& gi, boost::any obv,
     vvmap_t bv = any_cast<vvmap_t>(obv);
     vvmap_t bc_total = any_cast<vvmap_t>(obc_total);
 
-    run_action<>()(gi, std::bind(get_maj_overlap(), placeholders::_1, bv,
+    run_action<>()(gi, std::bind(get_maj_overlap(), std::placeholders::_1, bv,
                                  bc_total, b))();
 }
 

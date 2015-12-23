@@ -44,7 +44,7 @@ void incidence(GraphInterface& g, boost::any vindex, boost::any eindex,
     multi_array_ref<int32_t,1> j = get_array<int32_t,1>(oj);
     run_action<>()
         (g, std::bind(get_incidence(),
-                      placeholders::_1,  placeholders::_2,  placeholders::_3,
+                      std::placeholders::_1,  std::placeholders::_2,  std::placeholders::_3,
                       std::ref(data), std::ref(i), std::ref(j)),
          vertex_scalar_properties(),
          edge_scalar_properties())(vindex, eindex);

@@ -146,7 +146,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         run_action<graph_tool::detail::never_reversed>()
             (gi, std::bind(graph_rewire<ErdosRewireStrategy>(),
-                           placeholders::_1, gi.get_edge_index(),
+                           std::placeholders::_1, gi.get_edge_index(),
                            std::ref(corr), pin,
                            self_loops, parallel_edges,
                            make_pair(niter, no_sweep),
@@ -157,7 +157,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         run_action<graph_tool::detail::never_reversed>()
             (gi, std::bind(graph_rewire<RandomRewireStrategy>(),
-                           placeholders::_1, gi.get_edge_index(), std::ref(corr),
+                           std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
                            pin, self_loops, parallel_edges,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
@@ -169,7 +169,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         {
             run_action<graph_tool::detail::never_reversed>()
                 (gi, std::bind(graph_rewire<CorrelatedRewireStrategy>(),
-                               placeholders::_1, gi.get_edge_index(), std::ref(corr),
+                               std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
                                pin, self_loops, parallel_edges,
                                make_pair(niter, no_sweep),
                                std::make_tuple(persist, cache, verbose),
@@ -179,12 +179,12 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         {
             run_action<graph_tool::detail::never_reversed>()
                 (gi, std::bind(graph_rewire_correlated(),
-                               placeholders::_1, gi.get_edge_index(), std::ref(corr),
+                               std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
                                pin, self_loops, parallel_edges,
                                make_pair(niter, no_sweep),
                                std::make_tuple(persist, cache, verbose),
                                std::ref(pcount), std::ref(rng),
-                               placeholders::_2),
+                               std::placeholders::_2),
                  vertex_properties())(block);
         }
     }
@@ -192,7 +192,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         run_action<>()
             (gi, std::bind(graph_rewire<ProbabilisticRewireStrategy>(),
-                           placeholders::_1, gi.get_edge_index(), std::ref(corr),
+                           std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
                            pin, self_loops, parallel_edges,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
@@ -202,10 +202,10 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     {
         run_action<>()
             (gi, std::bind(graph_rewire_block(alias, traditional),
-                           placeholders::_1, gi.get_edge_index(),
+                           std::placeholders::_1, gi.get_edge_index(),
                            std::ref(corr), pin,
                            make_pair(self_loops, parallel_edges),
-                           placeholders::_2,
+                           std::placeholders::_2,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)),

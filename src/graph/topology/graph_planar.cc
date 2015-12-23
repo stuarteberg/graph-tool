@@ -105,8 +105,8 @@ bool is_planar(GraphInterface& gi, boost::any embed_map, boost::any kur_map)
                            dummy_property_map>::type vertex_map_types;
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, std::bind(get_planar_embedding(), placeholders::_1, gi.get_vertex_index(),
-                       gi.get_edge_index(), placeholders::_2, placeholders::_3,
+        (gi, std::bind(get_planar_embedding(), std::placeholders::_1, gi.get_vertex_index(),
+                       gi.get_edge_index(), std::placeholders::_2, std::placeholders::_3,
                        std::ref(is_planar)),
          vertex_map_types(), edge_map_types())
         (embed_map, kur_map);

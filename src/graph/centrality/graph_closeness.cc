@@ -34,17 +34,17 @@ void do_get_closeness(GraphInterface& gi, boost::any weight,
     if (weight.empty())
     {
         run_action<>()(gi,
-                       std::bind(get_closeness(), placeholders::_1,
+                       std::bind(get_closeness(), std::placeholders::_1,
                                  gi.get_vertex_index(), no_weightS(),
-                                 placeholders::_2, harmonic, norm),
+                                 std::placeholders::_2, harmonic, norm),
                        writable_vertex_scalar_properties())(closeness);
     }
     else
     {
         run_action<>()(gi,
-                       std::bind(get_closeness(), placeholders::_1,
-                                 gi.get_vertex_index(), placeholders::_2,
-                                 placeholders::_3, harmonic, norm),
+                       std::bind(get_closeness(), std::placeholders::_1,
+                                 gi.get_vertex_index(), std::placeholders::_2,
+                                 std::placeholders::_3, harmonic, norm),
                        edge_scalar_properties(),
                        writable_vertex_scalar_properties())(weight, closeness);
     }

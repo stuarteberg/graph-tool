@@ -67,7 +67,7 @@ void community_structure(GraphInterface& g, double gamma, string corr_name,
 
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(get_communities_selector(corr, g.get_vertex_index()),
-                      placeholders::_1, placeholders::_2, placeholders::_3, gamma, n_iter,
+                      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, gamma, n_iter,
                       make_pair(Tmin, Tmax), Nspins,
                       std::ref(rng), make_pair(verbose,history_file)),
          weight_properties(), allowed_spin_properties())
@@ -87,8 +87,8 @@ double modularity(GraphInterface& g, boost::any weight, boost::any property)
         weight = weight_map_t(1);
 
     run_action<graph_tool::detail::never_directed>()
-        (g, std::bind(get_modularity(), placeholders::_1, placeholders::_2,
-                      placeholders::_3, std::ref(modularity)),
+        (g, std::bind(get_modularity(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3, std::ref(modularity)),
          edge_props_t(), vertex_scalar_properties())
         (weight, property);
     return modularity;

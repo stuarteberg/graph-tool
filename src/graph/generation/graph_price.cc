@@ -28,6 +28,6 @@ using namespace graph_tool;
 void price(GraphInterface& gi, size_t N, double gamma, double c, size_t m,
            rng_t& rng)
 {
-    run_action<>()(gi, std::bind(get_price(), placeholders::_1, N, gamma, c, m,
+    run_action<>()(gi, std::bind(get_price(), std::placeholders::_1, N, gamma, c, m,
                                  std::ref(rng)))();
 }

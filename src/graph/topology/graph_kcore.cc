@@ -31,9 +31,9 @@ using namespace graph_tool;
 void do_kcore_decomposition(GraphInterface& gi, boost::any prop,
                             GraphInterface::deg_t deg)
 {
-    run_action<>()(gi, std::bind(kcore_decomposition(), placeholders::_1,
-                                 gi.get_vertex_index(), placeholders::_2,
-                                 placeholders::_3),
+    run_action<>()(gi, std::bind(kcore_decomposition(), std::placeholders::_1,
+                                 gi.get_vertex_index(), std::placeholders::_2,
+                                 std::placeholders::_3),
                    writable_vertex_scalar_properties(),
                    degree_selectors())(prop, degree_selector(deg));
 }

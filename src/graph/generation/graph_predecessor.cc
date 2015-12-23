@@ -26,8 +26,8 @@ using namespace boost;
 void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
                        boost::any pred_map)
 {
-    run_action<>()(gi, std::bind(get_predecessor_graph(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_predecessor_graph(), std::placeholders::_1,
                                  std::ref(gpi.get_graph()),
-                                 placeholders::_2),
+                                 std::placeholders::_2),
                    vertex_scalar_properties())(pred_map);
 }

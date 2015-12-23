@@ -61,7 +61,7 @@ void laplacian(GraphInterface& g, boost::any index, boost::any weight,
     multi_array_ref<int32_t,1> j = get_array<int32_t,1>(oj);
     run_action<>()
         (g, std::bind(get_laplacian(),
-                      placeholders::_1,  placeholders::_2,  placeholders::_3,
+                      std::placeholders::_1,  std::placeholders::_2,  std::placeholders::_3,
                       deg, std::ref(data), std::ref(i), std::ref(j)),
          vertex_scalar_properties(),
          weight_props_t())(index, weight);

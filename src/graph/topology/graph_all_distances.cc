@@ -72,8 +72,8 @@ void get_all_dists(GraphInterface& gi, boost::any dist_map, boost::any weight,
         weight = boost::any(cweight_map_t(1));
 
     run_action<>()
-        (gi, std::bind(do_all_pairs_search(), placeholders::_1,
-                       gi.get_vertex_index(), placeholders::_2, placeholders::_3,
+        (gi, std::bind(do_all_pairs_search(), std::placeholders::_1,
+                       gi.get_vertex_index(), std::placeholders::_2, std::placeholders::_3,
                        dense),
          vertex_scalar_vector_properties(),
          mpl::push_back<edge_scalar_properties,cweight_map_t>::type())

@@ -56,8 +56,8 @@ double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
         weight_maps;
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, std::bind(get_min_cut(),  placeholders::_1,  placeholders::_2,
-                       placeholders::_3, std::ref(mc)),
+        (gi, std::bind(get_min_cut(),  std::placeholders::_1,  std::placeholders::_2,
+                       std::placeholders::_3, std::ref(mc)),
          weight_maps(), writable_vertex_scalar_properties())(weight, part_map);
     return mc;
 }
@@ -81,7 +81,7 @@ void get_residual_graph(GraphInterface& gi, boost::any capacity,
         emap_t;
     emap_t augment = boost::any_cast<emap_t>(oaugment);
     run_action<>()
-        (gi, std::bind(do_get_residual_graph(), placeholders::_1,
-                       placeholders::_2, placeholders::_3, augment),
+        (gi, std::bind(do_get_residual_graph(), std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3, augment),
          edge_scalar_properties(), edge_scalar_properties())(capacity, res);
 }

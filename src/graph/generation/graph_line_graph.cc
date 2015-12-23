@@ -92,9 +92,9 @@ void line_graph(GraphInterface& gi, GraphInterface& lgi,
                                       boost::mpl::false_>::type
         vertex_properties;
 
-    run_action<>()(gi, std::bind(get_line_graph(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_line_graph(), std::placeholders::_1,
                                  gi.get_vertex_index(),
                                  std::ref(lgi.get_graph()), lgi.get_edge_index(),
-                                 placeholders::_2),
+                                 std::placeholders::_2),
                    vertex_properties())(edge_index);
 }

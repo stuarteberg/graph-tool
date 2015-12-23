@@ -172,8 +172,8 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
     wmap_t weight = boost::any_cast<wmap_t>(oweight);
 
     run_action<graph_tool::detail::always_directed>()
-        (gi, std::bind(do_get_radial(), placeholders::_1, placeholders::_2,
-                       levels, placeholders::_3, weight, root, weighted,  r),
+        (gi, std::bind(do_get_radial(), std::placeholders::_1, std::placeholders::_2,
+                       levels, std::placeholders::_3, weight, root, weighted,  r),
          vertex_scalar_vector_properties(),
          vertex_properties())(otpos, oorder);
 }

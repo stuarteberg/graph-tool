@@ -61,7 +61,7 @@ void generate_graph(GraphInterface& gi, size_t N, boost::python::object deg_samp
         gi.set_directed(false);
 
     run_action<graph_views>()
-        (gi, std::bind(gen_graph(), placeholders::_1, N,
+        (gi, std::bind(gen_graph(), std::placeholders::_1, N,
                        PythonFuncWrap(deg_sample),
                        no_parallel, no_self_loops,
                        std::ref(rng), verbose, verify))();

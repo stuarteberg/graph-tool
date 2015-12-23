@@ -70,9 +70,9 @@ void edmonds_karp_max_flow(GraphInterface& gi, size_t src, size_t sink,
 {
     run_action<graph_tool::detail::always_directed>()
         (gi, std::bind(get_edmonds_karp_max_flow(),
-                       placeholders::_1, gi.get_vertex_index(), gi.get_edge_index(),
+                       std::placeholders::_1, gi.get_vertex_index(), gi.get_edge_index(),
                        gi.get_edge_index_range(),
-                       src, sink, placeholders::_2, placeholders::_3),
+                       src, sink, std::placeholders::_2, std::placeholders::_3),
          writable_edge_scalar_properties(), writable_edge_scalar_properties())
         (capacity,res);
 }

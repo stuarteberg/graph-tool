@@ -49,7 +49,7 @@ python::object get_vertices(GraphInterface& gi)
 {
     python::object iter;
     run_action<>()(gi, std::bind(get_vertex_iterator(),
-                                 placeholders::_1,
+                                 std::placeholders::_1,
                                  std::ref(gi),
                                  std::ref(iter)))();
     return iter;
@@ -95,11 +95,11 @@ python::object get_vertex(GraphInterface& gi, size_t i, bool use_index)
     python::object v;
     if (!use_index)
         run_action<>()(gi,
-                       std::bind(get_vertex_hard(), placeholders::_1,
+                       std::bind(get_vertex_hard(), std::placeholders::_1,
                                  std::ref(gi), i, std::ref(v)))();
     else
         run_action<>()(gi,
-                       std::bind(get_vertex_soft(), placeholders::_1,
+                       std::bind(get_vertex_soft(), std::placeholders::_1,
                                  std::ref(gi), i, std::ref(v)))();
     return v;
 }
@@ -120,7 +120,7 @@ struct get_edge_iterator
 python::object get_edges(GraphInterface& gi)
 {
     python::object iter;
-    run_action<>()(gi, std::bind(get_edge_iterator(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_edge_iterator(), std::placeholders::_1,
                                  std::ref(gi), std::ref(iter)))();
     return iter;
 }
@@ -149,7 +149,7 @@ struct add_new_vertex
 python::object add_vertex(GraphInterface& gi, size_t n)
 {
     python::object v;
-    run_action<>()(gi, std::bind(add_new_vertex(), placeholders::_1,
+    run_action<>()(gi, std::bind(add_new_vertex(), std::placeholders::_1,
                                  std::ref(gi), n, std::ref(v)))();
     return v;
 }
@@ -195,7 +195,7 @@ struct do_clear_vertex
 
 void clear_vertex(GraphInterface& gi, size_t v)
 {
-    run_action<>()(gi, std::bind(do_clear_vertex(), placeholders::_1, v))();
+    run_action<>()(gi, std::bind(do_clear_vertex(), std::placeholders::_1, v))();
 }
 
 struct add_new_edge
@@ -213,7 +213,7 @@ struct add_new_edge
 python::object add_edge(GraphInterface& gi, size_t s, size_t t)
 {
     python::object new_e;
-    run_action<>()(gi, std::bind(add_new_edge(), placeholders::_1, std::ref(gi),
+    run_action<>()(gi, std::bind(add_new_edge(), std::placeholders::_1, std::ref(gi),
                                  s, t, std::ref(new_e)))();
     return new_e;
 }
@@ -236,7 +236,7 @@ void remove_edge(GraphInterface& gi, const python::object& e)
 {
     GraphInterface::edge_t de;
     bool found = false;
-    run_action<>()(gi, std::bind(get_edge_descriptor(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_edge_descriptor(), std::placeholders::_1,
                                  std::ref(e), std::ref(de), std::ref(found)))();
     remove_edge(de, gi.get_graph());
     if (!found)
@@ -286,7 +286,7 @@ struct get_edge_dispatch
 python::object get_edge(GraphInterface& gi, size_t s, size_t t, bool all_edges)
 {
     python::list es;
-    run_action<>()(gi, std::bind(get_edge_dispatch(), placeholders::_1,
+    run_action<>()(gi, std::bind(get_edge_dispatch(), std::placeholders::_1,
                                  std::ref(gi), s, t, all_edges,
                                  std::ref(es)))();
     return es;
@@ -334,18 +334,18 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
 
     if (deg == "in")
         run_action<>()(const_cast<GraphInterface&>(*this),
-                       std::bind(get_degree_map(), placeholders::_1,
-                                 std::ref(deg_map), in_degreeS(), placeholders::_2), weight_t())
+                       std::bind(get_degree_map(), std::placeholders::_1,
+                                 std::ref(deg_map), in_degreeS(), std::placeholders::_2), weight_t())
             (weight);
     else if (deg == "out")
         run_action<>()(const_cast<GraphInterface&>(*this),
-                       std::bind(get_degree_map(), placeholders::_1,
-                                 std::ref(deg_map), out_degreeS(), placeholders::_2), weight_t())
+                       std::bind(get_degree_map(), std::placeholders::_1,
+                                 std::ref(deg_map), out_degreeS(), std::placeholders::_2), weight_t())
             (weight);
     else if (deg == "total")
         run_action<>()(const_cast<GraphInterface&>(*this),
-                       std::bind(get_degree_map(), placeholders::_1,
-                                 std::ref(deg_map), total_degreeS(), placeholders::_2), weight_t())
+                       std::bind(get_degree_map(), std::placeholders::_1,
+                                 std::ref(deg_map), total_degreeS(), std::placeholders::_2), weight_t())
             (weight);
     return deg_map;
 }
@@ -552,7 +552,7 @@ void export_python_interface()
                                   boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
     typedef boost::mpl::joint_view<all_graph_views, all_const_graph_views>::type graph_views;
     boost::mpl::for_each<graph_views>(std::bind(graph_tool::export_python_interface(),
-                                                placeholders::_1, get_vlist(),
+                                                std::placeholders::_1, get_vlist(),
                                                 get_elist(), graph_views()));
     export_python_properties();
     def("new_vertex_property",

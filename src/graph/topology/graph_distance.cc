@@ -381,8 +381,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
     if (weight.empty())
     {
         run_action<>()
-            (gi, std::bind(do_bfs_search(), placeholders::_1, source, tgt, gi.get_vertex_index(),
-                           placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
+            (gi, std::bind(do_bfs_search(), std::placeholders::_1, source, tgt, gi.get_vertex_index(),
+                           std::placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
                            max_dist),
              writable_vertex_scalar_properties())
             (dist_map);
@@ -392,9 +392,9 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
         if (bf)
         {
             run_action<>()
-                (gi, std::bind(do_bf_search(), placeholders::_1, source,
-                               placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
-                               placeholders::_3),
+                (gi, std::bind(do_bf_search(), std::placeholders::_1, source,
+                               std::placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
+                               std::placeholders::_3),
                  writable_vertex_scalar_properties(),
                  edge_scalar_properties())
                 (dist_map, weight);
@@ -402,9 +402,9 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
         else
         {
             run_action<>()
-                (gi, std::bind(do_djk_search(), placeholders::_1, source, tgt, gi.get_vertex_index(),
-                               placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
-                               placeholders::_3, max_dist),
+                (gi, std::bind(do_djk_search(), std::placeholders::_1, source, tgt, gi.get_vertex_index(),
+                               std::placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
+                               std::placeholders::_3, max_dist),
                  writable_vertex_scalar_properties(),
                  edge_scalar_properties())
                 (dist_map, weight);

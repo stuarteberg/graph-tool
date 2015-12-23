@@ -43,7 +43,7 @@ struct add_edge_list
                                                   std::ref(aedge_list),
                                                   std::ref(eprops),
                                                   std::ref(found),
-                                                  placeholders::_1));
+                                                  std::placeholders::_1));
     }
 
     struct dispatch
@@ -103,7 +103,7 @@ void do_add_edge_list(GraphInterface& gi, python::object aedge_list,
                         int8_t, int16_t, int32_t, int64_t, uint64_t, double,
                         long double> vals_t;
     bool found = false;
-    run_action<>()(gi, std::bind(add_edge_list<vals_t>(), placeholders::_1,
+    run_action<>()(gi, std::bind(add_edge_list<vals_t>(), std::placeholders::_1,
                                  aedge_list, std::ref(eprops),
                                  std::ref(found)))();
     if (!found)
@@ -120,7 +120,7 @@ struct add_edge_list_hash
         boost::mpl::for_each<ValueList>(std::bind(dispatch(), std::ref(g),
                                                   std::ref(aedge_list), std::ref(vmap),
                                                   std::ref(found), std::ref(eprops),
-                                                  placeholders::_1));
+                                                  std::placeholders::_1));
         if (!found)
         {
             if (use_str)
@@ -355,8 +355,8 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                         long double> vals_t;
     bool found = false;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
-        (gi, std::bind(add_edge_list_hash<vals_t>(), placeholders::_1,
-                       aedge_list, placeholders::_2, std::ref(found),
+        (gi, std::bind(add_edge_list_hash<vals_t>(), std::placeholders::_1,
+                       aedge_list, std::placeholders::_2, std::ref(found),
                        is_str, std::ref(eprops)),
          writable_vertex_properties())(vertex_map);
 }
@@ -424,7 +424,7 @@ void do_add_edge_list_iter(GraphInterface& gi, python::object edge_list,
                            python::object eprops)
 {
     run_action<>()
-        (gi, std::bind(add_edge_list_iter(), placeholders::_1,
+        (gi, std::bind(add_edge_list_iter(), std::placeholders::_1,
                        std::ref(edge_list), std::ref(eprops)))();
 }
 

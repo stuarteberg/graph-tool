@@ -52,7 +52,7 @@ boost::python::tuple graph_union(GraphInterface& ugi, GraphInterface& gi,
     eprop_t eprop(gi.get_edge_index());
     run_action<graph_tool::detail::always_directed,boost::mpl::true_>()
         (ugi, std::bind(graph_tool::graph_union(),
-                        placeholders::_1, placeholders::_2, vprop, eprop),
+                        std::placeholders::_1, std::placeholders::_2, vprop, eprop),
          get_pointers::apply<graph_tool::detail::always_directed>::type())
         (gi.get_graph_view());
     return boost::python::make_tuple(avprop, boost::any(eprop));
