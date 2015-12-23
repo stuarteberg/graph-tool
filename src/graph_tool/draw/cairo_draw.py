@@ -1525,8 +1525,13 @@ class GraphArtist(matplotlib.artist.Artist):
             ctx.rectangle(l, b, r-l, t-b)
             ctx.clip()
 
+        # flip y direction
+        x, y = ungroup_vector_property(self.pos, [0, 1])
+        y.fa *= -1
+        y.fa -= y.fa.min()
+        pos = group_vector_property([x, y])
 
-        cairo_draw(self.g, self.pos, ctx, self.vprops, self.eprops,
+        cairo_draw(self.g, pos, ctx, self.vprops, self.eprops,
                    self.vorder, self.eorder, self.nodesfirst, self.kwargs)
 
         ctx.restore()
