@@ -75,15 +75,14 @@ struct in_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t operator()(Vertex v, const Graph& g) const
+    auto operator()(Vertex v, const Graph& g) const
     {
         return in_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Vertex, class Weight>
-    typename detail::get_weight_type<Weight>::type
     inline
-    operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
@@ -93,23 +92,29 @@ struct in_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t get_in_degree(Vertex v, const Graph& g, std::true_type,
-                         detail::no_weightS) const
+    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+                       detail::no_weightS) const
     {
         return in_degree(v, g);
     }
 
     template <class Graph, class Vertex, class Key, class Value>
-    Value get_in_degree(Vertex v, const Graph& g, std::true_type,
-                        const ConstantPropertyMap<Key, Value>& weight) const
+    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+                       const ConstantPropertyMap<Value, Key>& weight) const
     {
         return in_degree(v, g) * weight.c;
     }
 
+    template <class Graph, class Vertex, class Key>
+    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+                       const UnityPropertyMap<Key>&) const
+    {
+        return in_degree(v, g);
+    }
+
     template <class Graph, class Vertex, class Weight>
-    typename detail::get_weight_type<Weight>::type
-    get_in_degree(Vertex v, const Graph& g, std::true_type,
-                  Weight& weight) const
+    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+                       Weight& weight) const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
         typename boost::graph_traits<Graph>::in_edge_iterator e, e_end;
@@ -120,8 +125,8 @@ struct in_degreeS
 
     template <class Graph, class Vertex, class Weight>
     inline
-    size_t get_in_degree(const Vertex&, const Graph&, std::false_type,
-                         Weight&&)  const
+    auto get_in_degree(const Vertex&, const Graph&, std::false_type,
+                       Weight&&)  const
     {
         return 0;
     }
@@ -135,30 +140,35 @@ struct out_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t operator()(Vertex v, const Graph& g) const
+    auto operator()(Vertex v, const Graph& g) const
     {
         return out_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Vertex, class Weight>
     inline
-    typename detail::get_weight_type<Weight>::type
-    operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
     {
         return get_out_degree(v, g, std::forward<Weight>(weight));
     }
 
     template <class Graph, class Vertex, class Key, class Value>
-    Value get_out_degree(Vertex v, const Graph& g,
-                         const ConstantPropertyMap<Key, Value>& weight) const
+    auto get_out_degree(Vertex v, const Graph& g,
+                        const ConstantPropertyMap<Value, Key>& weight) const
     {
         return out_degree(v, g) * weight.c;
     }
 
+    template <class Graph, class Vertex, class Key>
+    auto get_out_degree(Vertex v, const Graph& g,
+                        const UnityPropertyMap<Key>&) const
+    {
+        return out_degree(v, g);
+    }
+
     template <class Graph, class Vertex, class Weight>
     inline
-    typename detail::get_weight_type<Weight>::type
-    get_out_degree(Vertex v, const Graph& g, const Weight& weight)
+    auto get_out_degree(Vertex v, const Graph& g, const Weight& weight)
         const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
@@ -170,8 +180,8 @@ struct out_degreeS
 
     template <class Graph, class Vertex>
     inline
-    size_t get_out_degree(Vertex v, const Graph& g,
-                          detail::no_weightS) const
+    auto get_out_degree(Vertex v, const Graph& g,
+                        detail::no_weightS) const
     {
         return out_degree(v, g);
     }
@@ -184,15 +194,14 @@ struct total_degreeS
     total_degreeS() {}
     template <class Graph, class Vertex>
     inline
-    size_t operator()(Vertex v, const Graph& g) const
+    auto operator()(Vertex v, const Graph& g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
 
     template <class Graph, class Vertex, class Weight>
     inline
-    typename detail::get_weight_type<Weight>::type
-    operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
@@ -203,9 +212,8 @@ struct total_degreeS
 
     template <class Graph, class Vertex, class Weight>
     inline
-    typename detail::get_weight_type<Weight>::type
-    get_total_degree(Vertex v, const Graph& g, std::true_type,
-                     Weight&& weight) const
+    auto get_total_degree(Vertex v, const Graph& g, std::true_type,
+                          Weight&& weight) const
     {
         return in_degreeS()(v, g, std::forward<Weight>(weight)) +
             out_degreeS()(v, g, std::forward<Weight>(weight));
@@ -213,9 +221,8 @@ struct total_degreeS
 
     template <class Graph, class Vertex, class Weight>
     inline
-    typename detail::get_weight_type<Weight>::type
-    get_total_degree(Vertex v, const Graph& g, std::false_type,
-                     Weight&& weight) const
+    auto get_total_degree(Vertex v, const Graph& g, std::false_type,
+                          Weight&& weight) const
     {
         return out_degreeS()(v, g, std::forward<Weight>(weight));
     }
@@ -232,8 +239,7 @@ struct scalarS
 
     template <class Descriptor, class Graph>
     inline
-    typename boost::property_traits<PropertyMap>::value_type
-    operator()(const Descriptor& d, const Graph&) const
+    auto operator()(const Descriptor& d, const Graph&) const
     {
         return get(_pmap, d);
     }
