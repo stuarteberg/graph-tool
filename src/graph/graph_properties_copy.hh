@@ -36,7 +36,7 @@ template <class IteratorSel, class PropertyMaps>
 struct copy_property
 {
     template <class GraphTgt, class GraphSrc, class PropertyTgt>
-    void operator()(const GraphTgt& tgt, const GraphSrc* src,
+    void operator()(const GraphTgt& tgt, const GraphSrc& src,
                     PropertyTgt dst_map, boost::any prop_src) const
     {
         try
@@ -56,7 +56,7 @@ struct copy_property
     }
 
     template <class GraphTgt, class GraphSrc, class PropertyTgt, class PropertySrc>
-    void dispatch(const GraphTgt& tgt, const GraphSrc* src,
+    void dispatch(const GraphTgt& tgt, const GraphSrc& src,
                   PropertyTgt dst_map, PropertySrc src_map) const
     {
         try
@@ -64,7 +64,7 @@ struct copy_property
             typename IteratorSel::template apply<GraphSrc>::type vs, vs_end;
             typename IteratorSel::template apply<GraphTgt>::type vt, vt_end;
             tie(vt, vt_end) = IteratorSel::range(tgt);
-            tie(vs, vs_end) = IteratorSel::range(*src);
+            tie(vs, vs_end) = IteratorSel::range(src);
             for (; vs != vs_end; ++vs)
             {
                 put(dst_map, *vt++, get(src_map, *vs));

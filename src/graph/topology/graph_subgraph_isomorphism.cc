@@ -133,7 +133,7 @@ struct get_subgraphs
 {
     template <class Graph1, class Graph2, class VertexLabel,
               class EdgeLabel, class VertexMap, class Matcher>
-    void operator()(const Graph1& sub, const Graph2* g,
+    void operator()(const Graph1& sub, const Graph2& g,
                     VertexLabel vertex_label1, boost::any avertex_label2,
                     EdgeLabel edge_label1, boost::any aedge_label2,
                     vector<VertexMap>& vmaps, size_t max_n, bool induced,
@@ -142,7 +142,7 @@ struct get_subgraphs
         VertexLabel vertex_label2 = any_cast<VertexLabel>(avertex_label2);
         EdgeLabel edge_label2 = any_cast<EdgeLabel>(aedge_label2);
 
-        auto matcher = m.get_match(sub, *g, vmaps,max_n);
+        auto matcher = m.get_match(sub, g, vmaps,max_n);
 
         typedef typename graph_traits<Graph1>::vertex_descriptor vertex_t;
         vector<vertex_t> vorder;
@@ -154,7 +154,7 @@ struct get_subgraphs
 
         if (iso)
         {
-            vf2_graph_iso(sub, *g, matcher, vorder,
+            vf2_graph_iso(sub, g, matcher, vorder,
                           edges_equivalent(make_property_map_equivalent(edge_label1, edge_label2)).
                           vertices_equivalent(make_property_map_equivalent(vertex_label1, vertex_label2)));
         }
@@ -162,13 +162,13 @@ struct get_subgraphs
         {
             if (induced)
             {
-                vf2_subgraph_iso(sub, *g, matcher, vorder,
+                vf2_subgraph_iso(sub, g, matcher, vorder,
                                  edges_equivalent(make_property_map_equivalent(edge_label1, edge_label2)).
                                  vertices_equivalent(make_property_map_equivalent(vertex_label1, vertex_label2)));
             }
             else
             {
-                vf2_subgraph_mono(sub, *g, matcher, vorder,
+                vf2_subgraph_mono(sub, g, matcher, vorder,
                                   edges_equivalent(make_property_map_equivalent(edge_label1, edge_label2)).
                                   vertices_equivalent(make_property_map_equivalent(vertex_label1, vertex_label2)));
             }
@@ -229,20 +229,18 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
         edge_label2 = any_cast<elabel_t>(edge_label2).get_unchecked(gi2.get_edge_index_range());
     }
 
-    typedef mpl::transform<graph_tool::detail::all_graph_views,
-                           mpl::quote1<std::add_pointer> >::type graph_view_pointers;
-
     vector<vlabel_t> vmaps;
     if (!generator)
     {
-        run_action<>()
-            (gi1, std::bind(get_subgraphs(), std::placeholders::_1, std::placeholders::_2,
-                            std::placeholders::_3, vertex_label2, std::placeholders::_4,
-                            edge_label2, std::ref(vmaps), max_n, induced, iso,
-                            ListMatch()),
-             graph_view_pointers(), vertex_props_t(),
+        gt_dispatch<>()
+            (std::bind(get_subgraphs(), std::placeholders::_1, std::placeholders::_2,
+                       std::placeholders::_3, vertex_label2, std::placeholders::_4,
+                       edge_label2, std::ref(vmaps), max_n, induced, iso,
+                       ListMatch()),
+             all_graph_views(), all_graph_views(), vertex_props_t(),
              edge_props_t())
-            (gi2.get_graph_view(), vertex_label1, edge_label1);
+            (gi1.get_graph_view(), gi2.get_graph_view(), vertex_label1,
+             edge_label1);
 
         python::list vmapping;
         for (auto& vmap: vmaps)
@@ -259,7 +257,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                                     std::placeholders::_3, vertex_label2, std::placeholders::_4,
                                     edge_label2, std::ref(vmaps), max_n, induced, iso,
                                     GenMatch(yield)),
-                     graph_view_pointers(), vertex_props_t(),
+                     all_graph_views(), vertex_props_t(),
                      edge_props_t())(gi2.get_graph_view(),
                                      vertex_label1, edge_label1);
             };

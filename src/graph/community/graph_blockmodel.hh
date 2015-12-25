@@ -3110,8 +3110,8 @@ struct init_neighbour_sampler
 
 
 // Sampling marginal probabilities on the edges
-template <class Graph, class Vprop, class MEprop>
-void collect_edge_marginals(size_t B, Vprop b, MEprop p, Graph& g, Graph&)
+template <class Graph, class BGraph, class Vprop, class MEprop>
+void collect_edge_marginals(size_t B, Vprop b, MEprop p, Graph& g, BGraph&)
 {
     for (auto e : edges_range(g))
     {

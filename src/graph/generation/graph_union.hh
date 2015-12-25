@@ -30,10 +30,9 @@ using namespace boost;
 struct graph_union
 {
     template <class UnionGraph, class Graph, class VertexMap, class EdgeMap>
-    void operator()(UnionGraph& ug, Graph* gp, VertexMap vmap, EdgeMap emap)
+    void operator()(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap)
         const
     {
-        Graph& g = *gp;
         for (auto v : vertices_range(g))
         {
             if (vmap[v] < 0)
@@ -61,10 +60,9 @@ struct property_union
 {
     template <class UnionGraph, class Graph, class VertexMap, class EdgeMap,
               class UnionProp>
-    void operator()(UnionGraph& ug, Graph* gp, VertexMap vmap, EdgeMap emap,
+    void operator()(UnionGraph& ug, Graph& g, VertexMap vmap, EdgeMap emap,
                     UnionProp uprop, boost::any aprop) const
     {
-        Graph& g = *gp;
         auto prop = any_cast<typename UnionProp::checked_t>(aprop);
         dispatch(ug, g, vmap, emap, uprop, prop,
                  std::is_same<typename property_traits<UnionProp>::key_type,

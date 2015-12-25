@@ -28,18 +28,15 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-struct graph_views:
-    boost::mpl::transform<graph_tool::detail::all_graph_views,
-                          boost::mpl::quote1<std::add_pointer> >::type {};
-
 void GraphInterface::copy_edge_property(const GraphInterface& src,
                                         boost::any prop_src,
                                         boost::any prop_tgt)
 {
-    run_action<>()
-        (*this, std::bind(copy_property<edge_selector,edge_properties>(),
-                          std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3, prop_src),
-         graph_views(), writable_edge_properties())
-        (src.get_graph_view(), prop_tgt);
+    gt_dispatch<>()
+        (std::bind(copy_property<edge_selector,edge_properties>(),
+                   std::placeholders::_1, std::placeholders::_2,
+                   std::placeholders::_3, prop_src),
+         all_graph_views(), all_graph_views(),
+         writable_edge_properties())
+        (this->get_graph_view(), src.get_graph_view(), prop_tgt);
 }

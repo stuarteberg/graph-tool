@@ -162,14 +162,13 @@ def _prop(t, g, prop):
             names = {'e': 'edge', 'v': 'vertex', 'g': 'graph'}
             raise ValueError("Expected '%s' property map, got '%s'" %
                              (names[t], names[prop.key_type()]))
-        if g is not None:
-            if t == "v":
-                N = g.num_vertices(True)
-            elif t == "e":
-                N = g.edge_index_range
-            else:
-                N = 1
-            pmap.reserve(N)
+        if t == "v":
+            N = g.num_vertices(True)
+        elif t == "e":
+            N = g.edge_index_range
+        else:
+            N = 1
+        pmap.reserve(N)
         return pmap._PropertyMap__map.get_map()
 
 
@@ -871,9 +870,9 @@ class PropertyMap(object):
         """Sets all values in the property map to ``val``."""
         g = self.get_graph()
         if self.key_type() == "v":
-            libcore.set_vertex_property(g._Graph__graph, self.__map.get_map(), val)
+            libcore.set_vertex_property(g._Graph__graph, _prop("v", g, self), val)
         elif self.key_type() == "e":
-            libcore.set_edge_property(g._Graph__graph, self.__map.get_map(), val)
+            libcore.set_edge_property(g._Graph__graph, _prop("e", g, self), val)
         else:
             self[g] = val
 
@@ -1901,9 +1900,9 @@ class Graph(object):
             for pmap in self.__known_properties.values():
                 if pmap() is not None and pmap().key_type() == "v" and pmap().is_writable():
                     if fast:
-                        self.__graph.move_vertex_property(pmap()._PropertyMap__map.get_map(), vs)
+                        self.__graph.move_vertex_property(_prop("v", self, pmap()), vs)
                     else:
-                        self.__graph.shift_vertex_property(pmap()._PropertyMap__map.get_map(), vs)
+                        self.__graph.shift_vertex_property(_prop("v", self, pmap()), vs)
 
         if is_iter:
             libcore.remove_vertex_array(self.__graph, vs, fast)
@@ -2611,7 +2610,7 @@ class Graph(object):
                 if (pmap() is not None and pmap().key_type() == "v" and
                     pmap().is_writable() and
                     pmap() not in [self.vertex_index, self.edge_index]):
-                    self.__graph.re_index_vertex_property(pmap()._PropertyMap__map.get_map(),
+                    self.__graph.re_index_vertex_property(_prop("v", self, pmap()),
                                                           _prop("v", self, old_indexes))
         else:
             stamp = id(self)

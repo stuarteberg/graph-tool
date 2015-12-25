@@ -72,19 +72,31 @@ struct all_any_cast
 
     template <class... Ts>
     __attribute__((always_inline))
-    void operator()(Ts&&... vs) const
+    void operator()(Ts*... vs) const
     {
-        dispatch(std::make_index_sequence<sizeof...(Ts)>(),
-                 std::forward<Ts>(vs)...);
+        dispatch(std::make_index_sequence<sizeof...(Ts)>(), vs...);
+    }
+
+    template <class T>
+    T& try_any_cast(boost::any& a) const
+    {
+        try
+        {
+            return any_cast<T&>(a);
+        }
+        catch (bad_any_cast)
+        {
+            return any_cast<std::reference_wrapper<T>>(a);
+        }
     }
 
     template <std::size_t... Idx, class... Ts>
     __attribute__((always_inline))
-    void dispatch(std::index_sequence<Idx...>, Ts&&...) const
+    void dispatch(std::index_sequence<Idx...>, Ts*...) const
     {
         try
         {
-            _a(any_cast<Ts&>(_args[Idx])...);
+            _a(try_any_cast<Ts>(_args[Idx])...);
             throw stop_iteration();
         }
         catch (bad_any_cast) {}
@@ -104,7 +116,7 @@ struct for_each_variadic<F,std::tuple<Ts...>>
     void operator()(F f)
     {
         auto call = [&](auto&& arg){f(std::forward<decltype(arg)>(arg)); return 0;};
-        (void) std::initializer_list<int> {call(Ts())...};
+        (void) std::initializer_list<int> {call(typename std::add_pointer<Ts>::type())...};
     }
 };
 
@@ -137,7 +149,9 @@ struct inner_loop<Action, std::tuple<Ts...>>
 
     template <class T>
     __attribute__((always_inline))
-    void operator()(T) const { _a(Ts()..., T()); }  // innermost loop
+    void operator()(T*) const
+    { _a(typename std::add_pointer<Ts>::type()...,
+         typename std::add_pointer<T>::type()); }  // innermost loop
     Action _a;
 };
 
@@ -148,7 +162,7 @@ struct inner_loop<Action, std::tuple<Ts...>, TR1, TRS...>
 
     template <class T>
     __attribute__((always_inline))
-    void operator()(T) const
+    void operator()(T*) const
     {
         typedef inner_loop<Action, std::tuple<Ts..., T>, TRS...> inner_loop_t;
         typedef typename to_tuple<TR1>::type tr_tuple;

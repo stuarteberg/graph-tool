@@ -58,8 +58,7 @@ struct export_vertex_property_map
 
         boost::python::class_<pmap_t> pclass(class_name.c_str(),
                                              boost::python::no_init);
-        pclass
-            .def("__hash__", &pmap_t::get_hash)
+        pclass.def("__hash__", &pmap_t::get_hash)
             .def("value_type", &pmap_t::get_type)
             .def("get_map", &pmap_t::get_map)
             .def("get_dynamic_map", &pmap_t::get_dynamic_map)

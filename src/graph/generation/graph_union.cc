@@ -35,25 +35,15 @@ typedef property_map_type::apply<GraphInterface::edge_t,
                                  GraphInterface::edge_index_map_t>::type
     eprop_t;
 
-struct get_pointers
-{
-    template <class List>
-    struct apply
-    {
-        typedef typename boost::mpl::transform<List,
-                                               boost::mpl::quote1<std::add_pointer> >::type type;
-    };
-};
-
 boost::python::tuple graph_union(GraphInterface& ugi, GraphInterface& gi,
                                  boost::any avprop)
 {
     vprop_t vprop = boost::any_cast<vprop_t>(avprop);
     eprop_t eprop(gi.get_edge_index());
-    run_action<graph_tool::detail::always_directed,boost::mpl::true_>()
-        (ugi, std::bind(graph_tool::graph_union(),
-                        std::placeholders::_1, std::placeholders::_2, vprop, eprop),
-         get_pointers::apply<graph_tool::detail::always_directed>::type())
-        (gi.get_graph_view());
+    gt_dispatch<boost::mpl::true_>()
+        (std::bind(graph_tool::graph_union(),
+                   std::placeholders::_1, std::placeholders::_2, vprop, eprop),
+         always_directed(), always_directed())
+        (ugi.get_graph_view(), gi.get_graph_view());
     return boost::python::make_tuple(avprop, boost::any(eprop));
 }

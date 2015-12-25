@@ -557,11 +557,9 @@ boost::any do_init_neighbour_sampler(GraphInterface& gi, boost::any oeweights,
 
 struct collect_edge_marginals_dispatch
 {
-    template <class Graph, class Vprop, class MEprop>
-    void operator()(Graph& g, size_t B, Vprop cb, MEprop p,
-                    std::tuple<boost::any, GraphInterface&> abg) const
+    template <class Graph, class BGraph, class Vprop, class MEprop>
+    void operator()(Graph& g, size_t B, Vprop cb, MEprop p, BGraph& bg) const
     {
-        Graph& bg = *any_cast<Graph*>(get<0>(abg));
         collect_edge_marginals(B, cb.get_unchecked(num_vertices(bg)), p, g, bg);
     }
 };
@@ -578,10 +576,11 @@ void do_collect_edge_marginals(GraphInterface& gi, GraphInterface& gbi,
     vmap_t b = any_cast<vmap_t>(ob);
     emap_t p = any_cast<emap_t>(op);
 
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(collect_edge_marginals_dispatch(),
                              std::placeholders::_1, B, b, p,
-                             std::tuple<boost::any, GraphInterface&>(gbi.get_graph_view(), gbi)))();
+                             std::placeholders::_2),
+         all_graph_views())(gbi.get_graph_view());
 }
 
 boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
@@ -599,8 +598,8 @@ boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any o
     double H=0, sH=0, Hmf=0, sHmf=0;
     run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(bethe_entropy(),
-                             std::placeholders::_1, B, p, pv, std::ref(H), std::ref(sH),
-                             std::ref(Hmf), std::ref(sHmf)))();
+                             std::placeholders::_1, B, p, pv, std::ref(H),
+                             std::ref(sH), std::ref(Hmf), std::ref(sHmf)))();
     return boost::python::make_tuple(H, sH, Hmf, sHmf);
 }
 

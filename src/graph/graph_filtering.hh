@@ -114,12 +114,11 @@ namespace graph_tool
 class ActionNotFound: public GraphException
 {
 public:
-    ActionNotFound(const boost::any& graph_view, const std::type_info& action,
+    ActionNotFound(const std::type_info& action,
                    const vector<const std::type_info*>& args);
     virtual const char * what () const throw ();
     virtual ~ActionNotFound() throw () {}
 private:
-    boost::any _graph_view;
     const std::type_info& _action;
     vector<const std::type_info*> _args;
 };
@@ -365,118 +364,146 @@ BOOST_MPL_ASSERT_RELATION(n_views::value, == , boost::mpl::int_<6>::value);
 BOOST_MPL_ASSERT_RELATION(n_views::value, == , boost::mpl::int_<3>::value);
 #endif
 
-// run_action() implementation
-// ===========================
+// run_action() and gt_dispatch() implementation
+// =============================================
 
 // wrap action to be called, to deal with property maps, i.e., return version
 // with no bounds checking.
 template <class Action, class Wrap>
 struct action_wrap
 {
-    action_wrap(Action a, GraphInterface& g, size_t max_v, size_t max_e)
-        : _a(a), _g(g), _max_v(max_v), _max_e(max_e) {}
+    action_wrap(Action a) : _a(a) {}
 
     template <class Type>
-    boost::checked_vector_property_map<Type,GraphInterface::vertex_index_map_t>&
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::true_) const
+    auto& uncheck(boost::checked_vector_property_map
+                   <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::true_) const
     {
         return a;
     }
 
     template <class Type>
-    boost::unchecked_vector_property_map<Type,GraphInterface::vertex_index_map_t>
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::vertex_index_map_t> a, boost::mpl::false_) const
+    auto uncheck(boost::checked_vector_property_map
+                 <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::false_) const
     {
-        return a.get_unchecked(_max_v);
+        return a.get_unchecked();
     }
 
     template <class Type>
-    boost::checked_vector_property_map<Type,GraphInterface::edge_index_map_t>&
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::true_) const
+    auto& uncheck(boost::checked_vector_property_map
+                   <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::true_) const
     {
         return a;
     }
 
     template <class Type>
-    boost::unchecked_vector_property_map<Type,GraphInterface::edge_index_map_t>
-    uncheck(boost::checked_vector_property_map
-            <Type,GraphInterface::edge_index_map_t> a, boost::mpl::false_) const
+    auto uncheck(boost::checked_vector_property_map
+                 <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::false_) const
     {
-        return a.get_unchecked(_max_e);
+        return a.get_unchecked();
     }
 
     template <class Type>
-    scalarS<typename Type::unchecked_t>
-    uncheck(scalarS<Type> a, boost::mpl::false_) const
+    auto uncheck(scalarS<Type>& a, boost::mpl::false_) const
     {
-        return scalarS<typename Type::unchecked_t>(uncheck(a._pmap,
-                                                           boost::mpl::false_()));
+        auto pmap = uncheck(a._pmap, boost::mpl::false_());
+        return scalarS<decltype(pmap)>(pmap);
     }
 
     //no op
     template <class Type, class DoWrap>
-    Type& uncheck(Type& a, DoWrap) const { return a; }
+    Type& uncheck(Type&& a, DoWrap) const { return a; }
 
-    void operator()() const {};
-    template <class T1> void operator()(T1* a1) const
-    { _a(*a1); }
-
-    template <class T1, class... Ts>
-    void operator()(T1* a1, Ts&&... as) const
+    template <class Type>
+    auto& deference(Type* a) const
     {
-        _a(*a1, uncheck(std::forward<Ts>(as), Wrap())...);
+        typedef typename std::remove_const<Type>::type type_t;
+        typedef typename boost::mpl::find<detail::all_graph_views, type_t>::type iter_t;
+        typedef typename boost::mpl::end<detail::all_graph_views>::type end_t;
+        return deference_dispatch(a, typename std::is_same<iter_t, end_t>::type());
+    }
+
+    template <class Type>
+    auto& deference_dispatch(Type*& a, std::true_type) const
+    {
+        return a;
+    }
+
+    template <class Type>
+    Type& deference_dispatch(Type* a, std::false_type) const
+    {
+        return *a;
+    }
+
+    template <class Type>
+    Type& deference(Type&& a) const
+    {
+        return a;
+    }
+
+    template <class... Ts>
+    void operator()(Ts&&... as) const
+    {
+        _a(deference(uncheck(std::forward<Ts>(as), Wrap()))...);
     }
 
     Action _a;
-    reference_wrapper<GraphInterface> _g;
-    size_t _max_v, _max_e;
 };
 
-// this functor encapsulates another functor Action, which takes a pointer to a
-// graph view as first argument
-template <class Action, class GraphViews, class Wrap, class... TRS>
-struct graph_action
+// this takes a functor and type ranges and iterates through the type
+// combinations when called with boost::any parameters, and calls the correct
+// function
+template <class Action, class Wrap, class... TRS>
+struct action_dispatch
 {
-    struct graph_view_pointers:
-        boost::mpl::transform<GraphViews, boost::mpl::quote1<add_pointer> >::type {};
-
-    graph_action(GraphInterface& g, Action a)
-        : _g(g), _a(a, g, num_vertices(*g._mg),
-                    max(g._mg->get_edge_index_range(), size_t(1))) {}
+    action_dispatch(Action a) : _a(a) {}
 
     template <class... Args>
     void operator()(Args&&... args) const
     {
-        boost::any gview = _g.get_graph_view();
-        bool found = boost::mpl::nested_for_each<graph_view_pointers,TRS...>
-            (_a, gview, std::forward<Args>(args)...);
+        bool found =
+            boost::mpl::nested_for_each<TRS...>(_a, std::forward<Args>(args)...);
         if (!found)
         {
             vector<const std::type_info*> args_t = {(&(args).type())...};
-            throw ActionNotFound(gview, typeid(Action), args_t);
+            throw ActionNotFound(typeid(Action), args_t);
         }
     }
 
-    const GraphInterface &_g;
     action_wrap<Action, Wrap> _a;
 };
+
 } // details namespace
 
-
-// all definitions of run_action with different arity
+// dispatch "Action" across all type combinations
 template <class GraphViews = detail::all_graph_views, class Wrap = boost::mpl::false_>
 struct run_action
 {
     template <class Action, class... TRS>
-    detail::graph_action<Action,GraphViews,Wrap,TRS...>
-    operator()(GraphInterface &g, Action&& a, TRS...)
+    auto operator()(GraphInterface& gi, Action a, TRS...)
     {
-        return detail::graph_action<Action,GraphViews,Wrap,TRS...>(g, std::forward<Action>(a));
+        auto dispatch = detail::action_dispatch<Action,Wrap,GraphViews,TRS...>(a);
+        auto wrap = [dispatch, &gi](auto&&... args) { dispatch(gi.get_graph_view(), args...); };
+        return wrap;
     }
 };
+
+template <class Wrap = boost::mpl::false_>
+struct gt_dispatch
+{
+    template <class Action, class... TRS>
+    auto operator()(Action a, TRS...)
+    {
+        return detail::action_dispatch<Action,Wrap,TRS...>(a);
+    }
+};
+
+typedef detail::all_graph_views all_graph_views;
+typedef detail::always_directed always_directed;
+typedef detail::never_directed never_directed;
+typedef detail::always_reversed always_reversed;
+typedef detail::never_reversed never_reversed;
+typedef detail::always_directed_never_reversed always_directed_never_reversed;
+typedef detail::never_filtered never_filtered;
 
 // returns true if graph filtering was enabled at compile time
 bool graph_filtering_enabled();

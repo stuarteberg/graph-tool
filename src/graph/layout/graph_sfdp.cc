@@ -84,7 +84,7 @@ struct do_propagate_pos
 {
     template <class Graph, class CoarseGraph, class VertexMap, class PosMap,
               class RNG>
-    void operator()(Graph& g, CoarseGraph* cg, VertexMap vmap,
+    void operator()(Graph& g, CoarseGraph& cg, VertexMap vmap,
                     boost::any acvmap, PosMap pos, boost::any acpos,
                     double delta, RNG& rng) const
     {
@@ -99,7 +99,7 @@ struct do_propagate_pos
         uniform_real_distribution<val_t> noise(-delta, delta);
         gt_hash_map<c_t, pos_t> cmap;
 
-        for (auto v : vertices_range(*cg))
+        for (auto v : vertices_range(cg))
             cmap[cvmap[v]] = cpos[v];
 
         for (auto v : vertices_range(g))
@@ -115,16 +115,6 @@ struct do_propagate_pos
     }
 };
 
-struct get_pointers
-{
-    template <class List>
-    struct apply
-    {
-        typedef typename mpl::transform<List,
-                                        mpl::quote1<std::add_pointer> >::type type;
-    };
-};
-
 void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                    boost::any cvmap, boost::any pos, boost::any cpos,
                    double delta, rng_t& rng)
@@ -134,13 +124,13 @@ void propagate_pos(GraphInterface& gi, GraphInterface& cgi, boost::any vmap,
                              GraphInterface::vertex_index_map_t>::type>::type
         vmaps_t;
 
-    run_action<>()
-        (gi, std::bind(do_propagate_pos(),
+    gt_dispatch<>()
+        (std::bind(do_propagate_pos(),
                        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                        cvmap, std::placeholders::_4, cpos, delta, std::ref(rng)),
-         get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
+         all_graph_views(), all_graph_views(),
          vmaps_t(), vertex_floating_vector_properties())
-        (cgi.get_graph_view(), vmap, pos);
+        (gi.get_graph_view(), cgi.get_graph_view(), vmap, pos);
 }
 
 struct do_propagate_pos_mivs

@@ -206,7 +206,7 @@ void pack(vector<point_t>& cp, vector<T>& ncp)
 struct do_get_cts
 {
     template <class Graph, class Tree, class PosProp, class BProp, class CMap>
-    void operator()(Graph& g, Tree* t, PosProp tpos, BProp beta, CMap cts,
+    void operator()(Graph& g, Tree& t, PosProp tpos, BProp beta, CMap cts,
                     bool is_tree, size_t max_depth) const
     {
         vector<size_t> path;
@@ -222,9 +222,9 @@ struct do_get_cts
 
             path.clear();
             if (is_tree)
-                tree_path(*t, u, v, path, max_depth);
+                tree_path(t, u, v, path, max_depth);
             else
-                graph_path(*t, u, v, path);
+                graph_path(t, u, v, path);
             cp.clear();
             get_control_points(path, tpos, beta[e], cp);
             ncp.clear();
@@ -233,16 +233,6 @@ struct do_get_cts
             pack(ncp, cts[e]);
         }
     }
-};
-
-struct get_pointers
-{
-    template <class List>
-    struct apply
-    {
-        typedef typename boost::mpl::transform<List,
-                                               boost::mpl::quote1<std::add_pointer> >::type type;
-    };
 };
 
 void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
@@ -258,10 +248,11 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
     eprop_t cts = boost::any_cast<eprop_t>(octs);
     beprop_t beta = boost::any_cast<beprop_t>(obeta);
 
-    run_action<>()
-        (gi, std::bind(do_get_cts(), std::placeholders::_1, std::placeholders::_2,
-                       std::placeholders::_3, beta, cts, is_tree, max_depth),
-         get_pointers::apply<graph_tool::detail::always_directed>::type(),
+    gt_dispatch<>()
+        (std::bind(do_get_cts(), std::placeholders::_1, std::placeholders::_2,
+                   std::placeholders::_3, beta, cts, is_tree, max_depth),
+         graph_tool::all_graph_views(),
+         graph_tool::always_directed(),
          vertex_scalar_vector_properties())
-        (tgi.get_graph_view(), otpos);
+        (gi.get_graph_view(), tgi.get_graph_view(), otpos);
 }

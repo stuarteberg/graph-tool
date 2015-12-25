@@ -43,11 +43,9 @@ size_t intersection_size(Keys& ks, Set1& s1, Set2& s2)
 struct get_similarity
 {
     template <class Graph1, class Graph2, class LabelMap>
-    void operator()(const Graph1& g1, const Graph2* g2p, LabelMap l1,
+    void operator()(const Graph1& g1, const Graph2& g2, LabelMap l1,
                     boost::any al2, size_t& s) const
     {
-        const Graph2& g2 = *g2p;
-
         LabelMap l2 = boost::any_cast<typename LabelMap::checked_t>(al2).get_unchecked(num_vertices(g2));
 
         typedef typename property_traits<LabelMap>::value_type label_t;
@@ -96,11 +94,9 @@ struct get_similarity
 struct get_similarity_fast
 {
     template <class Graph1, class Graph2, class LabelMap>
-    void operator()(const Graph1& g1, const Graph2* g2p, LabelMap l1,
+    void operator()(const Graph1& g1, const Graph2& g2, LabelMap l1,
                     boost::any al2, size_t& s) const
     {
-        const Graph2& g2 = *g2p;
-
         LabelMap l2 = boost::any_cast<LabelMap>(al2);
 
         typedef typename property_traits<LabelMap>::value_type label_t;

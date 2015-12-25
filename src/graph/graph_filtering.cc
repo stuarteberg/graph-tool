@@ -41,11 +41,9 @@ string name_demangle(string name)
 }
 
 // Whenever no implementation is called, the following exception is thrown
-graph_tool::ActionNotFound::ActionNotFound(const boost::any& graph_view,
-                                           const type_info& action,
+graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
                                            const vector<const type_info*>& args)
-    : GraphException(""), _graph_view(graph_view),
-      _action(action), _args(args) {}
+    : GraphException(""), _action(action), _args(args) {}
 
 const char * graph_tool::ActionNotFound::what () const throw ()
 {
@@ -57,7 +55,6 @@ const char * graph_tool::ActionNotFound::what () const throw ()
         "instructions at " PACKAGE_BUGREPORT ". What follows is debug "
         "information.\n\n";
 
-    error += "Graph view: " + name_demangle(_graph_view.type().name()) + "\n\n";
     error += "Action: " + name_demangle(_action.name()) + "\n\n";
     for (size_t i = 0; i < _args.size(); ++i)
     {
@@ -80,10 +77,10 @@ boost::any check_reverse(const Graph& g, bool reverse, GraphInterface& gi)
             reverse_graph_t;
 
         reverse_graph_t rg(g);
-        return retrieve_graph_view(gi, rg).get();
+        return std::ref(*retrieve_graph_view(gi, rg).get());
     }
 
-    return boost::any(const_cast<Graph*>(&g));
+    return boost::any(std::ref(const_cast<Graph&>(g)));
 };
 
 // this will check whether a graph is directed and return the proper view
@@ -99,7 +96,7 @@ boost::any check_directed(const Graph &g, bool reverse, bool directed,
 
     typedef UndirectedAdaptor<Graph> ug_t;
     ug_t ug(g);
-    return retrieve_graph_view(gi, ug).get();
+    return std::ref(*retrieve_graph_view(gi, ug).get());
 };
 
 // this will check whether a graph is filtered and return the proper view

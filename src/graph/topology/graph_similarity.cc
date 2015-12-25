@@ -29,27 +29,17 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-struct get_pointers
-{
-    template <class List>
-    struct apply
-    {
-        typedef typename mpl::transform<List,
-                                        mpl::quote1<std::add_pointer> >::type type;
-    };
-};
-
-
 size_t similarity(GraphInterface& gi1, GraphInterface& gi2, boost::any label1,
                   boost::any label2)
 {
     size_t s = 0;
-    run_action<>()
-        (gi1, std::bind(get_similarity(), std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3, label2, std::ref(s)),
-         get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
+    gt_dispatch<>()
+        (std::bind(get_similarity(), std::placeholders::_1, std::placeholders::_2,
+                   std::placeholders::_3, label2, std::ref(s)),
+         all_graph_views(),
+         all_graph_views(),
          writable_vertex_properties())
-        (gi2.get_graph_view(), label1);
+        (gi1.get_graph_view(), gi2.get_graph_view(), label1);
     return s;
 }
 
@@ -57,12 +47,14 @@ size_t similarity_fast(GraphInterface& gi1, GraphInterface& gi2, boost::any labe
                        boost::any label2)
 {
     size_t s = 0;
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
-        (gi1, std::bind(get_similarity_fast(), std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3, label2, std::ref(s)),
-         get_pointers::apply<graph_tool::detail::all_graph_views>::type(),
+    gt_dispatch<boost::mpl::true_>()
+        (std::bind(get_similarity_fast(), std::placeholders::_1,
+                   std::placeholders::_2, std::placeholders::_3,
+                   label2, std::ref(s)),
+         all_graph_views(),
+         all_graph_views(),
          vertex_integer_properties())
-        (gi2.get_graph_view(), label1);
+        (gi1.get_graph_view(), gi2.get_graph_view(), label1);
     return s;
 }
 

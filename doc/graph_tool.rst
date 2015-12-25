@@ -106,7 +106,7 @@
 
     .. autoattribute:: vertex_index
     .. autoattribute:: edge_index
-    .. autoattribute:: max_edge_index
+    .. autoattribute:: edge_index_range
     .. automethod:: reindex_edges
 
     .. container:: sec_title

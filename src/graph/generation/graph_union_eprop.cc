@@ -37,16 +37,6 @@ typedef property_map_type::apply<GraphInterface::edge_t,
                                  GraphInterface::edge_index_map_t>::type
     eprop_t;
 
-struct get_pointers
-{
-    template <class List>
-    struct apply
-    {
-        typedef typename boost::mpl::transform<List,
-                                               boost::mpl::quote1<std::add_pointer> >::type type;
-    };
-};
-
 void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
                          boost::any p_vprop, boost::any p_eprop,
                          boost::any uprop, boost::any prop)
@@ -58,7 +48,6 @@ void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
         (ugi, std::bind(graph_tool::property_union(),
                         std::placeholders::_1, std::placeholders::_2, vprop, eprop,
                         std::placeholders::_3, prop),
-         get_pointers::apply<graph_tool::detail::always_directed>::type(),
-         writable_edge_properties())
+         always_directed(), writable_edge_properties())
         (gi.get_graph_view(), uprop);
 }
