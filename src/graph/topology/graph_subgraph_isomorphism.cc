@@ -184,24 +184,24 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                      size_t max_n, bool induced, bool iso, bool generator)
 {
     // typedef mpl::push_back<vertex_properties,
-    //                        ConstantPropertyMap<bool,GraphInterface::vertex_t> >
+    //                        UnityPropertyMap<bool,GraphInterface::vertex_t> >
     //     ::type vertex_props_t;
 
     // typedef mpl::push_back<edge_properties,
-    //                        ConstantPropertyMap<bool,GraphInterface::edge_t> >
+    //                        UnityPropertyMap<bool,GraphInterface::edge_t> >
     //     ::type edge_props_t;
 
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type vlabel_t;
     typedef mpl::vector2<typename vlabel_t::unchecked_t,
-                         ConstantPropertyMap<bool,
-                                             GraphInterface::vertex_t> > vertex_props_t;
+                         UnityPropertyMap<bool,
+                                          GraphInterface::vertex_t> > vertex_props_t;
 
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::edge_index_map_t>::type elabel_t;
     typedef mpl::vector2<typename elabel_t::unchecked_t,
-                         ConstantPropertyMap<bool,
-                                             GraphInterface::edge_t> > edge_props_t;
+                         UnityPropertyMap<bool,
+                                          GraphInterface::edge_t> > edge_props_t;
 
 
     if (gi1.get_directed() != gi2.get_directed())
@@ -210,7 +210,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     if (vertex_label1.empty() || vertex_label2.empty())
     {
         vertex_label1 = vertex_label2 =
-            ConstantPropertyMap<bool,GraphInterface::vertex_t>(true);
+            UnityPropertyMap<bool,GraphInterface::vertex_t>();
     }
     else
     {
@@ -221,7 +221,7 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     if (edge_label1.empty() || edge_label2.empty())
     {
         edge_label1 = edge_label2 =
-            ConstantPropertyMap<bool,GraphInterface::edge_t>(true);
+            UnityPropertyMap<bool,GraphInterface::edge_t>();
     }
     else
     {

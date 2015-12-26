@@ -105,9 +105,9 @@ struct in_degreeS
         return in_degree(v, g) * weight.c;
     }
 
-    template <class Graph, class Vertex, class Key>
+    template <class Graph, class Vertex, class Key, class Value>
     auto get_in_degree(Vertex v, const Graph& g, std::true_type,
-                       const UnityPropertyMap<Key>&) const
+                       const UnityPropertyMap<Value, Key>&) const
     {
         return in_degree(v, g);
     }
@@ -159,9 +159,9 @@ struct out_degreeS
         return out_degree(v, g) * weight.c;
     }
 
-    template <class Graph, class Vertex, class Key>
+    template <class Graph, class Vertex, class Key, class Value>
     auto get_out_degree(Vertex v, const Graph& g,
-                        const UnityPropertyMap<Key>&) const
+                        const UnityPropertyMap<Value, Key>&) const
     {
         return out_degree(v, g);
     }

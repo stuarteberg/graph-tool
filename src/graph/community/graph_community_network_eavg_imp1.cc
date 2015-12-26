@@ -33,7 +33,7 @@ using namespace boost;
 
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> no_eweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type ecount_map_t;
 
 struct get_edge_sum_dispatch

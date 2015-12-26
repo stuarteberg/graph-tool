@@ -36,8 +36,8 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
                  size_t max_level, double epsilon, size_t max_iter,
                  bool adaptive, bool verbose, rng_t& rng)
 {
-    typedef ConstantPropertyMap<int32_t,GraphInterface::vertex_t> vweight_map_t;
-    typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> eweight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::vertex_t> vweight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> eweight_map_t;
     typedef mpl::push_back<vertex_scalar_properties, vweight_map_t>::type
         vertex_props_t;
     typedef mpl::push_back<edge_scalar_properties, eweight_map_t>::type
@@ -57,9 +57,9 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
         any_cast<group_map_t>(python::extract<any>(spring_parms[6]));
 
     if(vweight.empty())
-        vweight = vweight_map_t(1);
+        vweight = vweight_map_t();
     if(eweight.empty())
-        eweight = eweight_map_t(1);
+        eweight = eweight_map_t();
 
     typedef property_map_type::apply<uint8_t,
                                      GraphInterface::vertex_index_map_t>::type

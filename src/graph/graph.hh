@@ -137,7 +137,7 @@ public:
 
     typedef boost::property_map<multigraph_t, boost::vertex_index_t>::type vertex_index_map_t;
     typedef boost::property_map<multigraph_t, boost::edge_index_t>::type edge_index_map_t;
-    typedef ConstantPropertyMap<size_t, boost::graph_property_tag> graph_index_map_t;
+    typedef ConstantPropertyMap<size_t,boost::graph_property_tag> graph_index_map_t;
 
     // internal access
 

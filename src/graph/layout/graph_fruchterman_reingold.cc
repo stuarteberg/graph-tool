@@ -155,8 +155,6 @@ struct get_layout
                  cooling(cool).
                  force_pairs(all_force_pairs()));
     }
-
-
 };
 
 
@@ -165,12 +163,12 @@ void fruchterman_reingold_layout(GraphInterface& g, boost::any pos,
                                  bool square, double scale, bool grid,
                                  double ti, double tf, size_t max_iter)
 {
-    typedef ConstantPropertyMap<double,GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
         edge_props_t;
 
     if(weight.empty())
-        weight = weight_map_t(1.0);
+        weight = weight_map_t();
     if (square)
         run_action<graph_tool::detail::never_directed>()
             (g,

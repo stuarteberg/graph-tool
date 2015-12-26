@@ -30,7 +30,7 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int,GraphInterface::edge_t> dummy_weight;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> dummy_weight;
 
 boost::python::object
 get_vertex_combined_correlation_histogram(GraphInterface& gi,

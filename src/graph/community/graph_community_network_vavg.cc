@@ -33,7 +33,7 @@ using namespace boost;
 
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int32_t,GraphInterface::vertex_t> no_vweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::vertex_t> no_vweight_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::vertex_index_map_t>::type vcount_map_t;
 
 
@@ -77,7 +77,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
     if (vweight.empty())
     {
         no_weight = true;
-        vweight = no_vweight_map_t(1);
+        vweight = no_vweight_map_t();
     }
 
     typedef boost::mpl::insert_range<writable_vertex_scalar_properties,

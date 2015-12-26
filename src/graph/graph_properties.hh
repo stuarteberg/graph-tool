@@ -617,18 +617,18 @@ public:
 };
 
 // the following is a property map which always returns one
-template <class Key>
+template <class Value, class Key>
 class UnityPropertyMap
-    : public boost::put_get_helper<int, UnityPropertyMap<Key>>
+    : public boost::put_get_helper<Value, UnityPropertyMap<Value, Key>>
 {
 public:
-    typedef int value_type;
+    typedef Value value_type;
     typedef value_type reference;
     typedef Key key_type;
     typedef boost::readable_property_map_tag category;
 
     template <class K>
-    value_type operator[](const K&) const { return 1; }
+    value_type operator[](const K&) const { return value_type(1); }
 };
 
 
@@ -639,7 +639,7 @@ struct is_constant_property
     typedef typename boost::property_traits<Property>::value_type value_type;
     typedef typename std::conditional<std::is_same<Property, ConstantPropertyMap<value_type, key_type>>::value,
                                       std::true_type,
-                                      typename std::is_same<Property, UnityPropertyMap<key_type>>::type>::type type;
+                                      typename std::is_same<Property, UnityPropertyMap<value_type, key_type>>::type>::type type;
 };
 
 

@@ -31,12 +31,12 @@ void arf_layout(GraphInterface& g, boost::any pos, boost::any weight, double d,
                 double a, double dt, size_t max_iter, double epsilon,
                 size_t dim)
 {
-    typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
         edge_props_t;
 
     if(weight.empty())
-        weight = weight_map_t(1);
+        weight = weight_map_t();
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(get_arf_layout(), std::placeholders::_1, std::placeholders::_2,
                       std::placeholders::_3, a, d, dt, epsilon, max_iter, dim),

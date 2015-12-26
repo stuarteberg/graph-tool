@@ -116,10 +116,10 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
                                boost::any tree_map)
 {
 
-    typedef ConstantPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
     if (weight_map.empty())
-        weight_map = cweight_t(1);
+        weight_map = cweight_t();
 
     typedef mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
         weight_maps;
@@ -133,10 +133,10 @@ void get_kruskal_spanning_tree(GraphInterface& gi, boost::any weight_map,
 void get_prim_spanning_tree(GraphInterface& gi, size_t root,
                             boost::any weight_map, boost::any tree_map)
 {
-    typedef ConstantPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
     if (weight_map.empty())
-        weight_map = cweight_t(1);
+        weight_map = cweight_t();
 
     typedef mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
         weight_maps;

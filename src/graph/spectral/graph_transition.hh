@@ -38,10 +38,10 @@ sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
     return sum;
 }
 
-template <class Graph>
+template <class Graph, class Type>
 size_t
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           const ConstantPropertyMap<size_t, GraphInterface::edge_t>&)
+           const UnityPropertyMap<Type,GraphInterface::edge_t>&)
 {
     return out_degreeS()(v, g);
 }

@@ -33,8 +33,8 @@ using namespace boost;
 
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> no_eweight_map_t;
-typedef ConstantPropertyMap<int32_t,GraphInterface::vertex_t> no_vweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::vertex_t> no_vweight_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type::unchecked_t ecount_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::vertex_index_map_t>::type::unchecked_t vcount_map_t;
 
@@ -97,7 +97,7 @@ void community_network(GraphInterface& gi, GraphInterface& cgi,
         vweight_properties;
 
     if (vweight.empty())
-        vweight = no_vweight_map_t(1);
+        vweight = no_vweight_map_t();
 
     run_action<>()
         (gi, std::bind(get_community_network_vertices_dispatch(),

@@ -45,26 +45,26 @@ sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
     return sum;
 }
 
-template <class Graph, class EdgeSelector>
+template <class Graph, class EdgeSelector, class Val>
 double
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           ConstantPropertyMap<double, GraphInterface::edge_t>, all_edges_iteratorS<Graph>)
+           UnityPropertyMap<Val, GraphInterface::edge_t>, all_edges_iteratorS<Graph>)
 {
     return total_degreeS()(v, g);
 }
 
-template <class Graph, class EdgeSelector>
+template <class Graph, class EdgeSelector, class Val>
 double
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           ConstantPropertyMap<double, GraphInterface::edge_t>, in_edge_iteratorS<Graph>)
+           UnityPropertyMap<Val, GraphInterface::edge_t>, in_edge_iteratorS<Graph>)
 {
     return in_degreeS()(v, g);
 }
 
-template <class Graph, class EdgeSelector>
+template <class Graph, class EdgeSelector, class Val>
 double
 sum_degree(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
-           ConstantPropertyMap<double, GraphInterface::edge_t>, out_edge_iteratorS<Graph>)
+           UnityPropertyMap<Val, GraphInterface::edge_t>, out_edge_iteratorS<Graph>)
 {
     return out_degreeS()(v, g);
 }

@@ -79,12 +79,12 @@ double modularity(GraphInterface& g, boost::any weight, boost::any property)
 {
     double modularity = 0;
 
-    typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
         edge_props_t;
 
     if(weight.empty())
-        weight = weight_map_t(1);
+        weight = weight_map_t();
 
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(get_modularity(), std::placeholders::_1, std::placeholders::_2,

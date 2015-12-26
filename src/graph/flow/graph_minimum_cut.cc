@@ -47,10 +47,10 @@ double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
 {
     double mc = 0;
 
-    typedef ConstantPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
     if (weight.empty())
-        weight = cweight_t(1);
+        weight = cweight_t();
 
     typedef boost::mpl::push_back<writable_edge_scalar_properties, cweight_t>::type
         weight_maps;

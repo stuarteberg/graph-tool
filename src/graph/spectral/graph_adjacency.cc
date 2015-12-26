@@ -37,7 +37,7 @@ void adjacency(GraphInterface& g, boost::any index, boost::any weight,
     if (!belongs<vertex_scalar_properties>()(index))
         throw ValueException("index vertex property must have a scalar value type");
 
-    typedef ConstantPropertyMap<double, GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<double, GraphInterface::edge_t> weight_map_t;
     typedef mpl::push_back<edge_scalar_properties, weight_map_t>::type
         weight_props_t;
 
@@ -45,7 +45,7 @@ void adjacency(GraphInterface& g, boost::any index, boost::any weight,
         throw ValueException("weight edge property must have a scalar value type");
 
     if(weight.empty())
-        weight = weight_map_t(1.0);
+        weight = weight_map_t();
 
     multi_array_ref<double,1> data = get_array<double,1>(odata);
     multi_array_ref<int32_t,1> i = get_array<int32_t,1>(oi);

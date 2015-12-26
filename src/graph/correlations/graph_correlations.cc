@@ -41,7 +41,7 @@ void graph_correlations_imp1(GraphInterface& g, boost::python::object& hist,
                              const std::array<vector<long double>,2>& bins);
 
 
-typedef ConstantPropertyMap<int,GraphInterface::edge_t> cweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> cweight_map_t;
 
 boost::python::object
 get_vertex_correlation_histogram(GraphInterface& gi,
@@ -67,7 +67,7 @@ get_vertex_correlation_histogram(GraphInterface& gi,
         weight_prop = wrapped_weight_t(weight, edge_scalar_properties());
     }
     else
-        weight_prop = cweight_map_t(1);
+        weight_prop = cweight_map_t();
 
     try
     {

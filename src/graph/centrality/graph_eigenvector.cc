@@ -33,12 +33,12 @@ long double eigenvector(GraphInterface& g, boost::any w, boost::any c,
         throw ValueException("vertex property must be of floating point"
                              " value type");
 
-    typedef ConstantPropertyMap<int, GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     typedef boost::mpl::push_back<writable_edge_scalar_properties, weight_map_t>::type
         weight_props_t;
 
     if(w.empty())
-        w = weight_map_t(1);
+        w = weight_map_t();
 
     long double eig = 0;
     run_action<>()

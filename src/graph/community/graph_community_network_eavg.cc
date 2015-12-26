@@ -33,7 +33,7 @@ using namespace boost;
 
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> no_eweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type ecount_map_t;
 
 struct get_weighted_edge_property_dispatch
@@ -68,7 +68,7 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
     if (eweight.empty())
     {
         no_weight = true;
-        eweight = no_eweight_map_t(1);
+        eweight = no_eweight_map_t();
     }
 
     typedef boost::mpl::insert_range<writable_edge_scalar_properties,

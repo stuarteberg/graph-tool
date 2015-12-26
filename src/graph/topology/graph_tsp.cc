@@ -41,10 +41,10 @@ vector<int32_t> get_tsp(GraphInterface& gi, size_t src, boost::any weight_map)
 {
     vector<int32_t> tour;
 
-    typedef ConstantPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> cweight_t;
 
     if (weight_map.empty())
-        weight_map = cweight_t(1);
+        weight_map = cweight_t();
 
     typedef mpl::push_back<edge_scalar_properties, cweight_t>::type
         weight_maps;

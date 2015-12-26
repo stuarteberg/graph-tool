@@ -93,12 +93,12 @@ struct do_random_matching
 void random_matching(GraphInterface& gi, boost::any weight, boost::any match,
                      bool minimize, rng_t& rng)
 {
-    typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> weight_map_t;
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
     typedef mpl::push_back<edge_scalar_properties, weight_map_t>::type
         edge_props_t;
 
     if(weight.empty())
-        weight = weight_map_t(1);
+        weight = weight_map_t();
 
     run_action<>()
         (gi, std::bind(do_random_matching(), std::placeholders::_1, gi.get_vertex_index(),

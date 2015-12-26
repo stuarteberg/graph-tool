@@ -33,7 +33,7 @@ using namespace boost;
 
 using namespace graph_tool;
 
-typedef ConstantPropertyMap<int32_t,GraphInterface::edge_t> no_eweight_map_t;
+typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
 typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type::unchecked_t ecount_map_t;
 
 struct get_community_network_edges_dispatch
@@ -72,7 +72,7 @@ void community_network_edges(GraphInterface& gi, GraphInterface& cgi,
         eweight_properties;
 
     if (eweight.empty())
-        eweight = no_eweight_map_t(1);
+        eweight = no_eweight_map_t();
 
     run_action<>()
         (gi, std::bind(get_community_network_edges_dispatch(self_loops, parallel_edges),
