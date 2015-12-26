@@ -39,7 +39,8 @@ struct do_all_pairs_search
             dist_t;
 
         int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
+        #pragma omp parallel for default(shared) private(i) schedule(runtime)\
+            if (N > 100)
         for (i = 0; i < N; ++i)
         {
             dist_map[i].clear();
@@ -63,21 +64,94 @@ struct do_all_pairs_search
     }
 };
 
+struct do_all_pairs_search_unweighted
+{
+    template <class DistMap, class PredMap>
+    class bfs_visitor: public boost::bfs_visitor<null_visitor>
+    {
+    public:
+        bfs_visitor(DistMap& dist_map, PredMap& pred, size_t source)
+        : _dist_map(dist_map), _pred(pred), _source(source) {}
+
+        template <class Graph>
+        void initialize_vertex(typename graph_traits<Graph>::vertex_descriptor v,
+                               Graph&)
+        {
+            typedef typename DistMap::value_type dist_t;
+            dist_t inf = std::is_floating_point<dist_t>::value ?
+                numeric_limits<dist_t>::infinity() :
+                numeric_limits<dist_t>::max();
+            _dist_map[v] = (v == _source) ? 0 : inf;
+            _pred[v] = v;
+        }
+
+        template <class Graph>
+        void tree_edge(const typename graph_traits<Graph>::edge_descriptor& e,
+                       Graph& g)
+        {
+            _pred[target(e,g)] = source(e,g);
+        }
+
+        template <class Graph>
+        void discover_vertex(typename graph_traits<Graph>::vertex_descriptor v,
+                             Graph&)
+        {
+            if (size_t(_pred[v]) == v)
+                return;
+            _dist_map[v] = _dist_map[_pred[v]] + 1;
+        }
+
+    private:
+        DistMap& _dist_map;
+        PredMap& _pred;
+        size_t _source;
+    };
+
+    template <class Graph, class DistMap>
+    void operator()(const Graph& g, DistMap dist_map) const
+    {
+        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+
+        int i, N = num_vertices(g);
+        vector<vertex_t> pred_map(N);
+        #pragma omp parallel for default(shared) private(i) \
+            firstprivate(pred_map) schedule(runtime) if (N > 30)
+        for (i = 0; i < N; ++i)
+        {
+            dist_map[i].resize(num_vertices(g), 0);
+            auto v = vertex(i, g);
+            if (v == graph_traits<Graph>::null_vertex())
+                continue;
+            bfs_visitor<typename std::remove_reference<decltype(dist_map[i])>::type,
+                        vector<size_t>>
+                vis(dist_map[i], pred_map, v);
+            breadth_first_search(g, v, visitor(vis));
+        }
+    }
+};
+
+
 void get_all_dists(GraphInterface& gi, boost::any dist_map, boost::any weight,
                    bool dense)
 {
-    typedef ConstantPropertyMap<size_t,GraphInterface::edge_t> cweight_map_t;
-
     if (weight.empty())
-        weight = boost::any(cweight_map_t(1));
-
-    run_action<>()
-        (gi, std::bind(do_all_pairs_search(), std::placeholders::_1,
-                       gi.get_vertex_index(), std::placeholders::_2, std::placeholders::_3,
-                       dense),
-         vertex_scalar_vector_properties(),
-         mpl::push_back<edge_scalar_properties,cweight_map_t>::type())
-        (dist_map, weight);
+    {
+        run_action<>()
+            (gi, std::bind(do_all_pairs_search_unweighted(),
+                           std::placeholders::_1, std::placeholders::_2),
+             vertex_scalar_vector_properties())
+            (dist_map);
+    }
+    else
+    {
+        run_action<>()
+            (gi, std::bind(do_all_pairs_search(), std::placeholders::_1,
+                           gi.get_vertex_index(), std::placeholders::_2,
+                           std::placeholders::_3, dense),
+             vertex_scalar_vector_properties(),
+             edge_scalar_properties())
+            (dist_map, weight);
+    }
 }
 
 void export_all_dists()
