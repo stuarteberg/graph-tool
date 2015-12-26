@@ -172,9 +172,6 @@ void graph_exception_translator(const Exception& e)
         error = PyExc_IOError;
     if (std::is_same<Exception, ValueException>::value)
         error = PyExc_ValueError;
-
-    PyObject* message = PyUnicode_FromString(e.what());
-    PyObject_SetAttrString(error, "message", message);
     PyErr_SetString(error, e.what());
 }
 

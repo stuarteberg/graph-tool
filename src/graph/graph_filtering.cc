@@ -43,25 +43,21 @@ string name_demangle(string name)
 // Whenever no implementation is called, the following exception is thrown
 graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
                                            const vector<const type_info*>& args)
-    : GraphException(""), _action(action), _args(args) {}
-
-const char * graph_tool::ActionNotFound::what () const throw ()
+    : GraphException(""), _action(action), _args(args)
 {
     using python::detail::gcc_demangle;
 
-    string error =
+    _error =
         "No static implementation was found for the desired routine. "
-        "This is a graph_tool bug. :-( Please follow bug report "
-        "instructions at " PACKAGE_BUGREPORT ". What follows is debug "
-        "information.\n\n";
+        "This is a graph_tool bug. :-( Please submit a bug report at "
+        PACKAGE_BUGREPORT ". What follows is debug information.\n\n";
 
-    error += "Action: " + name_demangle(_action.name()) + "\n\n";
+    _error += "Action: " + name_demangle(_action.name()) + "\n\n";
     for (size_t i = 0; i < _args.size(); ++i)
     {
-        error += "Arg " + lexical_cast<string>(i+1) + ": " +
+        _error += "Arg " + lexical_cast<string>(i+1) + ": " +
             name_demangle(_args[i]->name()) + "\n\n";
     }
-    return error.c_str();
 }
 
 // this will check whether a graph is reversed and return the proper view

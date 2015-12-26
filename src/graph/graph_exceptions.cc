@@ -23,7 +23,6 @@ using namespace graph_tool;
 GraphException::GraphException(const string& error) {_error = error;}
 GraphException::~GraphException() throw () {}
 const char * GraphException::what () const throw () {return _error.c_str();}
-void GraphException::SetError(const string& error) {_error = error;}
 
 IOException::IOException(const string& error): GraphException(error) {}
 IOException::~IOException() throw () {}

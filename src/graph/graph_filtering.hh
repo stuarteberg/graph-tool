@@ -116,7 +116,6 @@ class ActionNotFound: public GraphException
 public:
     ActionNotFound(const std::type_info& action,
                    const vector<const std::type_info*>& args);
-    virtual const char * what () const throw ();
     virtual ~ActionNotFound() throw () {}
 private:
     const std::type_info& _action;

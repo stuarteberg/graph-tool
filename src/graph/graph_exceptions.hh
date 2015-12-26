@@ -36,8 +36,6 @@ public:
     virtual ~GraphException() throw ();
     virtual const char * what () const throw ();
 protected:
-    virtual void SetError(const string& error);
-private:
     string _error;
 };
 
