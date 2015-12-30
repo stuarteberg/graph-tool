@@ -346,9 +346,6 @@ dnl Checks for library functions.
 
 dnl Checks for Additional stuff.
 
-dnl Set PACKAGE SOURCE DIR in config.h.
-packagesrcdir=`cd $srcdir && pwd`
-
 dnl Set PACKAGE PREFIX
 if test "x${prefix}" = "xNONE"; then
   packageprefix=${ac_default_prefix}
@@ -389,7 +386,6 @@ AC_DEFINE_UNQUOTED([LDFLAGS],"${LDFLAGS}", [linker options])
 
 AC_DEFINE_UNQUOTED([PACKAGE_DATA_DIR], "${PACKAGE_DATA_DIR}", [package data dir])
 AC_DEFINE_UNQUOTED([PACKAGE_DOC_DIR], "${PACKAGE_DOC_DIR}", [package doc dir])
-AC_DEFINE_UNQUOTED([PACKAGE_SOURCE_DIR], "${packagesrcdir}", [package source dir])
 
 AC_DEFINE_UNQUOTED([AUTHOR], "Tiago de Paula Peixoto <tiago@skewed.de>", [program author(s)])
 
