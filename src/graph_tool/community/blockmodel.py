@@ -3,7 +3,7 @@
 #
 # graph_tool -- a general graph manipulation python module
 #
-# Copyright (C) 2006-2015 Tiago de Paula Peixoto <tiago@skewed.de>
+# Copyright (C) 2006-2016 Tiago de Paula Peixoto <tiago@skewed.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -987,9 +987,9 @@ def mcmc_sweep(state, beta=1., c=1., niter=1, dl=False, dense=False,
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and greedy
        heuristic for the inference of stochastic block models", Phys. Rev. E 89,
        012804 (2014), :doi:`10.1103/PhysRevE.89.012804`, :arxiv:`1310.4378`.
-    .. [peixoto-model-2015] Tiago P. Peixoto, "Model selection and hypothesis
+    .. [peixoto-model-2016] Tiago P. Peixoto, "Model selection and hypothesis
        testing for large-scale network models with overlapping groups",
-       Phys. Rev. X 5, 011033 (2015), :doi:`10.1103/PhysRevX.5.011033`,
+       Phys. Rev. X 5, 011033 (2016), :doi:`10.1103/PhysRevX.5.011033`,
        :arxiv:`1409.3059`.
     """
 
@@ -2188,11 +2188,11 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and greedy
        heuristic for the inference of stochastic block models", Phys. Rev. E 89, 012804 (2014),
        :doi:`10.1103/PhysRevE.89.012804`, :arxiv:`1310.4378`.
-    .. [peixoto-model-2015] Tiago P. Peixoto, "Model selection and hypothesis
+    .. [peixoto-model-2016] Tiago P. Peixoto, "Model selection and hypothesis
        testing for large-scale network models with overlapping groups",
-       Phys. Rev. X 5, 011033 (2015), :doi:`10.1103/PhysRevX.5.011033`,
+       Phys. Rev. X 5, 011033 (2016), :doi:`10.1103/PhysRevX.5.011033`,
        :arxiv:`1409.3059`.
-    .. [peixoto-inferring-2015] Tiago P. Peixoto, "Inferring the mesoscale
+    .. [peixoto-inferring-2016] Tiago P. Peixoto, "Inferring the mesoscale
        structure of layered, edge-valued and time-varying networks",
        :arXiv:`1504.02381`
     """
