@@ -7,4 +7,4 @@ Contents:
    :maxdepth: 3
    :glob:
 
-   animation
+   animation/animation

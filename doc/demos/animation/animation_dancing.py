@@ -77,8 +77,9 @@ def update_state():
 
     # The movement of the vertices may cause them to leave the display area. The
     # following function rescales the layout to fit the window to avoid this.
-    if count % 1000 == 0:
+    if count > 0 and count % 1000 == 0:
         win.graph.fit_to_window(ink=True)
+
     count += 1
 
     # The following will force the re-drawing of the graph, and issue a
@@ -89,6 +90,7 @@ def update_state():
     # if doing an offscreen animation, dump frame to disk
     if offscreen:
         pixbuf = win.get_pixbuf()
+        print(pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride())
         pixbuf.savev(r'./frames/dancing%06d.png' % count, 'png', [], [])
         if count > max_count:
             sys.exit(0)
