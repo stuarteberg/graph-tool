@@ -25,6 +25,12 @@ using namespace boost;
 namespace boost
 {
 
+const char* prop_type_names[] = {"boolean", "short", "int", "long", "float",
+                                 "double", "vector_boolean", "vector_short",
+                                 "vector_int", "vector_long", "vector_float",
+                                 "vector_double", "vector_string", "string",
+                                 "python_object"};
+
 std::string protect_xml_string(const std::string& os)
 {
     using namespace boost::archive::iterators;

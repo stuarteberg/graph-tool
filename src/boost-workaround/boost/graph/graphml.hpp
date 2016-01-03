@@ -36,6 +36,16 @@
 namespace boost
 {
 
+typedef mpl::vector<uint8_t, int16_t, int32_t, int64_t, double, long double,
+                    std::vector<uint8_t>, std::vector<int16_t>,
+                    std::vector<int32_t>, std::vector<int64_t>,
+                    std::vector<double>, std::vector<long double>,
+                    std::vector<std::string>, std::string,
+                    python::object> prop_value_types;
+
+extern const char* prop_type_names[];
+
+
 /////////////////////////////////////////////////////////////////////////////
 // Graph reader exceptions
 /////////////////////////////////////////////////////////////////////////////
@@ -147,10 +157,10 @@ public:
         bool type_found = false;
         try
         {
-            mpl::for_each<value_types>
-                (put_property<graph_property_tag,value_types>
+            mpl::for_each<prop_value_types>
+                (put_property<graph_property_tag,prop_value_types>
                  (name, m_dp, graph_property_tag(), value, value_type,
-                  m_type_names, type_found));
+                  type_found));
         }
         catch (bad_lexical_cast)
         {
@@ -173,10 +183,10 @@ public:
         bool type_found = false;
         try
         {
-            mpl::for_each<value_types>
-                (put_property<vertex_descriptor,value_types>
+            mpl::for_each<prop_value_types>
+                (put_property<vertex_descriptor,prop_value_types>
                  (name, m_dp, any_cast<vertex_descriptor>(vertex),
-                  value, value_type, m_type_names, type_found));
+                  value, value_type, type_found));
         }
         catch (bad_lexical_cast)
         {
@@ -199,10 +209,10 @@ public:
         bool type_found = false;
         try
         {
-            mpl::for_each<value_types>
-                (put_property<edge_descriptor,value_types>
+            mpl::for_each<prop_value_types>
+                (put_property<edge_descriptor,prop_value_types>
                  (name, m_dp, any_cast<edge_descriptor>(edge),
-                  value, value_type, m_type_names, type_found));
+                  value, value_type, type_found));
         }
         catch (bad_lexical_cast)
         {
@@ -219,17 +229,16 @@ public:
     {
     public:
         put_property(const std::string& name, dynamic_properties& dp,
-                     const Key& key,
-                     const std::string& value, const std::string& value_type,
-                     const char** type_names, bool& type_found)
-            : m_name(name), m_dp(dp), m_key(key), m_value(value),
-              m_value_type(value_type), m_type_names(type_names),
-              m_type_found(type_found) {}
+                     const Key& key, const std::string& value,
+                     const std::string& value_type,
+                     bool& type_found) : m_name(name), m_dp(dp), m_key(key),
+            m_value(value), m_value_type(value_type),
+            m_type_found(type_found) {}
         template <class Value>
         void operator()(Value)
         {
             if (m_value_type ==
-                m_type_names[mpl::find<ValueVector,Value>::type::pos::value])
+                prop_type_names[mpl::find<ValueVector,Value>::type::pos::value])
             {
                 std::string val = m_value;
                 if (m_value_type == "boolean")
@@ -261,7 +270,6 @@ public:
         const Key& m_key;
         const std::string& m_value;
         const std::string& m_value_type;
-        const  char** m_type_names;
         bool& m_type_found;
     };
 
@@ -273,20 +281,7 @@ protected:
     std::unordered_set<std::string> m_ignore_vp;
     std::unordered_set<std::string> m_ignore_ep;
     std::unordered_set<std::string> m_ignore_gp;
-    typedef mpl::vector<uint8_t, int16_t, int32_t, int64_t, double, long double,
-                        std::vector<uint8_t>, std::vector<int32_t>,
-                        std::vector<int64_t>, std::vector<double>,
-                        std::vector<long double>, std::vector<std::string>,
-                        std::string, python::object>
-        value_types;
-    static const char* m_type_names[];
 };
-
-template<typename MutableGraph>
-const char* mutate_graph_impl<MutableGraph>::m_type_names[] =
-{"boolean", "short", "int", "long", "float", "double", "vector_boolean", "vector_int",
- "vector_long", "vector_float", "vector_double", "vector_string", "string",
- "python_object"};
 
 void
 read_graphml(std::istream& in, mutate_graph& g, bool integer_vertices,
@@ -310,18 +305,16 @@ template <typename Types>
 class get_type_name
 {
 public:
-    get_type_name(const std::type_info& type, const char** type_names,
-                  std::string& type_name)
-        : m_type(type), m_type_names(type_names), m_type_name(type_name) {}
+    get_type_name(const std::type_info& type, std::string& type_name)
+        : m_type(type), m_type_name(type_name) {}
     template <typename Type>
     void operator()(Type)
     {
         if (typeid(Type) == m_type)
-            m_type_name = m_type_names[mpl::find<Types,Type>::type::pos::value];
+            m_type_name = prop_type_names[mpl::find<Types,Type>::type::pos::value];
     }
 private:
     const std::type_info &m_type;
-    const char** m_type_names;
     std::string &m_type_name;
 };
 
@@ -374,19 +367,6 @@ write_graphml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
            "         xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns"
            " http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n\n";
 
-    typedef mpl::vector<bool, uint8_t, int8_t, uint16_t, int16_t, uint32_t,
-                        int32_t, uint64_t, int64_t, float, double, long double,
-                        std::vector<uint8_t>, std::vector<int32_t>,
-                        std::vector<int64_t>, std::vector<double>,
-                        std::vector<long double>, std::vector<std::string>,
-                        std::string, python::object> value_types;
-    const char* type_names[] = {"boolean", "boolean", "boolean", "short",
-                                "short", "int", "int", "long", "long", "float",
-                                "float", "double", "vector_boolean",
-                                "vector_int", "vector_long", "vector_float",
-                                "vector_double", "vector_string", "string",
-                                "python_object"};
-
     std::map<std::string, std::string> graph_key_ids;
     std::map<std::string, std::string> vertex_key_ids;
     std::map<std::string, std::string> edge_key_ids;
@@ -422,9 +402,8 @@ write_graphml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
         else
             continue;
         std::string type_name = "string";
-        mpl::for_each<value_types>
-            (get_type_name<value_types>(i->second->value(), type_names,
-                                        type_name));
+        mpl::for_each<prop_value_types>
+            (get_type_name<prop_value_types>(i->second->value(), type_name));
         out << "  <key id=\"" << protect_xml_string(key_id) << "\" for=\""
             << (i->second->key() == typeid(graph_property_tag) ? "graph" :
                 (i->second->key() == typeid(vertex_descriptor) ? "node" :
@@ -451,7 +430,7 @@ write_graphml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
         if (i->second->key() == typeid(graph_property_tag))
         {
             std::string val = protect_xml_string
-                (print_value<value_types>(*i->second, graph_property_tag()));
+                (print_value<prop_value_types>(*i->second, graph_property_tag()));
             if (val.empty())
                 continue;
             out << "   <data key=\""
@@ -483,7 +462,7 @@ write_graphml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
             if (i->second->key() == typeid(vertex_descriptor))
             {
                 std::string val = protect_xml_string
-                    (print_value<value_types>(*i->second, *v));
+                    (print_value<prop_value_types>(*i->second, *v));
                 if (val.empty())
                     continue;
                 out << "      <data key=\""
@@ -531,7 +510,7 @@ write_graphml(std::ostream& out, const Graph& g, VertexIndexMap vertex_index,
             if (i->second->key() == typeid(edge_descriptor))
             {
                 std::string val = protect_xml_string
-                    (print_value<value_types>(*i->second, *e));
+                    (print_value<prop_value_types>(*i->second, *e));
                 if (val.empty())
                     continue;
                 out << "      <data key=\""
