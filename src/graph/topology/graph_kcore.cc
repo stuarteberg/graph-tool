@@ -31,11 +31,14 @@ using namespace graph_tool;
 void do_kcore_decomposition(GraphInterface& gi, boost::any prop,
                             GraphInterface::deg_t deg)
 {
-    run_action<>()(gi, std::bind(kcore_decomposition(), std::placeholders::_1,
-                                 gi.get_vertex_index(), std::placeholders::_2,
-                                 std::placeholders::_3),
-                   writable_vertex_scalar_properties(),
-                   degree_selectors())(prop, degree_selector(deg));
+    gt_dispatch<>()
+        ([](auto& g, auto core, auto d)
+         {
+             kcore_decomposition(g, core, d);
+         },
+         all_graph_views(), writable_vertex_scalar_properties(),
+         degree_selectors())(gi.get_graph_view(), prop,
+                             degree_selector(deg));
 }
 
 void export_kcore()

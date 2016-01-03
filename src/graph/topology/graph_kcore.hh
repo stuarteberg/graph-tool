@@ -23,60 +23,65 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-struct kcore_decomposition
+template <class Graph, class CoreMap, class DegSelector>
+void kcore_decomposition(Graph& g, CoreMap core_map, DegSelector degS)
 {
-    template <class Graph, class VertexIndex, class CoreMap, class DegSelector>
-    void operator()(Graph& g, VertexIndex vertex_index, CoreMap core_map,
-                    DegSelector degS) const
+    typedef typename property_map<Graph, vertex_index_t>::type
+        vertex_index_map_t;
+    vertex_index_map_t vertex_index = get(vertex_index_t(), g);
+
+    typedef unchecked_vector_property_map<size_t, vertex_index_map_t> vmap_t;
+
+    vmap_t deg(vertex_index, num_vertices(g));  // Remaining degree
+    vmap_t pos(vertex_index, num_vertices(g));  // Position in bin (core)
+
+    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+
+    vector<vector<vertex_t>> bins; // Each bin stores the set of vertices of
+                                   // a core
+
+    // Put each vertex to the bin corresponding to its degree
+    for (auto v : vertices_range(g))
     {
-        unchecked_vector_property_map<size_t, VertexIndex>
-            deg(vertex_index, num_vertices(g));
-        unchecked_vector_property_map<size_t, VertexIndex>
-            pos(vertex_index, num_vertices(g));
+        size_t k = degS(v, g);
+        deg[v] = k;
+        if (k >= bins.size())
+            bins.resize(k + 1);
+        bins[k].push_back(v);
+        pos[v] = bins[k].size() - 1;
+    }
 
-        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-
-        vector<vector<vertex_t>> bins;
-
-        for (auto v : vertices_range(g))
+    // Proceed from smallest bin to largest. For each vertex in bin, check
+    // the neighbours; if any of them have a larger remaining degree, reduce
+    // it by one, and put it in the correct bin.
+    for (size_t k = 0; k < bins.size(); ++k)
+    {
+        auto& bins_k = bins[k];
+        while (!bins_k.empty())
         {
-            size_t k = degS(v, g);
-            deg[v] = k;
-            if (k >= bins.size())
-                bins.resize(k + 1);
-            bins[k].push_back(v);
-            pos[v] = bins[k].size() - 1;
-        }
-
-        for (size_t k = 0; k < bins.size(); ++k)
-        {
-            auto& bins_k = bins[k];
-            while (!bins_k.empty())
+            auto v = bins_k.back();
+            bins_k.pop_back();
+            core_map[v] = k;
+            for (auto e : out_edges_range(v, g))
             {
-                vertex_t v = bins_k.back();
-                bins_k.pop_back();
-                core_map[v] = k;
-                for (auto e : out_edges_range(v, g))
+                auto u = target(e, g);
+                auto& ku = deg[u];
+                if (ku > deg[v])
                 {
-                    vertex_t u = target(e, g);
-                    size_t ku = deg[u];
-                    if (ku > deg[v])
-                    {
-                        auto& bins_ku = bins[ku];
-                        vertex_t w = bins_ku.back();
-                        auto pos_w = pos[w] = pos[u];
-                        bins_ku[pos_w] = w;
-                        bins_ku.pop_back();
-                        auto& bins_ku_m = bins[ku - 1];
-                        bins_ku_m.push_back(u);
-                        pos[u] = bins_ku_m.size() - 1;
-                        --deg[u];
-                    }
+                    auto& bins_ku = bins[ku];
+                    auto w = bins_ku.back();
+                    auto pos_w = pos[w] = pos[u];
+                    bins_ku[pos_w] = w;
+                    bins_ku.pop_back();
+                    auto& bins_ku_m = bins[ku - 1];
+                    bins_ku_m.push_back(u);
+                    pos[u] = bins_ku_m.size() - 1;
+                    --ku;
                 }
             }
         }
     }
-};
+}
 
 } // graph_tool namespace
 
