@@ -40,7 +40,7 @@ If called without arguments, the script will show the animation inside an
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call(["demos/animation_sirs.py", "offscreen"])
+   >>> subprocess.call(["demos/animation/animation_sirs.py", "offscreen"])
    0
 
 These frames can be combined and encoded into the appropriate
@@ -61,9 +61,9 @@ be embedded in a website.
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call("mencoder mf://frames/sirs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/sirs.yuy".split())
+   >>> subprocess.call("mencoder mf://frames/sirs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/animation/sirs.yuy".split())
    0
-   >>> subprocess.call("vpxenc demos/sirs.yuy -o demos/sirs.webm -w 500 -h 400 --fps=25/1 --target-bitrate=1000 --good --threads=4".split())
+   >>> subprocess.call("vpxenc demos/animation/sirs.yuy -o demos/animation/sirs.webm -w 500 -h 400 --fps=25/1 --target-bitrate=1000 --good --threads=4".split())
    0
 
 
@@ -89,12 +89,12 @@ Properly modifying the script above would lead to the following
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call(["demos/animation_zombies.py", "offscreen"])
+   >>> subprocess.call(["demos/animation/animation_zombies.py", "offscreen"])
    0
    >>> import subprocess
-   >>> subprocess.call("mencoder mf://frames/zombies*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/zombie.yuy".split())
+   >>> subprocess.call("mencoder mf://frames/zombies*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/animation/zombie.yuy".split())
    0
-   >>> subprocess.call("vpxenc demos/zombie.yuy -o demos/zombie.webm -w 500 -h 400 --fps=10/1 --target-bitrate=1000 --good --threads=4".split())
+   >>> subprocess.call("vpxenc demos/animation/zombie.yuy -o demos/animation/zombie.webm -w 500 -h 400 --fps=10/1 --target-bitrate=1000 --good --threads=4".split())
    0
 
 .. raw:: html
@@ -145,7 +145,7 @@ the animation is displayed inside an :class:`~graph_tool.draw.interactive_window
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call(["demos/animation_dancing.py", "offscreen"])
+   >>> subprocess.call(["demos/animation/animation_dancing.py", "offscreen"])
    0
 
 
@@ -162,9 +162,9 @@ format <http://www.webmproject.org>`_:
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call("mencoder mf://frames/dancing*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/dancing.yuy".split())
+   >>> subprocess.call("mencoder mf://frames/dancing*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/animation/dancing.yuy".split())
    0
-   >>> subprocess.call("vpxenc demos/dancing.yuy -o demos/dancing.webm -w 500 -h 400 --fps=100/1 --target-bitrate=2000 --good --threads=4".split())
+   >>> subprocess.call("vpxenc demos/animation/dancing.yuy -o demos/animation/dancing.webm -w 500 -h 400 --fps=100/1 --target-bitrate=2000 --good --threads=4".split())
    0
 
 
@@ -198,7 +198,7 @@ below. When called, it will open an interactive window.
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call(["demos/interactive_bst.py", "offscreen"])
+   >>> subprocess.call(["demos/animation/interactive_bst.py", "offscreen"])
    0
 
 The above script is interactive, i.e. it expects a reaction from the
@@ -216,9 +216,9 @@ file, so we can encode the animation with the `WebM format
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call("mencoder mf://frames/bfs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/bfs.yuy".split())
+   >>> subprocess.call("mencoder mf://frames/bfs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/animation/bfs.yuy".split())
    0
-   >>> subprocess.call("vpxenc demos/bfs.yuy -o demos/bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=2000 --good --threads=4".split())
+   >>> subprocess.call("vpxenc demos/animation/bfs.yuy -o demos/animation/bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=2000 --good --threads=4".split())
    0
 
 

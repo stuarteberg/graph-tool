@@ -90,7 +90,6 @@ def update_state():
     # if doing an offscreen animation, dump frame to disk
     if offscreen:
         pixbuf = win.get_pixbuf()
-        print(pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride())
         pixbuf.savev(r'./frames/dancing%06d.png' % count, 'png', [], [])
         if count > max_count:
             sys.exit(0)
