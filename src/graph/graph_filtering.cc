@@ -35,6 +35,8 @@ string name_demangle(string name)
 {
     int status = 0;
     char *realname = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
+    if (realname == nullptr)
+        return name + " (cannot demangle symbol)";
     string ret(realname);
     free(realname);
     return ret;
