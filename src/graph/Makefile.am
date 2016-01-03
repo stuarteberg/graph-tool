@@ -63,6 +63,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_properties_map_values.hh \
     graph_python_interface.hh \
     graph_selectors.hh \
+    graph_tool.hh \
     graph_util.hh \
     hash_map_wrap.hh \
     histogram.hh \
