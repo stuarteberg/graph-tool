@@ -38,7 +38,7 @@ struct get_vertex_iterator
     void operator()(Graph& g, GraphInterface& gi,
                     python::object& iter) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         typedef typename graph_traits<Graph>::vertex_iterator vertex_iterator;
         iter = python::object(PythonIterator<Graph, PythonVertex<Graph>,
                                              vertex_iterator>(gp, vertices(g)));
@@ -60,7 +60,7 @@ struct get_vertex_soft
     template <class Graph>
     void operator()(Graph& g, GraphInterface& gi, size_t i, python::object& v) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         if (i < num_vertices(g))
             v = python::object(PythonVertex<Graph>(gp, vertex(i, g)));
         else
@@ -74,7 +74,7 @@ struct get_vertex_hard
     template <class Graph>
     void operator()(Graph& g, GraphInterface& gi, size_t i, python::object& v) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         size_t c = 0;
         for (auto vi : vertices_range(g))
         {
@@ -110,7 +110,7 @@ struct get_edge_iterator
     void operator()(Graph& g, GraphInterface& gi, python::object& iter)
         const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
         iter = python::object(PythonIterator<Graph, PythonEdge<Graph>,
                                              edge_iterator>(gp, edges(g)));
@@ -131,7 +131,7 @@ struct add_new_vertex
     void operator()(Graph& g, GraphInterface& gi, size_t n,
                     python::object& new_v) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         if (n != 1)
         {
             for (size_t i = 0; i < n; ++i)
@@ -204,7 +204,7 @@ struct add_new_edge
     void operator()(Graph& g, GraphInterface& gi, size_t s, size_t t,
                     python::object& new_e) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         auto e = add_edge(vertex(s, g), vertex(t, g), g).first;
         new_e = python::object(PythonEdge<Graph>(gp, e));
     }
@@ -249,7 +249,7 @@ struct get_edge_dispatch
     void operator()(Graph& g, GraphInterface& gi, size_t s, size_t t,
                     bool all_edges, boost::python::list& es) const
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         size_t k_t = is_directed::apply<Graph>::type::value ?
             in_degreeS()(t, g) : out_degree(t, g);
         if (out_degree(s, g) <= k_t)
@@ -396,8 +396,8 @@ struct export_python_interface
                  "Return the target vertex.")
             .def("is_valid", &PythonEdge<Graph>::is_valid,
                  "Return whether the edge is valid.")
-            .def("graph_ptr", &PythonVertex<Graph>::get_graph_ptr)
-            .def("graph_type", &PythonVertex<Graph>::get_graph_type)
+            .def("graph_ptr", &PythonEdge<Graph>::get_graph_ptr)
+            .def("graph_type", &PythonEdge<Graph>::get_graph_type)
             .def("__str__", &PythonEdge<Graph>::get_string)
             .def("__hash__", &PythonEdge<Graph>::get_hash);
 
@@ -421,7 +421,7 @@ struct export_python_interface
                               edge_iterator> >("EdgeIterator", no_init)
             .def("__iter__", objects::identity_function())
             .def("__next__", &PythonIterator<Graph, PythonEdge<Graph>,
-                                         edge_iterator>::next)
+                                             edge_iterator>::next)
             .def("next", &PythonIterator<Graph, PythonEdge<Graph>,
                                          edge_iterator>::next);
 

@@ -43,49 +43,49 @@ public:
     template <class Vertex, class Graph>
     void initialize_vertex(Vertex u, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("initialize_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
     void discover_vertex(Vertex u, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("discover_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Vertex, class Graph>
     void examine_vertex(Vertex u, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("examine_vertex")(PythonVertex<Graph>(gp, u));
     }
 
     template <class Edge, class Graph>
     void examine_edge(Edge e, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("examine_edge")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_relaxed(Edge e, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_relaxed")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Edge, class Graph>
     void edge_not_relaxed(Edge e, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("edge_not_relaxed")(PythonEdge<Graph>(gp, e));
     }
 
     template <class Vertex, class Graph>
     void finish_vertex(Vertex u, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _vis.attr("finish_vertex")(PythonVertex<Graph>(gp, u));
     }
 
@@ -194,7 +194,7 @@ public:
     template <class Edge, class Graph>
     void edge_relaxed(const Edge& e, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
     }
 

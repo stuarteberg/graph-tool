@@ -378,6 +378,12 @@ string get_graph_type(GraphInterface& g)
     return name;
 }
 
+size_t get_ptr(std::shared_ptr<GraphInterface::multigraph_t>& p)
+{
+    return size_t(p.get());
+};
+
+
 // numpy array interface weirdness
 void* do_import_array()
 {
@@ -484,7 +490,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("shrink_to_fit", &GraphInterface::shrink_to_fit)
         .def("get_graph_index", &GraphInterface::get_graph_index)
         .def("copy_vertex_property", &GraphInterface::copy_vertex_property)
-        .def("copy_edge_property", &GraphInterface::copy_edge_property);
+        .def("copy_edge_property", &GraphInterface::copy_edge_property)
+        .def("get_graph_ptr", &GraphInterface::get_graph_ptr);
 
     class_<GraphInterface::vertex_index_map_t>("vertex_index_map", no_init);
     class_<GraphInterface::edge_index_map_t>("edge_index_map", no_init);
@@ -512,6 +519,10 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     float_from_convertible<float>();
     float_from_convertible<double>();
     float_from_convertible<long double>();
+
+    class_<std::shared_ptr<GraphInterface::multigraph_t>>
+        ("shared_ptr<multigraph_t>", no_init)
+        .def("get", &get_ptr);
 
 #ifdef HAVE_SCIPY
     to_python_converter<py::object, scxx_to_python<py::object> >();

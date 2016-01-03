@@ -74,7 +74,7 @@ struct find_vertices
             nt = 1; // python is not thread-safe
         #endif
 
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         int i, N = num_vertices(g);
@@ -120,7 +120,7 @@ struct find_edges
             nt = 1; // python is not thread-safe
         #endif
 
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(gi, g);
+        auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
         int i, N = num_vertices(g);

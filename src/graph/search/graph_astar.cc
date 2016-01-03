@@ -115,7 +115,7 @@ public:
     template <class Edge, class Graph>
     void edge_relaxed(const Edge& e, Graph& g)
     {
-        std::shared_ptr<Graph> gp = retrieve_graph_view<Graph>(_gi, g);
+        auto gp = retrieve_graph_view<Graph>(_gi, g);
         _yield(boost::python::object(PythonEdge<Graph>(gp, e)));
     }
 
