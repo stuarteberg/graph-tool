@@ -67,7 +67,7 @@ struct stop_iteration: public std::exception {};
 template <class Action, std::size_t N>
 struct all_any_cast
 {
-    all_any_cast(Action a, std::array<any, N>& args)
+    all_any_cast(Action a, std::array<any*, N>& args)
         : _a(a), _args(args) {}
 
     template <class... Ts>
@@ -96,14 +96,14 @@ struct all_any_cast
     {
         try
         {
-            _a(try_any_cast<Ts>(_args[Idx])...);
+            _a(try_any_cast<Ts>(*_args[Idx])...);
             throw stop_iteration();
         }
         catch (bad_any_cast) {}
     }
 
     Action _a;
-    std::array<any, N>& _args;
+    std::array<any*, N>& _args;
 };
 
 // recursion-free variadic version of for_each
@@ -174,9 +174,9 @@ struct inner_loop<Action, std::tuple<Ts...>, TR1, TRS...>
 // final function
 
 template <class TR1, class... TRS, class Action, class... Args>
-bool nested_for_each(Action a, Args... args)
+bool nested_for_each(Action a, Args&&... args)
 {
-    std::array<any, sizeof...(args)> as{{args...}};
+    std::array<any*, sizeof...(args)> as{{&args...}};
     auto b = all_any_cast<Action, sizeof...(args)>(a, as);
     try
     {
