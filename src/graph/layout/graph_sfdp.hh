@@ -77,23 +77,41 @@ public:
         return _dense_leafs;
     }
 
+    size_t get_branch(Pos& p)
+    {
+        int i = p[0] > (_ll[0] + (_ur[0] - _ll[0]) / 2);
+        int j = p[1] > (_ll[1] + (_ur[1] - _ll[1]) / 2);
+        return i + 2 * j;
+    }
+
     size_t put_pos(Pos& p, Weight w)
     {
         _count += w;
         _cm[0] += p[0] * w;
         _cm[1] += p[1] * w;
 
-        if (_max_level == 0)
+        if (_max_level == 0 || _count == w)
         {
-            _dense_leafs.push_back(std::make_tuple(p, w));
+            _dense_leafs.emplace_back(p, w);
             return 1;
         }
         else
         {
-            int i = p[0] > (_ll[0] + (_ur[0] - _ll[0]) / 2);
-            int j = p[1] > (_ll[1] + (_ur[1] - _ll[1]) / 2);
+            if (!_dense_leafs.empty())
+            {
+                // move dense leafs down
+                auto& leafs = get_leafs();
+                for (auto& leaf : _dense_leafs)
+                {
+                    auto& lp = get<0>(leaf);
+                    auto& lw = get<1>(leaf);
+                    leafs[get_branch(lp)].put_pos(lp, lw);
+                }
+                _dense_leafs.clear();
+            }
+
             size_t sc = (_max_level > 0 && _leafs.empty()) ? 4 : 0;
-            return sc + get_leafs()[i + 2 * j].put_pos(p, w);
+            return sc + get_leafs()[get_branch(p)].put_pos(p, w);
         }
         return 0;
     }
@@ -214,7 +232,7 @@ struct get_sfdp_layout
         vector<vweight_t> group_size;
         vector<size_t> vertices;
 
-        int  HN=0;
+        int HN = 0;
         for (auto v : vertices_range(g))
         {
             if (pin[v] == 0)
@@ -312,9 +330,9 @@ struct get_sfdp_layout
                     auto& q = *Q.back();
                     Q.pop_back();
 
-                    if (q.max_level() == 0)
+                    auto& dleafs = q.get_dense_leafs();
+                    if (!dleafs.empty())
                     {
-                        auto& dleafs = q.get_dense_leafs();
                         for (auto& dleaf : dleafs)
                         {
                             val_t d = get_diff(get<0>(dleaf), pos[v], diff);

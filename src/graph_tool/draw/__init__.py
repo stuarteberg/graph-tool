@@ -506,7 +506,7 @@ def coarse_graph_stack(g, c, coarse_stack, eweight=None, vweight=None,
 
 
 def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
-                K=None, p=2., theta=0.6, max_level=11, gamma=1., mu=0., mu_p=1.,
+                K=None, p=2., theta=0.6, max_level=15, gamma=1., mu=0., mu_p=1.,
                 init_step=None, cooling_step=0.95, adaptive_cooling=True,
                 epsilon=1e-2, max_iter=0, pos=None, multilevel=None,
                 coarse_method="hybrid", mivs_thres=0.9, ec_thres=0.75,
@@ -536,7 +536,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
         Repulsive force exponent.
     theta : float (optional, default: ``0.6``)
         Quadtree opening parameter, a.k.a. Barnes-Hut opening criterion.
-    max_level : int (optional, default: ``11``)
+    max_level : int (optional, default: ``15``)
         Maximum quadtree level.
     gamma : float (optional, default: ``1.0``)
         Strength of the attractive force between connected components, or group
