@@ -49,7 +49,7 @@ public:
                   power(_ur[1] - _ll[1], 2));
     }
 
-    QuadTree& get_leaf(size_t i)
+    vector<QuadTree>& get_leafs()
     {
         if (_max_level > 0 && _leafs.empty())
         {
@@ -65,11 +65,11 @@ public:
                     lll[1] += (_ur[1] - _ll[1]) / 2;
                 else
                     lur[1] -= (_ur[1] - _ll[1]) / 2;
-                _leafs.push_back(QuadTree(lll, lur, _max_level - 1));
+                _leafs.emplace_back(lll, lur, _max_level - 1);
             }
         }
 
-        return _leafs[i];
+        return _leafs;
     }
 
     vector<std::tuple<Pos,Weight> >& get_dense_leafs()
@@ -85,8 +85,6 @@ public:
 
         if (_max_level == 0)
         {
-            if (_count == w)
-                _dense_leafs.reserve(10);
             _dense_leafs.push_back(std::make_tuple(p, w));
             return 1;
         }
@@ -95,7 +93,7 @@ public:
             int i = p[0] > (_ll[0] + (_ur[0] - _ll[0]) / 2);
             int j = p[1] > (_ll[1] + (_ur[1] - _ll[1]) / 2);
             size_t sc = (_max_level > 0 && _leafs.empty()) ? 4 : 0;
-            return sc + get_leaf(i + 2 * j).put_pos(p, w);
+            return sc + get_leafs()[i + 2 * j].put_pos(p, w);
         }
         return 0;
     }
@@ -212,38 +210,30 @@ struct get_sfdp_layout
 
         typedef typename property_traits<VertexWeightMap>::value_type vweight_t;
 
-        pos_t ll(2, numeric_limits<val_t>::max()),
-            ur(2, -numeric_limits<val_t>::max());
-
         vector<pos_t> group_cm;
         vector<vweight_t> group_size;
         vector<size_t> vertices;
 
-        int i, N = num_vertices(g), HN=0;
-        for (i = 0; i < N; ++i)
+        int  HN=0;
+        for (auto v : vertices_range(g))
         {
-            typename graph_traits<Graph>::vertex_descriptor v =
-                vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
-                continue;
             if (pin[v] == 0)
                 vertices.push_back(v);
             pos[v].resize(2, 0);
-            size_t s = group[v];
-
-            if (s >= group_cm.size())
+            if (gamma != 0 || mu != 0)
             {
-                group_cm.resize(s + 1);
-                group_size.resize(s + 1, 0);
-            }
-            group_cm[s].resize(2, 0);
-            group_size[s] += get(vweight, v);
+                size_t s = group[v];
 
-            for (size_t j = 0; j < 2; ++j)
-            {
-                ll[j] = min(pos[v][j], ll[j]);
-                ur[j] = max(pos[v][j], ur[j]);
-                group_cm[s][j] += pos[v][j] * get(vweight, v);
+                if (s >= group_cm.size())
+                {
+                    group_cm.resize(s + 1);
+                    group_size.resize(s + 1, 0);
+                }
+                group_cm[s].resize(2, 0);
+                group_size[s] += get(vweight, v);
+
+                for (size_t j = 0; j < 2; ++j)
+                    group_cm[s][j] += pos[v][j] * get(vweight, v);
             }
             HN++;
         }
@@ -269,24 +259,44 @@ struct get_sfdp_layout
             E0 = E;
             E = 0;
 
-            pos_t nll(2, numeric_limits<val_t>::max()),
-                nur(2, -numeric_limits<val_t>::max());
+            pos_t ll(2, numeric_limits<val_t>::max()),
+                ur(2, -numeric_limits<val_t>::max());
+            for (auto v : vertices_range(g))
+            {
+                for (size_t j = 0; j < 2; ++j)
+                {
+                    ll[j] = min(pos[v][j], ll[j]);
+                    ur[j] = max(pos[v][j], ur[j]);
+                }
+            }
+
+            if (gamma != 0 || mu != 0)
+            {
+                for (size_t s = 0; s < group_size.size(); ++s)
+                {
+                    if (group_size[s] == 0)
+                        continue;
+                    group_cm[s] = {0, 0};
+                }
+
+                for (auto v : vertices_range(g))
+                {
+                    size_t s = group[v];
+                    for (size_t j = 0; j < 2; ++j)
+                        group_cm[s][j] += pos[v][j] * get(vweight, v) /
+                            group_size[s];
+                }
+            }
 
             QuadTree<pos_t, vweight_t> qt(ll, ur, max_level);
-            for (i = 0; i < N; ++i)
-            {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
-                    continue;
+            for (auto v : vertices_range(g))
                 qt.put_pos(pos[v], vweight[v]);
-            }
 
             std::shuffle(vertices.begin(), vertices.end(), rng);
 
             size_t nmoves = 0;
-            N = vertices.size();
-            vector<std::reference_wrapper<QuadTree<pos_t, vweight_t>>> Q;
+            int i = 0, N = vertices.size();
+            vector<QuadTree<pos_t, vweight_t>*> Q;
             #pragma omp parallel for default(shared) private(i, Q) \
                 reduction(+:E, delta, nmoves) schedule(runtime) if (N > 100)
             for (i = 0; i < N; ++i)
@@ -296,23 +306,22 @@ struct get_sfdp_layout
                 pos_t diff(2, 0), pos_u(2, 0), ftot(2, 0), cm(2, 0);
 
                 // global repulsive forces
-                Q.push_back(std::ref(qt));
+                Q.push_back(&qt);
                 while (!Q.empty())
                 {
-                    auto& q = Q.back().get();
+                    auto& q = *Q.back();
                     Q.pop_back();
 
                     if (q.max_level() == 0)
                     {
                         auto& dleafs = q.get_dense_leafs();
-                        for(size_t j = 0; j < dleafs.size(); ++j)
+                        for (auto& dleaf : dleafs)
                         {
-                            val_t d = get_diff(get<0>(dleafs[j]), pos[v],
-                                               diff);
+                            val_t d = get_diff(get<0>(dleaf), pos[v], diff);
                             if (d == 0)
                                 continue;
-                            val_t f = f_r(C, K, p, pos[v], get<0>(dleafs[j]));
-                            f *= get<1>(dleafs[j]) * get(vweight, v);
+                            val_t f = f_r(C, K, p, pos[v], get<0>(dleaf));
+                            f *= get<1>(dleaf) * get(vweight, v);
                             for (size_t l = 0; l < 2; ++l)
                                 ftot[l] += f * diff[l];
                         }
@@ -324,11 +333,10 @@ struct get_sfdp_layout
                         double d = get_diff(cm, pos[v], diff);
                         if (w > theta * d)
                         {
-                            for(size_t j = 0; j < 4; ++j)
+                            for (auto& leaf : q.get_leafs())
                             {
-                                auto& leaf = q.get_leaf(j);
                                 if (leaf.get_count() > 0)
-                                    Q.push_back(std::ref(leaf));
+                                    Q.push_back(&leaf);
                             }
                         }
                         else
@@ -345,17 +353,15 @@ struct get_sfdp_layout
                 }
 
                 // local attractive forces
+                auto& pos_v = pos[v];
                 for (auto e : out_edges_range(v, g))
                 {
                     auto u = target(e, g);
                     if (u == v)
                         continue;
-                    #pragma omp critical
-                    {
-                        pos_u = pos[u];
-                    }
-                    get_diff(pos_u, pos[v], diff);
-                    val_t f = f_a(K, pos_u, pos[v]);
+                    pos_u = pos[u];
+                    get_diff(pos_u, pos_v, diff);
+                    val_t f = f_a(K, pos_u, pos_v);
                     f *= get(eweight, e) * get(vweight, u) * get(vweight, v);
                     for (size_t l = 0; l < 2; ++l)
                         ftot[l] += f * diff[l];
@@ -401,7 +407,7 @@ struct get_sfdp_layout
                 }
 
                 // intra-group attractive forces
-                if (group_size[group[v]] > 1 && mu > 0)
+                if (mu > 0 && group_size[group[v]] > 1)
                 {
                     val_t d = get_diff(group_cm[group[v]], pos[v], diff);
                     if (d > 0)
@@ -416,29 +422,16 @@ struct get_sfdp_layout
 
                 E += power(norm(ftot), 2);
 
-                #pragma omp critical
+                for (size_t l = 0; l < 2; ++l)
                 {
-                    for (size_t l = 0; l < 2; ++l)
-                    {
-                        group_cm[group[v]][l] *= group_size[group[v]];
-                        group_cm[group[v]][l] -= pos[v][l];
-
-                        ftot[l] *= step;
-                        pos[v][l] += ftot[l];
-
-                        nll[l] = min(pos[v][l], nll[l]);
-                        nur[l] = max(pos[v][l], nur[l]);
-
-                        group_cm[group[v]][l] += pos[v][l];
-                        group_cm[group[v]][l] /= group_size[group[v]];
-                    }
+                    ftot[l] *= step;
+                    pos[v][l] += ftot[l];
                 }
+
                 delta += norm(ftot);
                 nmoves++;
             }
             n_iter++;
-            ll = nll;
-            ur = nur;
             delta /= nmoves;
 
             if (verbose)
