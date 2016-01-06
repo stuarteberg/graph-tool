@@ -1527,8 +1527,8 @@ class GraphArtist(matplotlib.artist.Artist):
 
         # flip y direction
         x, y = ungroup_vector_property(self.pos, [0, 1])
-        y.fa *= -1
-        y.fa -= y.fa.min()
+        l, t, r, b = ctx.clip_extents()
+        y.fa = b + t - y.fa
         pos = group_vector_property([x, y])
 
         cairo_draw(self.g, pos, ctx, self.vprops, self.eprops,
