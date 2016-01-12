@@ -354,7 +354,7 @@ void do_add_edge_list_hashed(GraphInterface& gi, python::object aedge_list,
                         int8_t, int16_t, int32_t, int64_t, uint64_t, double,
                         long double> vals_t;
     bool found = false;
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(add_edge_list_hash<vals_t>(), std::placeholders::_1,
                        aedge_list, std::placeholders::_2, std::ref(found),
                        is_str, std::ref(eprops)),

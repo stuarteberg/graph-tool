@@ -107,7 +107,7 @@ struct do_dfs
 
 void dfs_search(GraphInterface& g, size_t s, python::object vis)
 {
-    run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+    run_action<graph_tool::all_graph_views,mpl::true_>()
         (g, std::bind(do_dfs(), std::placeholders::_1, g.get_vertex_index(),
                       s, DFSVisitorWrapper(g, vis)))();
 }
@@ -142,7 +142,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
     auto dispatch = [&](auto& yield)
         {
             DFSGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+            run_action<graph_tool::all_graph_views,mpl::true_>()
                 (g, std::bind(do_dfs(), std::placeholders::_1,
                               g.get_vertex_index(), s, vis))();
         };

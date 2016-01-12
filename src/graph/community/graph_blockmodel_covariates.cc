@@ -600,7 +600,7 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
     bool node_coherent = python::extract<bool>(onode_coherent[0]);
     bool confine_layers = python::extract<bool>(onode_coherent[1]);
 
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(cov_move_sweep_dispatch<emap_t, vmap_t, vvmap_t, emap_t, bmap_t>
                        (ce, cv, vmap, eweight, vweight, egroups, esrcpos, etgtpos,
                         label, vlist, block_list, target_blocks, deg_corr, dense,

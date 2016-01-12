@@ -544,9 +544,9 @@ void export_python_interface()
     class_<VertexBase>("VertexBase", no_init);
     class_<EdgeBase>("EdgeBase", no_init);
 
-    typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+    typedef boost::mpl::transform<graph_tool::all_graph_views,
                                   boost::mpl::quote1<std::add_const> >::type const_graph_views;
-    typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+    typedef boost::mpl::transform<graph_tool::all_graph_views,
                                   boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
     typedef boost::mpl::transform<const_graph_views,
                                   boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;

@@ -68,9 +68,9 @@ struct export_vertex_property_map
             .def("resize", &pmap_t::resize)
             .def("shrink_to_fit", &pmap_t::shrink_to_fit);
 
-        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+        typedef boost::mpl::transform<graph_tool::all_graph_views,
                                       boost::mpl::quote1<std::add_const> >::type const_graph_views;
-        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+        typedef boost::mpl::transform<graph_tool::all_graph_views,
                                       boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
         typedef boost::mpl::transform<const_graph_views,
                                       boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;
@@ -153,9 +153,9 @@ struct export_edge_property_map
             .def("shrink_to_fit", &pmap_t::shrink_to_fit);
 
 
-        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+        typedef boost::mpl::transform<graph_tool::all_graph_views,
                                       boost::mpl::quote1<std::add_const> >::type const_graph_views;
-        typedef boost::mpl::transform<graph_tool::detail::all_graph_views,
+        typedef boost::mpl::transform<graph_tool::all_graph_views,
                                       boost::mpl::quote1<std::add_pointer> >::type all_graph_views;
         typedef boost::mpl::transform<const_graph_views,
                                       boost::mpl::quote1<std::add_pointer> >::type all_const_graph_views;

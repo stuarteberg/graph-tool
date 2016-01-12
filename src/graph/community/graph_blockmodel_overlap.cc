@@ -320,7 +320,7 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
 
     vmap_t merge_map = any_cast<vmap_t>(omerge_map);
 
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_overlap_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
                         label, vlist, block_list, target_blocks, deg_corr, dense,

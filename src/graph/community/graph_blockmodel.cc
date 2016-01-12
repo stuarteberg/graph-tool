@@ -484,7 +484,7 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
 
     vmap_t merge_map = any_cast<vmap_t>(omerge_map);
 
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(move_sweep_dispatch<emap_t, vmap_t, vemap_t>
                        (eweight, vweight, oegroups, esrcpos, etgtpos,
                         label, vlist, block_list,
@@ -530,7 +530,7 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
     emap_t eweights = any_cast<emap_t>(oeweights);
 
     boost::any oegroups;
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(build_egroups(), b, std::ref(oegroups),
                              esrcpos.get_unchecked(gi.get_edge_index_range()),
                              etgtpos.get_unchecked(gi.get_edge_index_range()),
@@ -549,7 +549,7 @@ boost::any do_init_neighbour_sampler(GraphInterface& gi, boost::any oeweights,
     emap_t eweights = any_cast<emap_t>(oeweights);
 
     boost::any osampler;
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(init_neighbour_sampler(), std::placeholders::_1, eweights,
                        self_loops, empty, std::ref(osampler)))();
     return osampler;
@@ -596,7 +596,7 @@ boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any o
     vmap_t pv = any_cast<vmap_t>(opv);
 
     double H=0, sH=0, Hmf=0, sHmf=0;
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind<void>(bethe_entropy(),
                              std::placeholders::_1, B, p, pv, std::ref(H),
                              std::ref(sH), std::ref(Hmf), std::ref(sHmf)))();
@@ -623,7 +623,7 @@ void do_collect_vertex_marginals(GraphInterface& gi, boost::any ob,
         vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
-    run_action<graph_tool::detail::all_graph_views, boost::mpl::true_>()
+    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
         (gi, std::bind(collect_vertex_marginals_dispatch(),
                        std::placeholders::_1, b, std::placeholders::_2),
          vertex_scalar_vector_properties())(op);

@@ -94,7 +94,7 @@ void a_star_search(GraphInterface& g, size_t source, boost::any dist_map,
     typedef typename property_map_type::
         apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_t;
     pred_t pred = any_cast<pred_t>(pred_map);
-    run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+    run_action<graph_tool::all_graph_views,mpl::true_>()
         (g, std::bind(do_astar_search(),  std::placeholders::_1, source,
                       std::placeholders::_2, pred, weight,
                       AStarVisitorWrapper(g, vis), make_pair(AStarCmp(cmp),
@@ -140,7 +140,7 @@ boost::python::object astar_search_generator(GraphInterface& g,
     auto dispatch = [&](auto& yield)
         {
             AStarGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+            run_action<graph_tool::all_graph_views,mpl::true_>()
                (g, std::bind(do_astar_search(),  std::placeholders::_1, source,
                              std::placeholders::_2, dummy_property_map(), weight,
                              vis, make_pair(AStarCmp(cmp), AStarCmb(cmb)),
@@ -165,7 +165,7 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
     auto dispatch = [&](auto& yield)
         {
             AStarGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+            run_action<graph_tool::all_graph_views,mpl::true_>()
                (g, std::bind(do_astar_search_fast(),  std::placeholders::_1, source,
                              std::placeholders::_2, std::placeholders::_3,
                              vis, make_pair(zero, inf), h, std::ref(g)),

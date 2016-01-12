@@ -118,7 +118,7 @@ struct do_bfs
 
 void bfs_search(GraphInterface& g, size_t s, python::object vis)
 {
-    run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+    run_action<graph_tool::all_graph_views,mpl::true_>()
         (g, std::bind(do_bfs(), std::placeholders::_1, s,
                       BFSVisitorWrapper(g, vis)))();
 }
@@ -152,7 +152,7 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
     auto dispatch = [&](auto& yield)
         {
             BFSGeneratorVisitor vis(g, yield);
-            run_action<graph_tool::detail::all_graph_views,mpl::true_>()
+            run_action<graph_tool::all_graph_views,mpl::true_>()
                 (g, std::bind(do_bfs(), std::placeholders::_1, s, vis))();
         };
     return boost::python::object(CoroGenerator(dispatch));
