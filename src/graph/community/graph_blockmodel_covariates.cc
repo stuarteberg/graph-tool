@@ -151,7 +151,7 @@ struct cov_move_sweep_dispatch
     {
         vector<std::reference_wrapper<Graph>> gs;
         for (GraphInterface& ag : ags)
-            gs.push_back(*any_cast<Graph*>(ag.get_graph_view()));
+            gs.push_back(any_cast<std::reference_wrapper<Graph>>(ag.get_graph_view()));
 
         if (is_directed::apply<Graph>::type::value)
         {
