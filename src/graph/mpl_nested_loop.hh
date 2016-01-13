@@ -77,6 +77,8 @@ struct all_any_cast
         dispatch(std::make_index_sequence<sizeof...(Ts)>(), vs...);
     }
 
+    struct fail_cast {};
+
     template <class T>
     T& try_any_cast(boost::any& a) const
     {
@@ -84,9 +86,16 @@ struct all_any_cast
         {
             return any_cast<T&>(a);
         }
-        catch (bad_any_cast)
+        catch (bad_any_cast&)
         {
-            return any_cast<std::reference_wrapper<T>>(a);
+            try
+            {
+                return any_cast<std::reference_wrapper<T>>(a);
+            }
+            catch (bad_any_cast&)
+            {
+                throw fail_cast();
+            }
         }
     }
 
@@ -99,7 +108,7 @@ struct all_any_cast
             _a(try_any_cast<Ts>(*_args[Idx])...);
             throw stop_iteration();
         }
-        catch (bad_any_cast) {}
+        catch (fail_cast) {}
     }
 
     Action _a;
