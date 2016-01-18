@@ -58,7 +58,7 @@ struct get_hits
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             x[v] = 1.0 / V;
             y[v] = 1.0 / V;
@@ -76,7 +76,7 @@ struct get_hits
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 x_temp[v] = 0;
@@ -109,7 +109,7 @@ struct get_hits
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 x_temp[v] /= x_norm;
                 y_temp[v] /= y_norm;
@@ -131,7 +131,7 @@ struct get_hits
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 x[v] = x_temp[v];
                 y[v] = y_temp[v];

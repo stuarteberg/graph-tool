@@ -120,7 +120,7 @@ struct do_all_pairs_search_unweighted
         {
             dist_map[i].resize(num_vertices(g), 0);
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             bfs_visitor<typename std::remove_reference<decltype(dist_map[i])>::type,
                         vector<size_t>>

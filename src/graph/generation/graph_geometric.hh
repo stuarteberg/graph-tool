@@ -137,7 +137,7 @@ struct get_geometric
             schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
+            auto v = vertex(i, g);
 
             get_box(points[i], w, box, ranges, periodic_boundary);
             for (int k = 0; k < power(3, int(box.size())); ++k)

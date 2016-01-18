@@ -581,6 +581,32 @@ add_edge(Vertex s, Vertex t, filtered_graph<Graph,
     return e;
 }
 
+// Used to skip filtered vertices
+
+template <class Graph, class EdgePred, class VertexPred, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::filtered_graph<Graph,EdgePred,VertexPred>&)
+{
+    return v != graph_traits<boost::filtered_graph<Graph,EdgePred, VertexPred>>::null_vertex();
+}
+
+template <class Graph, class Vertex>
+bool is_valid_vertex(Vertex, const Graph&)
+{
+    return true;
+}
+
+template <class Graph, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::reverse_graph<Graph>& g)
+{
+    return is_valid_vertex(v, g.m_g);
+}
+
+template <class Graph, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::UndirectedAdaptor<Graph>& g)
+{
+    return is_valid_vertex(v, g.original_graph());
+}
+
 
 } // namespace boost
 

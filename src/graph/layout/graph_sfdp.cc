@@ -207,7 +207,7 @@ struct do_avg_dist
         {
             typename graph_traits<Graph>::vertex_descriptor v =
                 vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             for (auto a : adjacent_vertices_range(v, g))
             {
@@ -244,7 +244,7 @@ struct do_sanitize_pos
         {
             typename graph_traits<Graph>::vertex_descriptor v =
                 vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             pos[v].resize(2);
         }

@@ -574,8 +574,10 @@ out_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::out_edge_iterator ei_t;
     typedef typename adj_list<Vertex>::make_out_edge mk_edge;
-    return std::make_pair(ei_t(g._out_edges[v].begin(), mk_edge(v)),
-                          ei_t(g._out_edges[v].end(), mk_edge(v)));
+    auto& edges = g._out_edges[v];
+    auto mke = mk_edge(v);
+    return std::make_pair(ei_t(edges.begin(), mke),
+                          ei_t(edges.end(), mke));
 }
 
 template <class Vertex>
@@ -586,8 +588,10 @@ in_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::in_edge_iterator ei_t;
     typedef typename adj_list<Vertex>::make_in_edge mk_edge;
-    return std::make_pair(ei_t(g._in_edges[v].begin(), mk_edge(v)),
-                          ei_t(g._in_edges[v].end(), mk_edge(v)));
+    auto& edges = g._in_edges[v];
+    auto mke = mk_edge(v);
+    return std::make_pair(ei_t(edges.begin(), mke),
+                          ei_t(edges.end(), mke));
 }
 
 template <class Vertex>
@@ -597,8 +601,9 @@ std::pair<typename adj_list<Vertex>::adjacency_iterator,
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::adjacency_iterator ai_t;
-    return std::make_pair(ai_t(g._out_edges[v].begin()),
-                          ai_t(g._out_edges[v].end()));
+    auto& edges = g._out_edges[v];
+    return std::make_pair(ai_t(edges.begin()),
+                          ai_t(edges.end()));
 }
 
 template <class Vertex>

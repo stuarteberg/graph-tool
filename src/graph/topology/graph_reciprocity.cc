@@ -37,8 +37,8 @@ struct get_reciprocity
             schedule(runtime) if (NV > 100)
         for (i = 0; i < NV; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             typename graph_traits<Graph>::out_edge_iterator e, e_begin, e_end;

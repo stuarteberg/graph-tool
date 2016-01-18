@@ -2680,7 +2680,7 @@ void move_sweep(vector<BlockState>& states, vector<MEntries>& m_entries_r,
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             for (auto e : out_edges_range(v, g))
                 E += eweight[e];

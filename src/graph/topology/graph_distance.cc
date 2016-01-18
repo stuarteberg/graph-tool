@@ -421,7 +421,7 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Preds preds)
     for (i = 0; i < N; ++i)
     {
         size_t v = vertex(i, g);
-        if (v == graph_traits<Graph>::null_vertex())
+        if (!is_valid_vertex(v, g))
             continue;
         if (size_t(pred[v]) == v)
             continue;

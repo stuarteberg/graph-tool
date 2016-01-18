@@ -65,7 +65,7 @@ struct get_correlation_histogram
             {
                 typename graph_traits<Graph>::vertex_descriptor v =
                     vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 put_point(v, deg1, deg2, g, weight, s_hist);
             }

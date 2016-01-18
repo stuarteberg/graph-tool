@@ -82,8 +82,8 @@ struct find_vertices
             num_threads(nt)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             value_type val = deg(v, g);
             if ((is_eq && (val == range.first)) ||
@@ -128,8 +128,8 @@ struct find_edges
             num_threads(nt)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             typename graph_traits<Graph>::out_edge_iterator e, e_end;
             for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)

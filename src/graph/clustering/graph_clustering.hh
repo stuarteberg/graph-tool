@@ -102,8 +102,8 @@ struct get_global_clustering
             schedule(runtime) if (N > 100) reduction(+:triangles, n)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
 #ifdef USING_OPENMP
@@ -125,8 +125,8 @@ struct get_global_clustering
             schedule(runtime) if (N > 100) reduction(+:cerr)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
 #ifdef USING_OPENMP
@@ -167,8 +167,8 @@ struct set_clustering_to_property
             schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
 #ifdef USING_OPENMP

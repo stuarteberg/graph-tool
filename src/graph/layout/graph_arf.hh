@@ -41,7 +41,7 @@ struct get_arf_layout
         {
             typename graph_traits<Graph>::vertex_descriptor v =
                 vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             pos[v].resize(dim);
         }
@@ -58,7 +58,7 @@ struct get_arf_layout
             {
                 typename graph_traits<Graph>::vertex_descriptor v =
                     vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 vector<pos_t> delta_pos(dim,0);

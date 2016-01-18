@@ -46,8 +46,8 @@ struct do_edge_endpoint
             schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             for (const auto& e : out_edges_range(v, g))
             {

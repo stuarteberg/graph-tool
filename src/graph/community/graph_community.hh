@@ -107,7 +107,7 @@ struct get_communities
             for (i = 0; i < NV; ++i)
             {
                 vertex_t v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 size_t new_s;
@@ -209,7 +209,7 @@ struct get_communities
             for (i = 0; i < NV; ++i)
             {
                 vertex_t v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 temp_s[v] = s[v];
             }

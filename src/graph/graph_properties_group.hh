@@ -33,8 +33,8 @@ struct do_group_vector_property
         #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < N; ++i)
         {
-            typename boost::graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == boost::graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             dispatch_descriptor(g, vector_map, map, v, pos, Edge());
         }

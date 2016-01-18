@@ -72,17 +72,14 @@ struct get_closeness
         for (i = 0; i < N; ++i)
         {
             vertex_t v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
 
             unchecked_vector_property_map<val_type,VertexIndex>
                 dist_map(vertex_index, num_vertices(g));
 
-            for (int j = 0; j < N; ++j)
-            {
-                if (vertex(j, g) != graph_traits<Graph>::null_vertex())
-                    dist_map[vertex(j, g)] = numeric_limits<val_type>::max();
-            }
+            for (auto u : vertices_range(g))
+                dist_map[u] = numeric_limits<val_type>::max();
 
             dist_map[v] = 0;
 

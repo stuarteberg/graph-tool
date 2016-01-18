@@ -87,7 +87,7 @@ struct clear_vertices
         for (int i = N - 1; i >= 0; --i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             remove_vertex(v, g);
         }

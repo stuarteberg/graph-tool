@@ -125,7 +125,7 @@ struct get_extended_clustering
         for (i = 0; i < N; ++i)
         {
             vertex_t v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
 
             // We must disconsider paths through the original vertex

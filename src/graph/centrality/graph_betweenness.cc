@@ -48,8 +48,8 @@ void normalize_betweenness(const Graph& g,
         schedule(runtime) if (N > 100)
     for (i = 0; i < N; ++i)
     {
-        typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-        if (v == graph_traits<Graph>::null_vertex())
+        auto v = vertex(i, g);
+        if (!is_valid_vertex(v, g))
             continue;
         put(vertex_betweenness, v, vfactor * get(vertex_betweenness, v));
     }

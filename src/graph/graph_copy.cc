@@ -75,7 +75,7 @@ struct copy_vertex_property_dispatch
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, src);
-            if (v == graph_traits<GraphSrc>::null_vertex())
+            if (!is_valid_vertex(v, src))
                 continue;
             auto new_v = vertex(index_map[i], tgt);
             p_tgt[new_v] = p_src[v];
@@ -146,7 +146,7 @@ struct copy_edge_property_dispatch
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, src);
-            if (v == graph_traits<GraphSrc>::null_vertex())
+            if (!is_valid_vertex(v, src))
                 continue;
 
             for (auto e : out_edges_range(v, src))

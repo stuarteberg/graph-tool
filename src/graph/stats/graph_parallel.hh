@@ -41,8 +41,8 @@ struct label_parallel_edges
             if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             gt_hash_map<vertex_t, edge_t> vset;
@@ -96,8 +96,8 @@ struct label_self_loops
         #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             size_t n = 1;
@@ -123,8 +123,8 @@ struct remove_labeled_edges
 
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             typedef typename graph_traits<Graph>::edge_descriptor edge_t;

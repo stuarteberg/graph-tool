@@ -165,8 +165,8 @@ struct do_out_edges_op
             schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             op(v, eprop, vprop, g);
         }

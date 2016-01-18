@@ -85,14 +85,14 @@ struct get_distance_histogram
         for (i = 0; i < N; ++i)
         {
             vertex_t v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             unchecked_vector_property_map<val_type,VertexIndex>
                 dist_map(vertex_index, num_vertices(g));
 
             for (size_t j = 0; j < size_t(N); ++j)
             {
-                if (vertex(j,g) != graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(vertex(j, g), g))
                     dist_map[vertex(j,g)] =  numeric_limits<val_type>::max();
             }
 

@@ -483,68 +483,61 @@ private:
 
 template <class Iter>
 inline
-IterRange<Iter> mk_range(std::pair<Iter, Iter>&& range)
+auto mk_range(std::pair<Iter, Iter>&& range)
 {
     return IterRange<Iter>(std::forward<std::pair<Iter, Iter>>(range));
 }
 
 template <class Graph>
 inline
-IterRange<typename boost::graph_traits<Graph>::vertex_iterator>
-vertices_range(const Graph& g)
+auto vertices_range(const Graph& g)
 {
     return mk_range(vertices(g));
 }
 
 template <class Graph>
 inline
-IterRange<typename boost::graph_traits<Graph>::edge_iterator>
-edges_range(const Graph& g)
+auto edges_range(const Graph& g)
 {
     return mk_range(edges(g));
 }
 
 template <class Graph>
 inline
-IterRange<typename boost::graph_traits<Graph>::adjacency_iterator>
-adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
-                        const Graph& g)
+auto adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                             const Graph& g)
 {
     return mk_range(adjacent_vertices(v, g));
 }
 
 template <class Graph>
 inline
-IterRange<typename out_edge_iteratorS<Graph>::type>
-out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
-                const Graph& g)
+auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
+                     const Graph& g)
 {
     return mk_range(out_edge_iteratorS<Graph>::get_edges(v, g));
 }
 
 template <class Graph>
 inline
-IterRange<typename in_edge_iteratorS<Graph>::type>
-in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
-               const Graph& g)
+auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
+                    const Graph& g)
 {
     return mk_range(in_edge_iteratorS<Graph>::get_edges(v, g));
 }
 
 template <class Graph>
 inline
-IterRange<typename all_edges_iteratorS<Graph>::type>
-all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
-                const Graph& g)
+auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
+                     const Graph& g)
 {
     return mk_range(all_edges_iteratorS<Graph>::get_edges(v, g));
 }
 
 template <class Graph>
 inline
-IterRange<typename in_or_out_edge_iteratorS<Graph>::type>
-in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
-                      const Graph& g)
+auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
+                           const Graph& g)
 {
     return mk_range(in_or_out_edge_iteratorS<Graph>::get_edges(v, g));
 }

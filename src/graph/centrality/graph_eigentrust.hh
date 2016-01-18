@@ -53,7 +53,7 @@ struct get_eigentrust
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 c_type sum = 0;
@@ -77,7 +77,7 @@ struct get_eigentrust
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 c_sum[v] = 0;
@@ -92,8 +92,8 @@ struct get_eigentrust
                 schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
             t[v] = 1.0/V;
         }
@@ -108,7 +108,7 @@ struct get_eigentrust
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 t_temp[v] = 0;
@@ -140,7 +140,7 @@ struct get_eigentrust
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 t[v] = t_temp[v];
             }

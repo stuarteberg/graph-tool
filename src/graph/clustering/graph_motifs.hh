@@ -277,7 +277,7 @@ void get_sig(Graph& g, std::vector<size_t>& sig)
         sig.resize(is_directed::apply<Graph>::type::value ? 2 * N : N);
     for (size_t i = 0; i < N; ++i)
     {
-        typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
+        auto v = vertex(i, g);
         sig[i] = out_degree(v, g);
         if(is_directed::apply<Graph>::type::value)
             sig[i + N] = in_degreeS()(v, g);
@@ -363,7 +363,7 @@ struct get_all_motifs
                 subgraphs;
             typename graph_traits<Graph>::vertex_descriptor v =
                 (p < 1) ? V[i] : vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
 
             typename wrap_undirected::apply<Graph>::type ug(g);

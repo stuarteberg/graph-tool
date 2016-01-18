@@ -47,7 +47,7 @@ struct get_pagerank
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             put(deg, v, 0);
             for (const auto& e : out_edges_range(v, g))
@@ -65,7 +65,7 @@ struct get_pagerank
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 rank_type r = 0;
                 for (const auto& e : in_or_out_edges_range(v, g))
@@ -95,7 +95,7 @@ struct get_pagerank
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 put(rank, v, get(r_temp, v));
             }

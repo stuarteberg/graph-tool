@@ -186,7 +186,7 @@ struct do_infect_vertex_property
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             if (!all && vals.find(prop[v]) == vals.end())
                 continue;
@@ -203,7 +203,7 @@ struct do_infect_vertex_property
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             if (marked[v])
                 prop[v] = temp[v];
@@ -239,12 +239,11 @@ struct do_mark_edges
                 schedule(runtime) if (N > 100)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-                prop[*e] = true;
+            for (auto e : out_edges_range(v, g))
+                prop[e] = true;
         }
     }
 };

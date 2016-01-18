@@ -60,7 +60,7 @@ struct get_katz
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 c_temp[v] = get(beta, v);
@@ -81,7 +81,7 @@ struct get_katz
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 delta += abs(c_temp[v] - c[v]);
             }
@@ -99,7 +99,7 @@ struct get_katz
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 c_temp[v] = c[v];
             }

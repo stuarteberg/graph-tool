@@ -108,7 +108,7 @@ struct get_trust_transitivity
         for (i = 0; i < N; ++i)
         {
             vertex_t v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(v, g))
                 continue;
             t[v].resize((source == -1 && target == -1) ? N : 1);
         }
@@ -118,7 +118,7 @@ struct get_trust_transitivity
         for (i = (target == -1) ? 0 : target; i < N; ++i)
         {
             vertex_t tgt = vertex(i, g);
-            if (tgt == graph_traits<Graph>::null_vertex())
+            if (!is_valid_vertex(tgt, g))
                 continue;
 
             // mark the sources
@@ -212,7 +212,7 @@ struct get_trust_transitivity
                     for (j = 0; j < N2; ++j)
                     {
                         vertex_t src = vertex(j, g);
-                        if (src == graph_traits<Graph>::null_vertex())
+                        if (!is_valid_vertex(src, g))
                             continue;
                         t_type weight = dist_map[src];
                         sum_w[src] += weight;
@@ -226,7 +226,7 @@ struct get_trust_transitivity
                 for (j = 0; j < N2; ++j)
                 {
                     vertex_t src = vertex(j, g);
-                    if (src == graph_traits<Graph>::null_vertex())
+                    if (!is_valid_vertex(src, g))
                         continue;
                     size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
                     if (sum_w[src] > 0)

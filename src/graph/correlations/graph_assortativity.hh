@@ -54,8 +54,8 @@ struct get_assortativity_coefficient
             schedule(runtime) if (N > 100) reduction(+:e_kk, n_edges)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             val_t k1 = deg(v, g);
@@ -91,8 +91,8 @@ struct get_assortativity_coefficient
             reduction(+:err)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             val_t k1 = deg(v, g);
@@ -135,8 +135,8 @@ struct get_scalar_assortativity_coefficient
             schedule(runtime) if (N > 100) reduction(+:e_xy,n_edges,a,b,da,db)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             double k1 = double(deg(v, g));
@@ -172,8 +172,8 @@ struct get_scalar_assortativity_coefficient
             reduction(+:err)
         for (i = 0; i < N; ++i)
         {
-            typename graph_traits<Graph>::vertex_descriptor v = vertex(i, g);
-            if (v == graph_traits<Graph>::null_vertex())
+            auto v = vertex(i, g);
+            if (!is_valid_vertex(v, g))
                 continue;
 
             double k1 = double(deg(v, g));

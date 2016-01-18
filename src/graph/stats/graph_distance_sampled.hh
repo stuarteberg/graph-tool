@@ -82,8 +82,8 @@ struct get_sampled_distance_histogram
         sources.reserve(num_vertices(g));
         int i;
         for (i = 0; i < int(num_vertices(g)); ++i)
-            if (vertex(i,g) != graph_traits<Graph>::null_vertex())
-                sources.push_back(vertex(i,g));
+            if (!is_valid_vertex(vertex(i, g), g))
+                sources.push_back(vertex(i, g));
         n_samples = min(n_samples, sources.size());
 
         typename hist_t::point_t point;
@@ -105,23 +105,20 @@ struct get_sampled_distance_histogram
             unchecked_vector_property_map<val_type,VertexIndex>
                 dist_map(vertex_index, num_vertices(g));
 
-            for (size_t j = 0; j < num_vertices(g); ++j)
-            {
-                if (vertex(i,g) != graph_traits<Graph>::null_vertex())
-                    dist_map[vertex(j,g)] =  numeric_limits<val_type>::max();
-            }
+            for (auto u : vertices_range(g))
+                dist_map[u] = numeric_limits<val_type>::max();
 
             dist_map[v] = 0;
             get_vertex_dists(g, v, vertex_index, dist_map, weights);
 
-            typename graph_traits<Graph>::vertex_iterator v2, v_end;
-            for (tie(v2, v_end) = vertices(g); v2 != v_end; ++v2)
-                if (*v2 != v &&
-                    dist_map[*v2] != numeric_limits<val_type>::max())
+            for (auto v2 : vertices_range(g))
+            {
+                if (v2 != v && dist_map[v2] != numeric_limits<val_type>::max())
                 {
-                    point[0] = dist_map[*v2];
+                    point[0] = dist_map[v2];
                     s_hist.put_value(point);
                 }
+            }
         }
         s_hist.gather();
 

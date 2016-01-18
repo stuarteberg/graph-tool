@@ -64,7 +64,7 @@ struct get_eigenvector
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
 
                 c_temp[v] = 0;
@@ -87,7 +87,7 @@ struct get_eigenvector
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 c_temp[v] /= norm;
                 delta += abs(c_temp[v] - c[v]);
@@ -108,7 +108,7 @@ struct get_eigenvector
             for (i = 0; i < N; ++i)
             {
                 auto v = vertex(i, g);
-                if (v == graph_traits<Graph>::null_vertex())
+                if (!is_valid_vertex(v, g))
                     continue;
                 c[v] = c_temp[v];
             }
