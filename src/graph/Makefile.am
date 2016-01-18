@@ -78,6 +78,7 @@ libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/
 libgraph_tool_core_la_workaround_HEADERS = \
     ../boost-workaround/boost/graph/betweenness_centrality.hpp \
     ../boost-workaround/boost/graph/detail/read_graphviz_new.hpp \
+    ../boost-workaround/boost/graph/filtered_graph.hpp \
     ../boost-workaround/boost/graph/graphml.hpp \
     ../boost-workaround/boost/graph/graphviz.hpp \
     ../boost-workaround/boost/graph/isomorphism.hpp \
