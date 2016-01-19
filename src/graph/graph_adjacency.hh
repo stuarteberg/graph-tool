@@ -162,6 +162,7 @@ public:
     };
 
     typedef std::vector<std::pair<vertex_t, vertex_t> > edge_list_t;
+    typedef std::vector<edge_list_t> vertex_list_t;
     typedef typename integer_range<Vertex>::iterator vertex_iterator;
 
     adj_list(): _n_edges(0), _edge_index_range(0), _keep_epos(false) {}
@@ -177,30 +178,59 @@ public:
     typedef transform_random_access_iterator<get_vertex, typename edge_list_t::const_iterator>
         adjacency_iterator;
 
+
+    template <class Deference>
+    struct base_edge_iterator:
+        public boost::iterator_facade<base_edge_iterator<Deference>,
+                                      edge_descriptor,
+                                      std::random_access_iterator_tag,
+                                      edge_descriptor>
+    {
+        base_edge_iterator() {}
+        base_edge_iterator(vertex_t v, typename edge_list_t::const_iterator&& iter)
+            : _v(v), _iter(std::forward<typename edge_list_t::const_iterator>(iter))
+        {}
+
+    private:
+        friend class boost::iterator_core_access;
+        void increment() { ++_iter; }
+        void decrement() { --_iter; }
+        void advance(auto n) { _iter += n; }
+        auto distance_to(base_edge_iterator const& other) const
+        {
+            return other._iter - _iter;
+        }
+
+        bool equal(base_edge_iterator const& other) const
+        {
+            return _iter == other._iter;
+        }
+
+        edge_descriptor dereference() const
+        {
+            return Deference::def(_v, *_iter);
+        }
+
+        vertex_t _v;
+        typename edge_list_t::const_iterator _iter;
+    };
+
     struct make_out_edge
     {
-        make_out_edge(vertex_t src): _src(src) {}
-        make_out_edge() {}
-        vertex_t _src;
-        typedef edge_descriptor result_type;
-        edge_descriptor operator()(const std::pair<vertex_t, vertex_t>& v) const
-        { return edge_descriptor(_src, v.first, v.second, false); }
+        static edge_descriptor def(vertex_t src,
+                                   const std::pair<vertex_t, vertex_t>& v)
+        { return edge_descriptor(src, v.first, v.second, false); }
     };
 
     struct make_in_edge
     {
-        make_in_edge(vertex_t tgt): _tgt(tgt) {}
-        make_in_edge() {}
-        vertex_t _tgt;
-        typedef edge_descriptor result_type;
-        edge_descriptor operator()(const std::pair<vertex_t, vertex_t>& v) const
-        { return edge_descriptor(v.first, _tgt, v.second, false); }
+        static edge_descriptor def(vertex_t tgt,
+                                   const std::pair<vertex_t, vertex_t>& v)
+        { return edge_descriptor(v.first, tgt, v.second, false); }
     };
 
-    typedef transform_random_access_iterator<make_out_edge, typename edge_list_t::const_iterator>
-        out_edge_iterator;
-    typedef transform_random_access_iterator<make_in_edge, typename edge_list_t::const_iterator>
-        in_edge_iterator;
+    typedef base_edge_iterator<make_out_edge> out_edge_iterator;
+    typedef base_edge_iterator<make_in_edge> in_edge_iterator;
 
     class edge_iterator:
         public boost::iterator_facade<edge_iterator,
@@ -210,9 +240,9 @@ public:
     {
     public:
         edge_iterator() {}
-        explicit edge_iterator(const typename std::vector<edge_list_t>::const_iterator& vi_begin,
-                               const typename std::vector<edge_list_t>::const_iterator& vi_end,
-                               const typename std::vector<edge_list_t>::const_iterator& vi,
+        explicit edge_iterator(const typename vertex_list_t::const_iterator& vi_begin,
+                               const typename vertex_list_t::const_iterator& vi_end,
+                               const typename vertex_list_t::const_iterator& vi,
                                const typename edge_list_t::const_iterator& ei)
             : _vi_begin(vi_begin), _vi_end(vi_end), _vi(vi), _ei(ei)
         {
@@ -253,9 +283,9 @@ public:
                                    _ei->first, _ei->second, false);
         }
 
-        typename std::vector<edge_list_t>::const_iterator _vi_begin;
-        typename std::vector<edge_list_t>::const_iterator _vi_end;
-        typename std::vector<edge_list_t>::const_iterator _vi;
+        typename vertex_list_t::const_iterator _vi_begin;
+        typename vertex_list_t::const_iterator _vi_end;
+        typename vertex_list_t::const_iterator _vi;
         typename edge_list_t::const_iterator _ei;
     };
 
@@ -333,7 +363,6 @@ public:
     }
 
 private:
-    typedef std::vector<edge_list_t> vertex_list_t;
     vertex_list_t _out_edges;
     vertex_list_t _in_edges;
     size_t _n_edges;
@@ -573,11 +602,9 @@ std::pair<typename adj_list<Vertex>::out_edge_iterator,
 out_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::out_edge_iterator ei_t;
-    typedef typename adj_list<Vertex>::make_out_edge mk_edge;
     auto& edges = g._out_edges[v];
-    auto mke = mk_edge(v);
-    return std::make_pair(ei_t(edges.begin(), mke),
-                          ei_t(edges.end(), mke));
+    return std::make_pair(ei_t(v, edges.begin()),
+                          ei_t(v, edges.end()));
 }
 
 template <class Vertex>
@@ -587,11 +614,9 @@ std::pair<typename adj_list<Vertex>::in_edge_iterator,
 in_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::in_edge_iterator ei_t;
-    typedef typename adj_list<Vertex>::make_in_edge mk_edge;
     auto& edges = g._in_edges[v];
-    auto mke = mk_edge(v);
-    return std::make_pair(ei_t(edges.begin(), mke),
-                          ei_t(edges.end(), mke));
+    return std::make_pair(ei_t(v, edges.begin()),
+                          ei_t(v, edges.end()));
 }
 
 template <class Vertex>
