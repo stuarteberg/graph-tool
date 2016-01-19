@@ -251,9 +251,8 @@ bool graph_cmp(Graph& g1, Graph& g2)
     return true;
 }
 
-// short hand for both types of subgraphs
+// short hand for subgraph types
 typedef adj_list<size_t> d_graph_t;
-typedef adj_list<size_t> u_graph_t;
 
 // we need this wrap to use the UndirectedAdaptor only on directed graphs
 struct wrap_undirected
@@ -266,6 +265,18 @@ struct wrap_undirected
                                   Graph&>::type type;
     };
 };
+
+struct wrap_directed
+{
+    template <class Graph, class Sub>
+    struct apply
+    {
+        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
+                                  Sub&,
+                                  UndirectedAdaptor<Sub>>::type type;
+    };
+};
+
 
 // get the signature of the graph: sorted degree sequence
 template <class Graph>
@@ -299,28 +310,23 @@ struct get_all_motifs
     rng_t& rng;
 
     template <class Graph, class Sampler, class VMap>
-    void operator()(Graph& g, size_t k, boost::any& list,
+    void operator()(Graph& g, size_t k, std::vector<d_graph_t>& subgraph_list,
                     std::vector<size_t>& hist, std::vector<std::vector<VMap> >& vmaps,
                     Sampler sampler) const
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
-                                  d_graph_t,
-                                  u_graph_t>::type graph_sg_t;
-
-        // the main subgraph lists
-        std::vector<graph_sg_t>& subgraph_list =
-            any_cast<std::vector<graph_sg_t>&>(list);
-
         // this hashes subgraphs according to their signature
         gt_hash_map<std::vector<size_t>,
-                    std::vector<pair<size_t, graph_sg_t> >,
+                    std::vector<pair<size_t, d_graph_t> >,
                     std::hash<std::vector<size_t>>> sub_list;
         std::vector<size_t> sig; // current signature
 
         for (size_t i = 0; i < subgraph_list.size(); ++i)
         {
-            get_sig(subgraph_list[i], sig);
-            sub_list[sig].push_back(make_pair(i,subgraph_list[i]));
+            auto& sub = subgraph_list[i];
+            typename wrap_directed::apply<Graph,d_graph_t>::type
+                usub(sub);
+            get_sig(usub, sig);
+            sub_list[sig].push_back(make_pair(i, sub));
         }
 
         // the subgraph count
@@ -373,9 +379,11 @@ struct get_all_motifs
             {
                 for (size_t j = 0; j < subgraphs.size(); ++j)
                 {
-                    graph_sg_t sub;
-                    make_subgraph(subgraphs[j], g, sub);
-                    get_sig(sub, sig);
+                    d_graph_t sub;
+                    typename wrap_directed::apply<Graph,d_graph_t>::type
+                        usub(sub);
+                    make_subgraph(subgraphs[j], g, usub);
+                    get_sig(usub, sig);
 
                     auto iter = sub_list.find(sig);
                     if(iter == sub_list.end())
@@ -390,24 +398,26 @@ struct get_all_motifs
                     auto sl = sub_list.find(sig);
                     if (sl != sub_list.end())
                     {
-                        for (size_t l = 0; l < sl->second.size(); ++l)
+                        for (auto& mpos : sl->second)
                         {
-                            graph_sg_t& motif = sl->second[l].second;
+                            d_graph_t& motif = mpos.second;
+                            typename wrap_directed::apply<Graph,d_graph_t>::type
+                                umotif(motif);
                             if (comp_iso)
                             {
-                                if (isomorphism(motif, sub,
-                                                vertex_index1_map(get(vertex_index, motif)).
-                                                vertex_index2_map(get(vertex_index, sub))))
+                                if (isomorphism(umotif, usub,
+                                                vertex_index1_map(get(vertex_index, umotif)).
+                                                vertex_index2_map(get(vertex_index, usub))))
                                     found = true;
                             }
                             else
                             {
-                                if (graph_cmp(motif, sub))
+                                if (graph_cmp(umotif, usub))
                                     found = true;
                             }
                             if (found)
                             {
-                                pos = sl->second[l].first;
+                                pos = mpos.first;
                                 hist[pos]++;
                                 break;
                             }

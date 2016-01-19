@@ -32,15 +32,10 @@ using namespace graph_tool;
 
 struct append_to_list
 {
-
     template <class Graph>
-    void operator()(Graph& g, boost::any& list) const
+    void operator()(Graph& g, vector<d_graph_t>& glist) const
     {
-        typedef typename boost::mpl::if_<typename is_directed::apply<Graph>::type,
-                                         d_graph_t,
-                                         u_graph_t>::type graph_t;
-        vector<graph_t>& glist = any_cast<vector<graph_t>&>(list);
-        glist.push_back(graph_t());
+        glist.emplace_back();
         graph_copy(g, glist.back());
     }
 };
@@ -48,18 +43,16 @@ struct append_to_list
 struct retrieve_from_list
 {
     template <class Graph>
-    void operator()(Graph& g, boost::any& list, bool& done) const
+    void operator()(Graph& g, vector<d_graph_t>& glist, bool& done) const
     {
-        typedef typename boost::mpl::if_<typename is_directed::apply<Graph>::type,
-                                         d_graph_t,
-                                         u_graph_t>::type graph_t;
-        vector<graph_t>& glist = any_cast<vector<graph_t>&>(list);
         if (glist.empty())
         {
             done = true;
             return;
         }
-        graph_copy(glist.back(), g);
+        typename wrap_directed::apply<Graph,d_graph_t>::type
+            uback(glist.back());
+        graph_copy(uback, g);
         glist.pop_back();
     }
 };
@@ -69,26 +62,14 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
                 bool collect_vmaps, boost::python::list p, bool comp_iso,
                 bool fill_list, rng_t& rng)
 {
-    boost::any list;
-    if (g.get_directed())
-        list = vector<d_graph_t>();
-    else
-        list = vector<u_graph_t>();
-    try
+    vector<d_graph_t> list;
+    for (int i = 0; i <  boost::python::len(subgraph_list); ++i)
     {
-        for (int i = 0; i <  boost::python::len(subgraph_list); ++i)
-        {
-            GraphInterface& sub =
-                 boost::python::extract<GraphInterface&>(subgraph_list[i]);
-            run_action<>()(sub, std::bind(append_to_list(),
-                                          std::placeholders::_1,
-                                          std::ref(list)))();
-        }
-    }
-    catch (bad_any_cast&)
-    {
-        throw ValueException("All motif graphs must be either directed or "
-                             "undirected!");
+        GraphInterface& sub =
+            boost::python::extract<GraphInterface&>(subgraph_list[i]);
+        run_action<>()(sub, std::bind(append_to_list(),
+                                      std::placeholders::_1,
+                                      std::ref(list)))();
     }
 
     vector<size_t> phist;
