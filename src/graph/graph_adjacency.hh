@@ -195,7 +195,8 @@ public:
         friend class boost::iterator_core_access;
         void increment() { ++_iter; }
         void decrement() { --_iter; }
-        void advance(auto n) { _iter += n; }
+        template <class Distance>
+        void advance(Distance n) { _iter += n; }
         auto distance_to(base_edge_iterator const& other) const
         {
             return other._iter - _iter;
