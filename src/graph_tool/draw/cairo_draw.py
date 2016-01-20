@@ -30,6 +30,7 @@ import warnings
 import numpy
 
 from .. topology import shortest_distance, is_bipartite
+from .. import _check_prop_scalar
 
 try:
     import cairo
@@ -607,6 +608,9 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         The offset into the completed rendering. If this value is zero, the
         rendering was complete.
     """
+
+    if vorder is not None:
+        _check_prop_scalar(vorder, name="vorder")
 
     vprops = {} if vprops is None else copy.copy(vprops)
     eprops = {} if eprops is None else copy.copy(eprops)
