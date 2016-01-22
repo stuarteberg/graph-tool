@@ -511,7 +511,7 @@ struct graph_property_type<adj_list<Vertex> >
 //========================================================================
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 std::pair<typename adj_list<Vertex>::vertex_iterator,
           typename adj_list<Vertex>::vertex_iterator>
 vertices(const adj_list<Vertex>& g)
@@ -553,7 +553,7 @@ edges(const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 Vertex vertex(size_t i, const adj_list<Vertex>&)
 {
     return i;
@@ -576,28 +576,28 @@ edge(Vertex s, Vertex t, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 size_t out_degree(Vertex v, const adj_list<Vertex>& g)
 {
     return g._out_edges[v].size();
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 size_t in_degree(Vertex v, const adj_list<Vertex>& g)
 {
     return g._in_edges[v].size();
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 size_t degree(Vertex v, const adj_list<Vertex>& g)
 {
     return in_degree(v, g) + out_degree(v, g);
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 std::pair<typename adj_list<Vertex>::out_edge_iterator,
           typename adj_list<Vertex>::out_edge_iterator>
 out_edges(Vertex v, const adj_list<Vertex>& g)
@@ -609,7 +609,7 @@ out_edges(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
+inline  __attribute__((always_inline))
 std::pair<typename adj_list<Vertex>::in_edge_iterator,
           typename adj_list<Vertex>::in_edge_iterator>
 in_edges(Vertex v, const adj_list<Vertex>& g)
@@ -621,7 +621,7 @@ in_edges(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
@@ -633,27 +633,26 @@ adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 size_t num_vertices(const adj_list<Vertex>& g)
 {
     return g._out_edges.size();
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 size_t num_edges(const adj_list<Vertex>& g)
 {
     return g._n_edges;
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 Vertex add_vertex(adj_list<Vertex>& g)
 {
-    size_t n = g._out_edges.size();
-    g._out_edges.resize(n + 1);
-    g._in_edges.resize(n + 1);
-    return n;
+    g._out_edges.emplace_back();
+    g._in_edges.emplace_back();
+    return g._out_edges.size() - 1;
 }
 
 template <class Vertex>

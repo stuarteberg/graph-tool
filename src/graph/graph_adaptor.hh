@@ -336,10 +336,10 @@ edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // out_edges(u,g)
 //==============================================================================
 template <class Graph>
-inline
-std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator,
-          typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator >
-out_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
+inline __attribute__((always_inline))
+std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator,
+          typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator >
+out_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
           const UndirectedAdaptor<Graph>& g)
 {
     typedef joined_edge_iterator<Graph> iter_t;
@@ -353,10 +353,10 @@ out_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // in_edges(u,g)
 //==============================================================================
 template <class Graph>
-inline
-std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::in_edge_iterator,
-          typename graph_traits<UndirectedAdaptor<Graph> >::in_edge_iterator >
-in_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
+inline __attribute__((always_inline))
+std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator,
+          typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator >
+in_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
          const UndirectedAdaptor<Graph>& g)
 {
     typedef joined_edge_iterator<Graph, mpl::true_> iter_t;
@@ -370,16 +370,16 @@ in_edges(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // adjacent_vertices(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator,
           typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator>
 adjacent_vertices
     (typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
      const UndirectedAdaptor<Graph>& g)
 {
-    auto e_range = out_edges(u, g);
     typedef typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator
         adjacency_iterator;
+    auto e_range = out_edges(u, g);
     return std::make_pair(adjacency_iterator(e_range.first, &g),
                           adjacency_iterator(e_range.second, &g));
 }
@@ -388,7 +388,7 @@ adjacent_vertices
 // num_vertices(g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 typename graph_traits<UndirectedAdaptor<Graph> >::vertices_size_type
 num_vertices(const UndirectedAdaptor<Graph>& g)
 {
@@ -399,7 +399,8 @@ num_vertices(const UndirectedAdaptor<Graph>& g)
 // num_edges(g)
 //==============================================================================
 template <class Graph>
-inline typename graph_traits<UndirectedAdaptor<Graph> >::edges_size_type
+inline __attribute__((always_inline))
+typename graph_traits<UndirectedAdaptor<Graph> >::edges_size_type
 num_edges(const UndirectedAdaptor<Graph>& g)
 {
     return num_edges(g.original_graph());
@@ -409,7 +410,7 @@ num_edges(const UndirectedAdaptor<Graph>& g)
 // out_degree(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 typename graph_traits<UndirectedAdaptor<Graph> >::degree_size_type
 out_degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
            const UndirectedAdaptor<Graph>& g)
@@ -434,7 +435,7 @@ in_degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // degree(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 typename graph_traits<UndirectedAdaptor<Graph> >::degree_size_type
 degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
        const UndirectedAdaptor<Graph>& g)
@@ -447,7 +448,7 @@ degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // add_vertex(g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
 add_vertex(UndirectedAdaptor<Graph>& g)
 {
@@ -458,7 +459,8 @@ add_vertex(UndirectedAdaptor<Graph>& g)
 // add_vertex(vp,g)
 //==============================================================================
 template <class Graph, class VertexProperties>
-inline typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
+inline __attribute__((always_inline))
+typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor
 add_vertex(const VertexProperties& p, UndirectedAdaptor<Graph>& g)
 {
     return add_vertex(p, g.original_graph());
@@ -468,7 +470,7 @@ add_vertex(const VertexProperties& p, UndirectedAdaptor<Graph>& g)
 // clear_vertex(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void clear_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                   UndirectedAdaptor<Graph>& g)
 {
@@ -479,7 +481,7 @@ void clear_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descr
 // remove_vertex(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void remove_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                    UndirectedAdaptor<Graph>& g)
 {
@@ -490,7 +492,7 @@ void remove_vertex(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_desc
 // remove_vertex_fast(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void remove_vertex_fast(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                         UndirectedAdaptor<Graph>& g)
 {
@@ -501,7 +503,7 @@ void remove_vertex_fast(typename graph_traits<UndirectedAdaptor<Graph> >::vertex
 // add_edge(u,v,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor,
           bool>
 add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
@@ -515,7 +517,7 @@ add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // add_edge(u,v,ep,g)
 //==============================================================================
 template <class Graph, class EdgeProperties>
-inline
+inline __attribute__((always_inline))
 std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor,
           bool>
 add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
@@ -529,7 +531,7 @@ add_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 // remove_edge(u,v,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void remove_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
                  typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor v,
                  UndirectedAdaptor<Graph>& g)
@@ -543,7 +545,7 @@ void remove_edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descri
 // remove_edge(e,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void remove_edge(const typename graph_traits<UndirectedAdaptor<Graph> >::edge_descriptor& e,
                  UndirectedAdaptor<Graph>& g)
 {
@@ -554,7 +556,7 @@ void remove_edge(const typename graph_traits<UndirectedAdaptor<Graph> >::edge_de
 // remove_edge(e_iter,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 void remove_edge(const typename graph_traits<UndirectedAdaptor<Graph> >::out_edge_iterator& iter,
                  UndirectedAdaptor<Graph>& g)
 {
