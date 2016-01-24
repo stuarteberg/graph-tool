@@ -970,27 +970,25 @@ inline size_t get_mrs(Vertex r, Vertex s, const Eprop& mrs, const Emat& emat,
 struct standard_neighbours_policy
 {
     template <class Graph, class Vertex>
-    IterRange<typename out_edge_iteratorS<Graph>::type>
-    get_out_edges(Vertex v, Graph& g) const
+    auto get_out_edges(Vertex v, Graph& g) const
     {
         return out_edges_range(v, g);
     }
 
     template <class Graph, class Vertex>
-    IterRange<typename in_edge_iteratorS<Graph>::type>
-    get_in_edges(Vertex v, Graph& g) const
+    auto get_in_edges(Vertex v, Graph& g) const
     {
         return in_edges_range(v, g);
     }
 
     template <class Graph, class Vertex, class Weight>
-    int get_out_degree(Vertex& v, Graph& g, Weight& eweight) const
+    auto get_out_degree(Vertex& v, Graph& g, Weight& eweight) const
     {
         return out_degreeS()(v, g, eweight);
     }
 
     template <class Graph, class Vertex, class Weight>
-    int get_in_degree(Vertex& v, Graph& g, Weight& eweight) const
+    auto get_in_degree(Vertex& v, Graph& g, Weight& eweight) const
     {
         return in_degreeS()(v, g, eweight);
     }
@@ -1480,8 +1478,9 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
     double dS = 0;
     for (size_t i = 0; i < entries.size(); ++i)
     {
-        auto er = entries[i].first;
-        auto es = entries[i].second;
+        auto& ei = entries[i];
+        auto er = ei.first;
+        auto es = ei.second;
         int d = delta[i];
         size_t ers = d_mrs[i];
         if (ers == numeric_limits<size_t>::max())
