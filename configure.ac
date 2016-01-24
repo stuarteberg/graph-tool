@@ -300,8 +300,15 @@ if test "$USING_CAIRO" = "yes"; then
    [OLD_CPPFLAGS="${CPPFLAGS}"]
    [CXXFLAGS="${CXXFLAGS} ${CAIROMM_CFLAGS}"]
    [CPPFLAGS="${CPPFLAGS} ${CAIROMM_CFLAGS}"]
-   AC_CHECK_HEADER([pycairo/pycairo.h], [],    
-               [AC_MSG_ERROR([pycairo headers not found])])
+   PYTHON_VERSION_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
+   if test "$PYTHON_VERSION_MAJOR" = "3"; then
+      [PYCAIRO_HEADER=pycairo/py3cairo.h]
+   else
+      [PYCAIRO_HEADER=pycairo/pycairo.h]
+   fi
+   AC_DEFINE_UNQUOTED([PYCAIRO_HEADER], <${PYCAIRO_HEADER}>, [pycairo header file])
+   AC_CHECK_HEADER(${PYCAIRO_HEADER}, [],
+                   [AC_MSG_ERROR([pycairo headers not found])])
    [CXXFLAGS="${OLD_CXXFLAGS}"]
    [CPPFLAGS="${OLD_CPPFLAGS}"]
 fi
