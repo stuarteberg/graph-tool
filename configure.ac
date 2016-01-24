@@ -337,13 +337,11 @@ if test "$USING_SPARSEHASH" = "yes"; then
    PKG_CHECK_MODULES(SPARSEHASH, [libsparsehash],
                      AC_DEFINE([HAVE_SPARSEHASH], [1], [Using google's sparsehash]),
                      [AC_MSG_RESULT([not found by pkgconfig, trying default...])])
-
-   [SPARSEHASH_CFLAGS="${SPARSEHASH_CFLAGS} -DSPARSEHASH_PREFIX=${SPARSEHASH_PREFIX}"]
    AC_SUBST(SPARSEHASH_CFLAGS)
+   AC_DEFINE_UNQUOTED([SPARSEHASH_PREFIX], [${SPARSEHASH_PREFIX}],
+                      [Sparsehash include prefix])
    AC_DEFINE_UNQUOTED([SPARSEHASH_INCLUDE(f)], [<${SPARSEHASH_PREFIX}/f>],
                       [Sparsehash include macro])
-   [CXXFLAGS="${CXXFLAGS} ${SPARSEHASH_CFLAGS}"]
-   [CPPFLAGS="${CPPFLAGS} ${SPARSEHASH_CFLAGS}"]
    AC_CHECK_HEADER([${SPARSEHASH_PREFIX}/dense_hash_set], [],
                    [AC_MSG_ERROR([sparsehash headers not found])])
 fi
