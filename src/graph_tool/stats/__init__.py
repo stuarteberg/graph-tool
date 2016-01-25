@@ -432,7 +432,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     [array([   0.,   30.,   88.,  226.,  391.,  240.,   15.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint...)]
     """
 
-    if samples != None:
+    if samples is not None:
         ret = libgraph_tool_stats.\
               sampled_distance_histogram(g._Graph__graph,
                                          _prop("e", g, weight),

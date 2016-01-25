@@ -80,14 +80,13 @@ struct get_sampled_distance_histogram
 
         vector<vertex_t> sources;
         sources.reserve(num_vertices(g));
-        int i;
-        for (i = 0; i < int(num_vertices(g)); ++i)
-            if (!is_valid_vertex(vertex(i, g), g))
-                sources.push_back(vertex(i, g));
+        for (auto v : vertices_range(g))
+            sources.push_back(v);
         n_samples = min(n_samples, sources.size());
 
         typename hist_t::point_t point;
         get_vertex_dists_t get_vertex_dists;
+        int i;
         #pragma omp parallel for default(shared) private(i,point) \
             firstprivate(s_hist) schedule(runtime) if (num_vertices(g) * n_samples > 100)
         for (i = 0; i < int(n_samples); ++i)
