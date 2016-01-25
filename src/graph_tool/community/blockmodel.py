@@ -2525,7 +2525,7 @@ def collect_edge_marginals(state, p=None):
        ...     ds, nmoves = gt.mcmc_sweep(state)
        ...     pe = gt.collect_edge_marginals(state, pe)
        >>> gt.bethe_entropy(state, pe)[0]
-       17.60977326250998...
+       17.6097732625099...
     """
 
     if p is None:
