@@ -1507,10 +1507,10 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
         del state
 
     if Bs is None:
-        if minimize_state is not None:
+        if minimize_state is not None and len(minimize_state.bs) > 0:
             Bs = [ba.max() + 1 for ba in minimize_state.bs]
-            if len(Bs) == 0:
-                Bs = [1]
+        elif max_B is not None:
+            Bs = [max_B, 1]
         else:
             Bs = [1]
 
