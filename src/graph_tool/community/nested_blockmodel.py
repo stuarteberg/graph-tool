@@ -655,7 +655,8 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   sequential=True, parallel=False, dl=False, dense=False,
                   multigraph=True, sparse_thresh=100, verbose=False,
                   checkpoint=None, minimize_state=None, dl_ent=False,
-                  propagate_clabel=True, confine_layers=False):
+                  propagate_clabel=True, confine_layers=False,
+                  random_bisection=False):
     r"""Replaces level l with another state with a possibly different number of
     groups. This may change not only the state at level l, but also the one at
     level l + 1, which needs to be 'rebuilt' because of the label changes at
@@ -740,6 +741,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                          parallel=parallel,
                                          greedy_cooling=True, epsilon=epsilon,
                                          confine_layers=confine_layers,
+                                         random_bisection=random_bisection,
                                          verbose=verbose=="full")
             if _bm_test():
                 assert istate._BlockState__check_clabel(), "invalid clabel!"
@@ -775,6 +777,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                  nonoverlap_init=False,
                                  init_states=init_states,
                                  verbose=verbose=="full",
+                                 random_bisection=random_bisection,
                                  ##exaustive=g.num_vertices() <= 100,
                                  #minimize_state=minimize_state.minimize_state, >>>>>> HERE <<<<<
                                  checkpoint=checkpoint,
@@ -895,12 +898,12 @@ def get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent):
 
 
 def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
-                      epsilon=0., r=2., nmerge_sweeps=10, adaptive_sweeps=True,
-                      c=0, dl=False, dense=False, multigraph=True,
-                      propagate_clabel=True, sequential=True, parallel=False,
-                      sparse_thresh=100, checkpoint=None, minimize_state=None,
-                      frozen_levels=None, confine_layers=False, verbose=False,
-                      **kwargs):
+                      epsilon=0., r=2., random_bisection=False,
+                      nmerge_sweeps=10, adaptive_sweeps=True, c=0, dl=False,
+                      dense=False, multigraph=True, propagate_clabel=True,
+                      sequential=True, parallel=False, sparse_thresh=100,
+                      checkpoint=None, minimize_state=None, frozen_levels=None,
+                      confine_layers=False, verbose=False, **kwargs):
     r"""Performs one greedy sweep in the entire hierarchy tree, attempting to
     decrease its description length.
 
@@ -937,7 +940,8 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                 max_B=max_B, max_b=max_b, checkpoint=checkpoint,
                 minimize_state=minimize_state, dl_ent=dl_ent,
                 confine_layers=confine_layers,
-                propagate_clabel=propagate_clabel)
+                propagate_clabel=propagate_clabel,
+                random_bisection=random_bisection)
 
     #_Si = state.entropy(dense=dense, multigraph=dense)
     dS = 0
@@ -1082,10 +1086,11 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
 def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                       layers=False, confine_layers=False, dl=False, dense=False,
                       multigraph=True, eweight=None, vweight=None, clabel=None,
-                      nsweeps=10, epsilon=0., r=2, nmerge_sweeps=10,
-                      adaptive_sweeps=True, c=0, sequential=True,
-                      parallel=False, sparse_thresh=100, checkpoint=None,
-                      minimize_state=None, max_BE=1000, verbose=False, **kwargs):
+                      random_bisection=False, nsweeps=10, epsilon=0., r=2,
+                      nmerge_sweeps=10, adaptive_sweeps=True, c=0,
+                      sequential=True, parallel=False, sparse_thresh=100,
+                      checkpoint=None, minimize_state=None, max_BE=1000,
+                      verbose=False, **kwargs):
     r"""Initializes a nested block hierarchy with sizes given by ``Bs``.
 
     The meaning of the parameters are the same as in
@@ -1103,7 +1108,8 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
 
     This algorithm has worst-case complexity of :math:`O(V\ln^2 V \times L)`,
     where :math:`V` is the number of nodes in the network, and :math:`L` is the
-    depth of the hierarchy.  """
+    depth of the hierarchy.
+    """
 
     dl_ent = kwargs.get("dl_ent", False)
     ignore_degrees = kwargs.get("ignore_degrees", None)
@@ -1184,6 +1190,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                                              multigraph=(l > 0 and g.num_vertices() < sparse_thresh) or multigraph,
                                              sequential=sequential,
                                              parallel=parallel,
+                                             random_bisection=random_bisection,
                                              verbose=verbose != False,
                                              checkpoint=chkp,
                                              minimize_state=minimize_state.minimize_state)
@@ -1217,12 +1224,12 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                   multigraph=True, dense=False, eweight=None,
                                   vweight=None, clabel=None,
                                   propagate_clabel=True, frozen_levels=None,
-                                  nsweeps=10, adaptive_sweeps=True,
-                                  epsilon=1e-3, c=0, nmerge_sweeps=10, r=2,
-                                  sparse_thresh=100, sequential=True,
-                                  parallel=False, verbose=False,
-                                  checkpoint=None, minimize_state=None,
-                                  **kwargs):
+                                  random_bisection=False, nsweeps=10,
+                                  adaptive_sweeps=True, epsilon=1e-3, c=0,
+                                  nmerge_sweeps=10, r=2, sparse_thresh=100,
+                                  sequential=True, parallel=False,
+                                  verbose=False, checkpoint=None,
+                                  minimize_state=None, **kwargs):
     r"""Find the block hierarchy of an unspecified size which minimizes the description
     length of the network, according to the nested stochastic blockmodel ensemble which
     best describes it.
@@ -1282,6 +1289,9 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
     frozen_levels : :class:`list` (optional, default: ``None``)
         List of levels (``int``s) which will remain unmodified during the
         algorithm.
+    random_bisection : ``bool`` (optional, default: ``False``)
+        If ``True``, the best value of ``B`` will be found by performing a
+        random bisection, instead of a Fibonacci search.
     nsweeps : ``int`` (optional, default: ``10``)
         The number of sweeps done after each merge step to reach the local
         minimum.
@@ -1461,6 +1471,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                               vweight=vweight,
                                               clabel=clabel if isinstance(clabel, PropertyMap) else None,
                                               propagate_clabel=propagate_clabel,
+                                              random_bisection=random_bisection,
                                               nsweeps=nsweeps,
                                               adaptive_sweeps=adaptive_sweeps,
                                               epsilon=epsilon, c=c,
@@ -1527,8 +1538,9 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                   eweight=eweight,
                                   propagate_clabel=propagate_clabel,
                                   vweight=vweight, clabel=clabel,
-                                  verbose=verbose, nsweeps=nsweeps,
-                                  nmerge_sweeps=nmerge_sweeps,
+                                  verbose=verbose,
+                                  random_bisection=random_bisection,
+                                  nsweeps=nsweeps, nmerge_sweeps=nmerge_sweeps,
                                   adaptive_sweeps=adaptive_sweeps, dl=dl,
                                   dense=dense, multigraph=multigraph,
                                   epsilon=epsilon, sparse_thresh=sparse_thresh,
@@ -1547,8 +1559,8 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
     chkp = get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent)
 
     dS = nested_tree_sweep(state, min_B=min_B, max_B=max_B, max_b=max_b,
-                           verbose=verbose, nsweeps=nsweeps,
-                           nmerge_sweeps=nmerge_sweeps,
+                           verbose=verbose, random_bisection=random_bisection,
+                           nsweeps=nsweeps, nmerge_sweeps=nmerge_sweeps,
                            adaptive_sweeps=adaptive_sweeps, r=r,
                            epsilon=epsilon, dense=dense, dl=dl,
                            multigraph=multigraph, sequential=sequential,

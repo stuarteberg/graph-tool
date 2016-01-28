@@ -1923,9 +1923,12 @@ def fibo_n_floor(x):
     n = floor(log(x * sqrt(5) + 0.5) / log(phi))
     return int(n)
 
-def get_mid(a, b):
-    n = fibo_n_floor(b - a)
-    return b - fibo(n - 1)
+def get_mid(a, b, random=False):
+    if random:
+        return a + numpy.random.randint(b - a + 1)
+    else:
+        n = fibo_n_floor(b - a)
+        return b - fibo(n - 1)
 
 def is_fibo(x):
     return fibo(fibo_n_floor(x)) == x
@@ -1940,8 +1943,9 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
                            greedy_cooling=True, sequential=True, parallel=False,
                            r=2, nmerge_sweeps=10, max_B=None, min_B=None,
                            mid_B=None, checkpoint=None, minimize_state=None,
-                           exhaustive=False, init_states=None, max_BE=None,
-                           verbose=False, **kwargs):
+                           random_bisection=False, exhaustive=False,
+                           init_states=None, max_BE=None, verbose=False,
+                           **kwargs):
     r"""Find the block partition of an unspecified size which minimizes the description
     length of the network, according to the stochastic blockmodel ensemble which
     best describes it.
@@ -2061,6 +2065,9 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
         :class:`~graph_tool.community.MinimizeState`
         instance which will be passed to the callback of the ``checkpoint``
         option above, and  can be stored by :mod:`pickle`.
+    random_bisection : ``bool`` (optional, default: ``False``)
+        If ``True``, the best value of ``B`` will be found by performing a
+        random bisection, instead of a Fibonacci search.
     exhaustive : ``bool`` (optional, default: ``False``)
         If ``True``, the best value of ``B`` will be found by testing all possible
         values, instead of performing a bisection search.
@@ -2265,7 +2272,7 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
             print("max_B:", max_B)
 
     if mid_B is None:
-        mid_B = get_mid(min_B, max_B)
+        mid_B = get_mid(min_B, max_B, random_bisection)
 
     greedy = greedy_cooling
     shrink = True
@@ -2422,10 +2429,10 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
         if f_mid > f_min or f_mid > f_max:
             if f_min < f_max:
                 max_B = mid_B
-                mid_B = get_mid(min_B, mid_B)
+                mid_B = get_mid(min_B, mid_B, random_bisection)
             else:
                 min_B = mid_B
-                mid_B = get_mid(mid_B, max_B)
+                mid_B = get_mid(mid_B, max_B, random_bisection)
         else:
             break
 
@@ -2435,9 +2442,9 @@ def minimize_blockmodel_dl(g, deg_corr=True, overlap=False, ec=None,
     # Fibonacci search
     while True:
         if max_B - mid_B > mid_B - min_B:
-            x = get_mid(mid_B, max_B)
+            x = get_mid(mid_B, max_B, random_bisection)
         else:
-            x = get_mid(min_B, mid_B)
+            x = get_mid(min_B, mid_B, random_bisection)
 
         f_x = get_state_dl(B=x, **kwargs)
         f_mid = get_state_dl(B=mid_B, **kwargs)
