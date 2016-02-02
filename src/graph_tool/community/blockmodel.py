@@ -297,7 +297,6 @@ class BlockState(object):
         r"""Returns a :class:`~graph_tool.community.BlockState`` corresponding to the
         block graph. The parameters have the same meaning as the in the constructor."""
 
-
         state = BlockState(self.bg, eweight=self.mrs,
                            vweight=self.wr if vweight else None,
                            b=self.bg.vertex_index.copy("int") if b is None else b,

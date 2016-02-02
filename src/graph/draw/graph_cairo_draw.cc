@@ -1739,7 +1739,7 @@ void populate_attrs(boost::python::dict vattrs, attrs_t& attrs)
         boost::any pmap;
         int type = boost::python::extract<int>(items[i][0])();
         boost::mpl::for_each<attr_types>(get_pmap<Descriptor,PropMaps>(oattr, pmap,
-                                                                type));
+                                                                       type));
         attrs[type] = pmap;
     }
 }
