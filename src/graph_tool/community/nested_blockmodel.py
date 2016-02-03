@@ -654,8 +654,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                   nmerge_sweeps=10, adaptive_sweeps=True, r=2, c=0, epsilon=0.,
                   sequential=True, parallel=False, dl=False, dense=False,
                   multigraph=True, sparse_thresh=100, verbose=False,
-                  checkpoint=None, minimize_state=None, dl_ent=False,
-                  propagate_clabel=True, confine_layers=False,
+                  dl_ent=False, propagate_clabel=True, confine_layers=False,
                   random_bisection=False):
     r"""Replaces level l with another state with a possibly different number of
     groups. This may change not only the state at level l, but also the one at
@@ -707,7 +706,8 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     min_B = max(min_B, cclabel.fa.max() + 1)
 
     assert min_B <= max_B, (min_B, max_B, bstate.B, bstate.N, g.num_vertices(),
-                            cclabel.fa.max() + 1, state.clabel.fa.max() + 1, clabel.fa.max() + 1, l)
+                            cclabel.fa.max() + 1, state.clabel.fa.max() + 1, clabel.fa.max() + 1, l,
+                            len(state.levels))
 
     if _bm_test():
         assert bstate._BlockState__check_clabel(), "invalid clabel before minimize!"
@@ -779,8 +779,6 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                                  verbose=verbose=="full",
                                  random_bisection=random_bisection,
                                  ##exaustive=g.num_vertices() <= 100,
-                                 #minimize_state=minimize_state.minimize_state, >>>>>> HERE <<<<<
-                                 checkpoint=checkpoint,
                                  dl_ent=dl_ent,
                                  ignore_degrees=state.ignore_degrees if l == 0 else None)
 
@@ -830,80 +828,13 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     return dS, kept
 
 
-class NestedMinimizeState(object):
-    r"""This object stores information regarding the current entropy minimization
-    state, so that the algorithms can resume previously started runs.
-    This object can be saved to disk via the :mod:`pickle` interface."""
-
-    def __init__(self):
-        self.minimize_state = MinimizeState()
-        self.l = 0
-        self.bs = []
-        self.done = []
-        self.init = True
-
-    def clear(self):
-        self.minimize_state.clear()
-        self.l = 0
-        del self.bs[:]
-        del self.done[:]
-
-    def sync(self, state):
-        if len(self.bs) == 0:
-            for s in state.levels:
-                self.bs.append(array(s.b.fa))
-        while len(self.done) < len(state.levels):
-            self.done.append(False)
-
-    def delete(self, l):
-        del self.done[l]
-        del self.bs[l]
-
-    def insert(self, l, state):
-        self.done.insert(l + 1, False)
-        ba = array(state.levels[l].b.fa)
-        self.bs.insert(l + 1, ba)
-
-    def mark_level(self, l, done, state):
-        while len(state.levels) > len(self.bs):
-            ba = array(state.levels[len(self.bs)].b.fa)
-            self.bs.append(ba)
-            self.done.append(False)
-
-        self.done[l] = done
-        if done:
-            self.bs[l] = array(state.levels[l].b.fa)
-
-    def clear_mstate(self):
-        self.minimize_state.clear()
-
-def get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent):
-    S_total = state.entropy(complete=True, dl_ent=dl_ent)
-
-    if checkpoint is not None:
-        def check_wrap(bstate, Sb, delta, nmoves, ms):
-            l = minimize_state.l
-            bstate = state.levels[l]
-            S_l = bstate.entropy()
-            S = S_total - S_l + Sb
-            if bstate is None:
-                checkpoint(None, S, delta, nmoves, minimize_state)
-            else:
-                checkpoint(state, S, delta, nmoves, minimize_state)
-        chkp = check_wrap
-    else:
-        chkp = None
-
-    return chkp
-
-
 def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                       epsilon=0., r=2., random_bisection=False,
                       nmerge_sweeps=10, adaptive_sweeps=True, c=0, dl=False,
                       dense=False, multigraph=True, propagate_clabel=True,
                       sequential=True, parallel=False, sparse_thresh=100,
-                      checkpoint=None, minimize_state=None, frozen_levels=None,
-                      confine_layers=False, verbose=False, **kwargs):
+                      frozen_levels=None, confine_layers=False, verbose=False,
+                      **kwargs):
     r"""Performs one greedy sweep in the entire hierarchy tree, attempting to
     decrease its description length.
 
@@ -928,17 +859,11 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
 
     dl_ent = kwargs.get("dl_ent", False)
 
-    if minimize_state is None:
-        minimize_state = NestedMinimizeState()
-    mstate = minimize_state
-    mstate.sync(state)
-
     args = dict(state=state, nsweeps=nsweeps, nmerge_sweeps=nmerge_sweeps,
                 adaptive_sweeps=adaptive_sweeps, r=r, c=c, epsilon=epsilon,
                 sequential=sequential, parallel=parallel, dl=dl, dense=dense,
                 multigraph=multigraph, sparse_thresh=sparse_thresh, min_B=min_B,
-                max_B=max_B, max_b=max_b, checkpoint=checkpoint,
-                minimize_state=minimize_state, dl_ent=dl_ent,
+                max_B=max_B, max_b=max_b, dl_ent=dl_ent,
                 confine_layers=confine_layers,
                 propagate_clabel=propagate_clabel,
                 random_bisection=random_bisection)
@@ -949,13 +874,17 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     if frozen_levels is None:
         frozen_levels = set()
 
-    while mstate.l >= 0:
-        l = mstate.l
+    l = 0
+    done = []
+    while l >= 0:
 
-        if mstate.done[l]:
+        while len(done) < len(state.levels) + 2:
+            done.append(False)
+
+        if done[l]:
             if verbose:
                 print("level", l, ": skipping", state.levels[l].B)
-            mstate.l -= 1
+            l -= 1
             continue
 
         Si = state.entropy(dl_ent=dl_ent)
@@ -969,7 +898,6 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
         if kept:
             ddS, kept = replace_level(l, verbose=verbose, **args)
             dS += ddS
-            mstate.clear_mstate()
 
         if _bm_test():
             if kept:
@@ -984,20 +912,17 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
             bstates = [state.levels[l-1], state.levels[l], state.levels[l + 1]]
 
             state._NestedBlockState__delete_level(l)
-            #replace_level(l, **args)
 
             Sf = state.entropy(dl_ent=dl_ent)
 
-            mstate.clear_mstate()
             if Sf > Si:
                 state.levels[l - 1] = bstates[0]
                 state.levels.insert(l, bstates[1])
                 state.levels[l + 1] = bstates[2]
             else:
                 kept = False
+                del done[l]
                 dS += Sf - Si
-
-                mstate.delete(l)
 
                 if verbose:
                     print("level", l, ": deleted", (bstates[1].N, bstates[1].B), ", dS:", Sf - Si, len(state.levels))
@@ -1023,7 +948,6 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
 
             Sf = state.entropy(dl_ent=dl_ent)
 
-            mstate.clear_mstate()
             if Sf >= Si:
                 del state.levels[l + 1]
                 for j in range(len(bstates)):
@@ -1034,9 +958,8 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                 kept = False
                 dS += Sf - Si
 
-                mstate.insert(l, state)
-
                 l += 1
+                done.insert(l, False)
 
                 if verbose:
                     print("level", l, ": inserted", state.levels[l].B, ", dS:", Sf - Si)
@@ -1046,15 +969,15 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
                 if kept:
                     assert abs(state.entropy(dl_ent=dl_ent) - Si) < 1e-8, "inconsistent delete at level %d (%g, %g)" % (l, state.entropy(), Si)
 
-        mstate.mark_level(l, done=True, state=state)
+        done[l] = True
         if not kept:
             if l + 1 < len(state.levels):
-                mstate.mark_level(l + 1, done=False, state=state)
+                done[l+1] = False
             if l > 0:
-                mstate.mark_level(l - 1, done=False, state=state)
+                done[l-1] = False
             l += 1
         else:
-            if ((l + 1 < len(state.levels) and not mstate.done[l + 1]) or
+            if ((l + 1 < len(state.levels) and not done[l + 1]) or
                 (l + 1 == len(state.levels) and state.levels[l].B > 1)):
                 l += 1
             else:
@@ -1067,12 +990,7 @@ def nested_tree_sweep(state, min_B=None, max_B=None, max_b=None, nsweeps=10,
         if l == len(state.levels) - 1 and state.levels[l].B > 1:
             NB = state.levels[l].B if not state.overlap else 2 * state.levels[l].E
             state._NestedBlockState__rebuild_level(l, b=state.levels[l].g.new_vertex_property("int"))
-            mstate.mark_level(l + 1, done=False, state=state)
             l += 1
-
-        mstate.l = l
-        if checkpoint is not None:
-            checkpoint(None, 0, 0, 0, mstate)
 
         if _bm_test():
             state._NestedBlockState__consistency_check("tree sweep step", l)
@@ -1089,8 +1007,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                       random_bisection=False, nsweeps=10, epsilon=0., r=2,
                       nmerge_sweeps=10, adaptive_sweeps=True, c=0,
                       sequential=True, parallel=False, sparse_thresh=100,
-                      checkpoint=None, minimize_state=None, max_BE=1000,
-                      verbose=False, **kwargs):
+                      max_BE=1000, verbose=False, **kwargs):
     r"""Initializes a nested block hierarchy with sizes given by ``Bs``.
 
     The meaning of the parameters are the same as in
@@ -1114,90 +1031,76 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
     dl_ent = kwargs.get("dl_ent", False)
     ignore_degrees = kwargs.get("ignore_degrees", None)
 
-    if minimize_state is None:
-        minimize_state = NestedMinimizeState()
-    mstate = minimize_state
-
     state = NestedBlockState(g, ec=ec, layers=layers, eweight=eweight,
                              vweight=vweight, Bs=[1], deg_corr=deg_corr,
                              overlap=overlap, clabel=clabel,
                              ignore_degrees=ignore_degrees)
-
-    chkp = get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent)
 
     bg = g
     ecount = eweight
 
     for l, B in enumerate(Bs):
         ba = None
-        if l < len(mstate.bs):
-            ba = mstate.bs[l]
-        else:
-            if l == 0:
-                if ec is None:
-                    if state.overlap:
-                        bstate = OverlapBlockState(bg, B=bg.num_vertices(), #b=bg.vertex_index.copy("int"),
-                                                   vweight=vweight,
-                                                   eweight=ecount,
-                                                   deg_corr=deg_corr != False,
-                                                   #clabel=clabel,
-                                                   max_BE=max_BE)
-                    else:
-                        bstate = BlockState(bg, B=bg.num_vertices(), #b=bg.vertex_index.copy("int"),
-                                            vweight=vweight,
-                                            eweight=ecount,
-                                            deg_corr=deg_corr != False,
-                                            #clabel=clabel,
-                                            max_BE=max_BE,
-                                            ignore_degrees=ignore_degrees)
+        if l == 0:
+            if ec is None:
+                if state.overlap:
+                    bstate = OverlapBlockState(bg, B=bg.num_vertices(),
+                                               vweight=vweight,
+                                               eweight=ecount,
+                                               deg_corr=deg_corr != False,
+                                               #clabel=clabel,
+                                               max_BE=max_BE)
                 else:
-                    if overlap:
-                        if confine_layers:
-                            be = init_layer_confined(bg, ec)
-                            B_init = None
-                        else:
-                            be = None
-                            B_init = 2 * g.num_edges()
+                    bstate = BlockState(bg, B=bg.num_vertices(),
+                                        vweight=vweight,
+                                        eweight=ecount,
+                                        deg_corr=deg_corr != False,
+                                        #clabel=clabel,
+                                        max_BE=max_BE,
+                                        ignore_degrees=ignore_degrees)
+            else:
+                if overlap:
+                    if confine_layers:
+                        be = init_layer_confined(bg, ec)
+                        B_init = None
                     else:
                         be = None
-                        B_init = g.num_vertices()
+                        B_init = 2 * g.num_edges()
+                else:
+                    be = None
+                    B_init = g.num_vertices()
 
-                    bstate = CovariateBlockState(bg, ec=ec,
-                                                 lasers=layers,
-                                                 B=B_init, #b=bg.vertex_index.copy("int"),
-                                                 b=be,
-                                                 vweight=vweight,
-                                                 eweight=ecount,
-                                                 deg_corr=deg_corr != False,
-                                                 overlap=overlap,
-                                                 #clabel=clabel,
-                                                 max_BE=max_BE)
+                bstate = CovariateBlockState(bg, ec=ec,
+                                             lasers=layers,
+                                             B=B_init, #b=bg.vertex_index.copy("int"),
+                                             b=be,
+                                             vweight=vweight,
+                                             eweight=ecount,
+                                             deg_corr=deg_corr != False,
+                                             overlap=overlap,
+                                             #clabel=clabel,
+                                             max_BE=max_BE)
 
-            else:
-                bstate = state.levels[l-1].get_block_state(b=ba,
-                                                           overlap=overlap == "full",
-                                                           deg_corr=deg_corr == "full")[0]
+        else:
+            bstate = state.levels[l-1].get_block_state(b=ba,
+                                                       overlap=overlap == "full",
+                                                       deg_corr=deg_corr == "full")[0]
 
-            if B == 1:
-                bstate.copy(b=bstate.g.new_vertex_property("int").fa)
-            else:
-                bstate = multilevel_minimize(bstate, B, nsweeps=nsweeps,
-                                             epsilon=epsilon,
-                                             r=r, nmerge_sweeps=nmerge_sweeps,
-                                             adaptive_sweeps=adaptive_sweeps,
-                                             greedy=True, c=c, dl=dl,
-                                             dense=(l > 0 and g.num_vertices() < sparse_thresh) or dense,
-                                             multigraph=(l > 0 and g.num_vertices() < sparse_thresh) or multigraph,
-                                             sequential=sequential,
-                                             parallel=parallel,
-                                             random_bisection=random_bisection,
-                                             verbose=verbose != False,
-                                             checkpoint=chkp,
-                                             minimize_state=minimize_state.minimize_state)
-            ba = array(bstate.b.fa)
-            mstate.bs.append(ba)
-            minimize_state.clear_mstate()
-
+        if B == 1:
+            bstate = bstate.copy(b=zeros(bstate.N, dtype="int"))
+        else:
+            bstate = multilevel_minimize(bstate, B, nsweeps=nsweeps,
+                                         epsilon=epsilon,
+                                         r=r, nmerge_sweeps=nmerge_sweeps,
+                                         adaptive_sweeps=adaptive_sweeps,
+                                         greedy=True, c=c, dl=dl,
+                                         dense=(l > 0 and g.num_vertices() < sparse_thresh) or dense,
+                                         multigraph=(l > 0 and g.num_vertices() < sparse_thresh) or multigraph,
+                                         sequential=sequential,
+                                         parallel=parallel,
+                                         random_bisection=random_bisection,
+                                         verbose=verbose != False)
+        ba = array(bstate.b.fa)
         state._NestedBlockState__rebuild_level(len(state.levels) - 1, b=ba)
         if ec is None:
             bg = state.levels[l].bg
@@ -1207,13 +1110,9 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
 
 
     for l, B in enumerate(Bs):
+        assert B == state.levels[l].B, (B, state.levels[l].B)
         if l + 1 < len(state.levels):
             assert state.levels[l].B == state.levels[l + 1].N, (state.levels[l].B, state.levels[l + 1].N)
-
-    minimize_state.clear()
-    mstate.sync(state)
-    if checkpoint is not None:
-        checkpoint(None, 0, 0, 0, mstate)
 
     return state
 
@@ -1228,8 +1127,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                   adaptive_sweeps=True, epsilon=1e-3, c=0,
                                   nmerge_sweeps=10, r=2, sparse_thresh=100,
                                   sequential=True, parallel=False,
-                                  verbose=False, checkpoint=None,
-                                  minimize_state=None, **kwargs):
+                                  verbose=False, **kwargs):
     r"""Find the block hierarchy of an unspecified size which minimizes the description
     length of the network, according to the nested stochastic blockmodel ensemble which
     best describes it.
@@ -1320,34 +1218,6 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
         random order. Otherwise a total of ``N`` moves attempts are made, where
         `N` is the number of vertices, where each vertex can be selected with
         equal probability.
-    checkpoint : function (optional, default: ``None``)
-        If provided, this function will be called after each call to
-        :func:`mcmc_sweep`. This can be used to store the current state, so it
-        can be continued later. The function must have the following signature:
-
-        .. code-block:: python
-
-            def checkpoint(state, L, delta, nmoves, minimize_state):
-                ...
-
-        where `state` is either a :class:`~graph_tool.community.NestedBlockState`
-        instance or ``None``, `L` is the current description length, ``delta`` is
-        the entropy difference in the last MCMC sweep, and ``nmoves`` is the
-        number of accepted block membership moves. The ``minimize_state``
-        argument is a :class:`~graph_tool.community.NestedMinimizeState`
-        instance which specifies the current state of the algorithm, which can
-        be stored via :mod:`pickle`, and supplied via the ``minimize_state``
-        option below to continue from an interrupted run.
-
-        This function will also be called when the MCMC has finished for the
-        current value of :math:`B`, in which case ``state == None``, and the
-        remaining parameters will be zero, except the last.
-    minimize_state : :class:`MinimizeState` (optional, default: ``None``)
-        If provided, this will specify an exact point of execution from which
-        the algorithm will continue. The expected object is a
-        :class:`~graph_tool.community.NestedMinimizeState`
-        instance which will be passed to the callback of the ``checkpoint``
-        option above, and  can be stored by :mod:`pickle`.
     verbose : ``bool`` (optional, default: ``False``)
         If ``True``, verbose information is displayed.
 
@@ -1454,10 +1324,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
     dl_ent = kwargs.get("dl_ent", False)
     ignore_degrees = kwargs.get("ignore_degrees", None)
 
-    if minimize_state is None:
-        minimize_state = NestedMinimizeState()
-
-    if overlap and nonoverlap_init and minimize_state.init and bs is None:
+    if overlap and nonoverlap_init and bs is None:
         if verbose:
             print("Non-overlapping initialization...")
         state = minimize_nested_blockmodel_dl(g, Bs=Bs, bs=bs,
@@ -1480,8 +1347,6 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                               sequential=sequential,
                                               parallel=parallel,
                                               verbose=verbose,
-                                              checkpoint=checkpoint,
-                                              minimize_state=minimize_state,
                                               dl_ent=dl_ent)
         if overlap != "full":
             if clabel is not None:
@@ -1508,9 +1373,6 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
         max_B = Bs[0]
         max_b = bs[0].copy()
 
-        minimize_state.clear()
-        minimize_state.init = False
-
         if verbose:
             print("Overlapping minimization starting from:")
             state.print_summary()
@@ -1518,9 +1380,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
         del state
 
     if Bs is None:
-        if minimize_state is not None and len(minimize_state.bs) > 0:
-            Bs = [ba.max() + 1 for ba in minimize_state.bs]
-        elif max_B is not None:
+        if max_B is not None:
             Bs = [max_B, 1]
         else:
             Bs = [1]
@@ -1530,6 +1390,7 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
 
     if Bs[-1] > 1:
         Bs += [1]
+
 
     if bs is None:
         state = init_nested_state(g, Bs=Bs, ec=ec, layers=layers,
@@ -1545,18 +1406,12 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                                   dense=dense, multigraph=multigraph,
                                   epsilon=epsilon, sparse_thresh=sparse_thresh,
                                   sequential=sequential, parallel=parallel,
-                                  checkpoint=checkpoint,
-                                  minimize_state=minimize_state, dl_ent=dl_ent,
-                                  ignore_degrees=ignore_degrees)
+                                  dl_ent=dl_ent, ignore_degrees=ignore_degrees)
     else:
         state = NestedBlockState(g, ec=ec, layers=layers, bs=bs,
                                  deg_corr=deg_corr, overlap=overlap,
                                  eweight=eweight, vweight=vweight,
                                  clabel=clabel, ignore_degrees=ignore_degrees)
-
-    minimize_state.sync(state)
-
-    chkp = get_checkpoint_wrap(checkpoint, state, minimize_state, dl_ent)
 
     dS = nested_tree_sweep(state, min_B=min_B, max_B=max_B, max_b=max_b,
                            verbose=verbose, random_bisection=random_bisection,
@@ -1565,7 +1420,6 @@ def minimize_nested_blockmodel_dl(g, Bs=None, bs=None, min_B=None, max_B=None,
                            epsilon=epsilon, dense=dense, dl=dl,
                            multigraph=multigraph, sequential=sequential,
                            parallel=parallel, sparse_thresh=sparse_thresh,
-                           checkpoint=chkp, minimize_state=minimize_state,
                            frozen_levels=frozen_levels, dl_ent=dl_ent,
                            confine_layers=confine_layers,
                            propagate_clabel=propagate_clabel)

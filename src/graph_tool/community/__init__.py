@@ -43,7 +43,6 @@ Summary
    OverlapBlockState
    CovariateBlockState
    mcmc_sweep
-   MinimizeState
    multilevel_minimize
    collect_vertex_marginals
    collect_edge_marginals
@@ -66,7 +65,6 @@ Summary
 
    minimize_nested_blockmodel_dl
    NestedBlockState
-   NestedMinimizeState
    init_nested_state
    nested_mcmc_sweep
    nested_tree_sweep
@@ -105,7 +103,6 @@ __all__ = ["minimize_blockmodel_dl",
            "OverlapBlockState",
            "CovariateBlockState",
            "mcmc_sweep",
-           "MinimizeState",
            "multilevel_minimize",
            "collect_edge_marginals",
            "collect_vertex_marginals",
@@ -117,7 +114,6 @@ __all__ = ["minimize_blockmodel_dl",
            "condensation_graph",
            "minimize_nested_blockmodel_dl",
            "NestedBlockState",
-           "NestedMinimizeState",
            "init_nested_state",
            "nested_mcmc_sweep",
            "nested_tree_sweep",
@@ -128,14 +124,13 @@ __all__ = ["minimize_blockmodel_dl",
 
 from . blockmodel import minimize_blockmodel_dl, BlockState, mcmc_sweep, \
     multilevel_minimize, model_entropy, get_max_B, get_akc, condensation_graph, \
-    collect_edge_marginals, collect_vertex_marginals, bethe_entropy, mf_entropy, \
-    MinimizeState
+    collect_edge_marginals, collect_vertex_marginals, bethe_entropy, mf_entropy
 
 from . overlap_blockmodel import OverlapBlockState, get_block_edge_gradient
 
 from . covariate_blockmodel import CovariateBlockState
 
-from . nested_blockmodel import NestedBlockState, NestedMinimizeState, \
+from . nested_blockmodel import NestedBlockState, \
     init_nested_state, nested_mcmc_sweep, nested_tree_sweep, \
     minimize_nested_blockmodel_dl, get_hierarchy_tree
 

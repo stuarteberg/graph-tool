@@ -7,7 +7,6 @@
     .. autoclass:: OverlapBlockState
     .. autoclass:: CovariateBlockState
     .. autofunction:: mcmc_sweep
-    .. autoclass:: MinimizeState
     .. autofunction:: multilevel_minimize
     .. autofunction:: collect_edge_marginals
     .. autofunction:: collect_vertex_marginals
@@ -19,7 +18,6 @@
     .. autofunction:: condensation_graph
     .. autofunction:: minimize_nested_blockmodel_dl
     .. autoclass:: NestedBlockState
-    .. autoclass:: NestedMinimizeState
     .. autofunction:: init_nested_state
     .. autofunction:: nested_mcmc_sweep
     .. autofunction:: nested_tree_sweep
