@@ -683,7 +683,7 @@ def replace_level(l, state, min_B=None, max_B=None, max_b=None, nsweeps=10,
     if l > 0 or max_B is None:
         max_B = bstate.N
 
-    min_B = max(min_B, state.clabel.fa.max() + 1)
+    min_B = min(max(min_B, state.clabel.fa.max() + 1), bstate.N)
 
     # constraint partitions not to invalidate upper layers
     if l < len(state.levels) - 1:
