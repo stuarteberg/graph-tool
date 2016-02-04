@@ -1087,7 +1087,7 @@ def init_nested_state(g, Bs, ec=None, deg_corr=True, overlap=False,
                                                        deg_corr=deg_corr == "full")[0]
 
         if B == 1:
-            bstate = bstate.copy(b=zeros(bstate.N, dtype="int"))
+            bstate = bstate.copy(b=zeros(bstate.g.num_vertices(), dtype="int"))
         else:
             bstate = multilevel_minimize(bstate, B, nsweeps=nsweeps,
                                          epsilon=epsilon,
