@@ -39,7 +39,7 @@ graph-tool follows the standard GNU installation procedure.  Please
 consult the INSTALL file in this distribution for more detailed
 instructions.
 
-Note that recent versions of GCC (4.8 or above) or clang, with good
+Note that recent versions of GCC (4.9 or above) or clang, with good
 C++14 support, are required for compilation. Due to the heavy use of
 template metaprogramming techniques, **relatively large amounts of RAM
 are required during compilation**. You have been warned!  For this
@@ -64,5 +64,3 @@ please submit a ticket through the provided interface.
 
 --
 Tiago de Paula Peixoto <tiago@skewed.de>
-
-[![build status](https://git.skewed.de/ci/projects/1/status.png?ref=master)](https://git.skewed.de/ci/projects/1)
