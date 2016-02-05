@@ -1278,7 +1278,7 @@ def get_bb(g, pos, size, pen_width, size_scale=1, text=None, font_family=None,
                 size[:] = size[i]
                 break
     sl = label_self_loops(g)
-    slm = sl.fa.max() * 0.75
+    slm = sl.fa.max() * 0.75 if g.num_edges() > 0 else 0
     delta = (size * size_scale * (slm + 1)) / 2 + pen_width * 2
     x_range = [pos_x.fa.min(), pos_x.fa.max()]
     y_range = [pos_y.fa.min(), pos_y.fa.max()]
