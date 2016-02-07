@@ -131,6 +131,7 @@ AC_ARG_ENABLE([visibility], [AS_HELP_STRING([--disable-visibility],[disable symb
 
 [USING_OPENMP=yes]
 [OPENMP_LDFLAGS=""]
+AC_DEFINE([OPENMP_MIN_THRESH], 300, [default minimum number of vertices for parallel loops])
 AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
 AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--enable-openmp],[enable openmp [default=disabled] ])],
         if test $enableval = yes; then

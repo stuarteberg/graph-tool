@@ -177,6 +177,62 @@ void graph_copy(const GraphOrig& g, GraphTarget& gt)
         add_edge(vmap[index[source(*e, g)]], vmap[index[target(*e, g)]], gt);
 }
 
+
+//
+// Parallel loops
+// ==============
+
+template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_vertex_loop(const Graph& g, F&& f)
+{
+    size_t i, N = num_vertices(g);
+    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
+        if (N > thres)
+    for (i = 0; i < N; ++i)
+    {
+        auto v = vertex(i, g);
+        if (!is_valid_vertex(v, g))
+            continue;
+        f(v);
+    }
+}
+
+template <class Graph>
+const auto& get_dir(const Graph& g, std::true_type)
+{ return g; }
+
+template <class Graph>
+const auto& get_dir(const Graph& g, std::false_type)
+{ return g.original_graph(); }
+
+template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_edge_loop(const Graph& g, F&& f)
+{
+    auto& u = get_dir(g, typename is_directed::apply<Graph>::type());
+    typedef typename std::remove_const
+        <typename std::remove_reference<decltype(u)>::type>::type graph_t;
+    static_assert(is_directed::apply<graph_t>::type::value,
+                  "graph must be directed at this point");
+    auto dispatch =
+        [&](auto v)
+        {
+             for (auto e : out_edges_range(v, u))
+                 f(e);
+        };
+    typedef typename std::remove_reference<decltype(dispatch)>::type dispatch_t;
+    parallel_vertex_loop<graph_t, dispatch_t&, thres>(u, dispatch);
+}
+
+template <class Container, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_loop(Container& v, F&& f)
+{
+    size_t i, N = v.size();
+    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
+        if (N > thres)
+    for (i = 0; i < N; ++i)
+        f(v[i]);
+}
+
 } // namespace graph_tool
 
 // some additional functions for filtered graphs, which don't exist by default
@@ -584,6 +640,5 @@ struct hash<vector<Value, Allocator>>
 };
 
 }
-
 
 #endif // GRAPH_UTIL_HH
