@@ -105,6 +105,8 @@ struct all_any_cast
     {
         try
         {
+            static_assert(sizeof...(Idx) == N,
+                          "all_any_cast: wrong number of arguments");
             _a(try_any_cast<Ts>(*_args[Idx])...);
             throw stop_iteration();
         }
@@ -200,6 +202,19 @@ bool nested_for_each(Action a, Args&&... args)
         return true;
     }
 }
+
+template <class TR1, class... TRS, class Action>
+void nested_for_each(Action a)
+{
+    try
+    {
+        typedef typename to_tuple<TR1>::type tr_tuple;
+        typedef inner_loop<Action, std::tuple<>, TRS...> inner_loop_t;
+        for_each_variadic<inner_loop_t, tr_tuple>()(inner_loop_t(a));
+    }
+    catch (stop_iteration&) {}
+}
+
 
 } // mpl namespace
 } // boost namespace
