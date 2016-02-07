@@ -193,6 +193,32 @@ private:
     bool _edge_filter_active;
 };
 
+// convenience metafunctions to get property map types
+
+template <class ValType>
+struct eprop_map_t
+{
+    typedef typename property_map_type::apply<ValType,
+                                              GraphInterface::edge_index_map_t>::type
+        type;
+};
+
+template <class ValType>
+struct vprop_map_t
+{
+    typedef typename property_map_type::apply<ValType,
+                                              GraphInterface::vertex_index_map_t>::type
+        type;
+};
+
+template <class ValType>
+struct gprop_map_t
+{
+    typedef typename property_map_type::apply<ValType,
+                                              GraphInterface::graph_index_map_t>::type
+        type;
+};
+
 
 } //namespace graph_tool
 

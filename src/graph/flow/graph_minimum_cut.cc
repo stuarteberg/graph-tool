@@ -76,9 +76,7 @@ struct do_get_residual_graph
 void get_residual_graph(GraphInterface& gi, boost::any capacity,
                         boost::any res, boost::any oaugment)
 {
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<uint8_t>::type emap_t;
     emap_t augment = boost::any_cast<emap_t>(oaugment);
     run_action<>()
         (gi, std::bind(do_get_residual_graph(), std::placeholders::_1,

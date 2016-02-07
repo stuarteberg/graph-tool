@@ -294,15 +294,9 @@ do_move_sweep_overlap(GraphInterface& gi, GraphInterface& bgi, boost::any& emat,
                       overlap_partition_stats_t& partition_stats, bool verbose,
                       rng_t& rng)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        vemap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<int32_t>::type vemap_t;
     emap_t mrs = any_cast<emap_t>(omrs);
     vmap_t mrp = any_cast<vmap_t>(omrp);
     vmap_t mrm = any_cast<vmap_t>(omrm);
@@ -350,15 +344,9 @@ do_get_overlap_stats(GraphInterface& gi, boost::any ob,
                      boost::any ohalf_edges, boost::any onode_index,
                      size_t NN, size_t B)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
-    typedef property_map_type::apply<vector<int64_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int64_t>::type vimap_t;
+    typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
 
     overlap_stats_t overlap_stats;
 
@@ -389,12 +377,8 @@ do_get_overlap_partition_stats(GraphInterface& gi, boost::any ob,
                                boost::any aeweight, size_t N, size_t B,
                                bool edges_dl, overlap_stats_t& overlap_stats)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
 
     overlap_partition_stats_t partition_stats;
 
@@ -454,21 +438,11 @@ void do_get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                        boost::any ob, boost::any onode_index,
                        boost::any ohalf_edges, boost::any oeindex)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
-    typedef property_map_type::apply<vector<int64_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::edge_index_map_t>::type
-        evmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int64_t>::type vimap_t;
+    typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
+    typedef eprop_map_t<vector<int32_t>>::type evmap_t;
+    typedef eprop_map_t<int64_t>::type emap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
@@ -520,15 +494,9 @@ struct get_be_overlap
 void do_get_be_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                        boost::any ob, boost::any onode_index)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::edge_index_map_t>::type
-        evmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int64_t>::type vimap_t;
+    typedef eprop_map_t<vector<int32_t>>::type evmap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
@@ -559,12 +527,8 @@ struct get_be_from_b_overlap
 
 void do_get_be_from_b_overlap(GraphInterface& gi, boost::any obe, boost::any ob)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::edge_index_map_t>::type
-        evmap_t;
+    typedef vprop_map_t<int32_t>::type    vmap_t;
+    typedef eprop_map_t<vector<int32_t>>::type evmap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
@@ -646,15 +610,9 @@ void do_get_bv_overlap(GraphInterface& gi, boost::any ob,  boost::any onode_inde
                        boost::any obv, boost::any obc_in, boost::any obc_out,
                        boost::any obc_total)
 {
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int64_t>::type vimap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     vimap_t node_index = any_cast<vimap_t>(onode_index);
@@ -683,12 +641,8 @@ struct get_wr_overlap
 void do_get_wr_overlap(GraphInterface& gi, boost::any obv,
                        boost::any owr)
 {
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
 
     vvmap_t bv = any_cast<vvmap_t>(obv);
     vmap_t wr = any_cast<vmap_t>(owr);
@@ -716,12 +670,8 @@ struct get_nodeset_overlap
 void do_get_nodeset_overlap(GraphInterface& gi, boost::any onode_index,
                             boost::any ohalf_edges)
 {
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int64_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int64_t>::type vmap_t;
+    typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
 
     vmap_t node_index = any_cast<vmap_t>(onode_index);
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
@@ -772,12 +722,8 @@ void do_get_augmented_overlap(GraphInterface& gi, boost::any ob,
                               boost::any onode_index, boost::any obr_map,
                               vector<int32_t>& br_b, vector<int32_t>& br_ni)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<int64_t>::type vimap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     vimap_t node_index = any_cast<vimap_t>(onode_index);
@@ -809,12 +755,8 @@ struct get_overlap_split
 
 void do_get_overlap_split(GraphInterface& gi, boost::any obv, boost::any ob)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
 
     vvmap_t bv = any_cast<vvmap_t>(obv);
     vmap_t b = any_cast<vmap_t>(ob);
@@ -848,12 +790,8 @@ struct get_maj_overlap
 void do_get_maj_overlap(GraphInterface& gi, boost::any obv,
                         boost::any obc_total, boost::any ob)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     vvmap_t bv = any_cast<vvmap_t>(obv);

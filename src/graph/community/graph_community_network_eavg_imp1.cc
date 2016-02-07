@@ -34,7 +34,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
-typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type ecount_map_t;
+typedef eprop_map_t<int32_t>::type ecount_map_t;
 
 struct get_edge_sum_dispatch
 {
@@ -62,8 +62,7 @@ void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                                      boost::mpl::end<writable_edge_scalar_properties>::type,
                                      edge_scalar_vector_properties>::type eprops_temp;
     typedef boost::mpl::push_back<eprops_temp,
-                                  property_map_type::apply<boost::python::object,
-                                                           GraphInterface::edge_index_map_t>::type>::type
+                                  eprop_map_t<boost::python::object>::type >::type
         eprops_t;
 
     run_action<graph_tool::detail::always_directed>()

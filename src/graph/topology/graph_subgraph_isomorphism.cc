@@ -191,14 +191,12 @@ subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
     //                        UnityPropertyMap<bool,GraphInterface::edge_t> >
     //     ::type edge_props_t;
 
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type vlabel_t;
+    typedef vprop_map_t<int64_t>::type vlabel_t;
     typedef mpl::vector2<typename vlabel_t::unchecked_t,
                          UnityPropertyMap<bool,
                                           GraphInterface::vertex_t> > vertex_props_t;
 
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::edge_index_map_t>::type elabel_t;
+    typedef eprop_map_t<int64_t>::type elabel_t;
     typedef mpl::vector2<typename elabel_t::unchecked_t,
                          UnityPropertyMap<bool,
                                           GraphInterface::edge_t> > edge_props_t;

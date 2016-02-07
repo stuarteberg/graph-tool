@@ -43,9 +43,7 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
     typedef mpl::push_back<edge_scalar_properties, eweight_map_t>::type
         edge_props_t;
 
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        group_map_t;
+    typedef vprop_map_t<int32_t>::type group_map_t;
 
     double C = python::extract<double>(spring_parms[0]);
     double K = python::extract<double>(spring_parms[1]);
@@ -61,9 +59,7 @@ void sfdp_layout(GraphInterface& g, boost::any pos, boost::any vweight,
     if(eweight.empty())
         eweight = eweight_map_t();
 
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        pin_map_t;
+    typedef vprop_map_t<uint8_t>::type pin_map_t;
     pin_map_t pin_map = any_cast<pin_map_t>(pin);
 
     run_action<graph_tool::detail::never_directed>()

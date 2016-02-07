@@ -238,12 +238,8 @@ struct do_get_cts
 void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
              boost::any obeta, boost::any octs, bool is_tree, size_t max_depth)
 {
-    typedef property_map_type::apply<vector<double>,
-                                     GraphInterface::edge_index_map_t>::type
-        eprop_t;
-    typedef property_map_type::apply<double,
-                                     GraphInterface::edge_index_map_t>::type
-        beprop_t;
+    typedef eprop_map_t<vector<double>>::type eprop_t;
+    typedef eprop_map_t<double>::type beprop_t;
 
     eprop_t cts = boost::any_cast<eprop_t>(octs);
     beprop_t beta = boost::any_cast<beprop_t>(obeta);

@@ -117,12 +117,8 @@ void clear_lgamma()
 double do_get_ent(GraphInterface& gi, boost::any omrs, boost::any omrp,
                   boost::any omrm, boost::any owr, bool deg_corr)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     emap_t mrs = any_cast<emap_t>(omrs);
     vmap_t mrp = any_cast<vmap_t>(omrp);
     vmap_t mrm = any_cast<vmap_t>(omrm);
@@ -139,12 +135,8 @@ double do_get_ent(GraphInterface& gi, boost::any omrs, boost::any omrp,
 double do_get_ent_dense(GraphInterface& gi, boost::any omrs, boost::any owr,
                         bool multigraph)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     emap_t mrs = any_cast<emap_t>(omrs);
     vmap_t wr = any_cast<vmap_t>(owr);
 
@@ -157,9 +149,7 @@ double do_get_ent_dense(GraphInterface& gi, boost::any omrs, boost::any owr,
 
 double do_get_ent_parallel(GraphInterface& gi, boost::any oweight)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     emap_t weight = any_cast<emap_t>(oweight);
 
     double S = 0;
@@ -174,9 +164,7 @@ boost::any do_create_emat(GraphInterface& gi, boost::any ob,
                           GraphInterface& bgi)
 {
     boost::any emat;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
     if (gi.get_directed())
@@ -201,9 +189,7 @@ boost::any do_create_ehash(GraphInterface& gi, boost::any ob,
                            GraphInterface& bgi, rng_t& rng)
 {
     boost::any emat;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
     if (gi.get_directed())
@@ -458,15 +444,9 @@ boost::python::object do_move_sweep(GraphInterface& gi, GraphInterface& bgi,
                                     partition_stats_t& partition_stats,
                                     bool verbose, rng_t& rng)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        vemap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<int32_t>::type vemap_t;
     emap_t mrs = any_cast<emap_t>(omrs);
     vmap_t mrp = any_cast<vmap_t>(omrp);
     vmap_t mrm = any_cast<vmap_t>(omrm);
@@ -514,15 +494,9 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
                             boost::any oesrcpos, boost::any oetgtpos,
                             bool weighted, bool empty)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        vemap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<int32_t>::type vemap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
     vemap_t esrcpos = any_cast<vemap_t>(oesrcpos);
@@ -543,9 +517,7 @@ boost::any do_build_egroups(GraphInterface& gi, GraphInterface& bgi,
 boost::any do_init_neighbour_sampler(GraphInterface& gi, boost::any oeweights,
                                      bool self_loops, bool empty)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     emap_t eweights = any_cast<emap_t>(oeweights);
 
     boost::any osampler;
@@ -567,12 +539,8 @@ struct collect_edge_marginals_dispatch
 void do_collect_edge_marginals(GraphInterface& gi, GraphInterface& gbi,
                                size_t B, boost::any ob, boost::any op)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<vector<int32_t>>::type emap_t;
     vmap_t b = any_cast<vmap_t>(ob);
     emap_t p = any_cast<emap_t>(op);
 
@@ -586,12 +554,8 @@ void do_collect_edge_marginals(GraphInterface& gi, GraphInterface& gbi,
 boost::python::tuple do_bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
                                       boost::any opv)
 {
-    typedef property_map_type::apply<vector<double>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<vector<double>>::type vmap_t;
+    typedef eprop_map_t<vector<int32_t>>::type emap_t;
     emap_t p = any_cast<emap_t>(op);
     vmap_t pv = any_cast<vmap_t>(opv);
 
@@ -618,9 +582,7 @@ struct collect_vertex_marginals_dispatch
 void do_collect_vertex_marginals(GraphInterface& gi, boost::any ob,
                                  boost::any op)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
     vmap_t b = any_cast<vmap_t>(ob);
 
     run_action<graph_tool::all_graph_views, boost::mpl::true_>()
@@ -682,15 +644,9 @@ double do_get_deg_entropy_term(GraphInterface& gi, boost::any ob,
                                overlap_stats_t& overlap_stats, size_t N,
                                boost::any aeweight, boost::any aignore_degrees)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vimap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef vprop_map_t<uint8_t>::type vimap_t;
 
     double S = 0;
 
@@ -792,15 +748,9 @@ do_get_partition_stats(GraphInterface& gi, boost::any ob, boost::any aeweight,
                        size_t N, size_t B, bool edges_dl,
                        boost::any aignore_degrees)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        mvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef vprop_map_t<uint8_t>::type mvmap_t;
 
     partition_stats_t partition_stats;
 

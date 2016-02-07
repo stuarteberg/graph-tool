@@ -301,9 +301,7 @@ struct get_degree_map
         typedef typename detail::get_weight_type<Weight>::type weight_t;
         typedef typename mpl::if_<std::is_same<weight_t, size_t>, int32_t, weight_t>::type deg_t;
 
-        typedef typename property_map_type::apply<deg_t,
-                                                  GraphInterface::vertex_index_map_t>::type
-            map_t;
+        typedef typename vprop_map_t<deg_t>::type map_t;
 
         map_t cdeg_map(get(vertex_index, g));
         typename map_t::unchecked_t deg_map = cdeg_map.get_unchecked(num_vertices(g));

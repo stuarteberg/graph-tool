@@ -538,15 +538,9 @@ boost::python::object do_cov_move_sweep(GraphInterface& gi,
                                         boost::python::object& ooverlap_stats,
                                         bool verbose, rng_t& rng)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
     auto mrs = from_any_list<emap_t>(omrs);
     auto mrp = from_any_list<vmap_t>(omrp);
     auto mrm = from_any_list<vmap_t>(omrm);
@@ -628,9 +622,7 @@ struct covariate_entropy
 
 double do_covariate_entropy(GraphInterface& gi, boost::any omrs)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     emap_t mrs = any_cast<emap_t>(omrs);
 
     double S = 0;
@@ -649,9 +641,7 @@ double do_covariate_entropy(GraphInterface& gi, boost::any omrs)
 
 void do_ec_hist(GraphInterface& gi, boost::any& aevc, boost::any& aec)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
     typename emap_t::unchecked_t ec =
         any_cast<emap_t&>(aec).get_unchecked(gi.get_edge_index_range());
     run_action<>()(gi, std::bind<void>(ec_hist(), std::placeholders::_1,
@@ -670,15 +660,9 @@ void do_split_graph(GraphInterface& gi, boost::any& aec, boost::any& ab,
                     boost::python::object& obrmap,
                     boost::python::object& ouvmap)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
-    typedef property_map_type::apply<vector<int32_t>,
-                                     GraphInterface::vertex_index_map_t>::type
-        vvmap_t;
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+    typedef eprop_map_t<int32_t>::type emap_t;
 
     emap_t& ec = any_cast<emap_t&>(aec);
     vmap_t& b = any_cast<vmap_t&>(ab);

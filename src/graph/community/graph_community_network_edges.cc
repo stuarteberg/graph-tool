@@ -34,7 +34,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::edge_t> no_eweight_map_t;
-typedef property_map_type::apply<int32_t,GraphInterface::edge_index_map_t>::type::unchecked_t ecount_map_t;
+typedef eprop_map_t<int32_t>::type ::unchecked_t ecount_map_t;
 
 struct get_community_network_edges_dispatch
 {

@@ -37,14 +37,11 @@ class overlap_stats_t
 public:
     typedef pair<size_t, size_t> deg_t;
 
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type::unchecked_t
+    typedef vprop_map_t<int32_t>::type ::unchecked_t
         vmap_t;
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type::unchecked_t
+    typedef vprop_map_t<int64_t>::type ::unchecked_t
         vimap_t;
-    typedef property_map_type::apply<vector<int64_t>,
-                                     GraphInterface::vertex_index_map_t>::type::unchecked_t
+    typedef vprop_map_t<vector<int64_t>>::type ::unchecked_t
         vvmap_t;
 
     overlap_stats_t(): _enabled(false) {}

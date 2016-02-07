@@ -136,9 +136,7 @@ struct reindex_vertex_property
 void GraphInterface::re_index_vertex_property(boost::any map,
                                               boost::any aold_index) const
 {
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        index_prop_t;
+    typedef vprop_map_t<int64_t>::type index_prop_t;
     index_prop_t old_index = any_cast<index_prop_t>(aold_index);
 
     bool found = false;

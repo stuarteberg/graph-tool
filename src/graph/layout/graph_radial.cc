@@ -37,9 +37,7 @@ struct do_get_radial
                     WeightMap weight, size_t root, bool weighted, double r) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-        typedef typename property_map_type::apply<typename property_traits<WeightMap>::value_type,
-                                                  GraphInterface::vertex_index_map_t>::type
-            vcount_t;
+        typedef typename vprop_map_t<typename property_traits<WeightMap>::value_type>::type vcount_t;
         typename vcount_t::unchecked_t count(get(vertex_index, g), num_vertices(g));
 
         if (!weighted)
@@ -59,8 +57,7 @@ struct do_get_radial
                 }
             }
 
-            typedef property_map_type::apply<uint8_t, GraphInterface::vertex_index_map_t>::type
-                vmark_t;
+            typedef vprop_map_t<uint8_t>::type vmark_t;
             vmark_t::unchecked_t mark(get(vertex_index, g), num_vertices(g));
 
             while (!q.empty())
@@ -115,8 +112,7 @@ struct do_get_radial
         }
 
 
-        typedef property_map_type::apply<double, GraphInterface::vertex_index_map_t>::type
-            vangle_t;
+        typedef vprop_map_t<double>::type vangle_t;
         vangle_t::unchecked_t angle(get(vertex_index, g), num_vertices(g));
 
         double d_sum = 0;
@@ -159,15 +155,11 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
                 boost::any oorder, boost::any oweight, size_t root,
                 bool weighted, double r)
 {
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        vmap_t;
+    typedef vprop_map_t<int32_t>::type vmap_t;
 
     vmap_t levels = boost::any_cast<vmap_t>(olevels);
 
-    typedef property_map_type::apply<double,
-                                     GraphInterface::vertex_index_map_t>::type
-        wmap_t;
+    typedef vprop_map_t<double>::type wmap_t;
 
     wmap_t weight = boost::any_cast<wmap_t>(oweight);
 

@@ -751,10 +751,7 @@ struct get_emat_t
     {
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typedef multi_array<edge_t, 2> mat_t;
-        typedef typename property_map_type
-            ::apply<edge_t,
-                    typename property_map<Graph,
-                                          edge_index_t>::type>::type bedge_t;
+        typedef typename eprop_map_t<edge_t>::type bedge_t;
         typedef struct
         {
             mat_t mat;
@@ -859,10 +856,7 @@ struct get_ehash_t
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typedef gt_hash_map<vertex_t, edge_t, perfect_hash_t<vertex_t>> ehash_t;
         typedef std::vector<ehash_t> vhash_t;
-        typedef typename property_map_type
-            ::apply<edge_t,
-                    typename property_map<Graph,
-                                          edge_index_t>::type>::type bedge_t;
+        typedef typename eprop_map_t<edge_t>::type bedge_t;
         class type
         {
         private:

@@ -134,9 +134,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     PythonFuncWrap corr(corr_prob);
     size_t pcount = 0;
 
-    typedef property_map_type::apply<uint8_t,
-                                     GraphInterface::edge_index_map_t>::type
-        emap_t;
+    typedef eprop_map_t<uint8_t>::type emap_t;
 
     emap_t::unchecked_t pin =
         any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());

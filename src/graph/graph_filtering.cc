@@ -197,9 +197,7 @@ void GraphInterface::purge_vertices(boost::any aold_index)
     if (!is_vertex_filter_active())
         return;
 
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        index_prop_t;
+    typedef vprop_map_t<int32_t>::type index_prop_t;
     index_prop_t old_index = any_cast<index_prop_t>(aold_index);
 
     MaskFilter<vertex_filter_t> filter(_vertex_filter_map,

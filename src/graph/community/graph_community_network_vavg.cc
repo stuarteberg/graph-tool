@@ -34,7 +34,7 @@ using namespace boost;
 using namespace graph_tool;
 
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> no_vweight_map_t;
-typedef property_map_type::apply<int32_t,GraphInterface::vertex_index_map_t>::type vcount_map_t;
+typedef vprop_map_t<int32_t>::type vcount_map_t;
 
 
 struct get_weighted_vertex_property_dispatch
@@ -84,8 +84,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                                      boost::mpl::end<writable_vertex_scalar_properties>::type,
                                      vertex_scalar_vector_properties>::type vprops_temp;
     typedef boost::mpl::push_back<vprops_temp,
-                                  property_map_type::apply<boost::python::object,
-                                                           GraphInterface::vertex_index_map_t>::type>::type
+                                  vprop_map_t<boost::python::object>::type >::type
         vprops_t;
 
     for(int i = 0; i < boost::python::len(avprops); ++i)

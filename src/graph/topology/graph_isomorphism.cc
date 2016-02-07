@@ -78,14 +78,10 @@ bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
 {
     bool result;
 
-    typedef property_map_type::apply<int32_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        iso_map_t;
+    typedef vprop_map_t<int32_t>::type iso_map_t;
     auto iso_map = any_cast<iso_map_t>(aiso_map);
 
-    typedef property_map_type::apply<int64_t,
-                                     GraphInterface::vertex_index_map_t>::type
-        inv_map_t;
+    typedef vprop_map_t<int64_t>::type inv_map_t;
     auto inv_map1 = any_cast<inv_map_t>(ainv_map1);
     auto inv_map2 = any_cast<inv_map_t>(ainv_map2);
 

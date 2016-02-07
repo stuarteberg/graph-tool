@@ -27,13 +27,9 @@
 using namespace graph_tool;
 using namespace boost;
 
-typedef property_map_type::apply<int64_t,
-                                 GraphInterface::vertex_index_map_t>::type
-    vprop_t;
+typedef vprop_map_t<int64_t>::type vprop_t;
 
-typedef property_map_type::apply<GraphInterface::edge_t,
-                                 GraphInterface::edge_index_map_t>::type
-    eprop_t;
+typedef eprop_map_t<GraphInterface::edge_t>::type eprop_t;
 
 boost::python::tuple graph_union(GraphInterface& ugi, GraphInterface& gi,
                                  boost::any avprop)
