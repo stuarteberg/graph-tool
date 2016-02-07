@@ -41,18 +41,14 @@ struct get_pagerank
         RankMap deg(vertex_index, num_vertices(g));
 
         // init degs
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            put(deg, v, 0);
-            for (const auto& e : out_edges_range(v, g))
-                put(deg, v, get(deg, v) + get(weight, e));
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 put(deg, v, 0);
+                 for (e : out_edges_range(v, g))
+                     put(deg, v, get(deg, v) + get(weight, e));
+             });
 
         rank_type delta = epsilon + 1;
         rank_type d = damping;
@@ -60,7 +56,8 @@ struct get_pagerank
         while (delta >= epsilon)
         {
             delta = 0;
-            #pragma omp parallel for default(shared) private(i)     \
+            size_t i, N = num_vertices(g);
+            #pragma omp parallel for default(shared) private(i)                \
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
             {
@@ -90,15 +87,12 @@ struct get_pagerank
 
         if (iter % 2 != 0)
         {
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                put(rank, v, get(r_temp, v));
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     put(rank, v, get(r_temp, v));
+                 });
         }
     }
 };

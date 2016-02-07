@@ -52,30 +52,26 @@ struct get_katz
 
         t_type delta = epsilon + 1;
         size_t iter = 0;
-        int i, N = num_vertices(g);
         while (delta >= epsilon)
         {
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-
-                c_temp[v] = get(beta, v);
-                for (const auto& e : in_or_out_edges_range(v, g))
-                {
-                    typename graph_traits<Graph>::vertex_descriptor s;
-                    if (is_directed::apply<Graph>::type::value)
-                        s = source(e, g);
-                    else
-                        s = target(e, g);
-                    c_temp[v] += alpha * get(w, e) * c[s];
-                }
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     c_temp[v] = get(beta, v);
+                     for (const auto& e : in_or_out_edges_range(v, g))
+                     {
+                         typename graph_traits<Graph>::vertex_descriptor s;
+                         if (is_directed::apply<Graph>::type::value)
+                             s = source(e, g);
+                         else
+                             s = target(e, g);
+                         c_temp[v] += alpha * get(w, e) * c[s];
+                     }
+                 });
 
             delta = 0;
+            size_t i, N = num_vertices(g);
             #pragma omp parallel for default(shared) private(i) \
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
@@ -94,15 +90,7 @@ struct get_katz
 
         if (iter % 2 != 0)
         {
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                c_temp[v] = c[v];
-            }
+            parallel_vertex_loop(g, [&](auto v) {c_temp[v] = c[v];});
         }
     }
 };

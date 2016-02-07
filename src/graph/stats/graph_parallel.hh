@@ -36,53 +36,48 @@ struct label_parallel_edges
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typename property_map<Graph, edge_index_t>::type eidx = get(edge_index, g);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) \
-            if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 gt_hash_map<vertex_t, edge_t> vset;
+                 gt_hash_map<size_t, bool> self_loops;
 
-            gt_hash_map<vertex_t, edge_t> vset;
-            gt_hash_map<size_t, bool> self_loops;
+                 typename graph_traits<Graph>::out_edge_iterator e, e_end;
+                 for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                 {
+                     vertex_t u = target(*e, g);
 
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                vertex_t u = target(*e, g);
+                     // do not visit edges twice in undirected graphs
+                     if (!is_directed::apply<Graph>::type::value && u < v)
+                         continue;
 
-                // do not visit edges twice in undirected graphs
-                if (!is_directed::apply<Graph>::type::value && u < v)
-                    continue;
+                     if (u == v)
+                     {
+                         if (self_loops[eidx[*e]])
+                             continue;
+                         self_loops[eidx[*e]] = true;
+                     }
 
-                if (u == v)
-                {
-                    if (self_loops[eidx[*e]])
-                        continue;
-                    self_loops[eidx[*e]] = true;
-                }
-
-                auto iter = vset.find(u);
-                if (iter == vset.end())
-                {
-                    vset[u] = *e;
-                }
-                else
-                {
-                    if (mark_only)
-                    {
-                        parallel[*e] = true;
-                    }
-                    else
-                    {
-                        parallel[*e] = parallel[iter->second] + 1;
-                        vset[u] = *e;
-                    }
-                }
-            }
-        }
+                     auto iter = vset.find(u);
+                     if (iter == vset.end())
+                     {
+                         vset[u] = *e;
+                     }
+                     else
+                     {
+                         if (mark_only)
+                         {
+                             parallel[*e] = true;
+                         }
+                         else
+                         {
+                             parallel[*e] = parallel[iter->second] + 1;
+                             vset[u] = *e;
+                         }
+                     }
+                 }
+             });
     }
 };
 
@@ -92,24 +87,19 @@ struct label_self_loops
     template <class Graph, class SelfMap>
     void operator()(const Graph& g, SelfMap self, bool mark_only) const
     {
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
-            size_t n = 1;
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                if (target(*e, g) == v)
-                    put(self, *e, mark_only ? 1 : n++);
-                else
-                    put(self, *e, 0);
-            }
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 size_t n = 1;
+                 for (auto e : out_edges_range(v, g))
+                 {
+                     if (target(e, g) == v)
+                         put(self, e, mark_only ? 1 : n++);
+                     else
+                    put(self, e, 0);
+                 }
+             });
     }
 };
 
@@ -119,22 +109,14 @@ struct remove_labeled_edges
     template <class Graph, class LabelMap>
     void operator()(Graph& g, LabelMap label) const
     {
-        int i, N = num_vertices(g);
-
-        for (i = 0; i < N; ++i)
+        for (auto v : vertices_range(g))
         {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
             typedef typename graph_traits<Graph>::edge_descriptor edge_t;
             vector<edge_t> r_edges;
-
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+            for (auto e : out_edges_range(v, g))
             {
-                if (label[*e] > 0)
-                    r_edges.push_back(*e);
+                if (label[e] > 0)
+                    r_edges.push_back(e);
             }
             for (size_t j = 0; j < r_edges.size(); ++j)
                 remove_edge(r_edges[j], g);

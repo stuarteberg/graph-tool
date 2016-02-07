@@ -67,47 +67,46 @@ struct get_closeness
 
         get_vertex_dists_t get_vertex_dists;
         size_t HN = HardNumVertices()(g);
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            vertex_t v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 unchecked_vector_property_map<val_type,VertexIndex>
+                     dist_map(vertex_index, num_vertices(g));
 
-            unchecked_vector_property_map<val_type,VertexIndex>
-                dist_map(vertex_index, num_vertices(g));
+                 for (auto u : vertices_range(g))
+                     dist_map[u] = numeric_limits<val_type>::max();
 
-            for (auto u : vertices_range(g))
-                dist_map[u] = numeric_limits<val_type>::max();
+                 dist_map[v] = 0;
 
-            dist_map[v] = 0;
+                 size_t comp_size = 0;
+                 get_vertex_dists(g, v, vertex_index, dist_map, weights, comp_size);
 
-            size_t comp_size = 0;
-            get_vertex_dists(g, v, vertex_index, dist_map, weights, comp_size);
+                 closeness[v] = 0;
+                 for (auto v2 : vertices_range(g))
+                 {
+                     if (v2 != v && dist_map[v2] != numeric_limits<val_type>::max())
+                     {
+                         if (!harmonic)
+                             closeness[v] += dist_map[v2];
+                         else
+                             closeness[v] += 1. / dist_map[v2];
+                     }
+                 }
 
-            closeness[v] = 0;
-            for (auto v2 : vertices_range(g))
-            {
-                if (v2 != v && dist_map[v2] != numeric_limits<val_type>::max())
-                {
-                    if (!harmonic)
-                        closeness[v] += dist_map[v2];
-                    else
-                        closeness[v] += 1. / dist_map[v2];
-                }
-            }
-            if (!harmonic)
-                closeness[v] = 1 / closeness[v];
-            if (norm)
-            {
-                if (harmonic)
-                    closeness[v] /= HN - 1;
-                else
-                    closeness[v] *= comp_size - 1;
-            }
-         }
+                 if (!harmonic)
+                     closeness[v] = 1 / closeness[v];
+
+                 if (norm)
+                 {
+                     if (harmonic)
+                         closeness[v] /= HN - 1;
+                     else
+                         closeness[v] *= comp_size - 1;
+                 }
+             });
     }
+
 
     class component_djk_visitor: public boost::dijkstra_visitor<>
     {

@@ -46,63 +46,44 @@ struct get_eigentrust
         if (is_directed::apply<Graph>::type::value)
         {
             TrustMap c_temp(edge_index, c.get_storage().size());
-
-            int i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i)  \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-
-                c_type sum = 0;
-                for (const auto& e : out_edges_range(v, g))
-                    sum += get(c, e);
-
-                if (sum > 0)
-                {
-                    for (const auto& e : out_edges_range(v, g))
-                        put(c_temp, e, get(c, e) / sum);
-                }
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     c_type sum = 0;
+                     for (const auto& e : out_edges_range(v, g))
+                         sum += get(c, e);
+                     if (sum > 0)
+                     {
+                         for (const auto& e : out_edges_range(v, g))
+                             put(c_temp, e, get(c, e) / sum);
+                     }
+                 });
             c = c_temp;
         }
         else
         {
             c_sum.reserve(num_vertices(g));
-            int i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-
-                c_sum[v] = 0;
-                for (const auto& e : out_edges_range(v, g))
-                    c_sum[v] += c[e];
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     c_sum[v] = 0;
+                     for (const auto& e : out_edges_range(v, g))
+                         c_sum[v] += c[e];
+                 });
         }
 
         // init inferred trust t
-        int i, N = num_vertices(g), V = HardNumVertices()(g);
-        #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            t[v] = 1.0/V;
-        }
+        auto V = HardNumVertices()(g);
+        parallel_vertex_loop(g, [&](auto v) { t[v] = 1.0/V; });
 
         t_type delta = epslon + 1;
         iter = 0;
         while (delta >= epslon)
         {
             delta = 0;
+            size_t i, N = num_vertices(g);
             #pragma omp parallel for default(shared) private(i)     \
                 schedule(runtime) if (N > 100) reduction(+:delta)
             for (i = 0; i < N; ++i)
@@ -134,17 +115,7 @@ struct get_eigentrust
         }
 
         if (iter % 2 != 0)
-        {
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                t[v] = t_temp[v];
-            }
-        }
+            parallel_vertex_loop(g, [&](auto v) {t[v] = t_temp[v];});
     }
 };
 

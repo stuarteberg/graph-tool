@@ -141,25 +141,21 @@ struct copy_edge_property_dispatch
         auto p_src = psrc->get_unchecked(max_src_edge_index + 1);
         auto p_tgt = ptgt->get_unchecked(num_edges(tgt));
 
-        int i, N = num_vertices(src);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, src);
-            if (!is_valid_vertex(v, src))
-                continue;
-
-            for (auto e : out_edges_range(v, src))
-            {
-                auto s = source(e, src);
-                auto t = target(e, src);
-                if (!is_directed::apply<GraphSrc>::type::value && s > t)
-                    continue;
-                size_t ei = src_edge_index[e];
-                const auto& new_e = index_map[ei];
-                p_tgt[new_e] = p_src[e];
-            }
-        }
+        parallel_vertex_loop
+            (src,
+             [&](auto v)
+             {
+                 for (auto e : out_edges_range(v, src))
+                 {
+                     auto s = source(e, src);
+                     auto t = target(e, src);
+                     if (!is_directed::apply<GraphSrc>::type::value && s > t)
+                         continue;
+                     size_t ei = src_edge_index[e];
+                     const auto& new_e = index_map[ei];
+                     p_tgt[new_e] = p_src[e];
+                 }
+             });
     }
 };
 

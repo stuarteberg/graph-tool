@@ -54,11 +54,11 @@ struct get_eigenvector
         t_type delta = epsilon + 1;
         t_type prev_delta = delta + 1;
         size_t iter = 0;
-        int i, N = num_vertices(g);
         while (delta >= epsilon)
         {
             prev_delta = delta;
             norm = 0;
+            size_t i, N = num_vertices(g);
             #pragma omp parallel for default(shared) private(i) \
                 schedule(runtime) if (N > 100) reduction(+:norm)
             for (i = 0; i < N; ++i)
@@ -82,16 +82,14 @@ struct get_eigenvector
             norm = sqrt(norm);
 
             delta = 0;
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100) reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                c_temp[v] /= norm;
-                delta += abs(c_temp[v] - c[v]);
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     c_temp[v] /= norm;
+                     delta += abs(c_temp[v] - c[v]);
+                 });
+
             swap(c_temp, c);
 
             ++iter;
@@ -102,17 +100,7 @@ struct get_eigenvector
         }
 
         if (iter % 2 != 0)
-        {
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                c[v] = c_temp[v];
-            }
-        }
+            parallel_vertex_loop(g, [&](auto v) { c[v] = c_temp[v]; });
 
         eig = norm;
     }

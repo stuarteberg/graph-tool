@@ -103,17 +103,15 @@ struct get_trust_transitivity
         typedef typename
             property_traits<InferredTrustMap>::value_type::value_type t_type;
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            vertex_t v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            t[v].resize((source == -1 && target == -1) ? N : 1);
-        }
+        size_t i, N = (target == -1) ? num_vertices(g) : target + 1;
 
-        N = (target == -1) ? num_vertices(g) : target + 1;
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 t[v].resize((source == -1 && target == -1) ? N : 1);
+             });
+
         #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
         for (i = (target == -1) ? 0 : target; i < N; ++i)
         {
@@ -170,13 +168,11 @@ struct get_trust_transitivity
 
                 // compute the target's trust
                 t_type sum_w = 0, avg = 0;
-                for (tie(e, e_end) =
-                         in_edge_iteratorS<Graph>::get_edges(tgt, g);
-                     e != e_end; ++e)
+                for (auto e : in_edges_range(tgt, g))
                 {
-                    t_type weight = dist_map[boost::source(*e,g)];
+                    t_type weight = dist_map[boost::source(e, g)];
                     sum_w += weight;
-                    avg += c[*e]*weight*weight;
+                    avg += c[e]*weight*weight;
                 }
                 if (sum_w > 0)
                     t[tgt][0] = avg/sum_w;
@@ -191,14 +187,11 @@ struct get_trust_transitivity
                              fg_t>::type rg_t;
                 rg_t rg(fg);
                 dist_map_t sum_w(vertex_index, num_vertices(g));
-                int j, N2 = num_vertices(g);
-                for (tie(e, e_end) =
-                         in_edge_iteratorS<Graph>::get_edges(tgt, g);
-                     e != e_end; ++e)
+                for (auto e : in_edges_range(tgt, g))
                 {
                     // compute the weights to all sources
                     dijkstra_shortest_paths
-                        (rg, boost::source(*e, g), weight_map(c).
+                        (rg, boost::source(e, g), weight_map(c).
                          vertex_index_map(vertex_index).
                          color_map(color_map).
                          distance_map(dist_map).
@@ -207,33 +200,27 @@ struct get_trust_transitivity
                          distance_inf(t_type(0)).
                          distance_zero(t_type(1)));
 
-                    #pragma omp parallel for default(shared) private(j) \
-                        schedule(runtime) if (N > 100)
-                    for (j = 0; j < N2; ++j)
-                    {
-                        vertex_t src = vertex(j, g);
-                        if (!is_valid_vertex(src, g))
-                            continue;
-                        t_type weight = dist_map[src];
-                        sum_w[src] += weight;
-                        size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
-                        t[src][tidx] += c[*e]*weight*weight;
-                    }
+                    parallel_vertex_loop
+                        (g,
+                         [&](auto src)
+                         {
+                             t_type weight = dist_map[src];
+                             sum_w[src] += weight;
+                             size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
+                             t[src][tidx] += c[e]*weight*weight;
+                         });
                 }
 
-                #pragma omp parallel for default(shared) private(j) \
-                    schedule(runtime) if (N > 100)
-                for (j = 0; j < N2; ++j)
-                {
-                    vertex_t src = vertex(j, g);
-                    if (!is_valid_vertex(src, g))
-                        continue;
-                    size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
-                    if (sum_w[src] > 0)
-                        t[src][tidx] /= sum_w[src];
-                    if (src == tgt)
-                        t[src][tidx] = 1.0;
-                }
+                parallel_vertex_loop
+                    (g,
+                     [&](auto src)
+                     {
+                         size_t tidx = (target == -1) ? vertex_index[tgt] : 0;
+                         if (sum_w[src] > 0)
+                             t[src][tidx] /= sum_w[src];
+                         if (src == tgt)
+                             t[src][tidx] = 1.0;
+                     });
             }
         }
     }

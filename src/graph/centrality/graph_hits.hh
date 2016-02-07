@@ -52,17 +52,14 @@ struct get_hits
         CentralityMap y_temp(vertex_index, num_vertices(g));
 
         // init centrality
-        int i, N = num_vertices(g), V = HardNumVertices()(g);
-        #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            x[v] = 1.0 / V;
-            y[v] = 1.0 / V;
-        }
+        auto V = HardNumVertices()(g);
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 x[v] = 1.0 / V;
+                 y[v] = 1.0 / V;
+             });
 
         t_type x_norm = 0, y_norm = 0;
 
@@ -71,6 +68,7 @@ struct get_hits
         while (delta >= epsilon)
         {
             x_norm = 0, y_norm=0;
+            size_t i, N = num_vertices(g);
             #pragma omp parallel for default(shared) private(i) \
                 schedule(runtime) if (N > 100) reduction(+:x_norm, y_norm)
             for (i = 0; i < N; ++i)
@@ -126,16 +124,13 @@ struct get_hits
 
         if (iter % 2 != 0)
         {
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                x[v] = x_temp[v];
-                y[v] = y_temp[v];
-            }
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     x[v] = x_temp[v];
+                     y[v] = y_temp[v];
+                 });
         }
 
         eig = x_norm;
