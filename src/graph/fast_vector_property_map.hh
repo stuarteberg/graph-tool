@@ -132,8 +132,8 @@ public:
     // CONSIDER: not sure that assignment to 'index' is correct.
 
     reference operator[](const key_type& v) const {
-        typename property_traits<IndexMap>::value_type i = get(index, v);
-        if (static_cast<unsigned>(i) >= store->size()) {
+        auto i = get(index, v);
+        if (static_cast<size_t>(i) >= store->size()) {
             store->resize(i + 1, T());
         }
         return (*store)[i];
