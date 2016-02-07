@@ -46,7 +46,7 @@ struct get_pagerank
              [&](auto v)
              {
                  put(deg, v, 0);
-                 for (e : out_edges_range(v, g))
+                 for (auto e : out_edges_range(v, g))
                      put(deg, v, get(deg, v) + get(weight, e));
              });
 
