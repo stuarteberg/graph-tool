@@ -355,6 +355,11 @@ struct never_filtered:
                                boost::mpl::bool_<false>,boost::mpl::bool_<false>,
                                boost::mpl::bool_<false>,boost::mpl::bool_<true> >::type {};
 
+struct never_filtered_never_reversed:
+    get_all_graph_views::apply<filt_scalar_type,boost::mpl::bool_<false>,
+                               boost::mpl::bool_<false>,boost::mpl::bool_<false>,
+                               boost::mpl::bool_<true>,boost::mpl::bool_<true> >::type {};
+
 // sanity check
 typedef boost::mpl::size<all_graph_views>::type n_views;
 #ifndef NO_GRAPH_FILTERING
@@ -373,30 +378,16 @@ struct action_wrap
 {
     action_wrap(Action a) : _a(a) {}
 
-    template <class Type>
-    auto& uncheck(boost::checked_vector_property_map
-                   <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::true_) const
+    template <class Type, class IndexMap>
+    auto& uncheck(boost::checked_vector_property_map<Type,IndexMap>& a,
+                  boost::mpl::true_) const
     {
         return a;
     }
 
-    template <class Type>
-    auto uncheck(boost::checked_vector_property_map
-                 <Type,GraphInterface::vertex_index_map_t>& a, boost::mpl::false_) const
-    {
-        return a.get_unchecked();
-    }
-
-    template <class Type>
-    auto& uncheck(boost::checked_vector_property_map
-                   <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::true_) const
-    {
-        return a;
-    }
-
-    template <class Type>
-    auto uncheck(boost::checked_vector_property_map
-                 <Type,GraphInterface::edge_index_map_t>& a, boost::mpl::false_) const
+    template <class Type, class IndexMap>
+    auto uncheck(boost::checked_vector_property_map<Type, IndexMap>& a,
+                 boost::mpl::false_) const
     {
         return a.get_unchecked();
     }
@@ -503,6 +494,7 @@ typedef detail::always_reversed always_reversed;
 typedef detail::never_reversed never_reversed;
 typedef detail::always_directed_never_reversed always_directed_never_reversed;
 typedef detail::never_filtered never_filtered;
+typedef detail::never_filtered_never_reversed never_filtered_never_reversed;
 
 // returns true if graph filtering was enabled at compile time
 bool graph_filtering_enabled();
