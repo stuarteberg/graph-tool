@@ -31,8 +31,8 @@ AC_LANG([C++])
 AC_PROG_CC_STDC
 AC_HEADER_STDC
 AC_DISABLE_STATIC
-LT_INIT
 AC_PROG_INSTALL
+LT_INIT
 
 # pkg-config generation
 PKG_PROG_PKG_CONFIG
@@ -381,6 +381,16 @@ else
   PACKAGE_DOC_DIR="${docdir}"
 fi
 AC_SUBST(PACKAGE_DOC_DIR)
+
+# Allow the pkg-config directory to be set
+AC_ARG_WITH(pkgconfigdir,
+            AC_HELP_STRING([--with-pkgconfigdir],
+            [Use the specified pkgconfig dir (default is libdir/pkgconfig)]),
+            [pkgconfigdir=${withval}],
+            [pkgconfigdir='${libdir}/pkgconfig'])
+
+AC_SUBST([pkgconfigdir])
+AC_MSG_NOTICE([pkgconfig directory is ${pkgconfigdir}])
 
 dnl Subst PYTHON_DIR.
 AC_DEFINE_UNQUOTED([INSTALL_PREFIX],"${prefix}", [python prefix])
