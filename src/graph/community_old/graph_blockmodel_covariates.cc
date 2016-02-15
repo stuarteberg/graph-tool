@@ -690,55 +690,55 @@ void do_split_graph(GraphInterface& gi, boost::any& aec, boost::any& ab,
                                        std::ref(uvmap)))();
 }
 
-bool bmap_has(const bmap_t& bmap, size_t c, size_t r)
-{
-    if (c > bmap.size())
-        throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
-    auto iter = bmap[c].find(r);
-    if (iter == bmap[c].end())
-        return false;
-    return true;
-}
+// bool bmap_has(const bmap_t& bmap, size_t c, size_t r)
+// {
+//     if (c > bmap.size())
+//         throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
+//     auto iter = bmap[c].find(r);
+//     if (iter == bmap[c].end())
+//         return false;
+//     return true;
+// }
 
-size_t bmap_get(const bmap_t& bmap, size_t c, size_t r)
-{
-    if (c > bmap.size())
-        throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
-    auto iter = bmap[c].find(r);
-    if (iter == bmap[c].end())
-        throw GraphException("no mapping for block " + lexical_cast<string>(r)
-                             + " in layer " + lexical_cast<string>(c));
-    return iter->second;
-}
+// size_t bmap_get(const bmap_t& bmap, size_t c, size_t r)
+// {
+//     if (c > bmap.size())
+//         throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
+//     auto iter = bmap[c].find(r);
+//     if (iter == bmap[c].end())
+//         throw GraphException("no mapping for block " + lexical_cast<string>(r)
+//                              + " in layer " + lexical_cast<string>(c));
+//     return iter->second;
+// }
 
-void bmap_set(bmap_t& bmap, size_t c, size_t r, size_t r_u)
-{
-    if (c > bmap.size())
-        throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
-    bmap[c][r] = r_u;
-}
+// void bmap_set(bmap_t& bmap, size_t c, size_t r, size_t r_u)
+// {
+//     if (c > bmap.size())
+//         throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
+//     bmap[c][r] = r_u;
+// }
 
-void bmap_del_c(bmap_t& bmap, size_t c)
-{
-    if (c > bmap.size())
-        throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
-    bmap.erase(bmap.begin() + c);
-}
+// void bmap_del_c(bmap_t& bmap, size_t c)
+// {
+//     if (c > bmap.size())
+//         throw GraphException("invalid covariate value:" + lexical_cast<string>(c));
+//     bmap.erase(bmap.begin() + c);
+// }
 
-bmap_t bmap_copy(const bmap_t& bmap)
-{
-    return bmap;
-}
+// bmap_t bmap_copy(const bmap_t& bmap)
+// {
+//     return bmap;
+// }
 
 
 void export_blockmodel_covariate()
 {
-    boost::python::class_<bmap_t>("bmap_t")
-        .def("has", bmap_has)
-        .def("get", bmap_get)
-        .def("set", bmap_set)
-        .def("del_c", bmap_del_c)
-        .def("copy", bmap_copy);
+    // boost::python::class_<bmap_t>("bmap_t")
+    //     .def("has", bmap_has)
+    //     .def("get", bmap_get)
+    //     .def("set", bmap_set)
+    //     .def("del_c", bmap_del_c)
+    //     .def("copy", bmap_copy);
 
     boost::python::def("cov_move_sweep", do_cov_move_sweep);
     boost::python::def("covariate_entropy", do_covariate_entropy);

@@ -31,6 +31,8 @@ bool graph_tool::graph_filtering_enabled()
 #endif
 }
 
+namespace graph_tool
+{
 string name_demangle(string name)
 {
     int status = 0;
@@ -40,6 +42,7 @@ string name_demangle(string name)
     string ret(realname);
     free(realname);
     return ret;
+}
 }
 
 // Whenever no implementation is called, the following exception is thrown

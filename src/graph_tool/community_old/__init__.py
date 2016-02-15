@@ -51,7 +51,6 @@ Summary
    model_entropy
    get_max_B
    get_akc
-   condensation_graph
    get_block_edge_gradient
 
 Hierarchical models
@@ -122,8 +121,10 @@ __all__ = ["minimize_blockmodel_dl",
            "community_structure",
            "modularity"]
 
+from .. generation import condensation_graph
+
 from . blockmodel import minimize_blockmodel_dl, BlockState, mcmc_sweep, \
-    multilevel_minimize, model_entropy, get_max_B, get_akc, condensation_graph, \
+    multilevel_minimize, model_entropy, get_max_B, get_akc, \
     collect_edge_marginals, collect_vertex_marginals, bethe_entropy, mf_entropy
 
 from . overlap_blockmodel import OverlapBlockState, get_block_edge_gradient
@@ -144,17 +145,29 @@ def community_structure(g, n_iter, n_spins, gamma=1.0, corr="erdos",
 
     .. warning::
 
-       **The use of this function is discouraged.** Although community detection
+       **This function kills little babies!**
+
+       The use of this function is discouraged. Although community detection
        based on modularity maximization is very common, it is very
-       problematic. It will find high-scoring partitions where there is none
-       [guimera-modularity-2004]_, and at the same time will not find actual
-       structure in large graphs [fortunato-resolution-2007]_. Furthermore, in
-       many empirical networks, the partitions found in this way are largely
-       meaningless [good-performance-2010]_.
+       problematic. It will find high-scoring partitions where there are no
+       communities [guimera-modularity-2004]_, and at the same time will not
+       find actual structure in large graphs
+       [fortunato-resolution-2007]_. Furthermore, in many empirical networks,
+       the partitions found in this way are largely meaningless
+       [good-performance-2010]_.
+
+       In short, using this method to analyze empirical networks is a virtual
+       guarantee that the results will be worthless and the ensuing
+       interpretations specious. The only reasonable use for this function (and
+       the reason why it is here) is to analyze the performance of the method in
+       comparison to something else. This is mostly only due to its historical
+       significance in the study of large-scale network structures. For any
+       other purpose, it should not be used.
 
        One should use instead methods based on statistical inference
        (i.e. :func:`~graph_tool.community.minimize_blockmodel_dl` and
-       :func:`~graph_tool.community.minimize_nested_blockmodel_dl`).
+       :func:`~graph_tool.community.minimize_nested_blockmodel_dl`), which are
+       not subject to the above problems.
 
     Parameters
     ----------

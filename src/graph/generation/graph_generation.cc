@@ -48,9 +48,10 @@ private:
     boost::python::object _o;
 };
 
-void generate_graph(GraphInterface& gi, size_t N, boost::python::object deg_sample,
-                    bool no_parallel, bool no_self_loops, bool undirected,
-                    rng_t& rng, bool verbose, bool verify)
+void generate_graph(GraphInterface& gi, size_t N,
+                    boost::python::object deg_sample, bool no_parallel,
+                    bool no_self_loops, bool undirected, rng_t& rng,
+                    bool verbose, bool verify)
 {
     typedef graph_tool::detail::get_all_graph_views::apply<
     graph_tool::detail::filt_scalar_type, boost::mpl::bool_<false>,
@@ -84,15 +85,34 @@ void vertex_property_union(GraphInterface& ugi, GraphInterface& gi,
 void edge_property_union(GraphInterface& ugi, GraphInterface& gi,
                          boost::any p_vprop, boost::any p_eprop,
                          boost::any uprop, boost::any prop);
-void triangulation(GraphInterface& gi, boost::python::object points, boost::any pos,
-                   string type, bool periodic);
+void triangulation(GraphInterface& gi, boost::python::object points,
+                   boost::any pos, string type, bool periodic);
 void lattice(GraphInterface& gi, boost::python::object oshape, bool periodic);
 void geometric(GraphInterface& gi, boost::python::object opoints, double r,
                boost::python::object orange, bool periodic, boost::any pos);
 void price(GraphInterface& gi, size_t N, double gamma, double c, size_t m,
            rng_t& rng);
 void complete(GraphInterface& gi, size_t N, bool directed, bool self_loops);
-void circular(GraphInterface& gi, size_t N, size_t k, bool directed, bool self_loops);
+void circular(GraphInterface& gi, size_t N, size_t k, bool directed,
+              bool self_loops);
+
+void community_network(GraphInterface& gi, GraphInterface& cgi,
+                       boost::any community_property,
+                       boost::any condensed_community_property,
+                       boost::any vertex_count, boost::any edge_count,
+                       boost::any vweight, boost::any eweight, bool self_loops,
+                       bool parallel_edges);
+
+void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
+                            boost::any community_property,
+                            boost::any condensed_community_property,
+                            boost::any vweight, boost::python::list avprops);
+
+void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
+                            boost::any community_property,
+                            boost::any condensed_community_property,
+                            boost::any eweight, boost::python::list aeprops,
+                            bool self_loops);
 
 using namespace boost::python;
 
@@ -111,6 +131,9 @@ BOOST_PYTHON_MODULE(libgraph_tool_generation)
     def("price", &price);
     def("complete", &complete);
     def("circular", &circular);
+    def("community_network", &community_network);
+    def("community_network_vavg", &community_network_vavg);
+    def("community_network_eavg", &community_network_eavg);
 
     class_<Sampler<int, boost::mpl::false_>>("Sampler",
                                              init<const vector<int>&, const vector<double>&>())

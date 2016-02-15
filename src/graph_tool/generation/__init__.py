@@ -39,6 +39,7 @@ Summary
    price_network
    complete_graph
    circular_graph
+   condensation_graph
 
 Contents
 ++++++++
@@ -62,7 +63,8 @@ import numpy.random
 
 __all__ = ["random_graph", "random_rewire", "predecessor_tree", "line_graph",
            "graph_union", "triangulation", "lattice", "geometric_graph",
-           "price_network", "complete_graph", "circular_graph"]
+           "price_network", "complete_graph", "circular_graph",
+           "condensation_graph"]
 
 
 def random_graph(N, deg_sampler, directed=True,
@@ -1622,6 +1624,188 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
         g = seed_graph
     libgraph_tool_generation.price(g._Graph__graph, N, gamma, c, m, _get_rng())
     return g
+
+def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
+                       aeprops=None, self_loops=False, parallel_edges=False):
+    r"""
+    Obtain the condensation graph, where each vertex with the same 'prop' value
+    is condensed in one vertex.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    prop : :class:`~graph_tool.PropertyMap`
+        Vertex property map with the community partition.
+    vweight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Vertex property map with the optional vertex weights.
+    eweight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Edge property map with the optional edge weights.
+    avprops : list of :class:`~graph_tool.PropertyMap` (optional, default: None)
+        If provided, the sum of each property map in this list for
+        each vertex in the condensed graph will be computed and returned.
+    aeprops : list of :class:`~graph_tool.PropertyMap` (optional, default: None)
+        If provided, the sum of each property map in this list for
+        each edge in the condensed graph will be computed and returned.
+    self_loops : ``bool`` (optional, default: ``False``)
+        If ``True``, self-loops due to intra-block edges are also included in
+        the condensation graph.
+    parallel_edges : ``bool`` (optional, default: ``False``)
+        If ``True``, parallel edges will be included in the condensation graph,
+        such that the total number of edges will be the same as in the original
+        graph.
+
+    Returns
+    -------
+    condensation_graph : :class:`~graph_tool.Graph`
+        The community network
+    prop : :class:`~graph_tool.PropertyMap`
+        The community values.
+    vcount : :class:`~graph_tool.PropertyMap`
+        A vertex property map with the vertex count for each community.
+    ecount : :class:`~graph_tool.PropertyMap`
+        An edge property map with the inter-community edge count for each edge.
+    va : list of :class:`~graph_tool.PropertyMap`
+        A list of vertex property maps with summed values of the properties
+        passed via the ``avprops`` parameter.
+    ea : list of :class:`~graph_tool.PropertyMap`
+        A list of edge property maps with summed values of the properties
+        passed via the ``avprops`` parameter.
+
+    Notes
+    -----
+    Each vertex in the condensation graph represents one community in the
+    original graph (vertices with the same 'prop' value), and the edges
+    represent existent edges between vertices of the respective communities in
+    the original graph.
+
+    Examples
+    --------
+
+    .. testsetup:: condensation_graph
+
+       gt.seed_rng(43)
+       np.random.seed(42)
+
+    Let's first obtain the best block partition with ``B=5``.
+
+    .. doctest:: condensation_graph
+
+       >>> g = gt.collection.data["polbooks"]
+       >>> # fit a SBM with 5 groups
+       >>> state = gt.BlockState(g, B=5, deg_corr=True)
+       >>> gt.mcmc_equilibrate(state, wait=1000)
+       >>> b = state.get_blocks()
+       >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=b, vertex_shape=b,
+       ...               output="polbooks_blocks_B5.pdf")
+       <...>
+
+    Now we get the condensation graph:
+
+    .. doctest:: condensation_graph
+
+       >>> bg, bb, vcount, ecount, avp, aep = \
+       ...     gt.condensation_graph(g, b, avprops=[g.vp["pos"]],
+       ...                           self_loops=True)
+       >>> pos = avp[0]
+       >>> for v in bg.vertices():
+       ...     pos[v].a /= vcount[v]
+       >>> gt.graph_draw(bg, pos=avp[0], vertex_fill_color=bb, vertex_shape=bb,
+       ...               vertex_size=gt.prop_to_size(vcount, mi=40, ma=100),
+       ...               edge_pen_width=gt.prop_to_size(ecount, mi=2, ma=10),
+       ...               output="polbooks_blocks_B5_cond.pdf")
+       <...>
+
+    .. testcleanup:: condensation_graph
+
+       gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=b, vertex_shape=b,
+                     output="polbooks_blocks_B5.png")
+       gt.graph_draw(bg, pos=avp[0], vertex_fill_color=bb, vertex_shape=bb,
+                     vertex_size=gt.prop_to_size(vcount, mi=40, ma=100),
+                     edge_pen_width=gt.prop_to_size(ecount, mi=2, ma=10),
+                     output="polbooks_blocks_B5_cond.png")
+
+    .. figure:: polbooks_blocks_B5.*
+       :align: center
+
+       Block partition of a political books network with :math:`B=5`.
+
+    .. figure:: polbooks_blocks_B5_cond.*
+       :align: center
+
+       Condensation graph of the obtained block partition.
+
+    """
+    gp = Graph(directed=g.is_directed())
+    if vweight is None:
+        vcount = gp.new_vertex_property("int32_t")
+    else:
+        vcount = gp.new_vertex_property(vweight.value_type())
+    if eweight is None:
+        ecount = gp.new_edge_property("int32_t")
+    else:
+        ecount = gp.new_edge_property(eweight.value_type())
+
+    if prop is g.vertex_index:
+        prop = prop.copy(value_type="int32_t")
+    cprop = gp.new_vertex_property(prop.value_type())
+
+    if avprops is None:
+        avprops = []
+    avp = []
+    r_avp = []
+    for p in avprops:
+        if p is g.vertex_index:
+            p = p.copy(value_type="int")
+        if "string" in p.value_type():
+            raise ValueError("Cannot compute sum of string properties!")
+        temp = g.new_vertex_property(p.value_type())
+        cp = gp.new_vertex_property(p.value_type())
+        avp.append((_prop("v", g, p), _prop("v", g, temp), _prop("v", g, cp)))
+        r_avp.append(cp)
+
+    if aeprops is None:
+        aeprops = []
+    aep = []
+    r_aep = []
+    for p in aeprops:
+        if p is g.edge_index:
+            p = p.copy(value_type="int")
+        if "string" in p.value_type():
+            raise ValueError("Cannot compute sum of string properties!")
+        temp = g.new_edge_property(p.value_type())
+        cp = gp.new_edge_property(p.value_type())
+        aep.append((_prop("e", g, p), _prop("e", g, temp), _prop("e", g, cp)))
+        r_aep.append(cp)
+
+    libgraph_tool_generation.community_network(g._Graph__graph,
+                                               gp._Graph__graph,
+                                               _prop("v", g, prop),
+                                               _prop("v", gp, cprop),
+                                               _prop("v", gp, vcount),
+                                               _prop("e", gp, ecount),
+                                               _prop("v", g, vweight),
+                                               _prop("e", g, eweight),
+                                               self_loops,
+                                               parallel_edges)
+
+    u = GraphView(g, directed=True, reversed=False)
+    libgraph_tool_generation.community_network_vavg(u._Graph__graph,
+                                                    gp._Graph__graph,
+                                                    _prop("v", g, prop),
+                                                    _prop("v", gp, cprop),
+                                                    _prop("v", g, vweight),
+                                                    avp)
+
+    u = GraphView(g, directed=True)
+    libgraph_tool_generation.community_network_eavg(u._Graph__graph,
+                                                    gp._Graph__graph,
+                                                    _prop("v", g, prop),
+                                                    _prop("v", gp, cprop),
+                                                    _prop("e", g, eweight),
+                                                    aep,
+                                                    self_loops)
+    return gp, cprop, vcount, ecount, r_avp, r_aep
 
 class Sampler(libgraph_tool_generation.Sampler):
     def __init__(self, values, probs):

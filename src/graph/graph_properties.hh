@@ -616,6 +616,9 @@ public:
     const value_type c;
 };
 
+template <class Value, class Key>
+void put(const ConstantPropertyMap<Value, Key>&, const Key&, const Value&) {}
+
 // the following is a property map which always returns one
 template <class Value, class Key>
 class UnityPropertyMap
@@ -632,6 +635,9 @@ public:
 };
 
 
+template <class Value, class Key>
+void put(const UnityPropertyMap<Value, Key>&, const Key&, const Value&) {}
+
 template <class Property>
 struct is_constant_property
 {
@@ -641,7 +647,6 @@ struct is_constant_property
                                       std::true_type,
                                       typename std::is_same<Property, UnityPropertyMap<value_type, key_type>>::type>::type type;
 };
-
 
 // this wraps an existing property map, but always converts its values to a
 // given type

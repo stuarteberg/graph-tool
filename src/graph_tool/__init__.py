@@ -157,19 +157,11 @@ def _prop(t, g, prop):
         pmap = prop
     if pmap is None:
         return libcore.any()
-    else:
-        if t != prop.key_type():
-            names = {'e': 'edge', 'v': 'vertex', 'g': 'graph'}
-            raise ValueError("Expected '%s' property map, got '%s'" %
-                             (names[t], names[prop.key_type()]))
-        if t == "v":
-            N = g.num_vertices(True)
-        elif t == "e":
-            N = g.edge_index_range
-        else:
-            N = 1
-        pmap.reserve(N)
-        return pmap._PropertyMap__map.get_map()
+    if t != prop.key_type():
+        names = {'e': 'edge', 'v': 'vertex', 'g': 'graph'}
+        raise ValueError("Expected '%s' property map, got '%s'" %
+                         (names[t], names[prop.key_type()]))
+    return pmap._get_any()
 
 
 def _degree(g, name):
@@ -480,6 +472,18 @@ class PropertyMap(object):
         self.__key_type = key_type
         self.__convert = _converter(self.value_type())
         self.__register_map()
+
+    def _get_any(self):
+        t = self.key_type()
+        g = self.get_graph()
+        if t == "v":
+            N = g.num_vertices(True)
+        elif t == "e":
+            N = g.edge_index_range
+        else:
+            N = 1
+        self.reserve(N)
+        return self.__map.get_map()
 
     def __key_trans(self, key):
         if self.key_type() == "g":
@@ -1716,6 +1720,9 @@ class Graph(object):
 
             # directedness is always a filter
             self.set_directed(g.is_directed())
+
+    def _get_any(self):
+        return self.__graph.get_graph_view()
 
     def copy(self):
         """Return a deep copy of self. All :ref:`internal property maps <sec_internal_props>`

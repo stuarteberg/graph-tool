@@ -491,7 +491,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .def("get_graph_index", &GraphInterface::get_graph_index)
         .def("copy_vertex_property", &GraphInterface::copy_vertex_property)
         .def("copy_edge_property", &GraphInterface::copy_edge_property)
-        .def("get_graph_ptr", &GraphInterface::get_graph_ptr);
+        .def("get_graph_ptr", &GraphInterface::get_graph_ptr)
+        .def("get_graph_view", &GraphInterface::get_graph_view);
 
     class_<GraphInterface::vertex_index_map_t>("vertex_index_map", no_init);
     class_<GraphInterface::edge_index_map_t>("edge_index_map", no_init);

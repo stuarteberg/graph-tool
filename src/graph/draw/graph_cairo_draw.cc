@@ -1045,7 +1045,7 @@ public:
             _attrs.template get<vector<double> >(EDGE_CONTROL_POINTS);
         vector<double> gradient =
             _attrs.template get<vector<double> >(EDGE_GRADIENT);
-        if (gradient.size() == 2)
+        if (gradient.size() == 1)
         {
             auto e_color = _attrs.template get<color_t>(EDGE_COLOR);
             auto s_color = _s._attrs.template get<color_t>(VERTEX_FILL_COLOR);

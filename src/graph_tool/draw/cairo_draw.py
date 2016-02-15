@@ -1682,7 +1682,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
     g = state.g
 
-    if state.overlap:
+    overlap = state.levels[0].overlap
+    if overlap:
         ostate = state.levels[0]
         bv, bcin, bcout, bc = ostate.get_overlap_blocks()
         be = ostate.get_edge_blocks()
@@ -1773,7 +1774,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     vprops.update(props)
     vprops.setdefault("fill_color", b)
     vprops.setdefault("color", b)
-    vprops.setdefault("shape", _vdefaults["shape"] if not state.overlap else "pie")
+    vprops.setdefault("shape", _vdefaults["shape"] if not overlap else "pie")
     s = max(200 / numpy.sqrt(g.num_vertices()), 5)
     vprops.setdefault("size", prop_to_size(g.degree_property_map("total"), s/5, s))
 
@@ -1838,13 +1839,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     heprops = _convert_props(heprops, "e", t, kwargs.get("ecmap", default_cm),
                              pmap_default=True)
 
-
     vcmap = kwargs.get("vcmap", default_cm)
     ecmap = kwargs.get("ecmap", vcmap)
 
     B = state.levels[0].B
 
-    if state.overlap and "pie_fractions" not in vprops:
+    if overlap and "pie_fractions" not in vprops:
         vprops["pie_fractions"] = bc.copy("vector<double>")
         if "pie_colors" not in vprops:
             vertex_pie_colors = g.new_vertex_property("vector<double>")
@@ -1858,13 +1858,13 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     gradient = eprops.get("gradient", None)
     if gradient is None:
         gradient = g.new_edge_property("double")
-        gradient = group_vector_property([gradient, gradient])
+        gradient = group_vector_property([gradient])
         ecolor = eprops.get("ecolor", _edefaults["color"])
         eprops["gradient"] = gradient
-        if state.overlap:
+        if overlap:
             for e in g.edges():                       # ******** SLOW *******
                 r, s = be[e]
-                if e.source() > e.target():
+                if not g.is_directed() and e.source() > e.target():
                     r, s = s, r
                 gradient[e] = [0] + list(vcmap(r / (B - 1))) + \
                               [1] + list(vcmap(s / (B - 1)))
@@ -1921,7 +1921,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                 bs = [s.vp["b"].a for s in bstack[:l+1]]
                 bs[-1][:] = 0
 
-                if not state.overlap:
+                if not overlap:
                     b = state.project_level(l).b
                     u = GraphView(g, vfilt=b.a == tb[picked])
                     u.vp["b"] = state.levels[0].b
@@ -1945,7 +1945,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                     bs[0] = s.b.a.copy()
 
                 nstate = NestedBlockState(u, bs=bs,
-                                          overlap=state.overlap,
+                                          base_type=type(state.levels[0]),
                                           deg_corr=state.deg_corr)
 
                 kwargs_ = kwargs_orig.copy()
@@ -2000,7 +2000,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
 def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 
-    if state.overlap:
+    if state.levels[0].overlap:
         g = state.g
         ostate = state.levels[0]
         bv, bcin, bcout, bc = ostate.get_overlap_blocks()
@@ -2032,13 +2032,13 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
     root = t.vertex(t.num_vertices(True) - 1)
     if root.out_degree() > 2:
         clabel = is_bipartite(g, partition=True)[1].copy("int")
-        if state.overlap:
+        if state.levels[0].overlap:
             ostate = OverlapBlockState(g, b=clabel)
             ostate = orig_state.copy(clabel=clabel)
-            bc = ostate._NestedBlockState__propagate_clabel(len(state.levels) - 2)
+            bc = ostate.propagate_clabel(len(state.levels) - 2)
         else:
             state = state.copy(clabel=clabel)
-            bc = state._NestedBlockState__propagate_clabel(len(state.levels) - 2)
+            bc = state.propagate_clabel(len(state.levels) - 2)
 
         ps = list(root.out_neighbours())
         t.clear_vertex(root)
@@ -2132,4 +2132,5 @@ def _UNSAFE_cairocffi_context_to_pycairo(cairocffi_context):
     return temp_list[0]
 
 # Bottom imports to avoid circular dependency issues
-from .. community import get_hierarchy_tree, NestedBlockState, BlockState, OverlapBlockState
+from .. inference import get_hierarchy_tree, NestedBlockState, BlockState, \
+    OverlapBlockState

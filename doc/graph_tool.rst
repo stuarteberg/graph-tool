@@ -207,11 +207,11 @@ Available subpackages
    centrality
    clustering
    collection
-   community
    correlations
    draw
    flow
    generation
+   inference
    search_module
    spectral
    stats

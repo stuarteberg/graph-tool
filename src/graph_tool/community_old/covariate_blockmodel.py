@@ -144,7 +144,8 @@ class CovariateBlockState(BlockState):
         self.vmap = group_vector_property([self.g.vertex_index.copy("int")])
 
         self.gs = []
-        self.bmap = libcommunity.bmap_t()
+        from .. inference.blockmodel import libinference
+        self.bmap = libinference.bmap_t()
 
         for l in range(0, self.C):
             u = Graph(directed=g.is_directed())

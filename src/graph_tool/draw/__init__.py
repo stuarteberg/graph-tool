@@ -72,7 +72,7 @@ from .. import GraphView, _check_prop_vector, group_vector_property, \
 from .. topology import max_cardinality_matching, max_independent_vertex_set, \
     label_components, pseudo_diameter, shortest_distance
 from .. stats import label_parallel_edges
-from .. generation import predecessor_tree
+from .. generation import predecessor_tree, condensation_graph
 import numpy.random
 from numpy import sqrt
 import sys
@@ -817,6 +817,3 @@ try:
    from .graphviz_draw import graphviz_draw
 except ImportError:
    pass
-
-# Bottom imports to avoid circular dependency issues
-from .. community import condensation_graph

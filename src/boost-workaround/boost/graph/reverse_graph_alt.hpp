@@ -306,7 +306,8 @@ namespace detail {
     typedef typename property_traits<PM>::reference reference;
     typedef typename property_traits<PM>::category category;
 
-    explicit reverse_graph_edge_property_map(const PM& pm): underlying_pm(pm) {}
+    reverse_graph_edge_property_map(const PM& pm): underlying_pm(pm) {}
+    reverse_graph_edge_property_map() = default;
 
     friend reference
     get(const reverse_graph_edge_property_map& m,

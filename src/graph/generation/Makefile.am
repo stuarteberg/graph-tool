@@ -15,29 +15,35 @@ libgraph_tool_generation_la_LIBADD = $(MOD_LIBADD) $(CGAL_LIBADD)
 libgraph_tool_generation_la_LDFLAGS = $(MOD_LDFLAGS)
 
 libgraph_tool_generation_la_SOURCES = \
-    graph_generation.cc \
-    graph_rewiring.cc \
-    graph_predecessor.cc \
-    graph_line_graph.cc \
-    graph_union.cc \
-    graph_union_vprop.cc \
-    graph_union_eprop.cc \
-    graph_triangulation.cc \
-    graph_lattice.cc \
-    graph_geometric.cc \
+    graph_community_network.cc \
+    graph_community_network_eavg.cc \
+    graph_community_network_eavg_imp1.cc \
+    graph_community_network_edges.cc \
+    graph_community_network_vavg.cc \
     graph_complete.cc \
-    graph_price.cc
+    graph_generation.cc \
+    graph_geometric.cc \
+    graph_lattice.cc \
+    graph_line_graph.cc \
+    graph_predecessor.cc \
+    graph_price.cc \
+    graph_rewiring.cc \
+    graph_triangulation.cc \
+    graph_union.cc \
+    graph_union_eprop.cc \
+    graph_union_vprop.cc
 
 
 libgraph_tool_generation_la_include_HEADERS = \
-    graph_generation.hh \
-    graph_rewiring.hh \
-    graph_predecessor.hh \
-    graph_union.hh \
-    graph_triangulation.hh \
-    graph_lattice.hh \
-    graph_geometric.hh \
-    graph_complete.hh \
-    graph_price.hh \
     dynamic_sampler.hh \
+    graph_community_network.hh \
+    graph_complete.hh \
+    graph_generation.hh \
+    graph_geometric.hh \
+    graph_lattice.hh \
+    graph_predecessor.hh \
+    graph_price.hh \
+    graph_rewiring.hh \
+    graph_triangulation.hh \
+    graph_union.hh \
     sampler.hh

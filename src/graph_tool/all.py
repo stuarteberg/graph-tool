@@ -47,8 +47,8 @@ from graph_tool.stats import *
 import graph_tool.stats
 from graph_tool.clustering import *
 import graph_tool.clustering
-from graph_tool.community import *
-import graph_tool.community
+from graph_tool.inference import *
+import graph_tool.inference
 from graph_tool.topology import *
 import graph_tool.topology
 from graph_tool.flow import *

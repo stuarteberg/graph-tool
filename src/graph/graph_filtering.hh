@@ -536,6 +536,8 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
     return *gptr;
 }
 
+// symbol demangling
+string name_demangle(string name);
 
 } //graph_tool namespace
 

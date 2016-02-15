@@ -54,13 +54,13 @@ graph_tool_centrality_PYTHON = \
     centrality/__init__.py
 graph_tool_centralitydir = $(MOD_DIR)/centrality
 
-graph_tool_community_PYTHON = \
-    community/__init__.py \
-    community/blockmodel.py \
-    community/covariate_blockmodel.py \
-    community/nested_blockmodel.py \
-    community/overlap_blockmodel.py
-graph_tool_communitydir = $(MOD_DIR)/community
+graph_tool_community_old_PYTHON = \
+    community_old/__init__.py \
+    community_old/blockmodel.py \
+    community_old/covariate_blockmodel.py \
+    community_old/nested_blockmodel.py \
+    community_old/overlap_blockmodel.py
+graph_tool_community_olddir = $(MOD_DIR)/community_old
 
 graph_tool_draw_PYTHON = \
     draw/__init__.py \
@@ -70,6 +70,18 @@ graph_tool_draw_PYTHON = \
 graph_tool_draw_DATA = \
     draw/graph-tool-logo.svg
 graph_tool_drawdir = $(MOD_DIR)/draw
+
+graph_tool_inference_PYTHON = \
+    inference/__init__.py \
+    inference/bisection.py \
+    inference/blockmodel.py \
+    inference/layered_blockmodel.py \
+    inference/nested_blockmodel.py \
+    inference/overlap_blockmodel.py \
+    inference/mcmc.py \
+    inference/minimize.py \
+    inference/util.py
+graph_tool_inferencedir = $(MOD_DIR)/inference
 
 graph_tool_util_PYTHON = \
     util/__init__.py

@@ -18,7 +18,7 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/draw.rst \
 	doc/index.rst \
 	doc/spectral.rst \
-	doc/community.rst  \
+	doc/inference.rst  \
 	doc/flow.rst \
 	doc/Makefile \
 	doc/quickstart.rst \
@@ -30,7 +30,6 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/topology.rst \
 	doc/conf.py \
 	doc/pyenv.py \
-	doc/community.xml \
 	doc/search_example.xml \
 	doc/sphinxext/README.txt \
 	doc/sphinxext/LICENSE.txt \

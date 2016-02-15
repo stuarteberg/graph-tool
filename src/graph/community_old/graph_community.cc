@@ -97,27 +97,6 @@ double modularity(GraphInterface& g, boost::any weight, boost::any property)
 using namespace boost::python;
 
 
-extern void community_network(GraphInterface& gi, GraphInterface& cgi,
-                              boost::any community_property,
-                              boost::any condensed_community_property,
-                              boost::any vertex_count, boost::any edge_count,
-                              boost::any vweight, boost::any eweight,
-                              bool self_loops, bool parallel_edges);
-
-void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
-                            boost::any community_property,
-                            boost::any condensed_community_property,
-                            boost::any vweight,
-                            boost::python::list avprops);
-
-void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
-                            boost::any community_property,
-                            boost::any condensed_community_property,
-                            boost::any eweight,
-                            boost::python::list aeprops,
-                            bool self_loops);
-
-
 extern void export_blockmodel();
 extern void export_blockmodel_overlap();
 extern void export_blockmodel_covariate();
@@ -126,9 +105,6 @@ BOOST_PYTHON_MODULE(libgraph_tool_community)
 {
     def("community_structure", &community_structure);
     def("modularity", &modularity);
-    def("community_network", &community_network);
-    def("community_network_vavg", &community_network_vavg);
-    def("community_network_eavg", &community_network_eavg);
 
     export_blockmodel();
     export_blockmodel_overlap();
