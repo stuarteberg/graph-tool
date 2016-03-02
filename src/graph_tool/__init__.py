@@ -105,7 +105,7 @@ from .dl_import import *
 dl_import("from . import libgraph_tool_core as libcore")
 __version__ = libcore.mod_info().version
 
-from . import io  # sets up libcore io routines
+from . import gt_io  # sets up libcore io routines
 
 import sys
 import os

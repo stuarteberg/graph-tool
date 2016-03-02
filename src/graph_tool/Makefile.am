@@ -4,7 +4,7 @@ graph_tool_PYTHON = \
     __init__.py \
     dl_import.py \
     decorators.py \
-    io.py \
+    gt_io.py \
     all.py
 
 graph_tooldir = $(MOD_DIR)
