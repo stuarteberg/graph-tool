@@ -1,7 +1,7 @@
 job_gcc_386:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache g++" PYTHON=python3 --with-boost-python=py34 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache g++" PYTHON=python3 --with-boost-python=py34 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --with-boost-coroutine=boost_coroutine
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -12,7 +12,7 @@ job_gcc_386:
 job_gcc_py2_386:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache g++" PYTHON=python2  --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache g++" PYTHON=python2  --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --with-boost-coroutine=boost_coroutine
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
