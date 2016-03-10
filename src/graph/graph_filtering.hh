@@ -139,26 +139,26 @@ class MaskFilter
 public:
     typedef typename boost::property_traits<DescriptorProperty>::value_type value_t;
     MaskFilter(){}
-    MaskFilter(DescriptorProperty& filtered_property, bool invert)
-        : _filtered_property(&filtered_property), _invert(invert) {}
+    MaskFilter(DescriptorProperty& filtered_property, bool& invert)
+        : _filtered_property(&filtered_property), _invert(&invert) {}
 
     template <class Descriptor>
     inline bool operator() (Descriptor&& d) const
     {
         // ignore if masked
 
-        return get(*_filtered_property, std::forward<Descriptor>(d)) ^ _invert;
+        return get(*_filtered_property, std::forward<Descriptor>(d)) ^ *_invert;
 
         // This is a critical section. It will be called for every vertex or
         // edge in the graph, every time they're iterated through.
     }
 
     DescriptorProperty& get_filter() { return *_filtered_property; }
-    bool is_inverted() { return _invert; }
+    bool is_inverted() { return *_invert; }
 
 private:
     DescriptorProperty* _filtered_property;
-    bool _invert;
+    bool* _invert;
 };
 
 
@@ -530,11 +530,12 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
         std::shared_ptr<g_t> new_g =
             get_graph_ptr<g_t>(gi, init,
                                std::is_same<g_t, GraphInterface::multigraph_t>());
-        gptr = &new_g;
         gview = new_g;
+        return new_g;
     }
     return *gptr;
 }
+
 
 } //graph_tool namespace
 

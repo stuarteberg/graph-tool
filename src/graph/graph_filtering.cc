@@ -75,7 +75,7 @@ boost::any check_reverse(const Graph& g, bool reverse, GraphInterface& gi)
             reverse_graph_t;
 
         reverse_graph_t rg(g);
-        return std::ref(*retrieve_graph_view(gi, rg).get());
+        return std::ref(*retrieve_graph_view(gi, rg));
     }
 
     return boost::any(std::ref(const_cast<Graph&>(g)));
@@ -94,46 +94,44 @@ boost::any check_directed(const Graph &g, bool reverse, bool directed,
 
     typedef UndirectedAdaptor<Graph> ug_t;
     ug_t ug(g);
-    return std::ref(*retrieve_graph_view(gi, ug).get());
+    return std::ref(*retrieve_graph_view(gi, ug));
 };
 
 // this will check whether a graph is filtered and return the proper view
 // encapsulated
 template <class Graph, class EdgeFilter, class VertexFilter>
 boost::any
-check_filtered(const Graph &g, const EdgeFilter& edge_filter,
+check_filtered(const Graph& g, const EdgeFilter& edge_filter,
                const bool& e_invert, bool e_active, size_t max_eindex,
                const VertexFilter& vertex_filter, const bool& v_invert,
                bool v_active, GraphInterface& gi, bool reverse, bool directed)
 {
 #ifndef NO_GRAPH_FILTERING
-    MaskFilter<EdgeFilter> e_filter(const_cast<EdgeFilter&>(edge_filter),
-                                    e_invert);
-    MaskFilter<VertexFilter> v_filter(const_cast<VertexFilter&>(vertex_filter),
-                                      v_invert);
-
-    if (e_active)
+    if (e_active || v_active)
     {
-        if (!v_active)
-            throw GraphException("Edge filter is active but vertex filter is not. This is a bug.");
+        MaskFilter<EdgeFilter>
+            e_filter(const_cast<EdgeFilter&>(edge_filter),
+                     const_cast<bool&>(e_invert));
+        MaskFilter<VertexFilter>
+            v_filter(const_cast<VertexFilter&>(vertex_filter),
+                     const_cast<bool&>(v_invert));
 
         if (max_eindex > 0)
             edge_filter.reserve(max_eindex);
         if (num_vertices(g) > 0)
             vertex_filter.reserve(num_vertices(g));
+
         typedef filtered_graph<Graph, MaskFilter<EdgeFilter>,
                                MaskFilter<VertexFilter> > fg_t;
+
         fg_t init(g, e_filter, v_filter);
-        fg_t& fg = *retrieve_graph_view(gi, init).get();
-        fg.m_edge_pred = e_filter;
-        fg.m_vertex_pred = v_filter;
+
+        fg_t& fg = *retrieve_graph_view(gi, init);
+
         return check_directed(fg, reverse, directed, gi);
     }
     else
     {
-        if (v_active)
-            throw GraphException("Vertex filter is active but edge filter is not. This is a bug.");
-
         return check_directed(g, reverse, directed, gi);
     }
 #else
