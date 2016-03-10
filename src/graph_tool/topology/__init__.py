@@ -1565,7 +1565,7 @@ def all_paths(g, source, target, cutoff=None):
     Examples
     --------
 
-    >>> g = gt.collection.data[""]
+    >>> g = gt.collection.data["football"]
     >>> for path in gt.all_paths(g, 13, 2, cutoff=2):
     ...     print(path)
     [13 15  2]
