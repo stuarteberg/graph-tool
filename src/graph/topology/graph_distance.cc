@@ -455,7 +455,7 @@ void do_get_all_preds(GraphInterface& gi, boost::any adist,
 
 
 template <class Pred, class Yield>
-void get_all_paths(size_t s, size_t t, Pred pred, Yield& yield)
+void get_all_shortest_paths(size_t s, size_t t, Pred pred, Yield& yield)
 {
     vector<size_t> path;
     vector<pair<size_t, size_t>> stack = {{t, 0}};
@@ -483,15 +483,71 @@ void get_all_paths(size_t s, size_t t, Pred pred, Yield& yield)
     }
 };
 
-python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
-                                boost::any apred)
+python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
+                                         boost::any apred)
 {
 #ifdef HAVE_BOOST_COROUTINE
     auto dispatch = [&](auto& yield)
         {
             run_action<>()
-                (gi, [&](auto&, auto pred) {get_all_paths(s, t, pred, yield);},
+                (gi, [&](auto&, auto pred)
+                     {get_all_shortest_paths(s, t, pred, yield);},
                  vertex_scalar_vector_properties())(apred);
+        };
+    return python::object(CoroGenerator(dispatch));
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif // HAVE_BOOST_COROUTINE
+}
+
+
+template <class Graph, class Yield>
+void get_all_paths(size_t s, size_t t, size_t cutoff, Yield& yield, Graph& g)
+{
+    typedef typename graph_traits<Graph>::out_edge_iterator eiter_t;
+    typedef std::pair<eiter_t, eiter_t> item_t;
+
+    vector<item_t> stack = {out_edges(s, g)};
+    while (!stack.empty())
+    {
+        auto& pos = stack.back();
+        if (pos.first == pos.second || stack.size() > cutoff)
+        {
+            stack.pop_back();
+            if (!stack.empty())
+                ++stack.back().first;
+            continue;
+        }
+
+        auto v = target(*pos.first, g);
+
+        if (v == t)
+        {
+            vector<size_t> path = {s};
+            for (auto& ei : stack)
+                path.push_back(target(*ei.first, g));
+
+            yield(wrap_vector_owned<size_t>(path));
+
+            stack.pop_back();
+            if (!stack.empty())
+                ++stack.back().first;
+        }
+        else
+        {
+            stack.push_back(out_edges(v, g));
+        }
+    }
+};
+
+python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
+                                size_t cutoff)
+{
+#ifdef HAVE_BOOST_COROUTINE
+    auto dispatch = [&](auto& yield)
+        {
+            run_action<>()
+            (gi, [&](auto& g) {get_all_paths(s, t, cutoff, yield, g);})();
         };
     return python::object(CoroGenerator(dispatch));
 #else
@@ -503,5 +559,6 @@ void export_dists()
 {
     python::def("get_dists", &get_dists);
     python::def("get_all_preds", &do_get_all_preds);
+    python::def("get_all_shortest_paths", &do_get_all_shortest_paths);
     python::def("get_all_paths", &do_get_all_paths);
 };

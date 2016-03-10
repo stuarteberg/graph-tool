@@ -32,6 +32,7 @@ Summary
    shortest_path
    all_shortest_paths
    all_predecessors
+   all_paths
    pseudo_diameter
    similarity
    isomorphism
@@ -81,8 +82,8 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "label_largest_component", "label_biconnected_components",
            "label_out_component", "kcore_decomposition", "shortest_distance",
            "shortest_path", "all_shortest_paths", "all_predecessors",
-           "pseudo_diameter", "is_bipartite", "is_DAG", "is_planar",
-           "make_maximal_planar", "similarity", "edge_reciprocity"]
+           "all_paths", "pseudo_diameter", "is_bipartite", "is_DAG",
+           "is_planar", "make_maximal_planar", "similarity", "edge_reciprocity"]
 
 def similarity(g1, g2, label1=None, label2=None, norm=True):
     r"""Return the adjacency similarity between the two graphs.
@@ -1526,10 +1527,61 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
     if all_preds_map is None:
         all_preds_map = all_predecessors(g, dist_map, pred_map)
 
+    path_iterator = \
+        libgraph_tool_topology.get_all_shortest_paths(g._Graph__graph,
+                                                      int(source),
+                                                      int(target),
+                                                      _prop("v", g, all_preds_map))
+    return path_iterator
+
+def all_paths(g, source, target, cutoff=None):
+    """Return an iterator over all paths from `source` to `target`.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    source : :class:`~graph_tool.Vertex`
+        Source vertex of the search.
+    target : :class:`~graph_tool.Vertex`
+        Target vertex of the search.
+    cutoff : `int` (optional, default: None)
+        Maximum path length.
+
+    Returns
+    -------
+    path_iterator : iterator over a sequence of integers
+        Iterator over sequences of vertices from `source` to `target` in the
+        path.
+
+    Notes
+    -----
+
+    The algorithm uses a depth-first search to find all the paths.
+
+    The total number of paths between any two vertices can be quite large,
+    possibly scaling as :math:`O(V!)`.
+
+    Examples
+    --------
+
+    >>> g = gt.collection.data[""]
+    >>> for path in gt.all_paths(g, 13, 2, cutoff=2):
+    ...     print(path)
+    [13 15  2]
+    [13 60  2]
+    [13 64  2]
+    [ 13 100   2]
+    [ 13 106   2]
+    [13  2]
+    """
+
+    if cutoff is None:
+        cutoff = g.num_edges() + 1
     path_iterator = libgraph_tool_topology.get_all_paths(g._Graph__graph,
                                                          int(source),
                                                          int(target),
-                                                         _prop("v", g, all_preds_map))
+                                                         cutoff)
     return path_iterator
 
 
