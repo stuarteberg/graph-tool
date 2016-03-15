@@ -1578,10 +1578,12 @@ def all_paths(g, source, target, cutoff=None):
 
     if cutoff is None:
         cutoff = g.num_edges() + 1
+    visited = g.new_vp("bool", False)
     path_iterator = libgraph_tool_topology.get_all_paths(g._Graph__graph,
                                                          int(source),
                                                          int(target),
-                                                         cutoff)
+                                                         cutoff,
+                                                         _prop("v", g, visited))
     return path_iterator
 
 

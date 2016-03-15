@@ -501,18 +501,23 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 }
 
 
-template <class Graph, class Yield>
-void get_all_paths(size_t s, size_t t, size_t cutoff, Yield& yield, Graph& g)
+template <class Graph, class Yield, class VMap>
+void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
+                   Yield& yield, Graph& g)
 {
     typedef typename graph_traits<Graph>::out_edge_iterator eiter_t;
     typedef std::pair<eiter_t, eiter_t> item_t;
 
+    visited[s] = true;
+    vector<size_t> vs = {s};
     vector<item_t> stack = {out_edges(s, g)};
     while (!stack.empty())
     {
         auto& pos = stack.back();
         if (pos.first == pos.second || stack.size() > cutoff)
         {
+            visited[vs.back()] = false;
+            vs.pop_back();
             stack.pop_back();
             if (!stack.empty())
                 ++stack.back().first;
@@ -533,19 +538,32 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, Yield& yield, Graph& g)
         }
         else
         {
-            stack.push_back(out_edges(v, g));
+            if (!visited[v])
+            {
+                visited[v] = true;
+                vs.push_back(v);
+                stack.push_back(out_edges(v, g));
+            }
+            else
+            {
+                ++pos.first;
+            }
         }
     }
 };
 
 python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
-                                size_t cutoff)
+                                size_t cutoff, boost::any avisited)
 {
 #ifdef HAVE_BOOST_COROUTINE
+    typedef vprop_map_t<uint8_t>::type vprop_t;
+    vprop_t visited = boost::any_cast<vprop_t>(avisited);
     auto dispatch = [&](auto& yield)
         {
             run_action<>()
-            (gi, [&](auto& g) {get_all_paths(s, t, cutoff, yield, g);})();
+            (gi, [&](auto& g) {get_all_paths(s, t, cutoff,
+                                             visited.get_unchecked(), yield,
+                                             g);})();
         };
     return python::object(CoroGenerator(dispatch));
 #else
