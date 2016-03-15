@@ -529,9 +529,7 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, Yield& yield, Graph& g)
 
             yield(wrap_vector_owned<size_t>(path));
 
-            stack.pop_back();
-            if (!stack.empty())
-                ++stack.back().first;
+            ++pos.first;
         }
         else
         {
