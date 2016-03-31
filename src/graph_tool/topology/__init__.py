@@ -1179,7 +1179,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
     If a source is given, the distances are calculated with a breadth-first
     search (BFS) or Dijkstra's algorithm [dijkstra]_, if weights are given. If
     ``negative_weights == True``, the Bellman-Ford algorithm is used
-    [bellman_ford]_, which accepts negative weights, as long as there are no
+    [bellman-ford]_, which accepts negative weights, as long as there are no
     negative loops. If source is not given, the distances are calculated with
     Johnson's algorithm [johnson-apsp]_. If dense=True, the Floyd-Warshall
     algorithm [floyd-warshall-apsp]_ is used instead.
@@ -1350,7 +1350,7 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
 
     The paths are computed with a breadth-first search (BFS) or Dijkstra's
     algorithm [dijkstra]_, if weights are given. If ``negative_weights ==
-    True``, the Bellman-Ford algorithm is used [bellman_ford]_, which accepts
+    True``, the Bellman-Ford algorithm is used [bellman-ford]_, which accepts
     negative weights, as long as there are no negative loops.
 
     The algorithm runs in :math:`O(V + E)` time, or :math:`O(V \log V)` if
@@ -1490,7 +1490,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
 
     The paths are computed with a breadth-first search (BFS) or Dijkstra's
     algorithm [dijkstra]_, if weights are given. If ``negative_weights ==
-    True``, the Bellman-Ford algorithm is used [bellman_ford]_, which accepts
+    True``, the Bellman-Ford algorithm is used [bellman-ford]_, which accepts
     negative weights, as long as there are no negative loops.
 
     If both ``dist_map`` and ``pred_map` are provided, the search is not
