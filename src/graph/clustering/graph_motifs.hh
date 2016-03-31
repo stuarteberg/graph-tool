@@ -58,15 +58,14 @@ void get_subgraphs(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
     // extension and subgraph stack
-    std::vector<std::vector<vertex_t> > ext_stack(1);
-    std::vector<std::vector<vertex_t> > sub_stack(1);
-    std::vector<std::vector<vertex_t> > sub_neighbours_stack(1);
+    std::vector<std::vector<vertex_t>> ext_stack(1);
+    std::vector<std::vector<vertex_t>> sub_stack(1);
+    std::vector<std::vector<vertex_t>> sub_neighbours_stack(1);
 
     sub_stack[0].push_back(v);
-    typename graph_traits<Graph>::out_edge_iterator e, e_end;
-    for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+    for (auto e : out_edges_range(v, g))
     {
-        typename graph_traits<Graph>::vertex_descriptor u = target(*e, g);
+        typename graph_traits<Graph>::vertex_descriptor u = target(e, g);
         if (u > v && !has_val(ext_stack[0], u))
         {
             insert_sorted(ext_stack[0], u);
@@ -114,9 +113,9 @@ void get_subgraphs(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
 
             // update new_ext
             new_ext = ext;
-            for (tie(e, e_end) = out_edges(w, g); e != e_end; ++e)
+            for (auto e : out_edges_range(w, g))
             {
-                vertex_t u = target(*e,g);
+                vertex_t u = target(e, g);
                 if (u > v)
                 {
                     if (!has_val(sub_neighbours, u))
@@ -207,10 +206,9 @@ void make_subgraph
     {
         typename graph_traits<Graph>::vertex_descriptor ov = vlist[i], ot;
         typename graph_traits<GraphSG>::vertex_descriptor nv = vertex(i,sub);
-        typename graph_traits<Graph>::out_edge_iterator e, e_end;
-        for (tie(e, e_end) = out_edges(ov, g); e != e_end; ++e)
+        for (auto e : out_edges_range(ov, g))
         {
-            ot = target(*e, g);
+            ot = target(e, g);
             auto viter = lower_bound(vlist.begin(), vlist.end(), ot);
             size_t ot_index = viter - vlist.begin();
             if (viter != vlist.end() && vlist[ot_index] == ot &&
@@ -339,9 +337,8 @@ struct get_all_motifs
         std::vector<size_t> V;
         if (p < 1)
         {
-            typename graph_traits<Graph>::vertex_iterator v, v_end;
-            for (tie(v, v_end) = vertices(g); v != v_end; ++v)
-                V.push_back(*v);
+            for (auto v : vertices_range(g))
+                V.push_back(v);
 
             size_t n;
             if (random() < p)
