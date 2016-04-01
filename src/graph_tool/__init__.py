@@ -561,6 +561,16 @@ class PropertyMap(object):
                                  "'(%s, %s)', wanted types: (%s, %s)" %
                                  (str(k), str(v), str(type(k)),
                                   str(type(v)), kt, vt))
+    def __iter__(self):
+        g = self.__g()
+        if self.key_type() == "g":
+            iters = [g]
+        elif self.key_type() == "v":
+            iters = g.vertices()
+        else:
+            iters = g.edges()
+        for x in iters:
+            yield self[x]
 
     def __repr__(self):
         # provide some more useful information
@@ -897,11 +907,6 @@ class PropertyMap(object):
             size = 1
         self.__map.resize(size)
         self.__map.shrink_to_fit()
-
-    def __call__(self, a):
-        p = self.copy()
-        p.fa = a
-        return p
 
     def __getstate__(self):
         g = self.get_graph()
