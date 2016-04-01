@@ -1287,7 +1287,7 @@ void move_sweep_overlap(vector<BlockState>& states,
                         VLprop cv, VVprop vmap, Vprop clabel,
                         vector<int64_t>& vlist, vector<int64_t>& block_list,
                         bool deg_corr, bool dense, bool multigraph, double beta,
-                        Vprop vweight, Graph& g, bool sequential, bool parallel,
+                        Vprop vweight, Graph& g, bool sequential, bool parallel_enabled,
                         bool random_move, double c, size_t niter, size_t B,
                         bool verbose, RNG& rng, double& S, size_t& nmoves)
 {
@@ -1297,11 +1297,11 @@ void move_sweep_overlap(vector<BlockState>& states,
     S = 0;
 
     if (vlist.size() < 100)
-        parallel = false;
+        parallel_enabled = false;
 
     vector<pair<vertex_t, double> > best_move;
     vector<rng_t*> rngs;
-    if (parallel)
+    if (parallel_enabled)
     {
         best_move.resize(num_vertices(g), make_pair(vertex_t(0), numeric_limits<double>::max()));
 
@@ -1334,11 +1334,11 @@ void move_sweep_overlap(vector<BlockState>& states,
 
         int i = 0, N = vlist.size();
         #pragma omp parallel for default(shared) private(i) \
-            firstprivate(m_entries) schedule(runtime) if (parallel)
+            firstprivate(m_entries) schedule(runtime) if (parallel_enabled)
         for (i = 0; i < N; ++i)
         {
             size_t tid = 0;
-            if (parallel)
+            if (parallel_enabled)
             {
     #ifdef USING_OPENMP
                 tid = omp_get_thread_num();
@@ -1464,7 +1464,7 @@ void move_sweep_overlap(vector<BlockState>& states,
 
             if (accept)
             {
-                if (!parallel)
+                if (!parallel_enabled)
                 {
 
                     assert(b[v] == int(r));
@@ -1488,7 +1488,7 @@ void move_sweep_overlap(vector<BlockState>& states,
             }
         }
 
-        if (parallel)
+        if (parallel_enabled)
         {
             for (vertex_t v : vlist)
             {
@@ -1512,7 +1512,7 @@ void move_sweep_overlap(vector<BlockState>& states,
         }
     }
 
-    if (parallel)
+    if (parallel_enabled)
     {
         for (auto r : rngs)
             delete r;
