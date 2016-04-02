@@ -62,7 +62,6 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
     {
         auto v = vertex(uniform_sample(vlist, rng), g);
 
-        auto r = state.node_state(v);
         auto s = state.move_proposal(v, rng);
 
         std::pair<double, double> dS = state.virtual_move_dS(v, s);

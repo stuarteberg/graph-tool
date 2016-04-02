@@ -42,8 +42,6 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
             std::tuple<size_t, double> best_move(state._null_move,
                                                  numeric_limits<double>::max());
 
-            auto r = state.bundle_state(bundle);
-
             auto find_candidates = [&](bool random)
             {
                 for (size_t iter = 0; iter < state._niter; ++iter)

@@ -112,7 +112,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                 idx[j] = j;
             }
 
-            if (!isinf(beta))
+            if (!std::isinf(beta))
             {
                 for (size_t j = 0; j < moves.size(); ++j)
                 {

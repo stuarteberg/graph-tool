@@ -55,7 +55,6 @@ struct get_closeness
         const
     {
         using namespace boost;
-        typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
         // select get_vertex_dists based on the existence of weights
         typedef typename mpl::if_<std::is_same<WeightMap, no_weightS>,
