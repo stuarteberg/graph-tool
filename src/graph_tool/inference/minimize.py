@@ -295,8 +295,8 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
                                       state_args=state_args,
                                       mcmc_multilevel_args=mcmc_multilevel_args)
 
-    state = bisection_minimize([min_state, max_state], **bisection_args,
-                               verbose=verbose)
+    state = bisection_minimize([min_state, max_state], verbose=verbose,
+                               **bisection_args)
 
     return state
 
@@ -472,10 +472,11 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
             bs = []
             bstate = max_state
             for B in Bs:
-                bstate = mcmc_multilevel(bstate, B=B, **mcmc_multilevel_args,
+                bstate = mcmc_multilevel(bstate, B=B,
                                          verbose=verbose_push(verbose,
                                                               ("l = %d " %
-                                                               len(bs))))
+                                                               len(bs))),
+                                         **mcmc_multilevel_args)
                 bs.append(bstate.b.a)
                 bstate = bstate.get_block_state()
 

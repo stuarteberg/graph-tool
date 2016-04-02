@@ -739,16 +739,16 @@ class BlockState(object):
         mcmc_state.state = self._state
 
         if _bm_test():
-            Si = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
 
         dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
 
         if _bm_test():
-            Sf = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -828,16 +828,16 @@ class BlockState(object):
         gibbs_state.state = self._state
 
         if _bm_test():
-            Si = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
 
         dS, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
 
         if _bm_test():
-            Sf = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -919,9 +919,9 @@ class BlockState(object):
         else:
             multi_state.vlist.extend(vertices)
         multi_state.E = self.E
-        multi_state.S = self.entropy(**dmask(entropy_args,
-                                             ["xi_fast", "deg_dl_alt"]),
-                                     xi_fast=True, dl_deg_alt=False)
+        multi_state.S = self.entropy(xi_fast=True, dl_deg_alt=False,
+                                     **dmask(entropy_args,
+                                             ["xi_fast", "deg_dl_alt"]))
         multi_state.state = self._state
 
         multi_state.S_min = m_state._S_min
@@ -932,8 +932,8 @@ class BlockState(object):
         S, nmoves = self._multicanonical_sweep_dispatch(multi_state)
 
         if _bm_test():
-            Sf = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt"]))
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -1004,16 +1004,16 @@ class BlockState(object):
 
         if _bm_test():
             del merge_state["self"]
-            Si = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
 
         dS, nmoves = self._merge_sweep_dispatch(merge_state)
 
         if _bm_test():
-            Sf = self.entropy(**dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]),
-                              xi_fast=True, dl_deg_alt=False)
+            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
+                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
+                                                     "callback"]))
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))

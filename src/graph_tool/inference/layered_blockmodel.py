@@ -528,7 +528,7 @@ class LayeredBlockState(BlockState):
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
-            Salt = self.copy().entropy(**args, test=False)
+            Salt = self.copy().entropy(test=False, **args)
             assert abs(S - Salt) < 1e-6, \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
