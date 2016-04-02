@@ -87,31 +87,18 @@ struct get_global_clustering
         size_t triangles = 0, n = 0;
         pair<size_t, size_t> temp;
 
-#ifdef USING_OPENMP
-        size_t n_threads = omp_get_max_threads();
-#else
-        size_t n_threads = 1;
-#endif
-
-        vector<vector<bool>> mask(n_threads);
-        for (auto& m : mask)
-            m.resize(num_vertices(g), false);
+        vector<bool> mask(num_vertices(g), false);
 
         int i, N = num_vertices(g);
         #pragma omp parallel for default(shared) private(i,temp) \
-            schedule(runtime) if (N > 100) reduction(+:triangles, n)
+            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH) \
+            reduction(+:triangles, n)
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
             if (!is_valid_vertex(v, g))
                 continue;
-
-#ifdef USING_OPENMP
-            size_t tid = omp_get_thread_num();
-#else
-            size_t tid = 0;
-#endif
-            temp = get_triangles(v, mask[tid], g);
+            temp = get_triangles(v, mask, g);
             triangles += temp.first;
             n += temp.second;
         }
@@ -122,19 +109,14 @@ struct get_global_clustering
         double cerr = 0.0;
 
         #pragma omp parallel for default(shared) private(i,temp) \
-            schedule(runtime) if (N > 100) reduction(+:cerr)
+            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH) \
+            reduction(+:cerr)
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
             if (!is_valid_vertex(v, g))
                 continue;
-
-#ifdef USING_OPENMP
-            size_t tid = omp_get_thread_num();
-#else
-            size_t tid = 0;
-#endif
-            temp = get_triangles(v, mask[tid], g);
+            temp = get_triangles(v, mask, g);
             double cl = double(triangles - temp.first) / (n - temp.second);
 
             cerr += power(c - cl, 2);
@@ -153,34 +135,19 @@ struct set_clustering_to_property
         typename get_undirected_graph<Graph>::type ug(g);
         int i, N = num_vertices(g);
 
-#ifdef USING_OPENMP
-        size_t n_threads = omp_get_max_threads();
-#else
-        size_t n_threads = 1;
-#endif
-
-        vector<vector<bool>> mask(n_threads);
-        for (auto& m : mask)
-            m.resize(num_vertices(g), false);
+        vector<bool> mask(num_vertices(g), false);
 
         #pragma omp parallel for default(shared) private(i) \
-            schedule(runtime) if (N > 100)
+            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH)
         for (i = 0; i < N; ++i)
         {
             auto v = vertex(i, g);
             if (!is_valid_vertex(v, g))
                 continue;
-
-#ifdef USING_OPENMP
-            size_t tid = omp_get_thread_num();
-#else
-            size_t tid = 0;
-#endif
-            auto triangles = get_triangles(v, mask[tid], ug); // get from ug
+            auto triangles = get_triangles(v, mask, ug); // get from ug
             double clustering = (triangles.second > 0) ?
                 double(triangles.first)/triangles.second :
                 0.0;
-
             clust_map[v] = c_type(clustering);
         }
     }

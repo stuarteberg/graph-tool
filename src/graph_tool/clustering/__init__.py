@@ -105,7 +105,7 @@ def local_clustering(g, prop=None, undirected=True):
     .. math::
        c'_i = 2c_i.
 
-    The implemented algorithm runs in :math:`O(|V|\left< k\right>^3)` time,
+    The implemented algorithm runs in :math:`O(|V|\left< k\right>^2)` time,
     where :math:`\left< k\right>` is the average out-degree.
 
     If enabled during compilation, this algorithm runs in parallel.
@@ -167,7 +167,7 @@ def global_clustering(g):
        c = 3 \times \frac{\text{number of triangles}}
                           {\text{number of connected triples}}
 
-    The implemented algorithm runs in :math:`O(|V|\left< k\right>^3)` time,
+    The implemented algorithm runs in :math:`O(|V|\left< k\right>^2)` time,
     where :math:`\left< k\right>` is the average (total) degree.
 
     If enabled during compilation, this algorithm runs in parallel.
