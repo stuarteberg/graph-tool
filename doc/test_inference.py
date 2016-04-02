@@ -5,8 +5,9 @@ verbose=False
 import os
 import sys
 if not verbose:
-    f = open(os.devnull, 'w')
-    sys.stdout = f
+    out = open(os.devnull, 'w')
+else:
+    out = sys.stdout
 
 from graph_tool.all import *
 import numpy.random
@@ -45,26 +46,26 @@ for directed in [True, False]:
 
                     print("\ndirected:", directed, "overlap:", overlap,
                           "layered:", layered, "deg-corr:", deg_corr, "dl:", dl,
-                          file=sys.stdout)
+                          file=out)
 
 
-                    print("\t mcmc (unweighted)", file=sys.stdout)
+                    print("\t mcmc (unweighted)", file=out)
                     state = gen_state(directed, deg_corr, layered, overlap)
 
                     print("\t\t", state.mcmc_sweep(beta=0, allow_empty=True,
                                                    entropy_args=dict(dl=dl)),
-                          (state.wr.a > 0).sum())
+                          (state.wr.a > 0).sum(), file=out)
                     if overlap:
                         print("\t\t", state.mcmc_sweep(beta=0, bundled=True,
                                                        allow_empty=True,
                                                        entropy_args=dict(dl=dl)),
                               (state.wr.a > 0).sum(),
-                              file=sys.stdout)
+                              file=out)
 
                     state = gen_state(directed, deg_corr, layered, overlap)
 
                     if not overlap:
-                        print("\t mcmc", file=sys.stdout)
+                        print("\t mcmc", file=out)
                         bstate = state.get_block_state(vweight=True,
                                                        deg_corr=deg_corr)
 
@@ -73,21 +74,21 @@ for directed in [True, False]:
                                                 allow_empty=True,
                                                 entropy_args=dict(dl=dl,
                                                                   multigraph=False)),
-                              (bstate.wr.a > 0).sum(), file=sys.stdout)
+                              (bstate.wr.a > 0).sum(), file=out)
 
                         print("\t\t",
                               bstate.mcmc_sweep(beta=0, allow_empty=True,
                                                 entropy_args=dict(dl=dl,
                                                                   multigraph=False)),
-                              (bstate.wr.a > 0).sum())
+                              (bstate.wr.a > 0).sum(), file=out)
 
                         print("\t\t",
                               bstate.gibbs_sweep(beta=0, allow_empty=True,
                                                  entropy_args=dict(dl=dl,
                                                                    multigraph=False)),
-                              (bstate.wr.a > 0).sum(), file=sys.stdout)
+                              (bstate.wr.a > 0).sum(), file=out)
 
-                    print("\t merge", file=sys.stdout)
+                    print("\t merge", file=out)
 
                     state = gen_state(directed, deg_corr, layered, overlap)
 
@@ -99,7 +100,7 @@ for directed in [True, False]:
                               bstate.merge_sweep(50,
                                                  entropy_args=dict(dl=dl,
                                                                    multigraph=False)),
-                              file=sys.stdout)
+                              file=out)
 
                         bstate = bstate.copy()
 
@@ -107,32 +108,32 @@ for directed in [True, False]:
                               bstate.mcmc_sweep(beta=0, allow_empty=True,
                                                 entropy_args=dict(dl=dl,
                                                                   multigraph=False)),
-                              file=sys.stdout)
+                              file=out)
                         print("\t\t",
                               bstate.gibbs_sweep(beta=0, allow_empty=True,
                                                  entropy_args=dict(dl=dl,
                                                                 multigraph=False)),
-                              file=sys.stdout)
+                              file=out)
                     else:
                         print("\t\t",
                               state.merge_sweep(50,
                                                 entropy_args=dict(dl=dl,
                                                                   multigraph=False)),
-                              file=sys.stdout)
+                              file=out)
 
-                    print("\t shrink", file=sys.stdout)
+                    print("\t shrink", file=out)
 
                     state = gen_state(directed, deg_corr, layered, overlap)
                     state = state.shrink(B=5, entropy_args=dict(dl=dl,
                                                                 multigraph=False))
-                    print("\t\t", state.B, file=sys.stdout)
+                    print("\t\t", state.B, file=out)
 
 for directed in [True, False]:
     for overlap in [False, True]:
         for layered in [False, "covariates", True]:
             for deg_corr in [False, True]:
                 print("\ndirected:", directed, "overlap:", overlap,
-                      "layered:", layered, "deg-corr:", deg_corr)
+                      "layered:", layered, "deg-corr:", deg_corr, file=out)
 
                 state = minimize_blockmodel_dl(GraphView(g, directed=directed),
                                                verbose=(1, "\t") if verbose else False,
@@ -141,7 +142,7 @@ for directed in [True, False]:
                                                layers=layered != False,
                                                state_args=dict(ec=ec,
                                                                layers=(layered == True)))
-                print(state.B, state.entropy(), file=sys.stdout)
+                print(state.B, state.entropy(), file=out)
 
                 state = minimize_nested_blockmodel_dl(GraphView(g, directed=directed),
                                                       verbose=(1, "\t") if verbose else False,
@@ -152,6 +153,6 @@ for directed in [True, False]:
                                                                       layers=(layered == True)))
                 if verbose:
                     state.print_summary()
-                print(state.entropy(), file=sys.stdout)
+                print(state.entropy(), file=out)
 
 print("OK")
