@@ -1695,7 +1695,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
        >>> # fit a SBM with 5 groups
        >>> state = gt.BlockState(g, B=5, deg_corr=True)
        >>> gt.mcmc_equilibrate(state, wait=1000)
-       <...>
+       (...)
        >>> b = state.get_blocks()
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=b, vertex_shape=b,
        ...               output="polbooks_blocks_B5.pdf")
