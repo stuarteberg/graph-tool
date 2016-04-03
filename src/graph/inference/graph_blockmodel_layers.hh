@@ -167,8 +167,6 @@ struct Layers
         size_t _total_B;
         bool _is_partition_stats_enabled;
 
-        //TODO: remove_vertex and add_vertex, etc.
-
         void move_vertex(size_t v, size_t s)
         {
             if (BaseState::_vweight[v] == 0)
@@ -215,6 +213,39 @@ struct Layers
                         state.remove_block_map(r);
                 }
             }
+        }
+
+        void remove_vertex(size_t v)
+        {
+            size_t r = _b[v];
+            auto& ls = _vc[v];
+            auto& vs = _vmap[v];
+            for (size_t j = 0; j < ls.size(); ++j)
+            {
+                int l = ls[j];
+                size_t u = vs[j];
+                auto& state = _layers[l];
+                size_t r_u = state._b[u];
+                state.remove_vertex(u);
+                if (state._wr[r_u] == 0)
+                    state.remove_block_map(r);
+            }
+            BaseState::remove_vertex(v);
+        }
+
+        void add_vertex(size_t v, size_t r)
+        {
+            auto& ls = _vc[v];
+            auto& vs = _vmap[v];
+            for (size_t j = 0; j < ls.size(); ++j)
+            {
+                int l = ls[j];
+                size_t u = vs[j];
+                auto& state = _layers[l];
+                size_t r_u = state.get_block_map(r);
+                state.add_vertex(u, r_u);
+            }
+            BaseState::add_vertex(v, r);
         }
 
         template <class VMap>

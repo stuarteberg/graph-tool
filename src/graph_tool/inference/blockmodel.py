@@ -654,6 +654,70 @@ class BlockState(object):
         """
         return self._state.get_move_prob(int(v), self.b[v], s, c, reverse)
 
+    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
+        """Compute the log-probability of the missing (or spurious if ``missing=False``)
+        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
+        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
+        passed to :meth:`graph_tool.BlockState.entropy()` to calculate the
+        log-probability.
+        """
+        pos = {}
+        for u, v in edge_list:
+            pos[u] = self.b[u]
+            pos[v] = self.b[v]
+
+        Si = self.entropy(**entropy_args)
+
+        for v in pos.keys():
+            self.remove_vertex(v)
+
+        try:
+            if missing:
+                new_es = []
+                for u, v in edge_list:
+                    e = self.g.add_edge(u, v)
+                    new_es.append(e)
+                    self.E += 1
+            else:
+                old_es = []
+                for e in edge_list:
+                    if isinstance(e, tuple):
+                        u, v = e
+                        tmp = self.g.edge(u, v)
+                        if tmp is None:
+                            raise ValueError("edge not found: (%d, %d)" % (int(u),
+                                                                           int(v)))
+                        self.g.remove_edge(tmp)
+                    else:
+                        u, v = e
+                        self.g.remove_edge(e)
+                    old_es.append((u, v))
+                    self.E -= 1
+
+            for v in pos.keys():
+                self.add_vertex(v, pos[v])
+
+            Sf = self.entropy(**entropy_args)
+
+            for v in pos.keys():
+                self.remove_vertex(v)
+
+        finally:
+            if missing:
+                for e in new_es:
+                    self.g.remove_edge(e)
+                    self.E -= 1
+            else:
+                for u, v in old_es:
+                    self.g.add_edge(u, v)
+                    self.E += 1
+            for v in pos.keys():
+                self.add_vertex(v, pos[v])
+
+        if missing:
+            return Si - Sf
+        else:
+            return Sf - Si
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         if (mcmc_state.multigraph and not mcmc_state.dense and

@@ -177,7 +177,8 @@ class NestedBlockState(object):
         if _bm_test():
             self._consistency_check()
 
-    def level_entropy(self, l, dense=False, multigraph=True, bstate=None, **kwargs):
+    def level_entropy(self, l, dense=False, multigraph=True, bstate=None,
+                      **kwargs):
         """Compute the entropy of level ``l``."""
 
         if bstate is None:
@@ -197,6 +198,24 @@ class NestedBlockState(object):
             S += self.level_entropy(l, dense=dense, multigraph=multigraph,
                                     **kwargs)
         return S
+
+    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
+        """Compute the log-probability of the missing (or spurious if ``missing=False``)
+        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
+        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
+        passed to :meth:`graph_tool.NestedBlockState.entropy()` to calculate the
+        log-probability.
+        """
+        L = 0
+        for l, state in enumerate(self.levels):
+            eargs = overlay(entropy_args, dl=True,
+                            edges_dl=(l == (len(self.levels) - 1)))
+            if l > 0:
+                eargs = overlay(eargs, dense=True, multigraph=True)
+            L += state.get_edges_prob(edge_list, missing=missing,
+                                      entropy_args=eargs)
+            edge_list = [(state.b[u], state.b[v]) for u, v in edge_list]
+        return L
 
     def get_bstack(self):
         """Return the nested levels as individual graphs.
