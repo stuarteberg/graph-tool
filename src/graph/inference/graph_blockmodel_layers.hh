@@ -116,7 +116,7 @@ struct Layers
                 {
                     r_u = iter->second;
                 }
-                assert(r_u < num_vertices(_bg));
+                assert(r_u < num_vertices(BaseState::_bg));
                 return r_u;
             }
 
