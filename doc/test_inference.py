@@ -4,6 +4,9 @@ from __future__ import print_function
 
 verbose=False
 
+if __name__ == "__main__":
+    verbose = True
+
 import os
 import sys
 if not verbose:

@@ -47,7 +47,7 @@ from . blockmodel import *
 from . blockmodel import _bm_test
 from . overlap_blockmodel import *
 
-class LayeredBlockState(BlockState):
+class LayeredBlockState(OverlapBlockState, BlockState):
     r"""The (possibly overlapping) block state of a given graph, where the edges are
     divided into discrete layers.
 
