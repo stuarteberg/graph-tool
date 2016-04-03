@@ -423,7 +423,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   vweight=bg.own_property(self.wr.copy()) if vweight else None,
                                   b=bg.vertex_index.copy("int") if b is None else b,
                                   deg_corr=deg_corr,
-                                  pclabel=self.get_bpclabel(),
                                   overlap=overlap,
                                   max_BE=self.max_BE,
                                   layers=self.layers if layers is None else layers,

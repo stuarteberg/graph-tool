@@ -58,7 +58,7 @@ class NestedBlockState(object):
 
     def __init__(self, g, bs, base_type=BlockState, **kwargs):
         self.g = g
-        self.kwargs = copy.deepcopy(kwargs)
+        self.kwargs = kwargs.copy()
         self.levels = [base_type(g, b=bs[0], **self.kwargs)]
         for b in bs[1:]:
             state = self.levels[-1]
@@ -302,8 +302,7 @@ class NestedBlockState(object):
                                         **mcmc_multilevel_args)
         if l < len(self.levels) - 1:
             if B_min is None:
-                min_state = state.copy(b=self.project_partition(l + 1, l),
-                                       clabel=clabel)
+                min_state = state.copy(b=clabel, clabel=clabel)
             else:
                 min_state = mcmc_multilevel(max_state, B_min,
                                             **mcmc_multilevel_args)
@@ -311,8 +310,7 @@ class NestedBlockState(object):
                 assert min_state.B == self.levels[l+1].B, (min_state.B,
                                                            self.levels[l+1].N)
         else:
-            min_state = state.copy(b=zeros(len(state.b.fa)),
-                                   clabel=clabel)
+            min_state = state.copy(b=clabel, clabel=clabel)
         if B_min is not None and  min_state.B > B_min:
             min_state = mcmc_multilevel(min_state, B_min,
                                         **mcmc_multilevel_args)

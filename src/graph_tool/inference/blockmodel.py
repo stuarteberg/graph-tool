@@ -312,7 +312,6 @@ class BlockState(object):
                            vweight=self.wr if vweight else self.bg.new_vp("int", 1),
                            b=self.bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
-                           pclabel=self.get_bpclabel(),
                            degs=degs,
                            max_BE=self.max_BE, **kwargs)
         return state

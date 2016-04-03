@@ -286,6 +286,8 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
                              **bisection_args)
 
     clabel = state_args.get("clabel", None)
+    if clabel is None:
+        clabel = state_args.get("pclabel", None)
 
     min_state, max_state = get_states(g, B_min=B_min, B_max=B_max, b_min=b_min,
                                       b_max=b_max, deg_corr=deg_corr,
@@ -455,6 +457,8 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
 
     if bs is None:
         clabel = state_args.get("clabel", None)
+        if clabel is None:
+            clabel = state_args.get("pclabel", None)
         min_state, max_state = get_states(g, B_min=B_min, B_max=B_max,
                                           b_min=b_min, b_max=b_max,
                                           deg_corr=deg_corr, overlap=overlap,

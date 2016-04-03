@@ -278,7 +278,6 @@ class OverlapBlockState(BlockState):
                                vweight=wr if vweight else None,
                                b=bg.vertex_index.copy("int") if b is None else b,
                                deg_corr=deg_corr,
-                               pclabel=self.get_bpclabel(),
                                max_BE=self.max_BE, **kwargs)
         else:
             ## FIXME: Move this to C++
