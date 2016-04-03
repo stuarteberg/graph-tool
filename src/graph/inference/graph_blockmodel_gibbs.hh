@@ -182,8 +182,6 @@ struct Gibbs
                 weights.push_back(1);
             }
 
-            assert(_state._wr[r] > 0);
-
             _state.move_vertex(v, nr);
 
             if (_state._wr[r] == 0)
