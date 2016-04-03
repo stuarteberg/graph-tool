@@ -39,7 +39,7 @@ struct do_perfect_vhash
     {
         typedef typename property_traits<VertexPropertyMap>::value_type val_t;
         typedef typename property_traits<HashProp>::value_type hash_t;
-        typedef unordered_map<val_t, hash_t> dict_t;
+        typedef std::unordered_map<val_t, hash_t> dict_t;
 
         if (adict.empty())
             adict = dict_t();
@@ -52,9 +52,14 @@ struct do_perfect_vhash
             auto iter = dict.find(val);
             hash_t h;
             if (iter == dict.end())
-                h = dict[val] = dict.size() - 1;
+            {
+                h = dict.size();
+                dict[val] = h;
+            }
             else
+            {
                 h = iter->second;
+            }
             hprop[v] = h;
         }
     }

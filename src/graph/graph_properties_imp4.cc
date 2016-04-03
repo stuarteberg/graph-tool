@@ -52,9 +52,14 @@ struct do_perfect_ehash
             auto iter = dict.find(val);
             hash_t h;
             if (iter == dict.end())
-                h = dict[val] = dict.size() - 1;
+            {
+                h = dict.size();
+                dict[val] = h;
+            }
             else
+            {
                 h = iter->second;
+            }
             hprop[e] = h;
         }
     }
