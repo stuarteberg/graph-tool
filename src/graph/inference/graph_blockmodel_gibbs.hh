@@ -135,6 +135,11 @@ struct Gibbs
             return _state._b[v];
         }
 
+        bool skip(size_t v)
+        {
+            return _state._vweight[v] == 0;
+        }
+
         double virtual_move_dS(size_t v, size_t nr)
         {
             if (nr >= _B)
@@ -181,6 +186,8 @@ struct Gibbs
                 moves.push_back(nr);
                 weights.push_back(1);
             }
+
+            assert(_state._wr[r] > 0);
 
             _state.move_vertex(v, nr);
 

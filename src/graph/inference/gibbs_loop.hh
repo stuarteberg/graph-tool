@@ -95,6 +95,9 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                 v = vertex(vlist[v_rand(rng)], g);
             }
 
+            if (state.skip(v))
+                continue;
+
             vector<size_t>& moves = state.get_moves(v);
             auto& weights = state.get_weights(v);
 
