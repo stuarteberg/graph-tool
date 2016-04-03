@@ -92,6 +92,9 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
                 v = vertex(vlist[v_rand(rng)], g);
             }
 
+            if (state.node_weight(v) == 0)
+                continue;
+
             auto r = state.node_state(v);
             auto s = state.move_proposal(v, rng);
 
@@ -125,7 +128,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
                 if (!state._parallel)
                 {
                     state.perform_move(v, s);
-                    nmoves++;
+                    nmoves += state.node_weight(v);
                     S += dS.first;
                 }
                 else

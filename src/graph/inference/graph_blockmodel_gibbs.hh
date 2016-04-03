@@ -135,9 +135,10 @@ struct Gibbs
             return _state._b[v];
         }
 
-        bool skip(size_t v)
+
+        size_t node_weight(size_t v)
         {
-            return _state._vweight[v] == 0;
+            return _state.node_weight(v);
         }
 
         double virtual_move_dS(size_t v, size_t nr)

@@ -275,6 +275,19 @@ public:
         add_vertex(v, nr);
     }
 
+    template <class VMap>
+    void set_partition(VMap&& b)
+    {
+        for (auto v : vertices_range(_g))
+            move_vertex(v, b[v]);
+    }
+
+    void set_partition(boost::any& ab)
+    {
+        vmap_t& b = boost::any_cast<vmap_t&>(ab);
+        set_partition<typename vmap_t::unchecked_t>(b.get_unchecked());
+    }
+
     size_t virtual_remove_size(size_t v)
     {
         return _wr[_b[v]] - _vweight[v];
@@ -782,6 +795,11 @@ public:
     bool is_last(size_t v)
     {
         return _wr[_b[v]] == _vweight[v];
+    }
+
+    size_t node_weight(size_t v)
+    {
+        return _vweight[v];
     }
 
     double get_deg_entropy(size_t v, const simple_degs_t&)

@@ -217,6 +217,19 @@ public:
         add_vertex(v, nr);
     }
 
+    template <class VMap>
+    void set_partition(VMap&& b)
+    {
+        for (auto v : vertices_range(_g))
+            move_vertex(v, b[v]);
+    }
+
+    void set_partition(boost::any& ab)
+    {
+        vmap_t& b = boost::any_cast<vmap_t&>(ab);
+        set_partition<typename vmap_t::unchecked_t>(b.get_unchecked());
+    }
+
     size_t virtual_remove_size(size_t v)
     {
         return _overlap_stats.virtual_remove_size(v, _b[v]);
@@ -486,6 +499,11 @@ public:
     {
         auto r = _b[v];
         return _overlap_stats.virtual_remove_size(v, r) == 0;
+    }
+
+    size_t node_weight(size_t)
+    {
+        return 1;
     }
 
     double sparse_entropy(bool multigraph, bool deg_entropy) const

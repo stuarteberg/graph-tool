@@ -346,6 +346,12 @@ class BlockState(object):
         r"""Returns the property map which contains the block labels for each vertex."""
         return self.b
 
+    def set_blocks(self, b):
+        r"""Sets the internal partition of the state."""
+        if b.value_type() != "int32_t":
+            b = b.copy("int32_t")
+        self._state.set_partition(_prop("v", self.g, b))
+
     def get_bg(self):
         r"""Returns the block graph."""
         return self.bg
@@ -732,7 +738,14 @@ class BlockState(object):
             mcmc_state.block_list.extend(block_list)
         mcmc_state.vlist = Vector_size_t()
         if vertices is None:
-            mcmc_state.vlist.extend(self.g.vertex_index.copy().fa)
+            idx = self.g.vertex_index.copy().fa
+            if (hasattr(self, "vweight") and
+                not isinstance(self.vweight, libinference.unity_vprop_t)):
+                # ignore vertices with zero weight
+                vw = self.vweight.fa
+                mcmc_state.vlist.extend(idx[vw > 0])
+            else:
+                mcmc_state.vlist.extend(idx)
         else:
             mcmc_state.vlist.extend(vertices)
         mcmc_state.E = self.E
@@ -821,7 +834,14 @@ class BlockState(object):
             gibbs_state.block_list.extend(block_list)
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
-            gibbs_state.vlist.extend(self.g.vertex_index.copy().fa)
+            idx = self.g.vertex_index.copy().fa
+            if (hasattr(self, "vweight") and
+                not isinstance(self.vweight, libinference.unity_vprop_t)):
+                # ignore vertices with zero weight
+                vw = self.vweight.fa
+                gibbs_state.vlist.extend(idx[vw > 0])
+            else:
+                gibbs_state.vlist.extend(idx)
         else:
             gibbs_state.vlist.extend(vertices)
         gibbs_state.E = self.E
@@ -915,7 +935,14 @@ class BlockState(object):
             multi_state.block_list.extend(block_list)
         multi_state.vlist = Vector_size_t()
         if vertices is None:
-            multi_state.vlist.extend(self.g.vertex_index.copy().fa)
+            idx = self.g.vertex_index.copy().fa
+            if (hasattr(self, "vweight") and
+                not isinstance(self.vweight, libinference.unity_vprop_t)):
+                # ignore vertices with zero weight
+                vw = self.vweight.fa
+                multi_state.vlist.extend(idx[vw > 0])
+            else:
+                multi_state.vlist.extend(idx)
         else:
             multi_state.vlist.extend(vertices)
         multi_state.E = self.E

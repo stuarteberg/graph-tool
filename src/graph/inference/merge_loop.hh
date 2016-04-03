@@ -62,6 +62,9 @@ auto merge_sweep(MergeState state, RNG& rng_)
 
         auto v = state._available[i];
 
+        if (state.node_weight(v) == 0)
+            continue;
+
         gt_hash_set<size_t> past_moves;
 
         auto find_candidates = [&](bool random)

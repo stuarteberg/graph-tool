@@ -87,6 +87,11 @@ struct Multicanonical
             return _state._b[v];
         }
 
+        size_t node_weight(size_t v)
+        {
+            return _state.node_weight(v);
+        }
+
         template <class RNG>
         size_t move_proposal(size_t v, RNG& rng)
         {

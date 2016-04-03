@@ -453,11 +453,15 @@ void export_layered_blockmodel_state()
                       void (state_t::*merge_vertices)(size_t, size_t)
                           = &state_t::merge_vertices;
 
+                      void (state_t::*set_partition)(boost::any&)
+                          = &state_t::set_partition;
+
                       class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
                                         no_init);
                       c.def("remove_vertex", &state_t::remove_vertex)
                           .def("add_vertex", &state_t::add_vertex)
                           .def("move_vertex", &state_t::move_vertex)
+                          .def("set_partition", set_partition)
                           .def("virtual_move", virtual_move)
                           .def("merge_vertices", merge_vertices)
                           .def("sample_block", sample_block)

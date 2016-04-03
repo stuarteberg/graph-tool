@@ -29,9 +29,9 @@ import numpy
 from . util import *
 
 def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
-                     force_niter=None, epsilon=0, gibbs=False, mcmc_args={},
-                     entropy_args={}, history=False, callback=None,
-                     verbose=False):
+                     force_niter=None, epsilon=0, gibbs=False,
+                     block_moves=False, mcmc_args={}, entropy_args={},
+                     history=False, callback=None, verbose=False):
     r"""Equilibrate a MCMC with a given starting state.
 
     Parameters
@@ -54,6 +54,9 @@ def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
     gibbs : ``bool`` (optional, default: ``False``)
         If ``True``, each step will call ``state.gibbs_sweep`` instead of
         ``state.mcmc_sweep``.
+    block_moves : ``bool`` (optional, default: ``False``)
+        If ``True``, each iteration will be accompanied by a "block move", where
+        all vertices of the same group are moved simultaneously.
     mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to ``state.mcmc_sweep`` (or ``state.gibbs_sweep``).
     history : ``bool`` (optional, default: ``False``)
@@ -106,6 +109,21 @@ def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
             delta, nmoves = state.mcmc_sweep(**mcmc_args)
         else:
             delta, nmoves = state.gibbs_sweep(**mcmc_args)
+
+        if block_moves:
+            bstate = state.get_block_state(vweight=True,
+                                           clabel=state.get_bclabel())
+            if not gibbs:
+                ret = bstate.mcmc_sweep(**mcmc_args)
+            else:
+                ret = bstate.gibbs_sweep(**mcmc_args)
+
+            b = state.b.copy()
+            pmap(b, bstate.b)
+            state.set_blocks(b)
+
+            delta += ret[0]
+            nmoves += ret[1]
 
         S += delta
         niter += 1

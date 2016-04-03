@@ -217,6 +217,20 @@ struct Layers
             }
         }
 
+        template <class VMap>
+        void set_partition(VMap&& b)
+        {
+            for (auto v : vertices_range(_g))
+                LayeredBlockState::move_vertex(v, b[v]);
+        }
+
+        void set_partition(boost::any& ab)
+        {
+            typename BaseState::b_t::checked_t& b
+                = boost::any_cast<typename BaseState::b_t::checked_t&>(ab);
+            set_partition(b.get_unchecked());
+        }
+
         template <class MEntries>
         double virtual_move(size_t v, size_t s, bool dense, bool multigraph,
                             bool partition_dl, bool deg_dl, bool edges_dl,
