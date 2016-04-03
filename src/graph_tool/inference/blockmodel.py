@@ -802,8 +802,7 @@ class BlockState(object):
         mcmc_state.vlist = Vector_size_t()
         if vertices is None:
             idx = self.g.vertex_index.copy().fa
-            if (hasattr(self, "vweight") and
-                not isinstance(self.vweight, libinference.unity_vprop_t)):
+            if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 mcmc_state.vlist.extend(idx[vw > 0])
@@ -815,6 +814,7 @@ class BlockState(object):
         mcmc_state.state = self._state
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel before sweep"
             Si = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
@@ -822,6 +822,7 @@ class BlockState(object):
         dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel after sweep"
             Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
@@ -898,8 +899,7 @@ class BlockState(object):
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
             idx = self.g.vertex_index.copy().fa
-            if (hasattr(self, "vweight") and
-                not isinstance(self.vweight, libinference.unity_vprop_t)):
+            if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 gibbs_state.vlist.extend(idx[vw > 0])
@@ -911,6 +911,7 @@ class BlockState(object):
         gibbs_state.state = self._state
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel before sweep"
             Si = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
@@ -918,6 +919,7 @@ class BlockState(object):
         dS, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel after sweep"
             Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
@@ -999,8 +1001,7 @@ class BlockState(object):
         multi_state.vlist = Vector_size_t()
         if vertices is None:
             idx = self.g.vertex_index.copy().fa
-            if (hasattr(self, "vweight") and
-                not isinstance(self.vweight, libinference.unity_vprop_t)):
+            if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 multi_state.vlist.extend(idx[vw > 0])
@@ -1022,6 +1023,7 @@ class BlockState(object):
         S, nmoves = self._multicanonical_sweep_dispatch(multi_state)
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel after sweep"
             Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt"]))
             assert abs(dS - (Sf - Si)) < 1e-6, \
@@ -1093,7 +1095,7 @@ class BlockState(object):
         merge_state.update(entropy_args)
 
         if _bm_test():
-            del merge_state["self"]
+            self._check_clabel()
             Si = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
@@ -1101,6 +1103,7 @@ class BlockState(object):
         dS, nmoves = self._merge_sweep_dispatch(merge_state)
 
         if _bm_test():
+            assert self._check_clabel(), "invalid clabel after sweep"
             Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
                                                      "callback"]))
