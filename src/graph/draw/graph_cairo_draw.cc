@@ -1805,12 +1805,6 @@ size_t cairo_draw(GraphInterface& gi,
                   boost::python::object ocr)
 {
     attrs_t vattrs, eattrs, vdefaults, edefaults;
-#ifdef HAVE_SPARSEHASH
-    vattrs.set_empty_key(numeric_limits<int>::max());
-    eattrs.set_empty_key(numeric_limits<int>::max());
-    vdefaults.set_empty_key(numeric_limits<int>::max());
-    edefaults.set_empty_key(numeric_limits<int>::max());
-#endif
 
     typedef graph_traits<GraphInterface::multigraph_t>::vertex_descriptor vertex_t;
 
