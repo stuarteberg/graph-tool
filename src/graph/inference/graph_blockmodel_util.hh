@@ -353,9 +353,18 @@ public:
         r = get_r(r);
         nr = get_r(nr);
         auto&& ks = get_degs(v, vweight, eweight, degs, g);
+        auto* _ks = &ks;
+        typename std::remove_reference<decltype(ks)>::type nks;
+        if (_ignore_degree[v] == 2)
+        {
+            nks = ks;
+            for (auto& k : nks)
+                get<1>(k) = 0;
+            _ks = &nks;
+        }
         double dS = 0;
-        dS += get_delta_deg_dl_change(v, r,  ks, -1);
-        dS += get_delta_deg_dl_change(v, nr, ks, +1);
+        dS += get_delta_deg_dl_change(v, r,  *_ks, -1);
+        dS += get_delta_deg_dl_change(v, nr, *_ks, +1);
         return dS;
     }
 

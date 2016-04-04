@@ -56,7 +56,7 @@ typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
     ((pclabel,, vmap_t, 0))                                                    \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
-    ((ignore_degree,, typename vprop_map_t<uint8_t>::type, 0))
+    ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
 
@@ -804,11 +804,11 @@ public:
 
     double get_deg_entropy(size_t v, const simple_degs_t&)
     {
-        if (_ignore_degree[v] == 1)
+        if (_ignore_degrees[v] == 1)
             return 0;
         auto kin = in_degreeS()(v, _g);
         auto kout = out_degreeS()(v, _g);
-        if (_ignore_degree[v] == 2)
+        if (_ignore_degrees[v] == 2)
             kout = 0;
         double S = -lgamma_fast(kin + 1) - lgamma_fast(kout + 1);
         return S * _vweight[v];
@@ -816,14 +816,14 @@ public:
 
     double get_deg_entropy(size_t v, typename degs_map_t::unchecked_t& degs)
     {
-        if (_ignore_degree[v] == 1)
+        if (_ignore_degrees[v] == 1)
             return 0;
         double S = 0;
         for (auto& ks : degs[v])
         {
             auto kin = get<0>(ks);
             auto kout = get<1>(ks);
-            if (_ignore_degree[v] == 2)
+            if (_ignore_degrees[v] == 2)
                 kout = 0;
             int n = get<2>(ks);
             S -= n * (lgamma_fast(kin + 1) + lgamma_fast(kout + 1));
@@ -991,7 +991,7 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _vweight, _eweight, _degs,
-                                              _ignore_degree, _bmap);
+                                              _ignore_degrees, _bmap);
 
             for (auto r : vertices_range(_bg))
                 _partition_stats[rc[r]].get_r(r);

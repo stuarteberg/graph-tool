@@ -215,8 +215,6 @@ class BlockState(object):
 
         self.merge_map = kwargs.get("merge_map", self.g.vertex_index.copy("int"))
 
-        self.ignore_degree = kwargs.get("ignore_degree",
-                                        self.g.new_vp("bool", False))
         self.block_list = Vector_size_t()
         self.block_list.extend(arange(self.B, dtype="int"))
 
