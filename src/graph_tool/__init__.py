@@ -365,7 +365,7 @@ class PropertyArray(numpy.ndarray):
         return self._get_base().__array_interface__['data'][0]
 
     def _check_data(self):
-        if self.prop_map is None:
+        if not hasattr(self, "_prop_map") or self.prop_map is None:
             return
 
         data = self.prop_map._get_data()
