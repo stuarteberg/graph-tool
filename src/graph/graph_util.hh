@@ -32,11 +32,7 @@ namespace boost { namespace python { namespace detail {
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/filtered_graph.hpp>
-#if (BOOST_VERSION / 100 % 1000 >= 48)
-    #include <boost/graph/reverse_graph_alt.hpp>
-#else
-    #include <boost/graph/reverse_graph.hpp>
-#endif
+#include <boost/graph/reverse_graph_alt.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
