@@ -12,6 +12,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
+#include <functional>
 
 #if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
 // Stay out of the way of the concept checking class
@@ -412,5 +413,24 @@ get_property(const reverse_graph<BidirectionalGraph,GRef>& g, Tag tag)
 }
 
 } // namespace boost
+
+// hashing of edge descriptors
+
+namespace std
+{
+
+template <class Edge>
+struct hash<boost::detail::reverse_graph_edge_descriptor<Edge>>
+{
+    template <class REdge>
+    std::size_t operator()(REdge const& e) const
+    {
+        return _h(Edge(e));
+    }
+    std::hash<Edge> _h;
+};
+
+} // namespace std
+
 
 #endif

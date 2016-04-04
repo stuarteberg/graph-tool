@@ -26,6 +26,9 @@
 #include <utility>
 #include <limits>
 
+#include "graph_adjacency.hh"
+#include <boost/graph/reverse_graph_alt.hpp>
+
 #ifdef HAVE_SPARSEHASH
 #include SPARSEHASH_INCLUDE(dense_hash_set)
 #include SPARSEHASH_INCLUDE(dense_hash_map)
@@ -92,6 +95,24 @@ struct empty_key<std::tuple<>>
     }
 };
 
+template <class Vertex>
+struct empty_key<boost::detail::adj_edge_descriptor<Vertex>>
+{
+    static boost::detail::adj_edge_descriptor<Vertex> get()
+    {
+        return boost::detail::adj_edge_descriptor<Vertex>();
+    }
+};
+
+template <class Edge>
+struct empty_key<boost::detail::reverse_graph_edge_descriptor<Edge>>
+{
+    static boost::detail::reverse_graph_edge_descriptor<Edge> get()
+    {
+        auto e = empty_key<Edge>::get();
+        return boost::detail::reverse_graph_edge_descriptor<Edge>(e);
+    }
+};
 
 template <class Key>
 struct deleted_key
@@ -156,6 +177,28 @@ struct deleted_key<std::tuple<>>
         return std::tuple<>();
     }
 };
+
+template <class Vertex>
+struct deleted_key<boost::detail::adj_edge_descriptor<Vertex>>
+{
+    static boost::detail::adj_edge_descriptor<Vertex> get()
+    {
+        boost::detail::adj_edge_descriptor<Vertex> e;
+        e.idx--;
+        return e;
+    }
+};
+
+template <class Edge>
+struct deleted_key<boost::detail::reverse_graph_edge_descriptor<Edge>>
+{
+    static boost::detail::reverse_graph_edge_descriptor<Edge> get()
+    {
+        auto e = deleted_key<Edge>::get();
+        return boost::detail::reverse_graph_edge_descriptor<Edge>(e);
+    }
+};
+
 
 template<class Key,
          class Hash = std::hash<Key>,

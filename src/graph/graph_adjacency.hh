@@ -24,6 +24,7 @@
 #include <numeric>
 #include <iostream>
 #include <tuple>
+#include <functional>
 #include <boost/iterator.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/range/irange.hpp>
@@ -128,6 +129,36 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
 // boost::adjacency_list with vector storage selectors for both vertex and edge
 // lists.
 
+namespace detail
+{
+template <class Vertex>
+struct adj_edge_descriptor
+{
+    adj_edge_descriptor()
+        : s(std::numeric_limits<Vertex>::max()),
+          t(std::numeric_limits<Vertex>::max()),
+          idx(std::numeric_limits<Vertex>::max()), inv(false) {};
+    adj_edge_descriptor(Vertex s, Vertex t, Vertex idx, bool inv)
+        : s(s), t(t), idx(idx), inv(inv) {}
+
+    bool operator==(const adj_edge_descriptor& other) const
+    {
+        return idx == other.idx;
+    }
+    bool operator!=(const adj_edge_descriptor& other) const
+    {
+        return idx != other.idx;
+    }
+    bool operator<(const adj_edge_descriptor& other) const
+    {
+        return idx < other.idx;
+    }
+
+    Vertex s, t, idx;
+    bool inv;
+};
+} // namespace detail
+
 template <class Vertex = size_t>
 class adj_list
 {
@@ -135,31 +166,7 @@ public:
     struct graph_tag {};
     typedef Vertex vertex_t;
 
-    struct edge_descriptor
-    {
-        edge_descriptor()
-            : s(std::numeric_limits<vertex_t>::max()),
-              t(std::numeric_limits<vertex_t>::max()),
-              idx(std::numeric_limits<vertex_t>::max()), inv(false) {};
-        edge_descriptor(vertex_t s, vertex_t t, vertex_t idx, bool inv)
-            : s(s), t(t), idx(idx), inv(inv) {}
-
-        bool operator==(const edge_descriptor& other) const
-        {
-            return idx == other.idx;
-        }
-        bool operator!=(const edge_descriptor& other) const
-        {
-            return idx != other.idx;
-        }
-        bool operator<(const edge_descriptor& other) const
-        {
-            return idx < other.idx;
-        }
-
-        vertex_t s, t, idx;
-        bool inv;
-    };
+    typedef detail::adj_edge_descriptor<Vertex> edge_descriptor;
 
     typedef std::vector<std::pair<vertex_t, vertex_t> > edge_list_t;
     typedef std::vector<edge_list_t> vertex_list_t;
@@ -993,5 +1000,24 @@ get(edge_index_t, const adj_list<Vertex>&)
 }
 
 } // namespace boost
+
+// hashing of edge descriptors
+
+namespace std
+{
+
+template <class Vertex>
+struct hash<boost::detail::adj_edge_descriptor<Vertex>>
+{
+    template <class Edge>
+    std::size_t operator()(Edge const& e) const
+    {
+        return _h(e.idx);
+    }
+    std::hash<Vertex> _h;
+};
+
+} // namespace std
+
 
 #endif //GRAPH_ADJACENCY_HH
