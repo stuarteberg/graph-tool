@@ -307,11 +307,12 @@ class NestedBlockState(object):
             if B_min is None:
                 min_state = state.copy(b=clabel.fa, clabel=clabel.fa)
             else:
+                B_min = max(B_min, clabel.fa.max() + 1)
                 min_state = mcmc_multilevel(max_state, B_min,
                                             **mcmc_multilevel_args)
             if _bm_test():
-                assert min_state.B == self.levels[l+1].N, (min_state.B,
-                                                           self.levels[l+1].N)
+                assert min_state.B == self.levels[l+1].B, (min_state.B,
+                                                           self.levels[l+1].B)
         else:
             min_state = state.copy(b=clabel.fa, clabel=clabel.fa)
         if B_min is not None and  min_state.B > B_min:
