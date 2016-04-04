@@ -218,26 +218,34 @@ void export_blockmodel_state()
         ([&](auto* s)
          {
              typedef typename std::remove_reference<decltype(*s)>::type state_t;
-
+             void (state_t::*remove_vertex)(size_t) =
+                 &state_t::remove_vertex;
+             void (state_t::*add_vertex)(size_t, size_t) =
+                 &state_t::add_vertex;
+             void (state_t::*remove_vertices)(python::object) =
+                 &state_t::remove_vertices;
+             void (state_t::*add_vertices)(python::object, python::object) =
+                 &state_t::add_vertices;
              double (state_t::*virtual_move)(size_t, size_t, bool, bool, bool,
                                              bool, bool) =
                  &state_t::virtual_move;
              size_t (state_t::*sample_block)(size_t, double, vector<size_t>&,
-                                             rng_t&)
-                 = &state_t::sample_block;
+                                             rng_t&) =
+                 &state_t::sample_block;
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                              bool)
-                 = &state_t::get_move_prob;
-             void (state_t::*merge_vertices)(size_t, size_t)
-                 = &state_t::merge_vertices;
-
-             void (state_t::*set_partition)(boost::any&)
-                 = &state_t::set_partition;
+                                              bool) =
+                 &state_t::get_move_prob;
+             void (state_t::*merge_vertices)(size_t, size_t) =
+                 &state_t::merge_vertices;
+             void (state_t::*set_partition)(boost::any&) =
+                 &state_t::set_partition;
 
              class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
                                no_init);
-             c.def("remove_vertex", &state_t::remove_vertex)
-                 .def("add_vertex", &state_t::add_vertex)
+             c.def("remove_vertex", remove_vertex)
+                 .def("add_vertex", add_vertex)
+                 .def("remove_vertices", remove_vertices)
+                 .def("add_vertices", add_vertices)
                  .def("move_vertex", &state_t::move_vertex)
                  .def("set_partition", set_partition)
                  .def("virtual_move", virtual_move)

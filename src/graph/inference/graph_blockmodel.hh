@@ -94,7 +94,8 @@ public:
     }
 
     // remove a vertex from its current block
-    void remove_vertex(size_t v)
+    template <class EFilt>
+    void remove_vertex(size_t v, EFilt&& efilt)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
 
@@ -103,12 +104,15 @@ public:
         int self_weight = 0;
         for (auto e : out_edges_range(v, _g))
         {
+            if (efilt(e))
+                continue;
+
             vertex_t u = target(e, _g);
             vertex_t s = _b[u];
 
             auto& me = _emat.get_bedge(e);
 
-            size_t ew = _eweight[e];
+            auto ew = _eweight[e];
             if (u == v && !is_directed::apply<g_t>::type::value)
             {
                 self_weight += ew;
@@ -141,6 +145,9 @@ public:
 
         for (auto e : in_edges_range(v, _g))
         {
+            if (efilt(e))
+                continue;
+
             vertex_t u = source(e, _g);
             if (u == v)
                 continue;
@@ -148,7 +155,7 @@ public:
 
             auto& me = _emat.get_bedge(e);
 
-            size_t ew = _eweight[e];
+            auto ew = _eweight[e];
             _mrs[me] -= ew;
 
             _mrp[s] -= ew;
@@ -168,8 +175,66 @@ public:
                                                  _eweight, _degs);
     }
 
+    void remove_vertex(size_t v)
+    {
+        remove_vertex(v, [](auto&){ return false; });
+    }
+
+    template <class Vlist>
+    void remove_vertices(Vlist& vs)
+    {
+        typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
+
+        gt_hash_set<vertex_t> vset(vs.begin(), vs.end());
+        typedef typename graph_traits<g_t>::edge_descriptor edges_t;
+
+        gt_hash_set<edges_t> eset;
+        for (auto v : vset)
+        {
+            for (auto e : all_edges_range(v, _g))
+            {
+                auto u = (source(e, _g) == v) ? target(e, _g) : source(e, _g);
+                if (vset.find(u) != vset.end())
+                    eset.insert(e);
+            }
+        }
+
+        for (auto v : vset)
+            remove_vertex(v, [&](auto& e) { return eset.find(e) != eset.end(); });
+
+        for (auto& e : eset)
+        {
+            vertex_t v = source(e, _g);
+            vertex_t u = target(e, _g);
+            vertex_t r = _b[v];
+            vertex_t s = _b[u];
+
+            auto& me = _emat.get_bedge(e);
+
+            auto ew = _eweight[e];
+            _mrs[me] -= ew;
+
+            assert(_mrs[me] >= 0);
+
+            _mrp[r] -= ew;
+            _mrm[s] -= ew;
+
+            if (_mrs[me] == 0)
+                _emat.remove_me(r, s, me, _bg);
+        }
+    }
+
+    void remove_vertices(python::object ovs)
+    {
+        vector<size_t> vs;
+        for (int i = 0; i < python::len(ovs); ++i)
+            vs.push_back(python::extract<size_t>(ovs[i]));
+        remove_vertices(vs);
+    }
+
     // add a vertex to block r
-    void add_vertex(size_t v, size_t r)
+    template <class Efilt>
+    void add_vertex(size_t v, size_t r, Efilt&& efilt)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
         typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
@@ -177,6 +242,8 @@ public:
         int self_weight = 0;
         for (auto e : out_edges_range(v, _g))
         {
+            if (efilt(e))
+                continue;
             vertex_t u = target(e, _g);
             vertex_t s;
 
@@ -225,6 +292,9 @@ public:
 
         for (auto e : in_edges_range(v, _g))
         {
+            if (efilt(e))
+                continue;
+
             vertex_t u = source(e, _g);
             if (u == v)
                 continue;
@@ -261,6 +331,80 @@ public:
         if (is_partition_stats_enabled())
             get_partition_stats(v).add_vertex(v, r, _deg_corr, _g, _vweight,
                                               _eweight, _degs);
+    }
+
+    void add_vertex(size_t v, size_t r)
+    {
+        add_vertex(v, r, [](auto&) { return false; });
+    }
+
+    template <class Vlist, class Blist>
+    void add_vertices(Vlist& vs, Blist& rs)
+    {
+        typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
+        typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
+
+        gt_hash_map<vertex_t, size_t> vset;
+        for (size_t i = 0; i < vs.size(); ++i)
+            vset[vs[i]] = rs[i];
+
+        typedef typename graph_traits<g_t>::edge_descriptor edges_t;
+
+        gt_hash_set<edges_t> eset;
+        for (auto vr : vset)
+        {
+            auto v = vr.first;
+            for (auto e : all_edges_range(v, _g))
+            {
+                auto u = (source(e, _g) == v) ? target(e, _g) : source(e, _g);
+                if (vset.find(u) != vset.end())
+                    eset.insert(e);
+            }
+        }
+
+        for (auto vr : vset)
+            add_vertex(vr.first, vr.second,
+                       [&](auto& e){ return eset.find(e) != eset.end(); });
+
+        for (auto e : eset)
+        {
+            vertex_t v = source(e, _g);
+            vertex_t u = target(e, _g);
+            vertex_t r = vset[v];
+            vertex_t s = vset[u];
+
+            auto me = _emat.get_me(r, s);
+
+            if (me == bedge_t())
+            {
+                me = add_edge(r, s, _bg).first;
+                _emat.put_me(r, s, me);
+                _c_mrs[me] = 0;
+            }
+
+            _emat.get_bedge(e) = me;
+
+            assert(_emat.get_bedge(e) != bedge_t());
+            assert(me == _emat.get_me(r, s));
+
+            auto ew = _eweight[e];
+
+            _mrs[me] += ew;
+            _mrp[r] += ew;
+            _mrm[s] += ew;
+        }
+    }
+
+    void add_vertices(python::object ovs, python::object ors)
+    {
+        vector<size_t> vs;
+        vector<size_t> rs;
+        for (int i = 0; i < python::len(ovs); ++i)
+        {
+            vs.push_back(python::extract<size_t>(ovs[i]));
+            rs.push_back(python::extract<size_t>(ors[i]));
+        }
+        add_vertices(vs, rs);
     }
 
     // move a vertex from its current block to block nr

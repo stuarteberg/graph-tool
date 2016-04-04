@@ -32,6 +32,7 @@ import random
 from numpy import *
 import numpy
 import copy
+import collections
 
 from . util import *
 
@@ -600,23 +601,33 @@ class BlockState(object):
     def remove_vertex(self, v):
         r"""Remove vertex ``v`` from its current group.
 
+        This optionally accepts a list of vertices to remove.
+
         .. warning::
 
            This will leave the state in an inconsistent state before the vertex
            is returned to some other group, or if the same vertex is removed
            twice.
         """
-        self._state.remove_vertex(int(v))
+        if isinstance(v, collections.Iterable):
+            self._state.remove_vertices(list(v))
+        else:
+            self._state.remove_vertex(int(v))
 
     def add_vertex(self, v, r):
         r"""Add vertex ``v`` to block ``r``.
+
+        This optionally accepts a list of vertices and blocks to add.
 
         .. warning::
 
            This can leave the state in an inconsistent state if a vertex is
            added twice to the same group.
         """
-        self._state.add_vertex(int(v), r)
+        if isinstance(v, collections.Iterable):
+            self._state.add_vertices(list(v), list(r))
+        else:
+            self._state.add_vertex(int(v), r)
 
     def merge_vertices(self, u, v):
         r"""Merge vertex ``u`` into ``v``.
@@ -665,39 +676,41 @@ class BlockState(object):
 
         Si = self.entropy(**entropy_args)
 
-        for v in pos.keys():
-            self.remove_vertex(v)
+        self.remove_vertex(pos.keys())
 
         try:
             if missing:
                 new_es = []
                 for u, v in edge_list:
                     e = self.g.add_edge(u, v)
+                    if self.is_edge_weighted:
+                        self.eweight[e] = 1
                     new_es.append(e)
                     self.E += 1
             else:
                 old_es = []
                 for e in edge_list:
+                    u, v = e
                     if isinstance(e, tuple):
-                        u, v = e
-                        tmp = self.g.edge(u, v)
-                        if tmp is None:
+                        e = self.g.edge(u, v)
+                        if e is None:
                             raise ValueError("edge not found: (%d, %d)" % (int(u),
                                                                            int(v)))
-                        self.g.remove_edge(tmp)
+
+                    if self.is_edge_weighted:
+                        self.eweight[e] -= 1
+                        if self.eweight[e] == 0:
+                            self.g.remove_edge(e)
                     else:
-                        u, v = e
                         self.g.remove_edge(e)
                     old_es.append((u, v))
                     self.E -= 1
 
-            for v in pos.keys():
-                self.add_vertex(v, pos[v])
+            self.add_vertex(pos.keys(), pos.values())
 
             Sf = self.entropy(**entropy_args)
 
-            for v in pos.keys():
-                self.remove_vertex(v)
+            self.remove_vertex(pos.keys())
 
         finally:
             if missing:
@@ -706,10 +719,16 @@ class BlockState(object):
                     self.E -= 1
             else:
                 for u, v in old_es:
-                    self.g.add_edge(u, v)
+                    if self.is_edge_weighted:
+                        e = self.g.edge(u, v)
+                        if e is None:
+                            e = self.g.add_edge(u, v)
+                            self.eweight[e] = 0
+                        self.eweight[e] += 1
+                    else:
+                        self.g.add_edge(u, v)
                     self.E += 1
-            for v in pos.keys():
-                self.add_vertex(v, pos[v])
+            self.add_vertex(pos.keys(), pos.values())
 
         if missing:
             return Si - Sf
