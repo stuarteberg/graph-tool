@@ -233,8 +233,8 @@ public:
     }
 
     // add a vertex to block r
-    template <class Efilt>
-    void add_vertex(size_t v, size_t r, Efilt&& efilt)
+    template <class BEdge, class Efilt>
+    void add_vertex(size_t v, size_t r, BEdge&& bedge, Efilt&& efilt)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
         typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
@@ -261,7 +261,7 @@ public:
                 _c_mrs[me] = 0;
             }
 
-            _emat.get_bedge(e) = me;
+            bedge[e] = me;
 
             assert(_emat.get_bedge(e) != bedge_t());
             assert(me == _emat.get_me(r, s));
@@ -309,7 +309,8 @@ public:
                 _emat.put_me(s, r, me);
                 _c_mrs[me] = 0;
             }
-            _emat.get_bedge(e) = me;
+
+            bedge[e] = me;
 
             assert(_emat.get_bedge(e) != bedge_t());
             assert(me == _emat.get_me(s, r));
@@ -335,7 +336,7 @@ public:
 
     void add_vertex(size_t v, size_t r)
     {
-        add_vertex(v, r, [](auto&) { return false; });
+        add_vertex(v, r, _emat.get_bedge_map(), [](auto&) { return false; });
     }
 
     template <class Vlist, class Blist>
@@ -362,8 +363,10 @@ public:
             }
         }
 
+        auto bedge = _emat.get_bedge_map().get_checked();
+
         for (auto vr : vset)
-            add_vertex(vr.first, vr.second,
+            add_vertex(vr.first, vr.second, bedge,
                        [&](auto& e){ return eset.find(e) != eset.end(); });
 
         for (auto e : eset)
@@ -382,7 +385,7 @@ public:
                 _c_mrs[me] = 0;
             }
 
-            _emat.get_bedge(e) = me;
+            bedge[e] = me;
 
             assert(_emat.get_bedge(e) != bedge_t());
             assert(me == _emat.get_me(r, s));
