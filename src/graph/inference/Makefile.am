@@ -42,14 +42,16 @@ libgraph_tool_inference_la_SOURCES = \
     spence.cc
 
 libgraph_tool_inference_la_include_HEADERS = \
-    cache.hh \
     bundled_vacate_loop.hh \
+    cache.hh \
+    gibbs_loop.hh \
     graph_blockmodel.hh \
     graph_blockmodel_gibbs.hh \
     graph_blockmodel_layers.hh \
+    graph_blockmodel_layers_util.hh \
     graph_blockmodel_mcmc.hh \
-    graph_blockmodel_multicanonical.hh \
     graph_blockmodel_merge.hh \
+    graph_blockmodel_multicanonical.hh \
     graph_blockmodel_overlap.hh \
     graph_blockmodel_overlap_mcmc_bundled.hh \
     graph_blockmodel_overlap_util.hh \
@@ -58,5 +60,6 @@ libgraph_tool_inference_la_include_HEADERS = \
     graph_state.hh \
     mcmc_loop.hh \
     merge_loop.hh \
+    multicanonical_loop.hh \
     parallel_rng.hh \
     util.hh
