@@ -1394,6 +1394,7 @@ def bethe_entropy(g, B, p):
     ----------
     .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
        Physics, and Computation", Oxford Univ Press, 2009.
+       :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
     """
     H = 0
     pv =  g.new_vertex_property("vector<double>")
@@ -1436,7 +1437,7 @@ def mf_entropy(g, p):
     ----------
     .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
        Physics, and Computation", Oxford Univ Press, 2009.
-
+       :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
     """
     H = 0
     for v in g.vertices():

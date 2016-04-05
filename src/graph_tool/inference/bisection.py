@@ -132,7 +132,7 @@ def bisection_minimize(init_states, random_bisection=False,
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and
        greedy heuristic for the inference of stochastic block models", Phys.
        Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
-       :arxiv:` 1310.4378`
+       :arxiv:`1310.4378`
     """
 
     b_cache = {}

@@ -73,7 +73,7 @@ or played below if your browser supports WebM.
 .. raw:: html
 
    <div style="text-align:center">
-       <video id="sirs" src="../_downloads/sirs.webm" controls></video>
+       <video id="sirs" src="../../_downloads/sirs.webm" controls></video>
    </div>
 
 
@@ -100,7 +100,7 @@ Properly modifying the script above would lead to the following
 .. raw:: html
 
    <div style="text-align:center">
-       <video id="sirs" src="../_downloads/zombie.webm" controls></video>
+       <video id="sirs" src="../../_downloads/zombie.webm" controls></video>
    </div>
 
 The modified script can be downloaded :download:`here <animation_zombies.py>`.
@@ -174,7 +174,7 @@ The resulting animation can be downloaded :download:`here
 .. raw:: html
 
    <div style="text-align:center">
-       <video id="sirs" src="../_downloads/dancing.webm" controls></video>
+       <video id="sirs" src="../../_downloads/dancing.webm" controls></video>
    </div>
 
 Interactive visualizations
@@ -228,5 +228,5 @@ The resulting animation can be downloaded :download:`here
 .. raw:: html
 
    <div style="text-align:center">
-       <video id="sirs" src="../_downloads/bfs.webm" controls></video>
+       <video id="sirs" src="../../_downloads/bfs.webm" controls></video>
    </div>

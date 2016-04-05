@@ -467,7 +467,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
         Range of density updates.
     r : ``float`` (optional, default: ``2.``)
         Greediness of convergence. At each iteration, the density updates will
-        be reduced reduced by a factor ``r``.
+        be reduced by a factor ``r``.
     flatness : ``float`` (optional, default: ``1e-3``)
         Sufficient histogram flatness threshold used to continue the algorithm.
     callback : ``function`` (optional, default: ``None``)
@@ -489,7 +489,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
     .. [wang-efficient-2001] Fugao Wang, D. P. Landau, "An efficient, multiple
        range random walk algorithm to calculate the density of states", Phys.
        Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
-       :arxiv:`cond-mat/0011174'
+       :arxiv:`cond-mat/0011174`
     """
 
     f = f_range[0]
