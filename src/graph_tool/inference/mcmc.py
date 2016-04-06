@@ -93,7 +93,7 @@ def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and
        greedy heuristic for the inference of stochastic block models", Phys.
        Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
-       :arxiv:` 1310.4378`
+       :arxiv:`1310.4378`
     """
 
     count = 0
@@ -218,7 +218,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and
        greedy heuristic for the inference of stochastic block models", Phys.
        Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
-       :arxiv:` 1310.4378`
+       :arxiv:`1310.4378`
     """
 
     beta = beta_range[0]

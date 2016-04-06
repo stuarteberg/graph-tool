@@ -51,8 +51,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     r"""The (possibly overlapping) block state of a given graph, where the edges are
     divided into discrete layers.
 
-    This must be instantiated and used by functions such as :func:`mcmc_sweep`.
-
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`

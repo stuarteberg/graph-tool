@@ -316,7 +316,7 @@ class BlockState(object):
         return state
 
     def get_bclabel(self):
-        r"""Returns a :class:`~graph_tool.PropertyMap`` corresponding to constraint
+        r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to constraint
         labels for the block graph."""
 
         bclabel = self.bg.new_vertex_property("int")
@@ -853,7 +853,7 @@ class BlockState(object):
         return libinference.gibbs_sweep(gibbs_state, self._state,
                                         _get_rng())
 
-    def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_empty=False,
+    def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_empty=True,
                     sequential=True, parallel=False, vertices=None,
                     block_list=None, verbose=False):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs sampling MCMC
@@ -951,7 +951,7 @@ class BlockState(object):
                                                  self._state, _get_rng())
 
     def multicanonical_sweep(self, m_state, f=1., c=1., niter=1,
-                             entropy_args={}, allow_empty=False, vertices=None,
+                             entropy_args={}, allow_empty=True, vertices=None,
                              block_list=None, verbose=False):
         r"""Perform ``niter`` sweeps of a non-markovian multicanonical sampling using
         the Wang-Landau algorithm.

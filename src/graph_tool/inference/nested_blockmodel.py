@@ -45,11 +45,14 @@ class NestedBlockState(object):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be modelled.
+        Graph to be modeled.
     bs : ``list`` of :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
         Hierarchical node partition.
     base_type : ``type``
-        State type for lowermost level (e.g. :class:`~graph_tool.inference.BlockState`)
+        State type for lowermost level
+        (e.g. :class:`~graph_tool.inference.BlockState`,
+        :class:`~graph_tool.inference.OverlapBlockState` or
+        :class:`~graph_tool.inference.LayeredBlockState`)
     vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex multiplicities (for block graphs).
     **kwargs :  keyword arguments
@@ -192,7 +195,24 @@ class NestedBlockState(object):
         return S
 
     def entropy(self, dense=False, multigraph=True, **kwargs):
-        """Compute the entropy of whole hierarchy."""
+        """Compute the entropy of whole hierarchy.
+
+        Parameters
+        ----------
+        dense : ``bool`` (optional, default: ``False``)
+            If ``True``, the "dense" variant of the entropy will be computed.
+        multigraph : ``bool`` (optional, default: ``True``)
+            If ``True``, the multigraph entropy will be used.
+
+        Notes
+        -----
+
+        The remaining keyword arguments are passed to the ``entropy()`` method
+        of the underlying state objects
+        (e.g. :class:`graph_tool.inference.BlockState.entropy`,
+        :class:`graph_tool.inference.OverlapBlockState.entropy`, or
+        :class:`graph_tool.inference.LayeredBlockState.entropy`).
+        """
         S = 0
         for l in range(len(self.levels)):
             S += self.level_entropy(l, dense=dense, multigraph=multigraph,

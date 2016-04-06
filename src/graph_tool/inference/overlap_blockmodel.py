@@ -40,9 +40,7 @@ from . blockmodel import *
 from . blockmodel import _bm_test
 
 class OverlapBlockState(BlockState):
-    r"""This class encapsulates the overlapping block state of a given graph.
-
-    This must be instantiated and used by functions such as :func:`mcmc_sweep`.
+    r"""The stochastic block model state of a given graph.
 
     Parameters
     ----------
@@ -430,9 +428,6 @@ class OverlapBlockState(BlockState):
 
             {\mathcal{S}_{cm}^{(d)}} = \mathcal{S}_c^{(d)} + \sum_{i>j}\sum_{rs} \ln A^{rs}_{ij}! + \sum_i\sum_{rs} \ln A^{rs}_{ii}!!
 
-
-        If ``complete == False`` only the last term of the equations above will
-        be returned.
 
         If ``dl == True``, the description length :math:`\mathcal{L}_t` of the
         model will be returned as well:
