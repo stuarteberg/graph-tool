@@ -91,7 +91,7 @@ struct add_edge_list
                 }
                 found = true;
             }
-            catch (invalid_numpy_conversion& e) {}
+            catch (InvalidNumpyConversion& e) {}
         }
     };
 };
@@ -185,7 +185,7 @@ struct add_edge_list_hash
                 }
                 found = true;
             }
-            catch (invalid_numpy_conversion& e) {}
+            catch (InvalidNumpyConversion& e) {}
         }
 
         template <class Graph, class VProp>
@@ -263,7 +263,7 @@ struct add_edge_list_hash
                 }
                 found = true;
             }
-            catch (invalid_numpy_conversion& e) {}
+            catch (InvalidNumpyConversion& e) {}
         }
 
         template <class Graph, class VProp>
@@ -341,7 +341,7 @@ struct add_edge_list_hash
                 }
                 found = true;
             }
-            catch (invalid_numpy_conversion& e) {}
+            catch (InvalidNumpyConversion& e) {}
         }
     };
 };

@@ -157,13 +157,13 @@ public:
     }
 };
 
-struct invalid_numpy_conversion:
+struct InvalidNumpyConversion:
     public std::exception
 {
     string _error;
 public:
-    invalid_numpy_conversion(const string& error) :_error(error) {}
-    ~invalid_numpy_conversion() throw () {}
+    InvalidNumpyConversion(const string& error) :_error(error) {}
+    ~InvalidNumpyConversion() throw () {}
     const char * what () const throw () {return _error.c_str();}
 };
 
@@ -173,7 +173,7 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
     PyArrayObject* pa = (PyArrayObject*) points.ptr();
 
     if (PyArray_NDIM(pa) != dim)
-        throw invalid_numpy_conversion("invalid array dimension!");
+        throw InvalidNumpyConversion("invalid array dimension!");
 
     if (boost::mpl::at<numpy_types,ValueType>::type::value != PyArray_DESCR(pa)->type_num)
     {
@@ -185,7 +185,7 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
         error += " (id: " + boost::lexical_cast<string>(PyArray_DESCR(pa)->type_num) + ")";
         error += ", wanted: " + string(gcc_demangle(typeid(ValueType).name()));
         error += " (id: " + boost::lexical_cast<string>(boost::mpl::at<numpy_types,ValueType>::type::value) + ")";
-        throw invalid_numpy_conversion(error);
+        throw InvalidNumpyConversion(error);
     }
 
     vector<size_t> shape(dim);
