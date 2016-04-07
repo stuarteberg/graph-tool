@@ -87,6 +87,17 @@ def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
     the value of ``state.entropy(**args)`` with ``args`` corresponding to
     ``mcmc_args["entropy_args"]``.
 
+    Returns
+    -------
+
+    history : list of tuples of the form ``(iteration, entropy)``
+        Summary of the MCMC run. This is returned only if ``history == True``.
+    entropy : ``float``
+        Current entropy value after run. This is returned only if ``history ==
+        False``.
+    nmoves : ``int``
+        Number of node moves.
+
     References
     ----------
 
@@ -212,6 +223,17 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     :func:`~graph_tool.inference.mcmc_equilibrate` is called with the current
     value of `beta` (via the ``mcmc_args`` parameter).
 
+    Returns
+    -------
+
+    history : list of tuples of the form ``(iteration, beta, entropy)``
+        Summary of the MCMC run. This is returned only if ``history == True``.
+    entropy : ``float``
+        Current entropy value after run. This is returned only if ``history ==
+        False``.
+    nmoves : ``int``
+        Number of node moves.
+
     References
     ----------
 
@@ -301,6 +323,12 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
     This greatly reduces the changes of getting trapped in metastable states if
     the starting point if far away from equilibrium, as discussed in
     [peixoto-efficient-2014]_.
+
+    Returns
+    -------
+
+    state : The same type as parameter ``state``
+        This is the final state after the MCMC run.
 
     References
     ----------
@@ -483,6 +511,12 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
         detail, and ``prefix`` is a string that is prepended to the all output
         messages.
 
+    Returns
+    -------
+
+    niter : ``int``
+        Number of iterations required for convergence.
+
     References
     ----------
 
@@ -492,6 +526,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
        :arxiv:`cond-mat/0011174`
     """
 
+    count = 0
     f = f_range[0]
     while f >= f_range[1]:
         state.multicanonical_sweep(m_state, **overlay(multicanonical_args, f=f))
@@ -504,7 +539,9 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
         if callback is not None:
             calback(state, m_state)
 
+        count += 1
         if check_verbose(verbose):
-            print(verbose_pad(verbose) + "f: %g  flatness: %g" % (f, hf))
+            print(verbose_pad(verbose) +
+                  "iter: %d  f: %g  flatness: %g" % (count, f, hf))
 
-    return m_state
+    return count

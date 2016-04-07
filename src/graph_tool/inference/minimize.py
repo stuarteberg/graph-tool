@@ -297,6 +297,16 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
                                       state_args=state_args,
                                       mcmc_multilevel_args=mcmc_multilevel_args)
 
+    if B_min is None:
+        B_min = 1
+    if B_max is None:
+        B_max = numpy.inf
+
+    Bs = list(b_cache.keys())
+    for B in Bs:
+        if B > B_max or B < B_min:
+            del b_cache[B]
+
     state = bisection_minimize([min_state, max_state], verbose=verbose,
                                **bisection_args)
 

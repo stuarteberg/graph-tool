@@ -42,6 +42,8 @@
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 
+#include "numpy_bind.hh"
+
 #include "config.h"
 
 namespace graph_tool
@@ -204,7 +206,7 @@ struct StateWrap
             auto partial_f = [&](auto&&... args)
                 {
                     full_f(std::forward<decltype(args)>(args)...,
-                           uncheck(this->extract<Ts>
+                           uncheck(Extract<Ts>()
                                    (ostate,
                                     names[FIdx + sizeof...(Idx)]))...);
                 };
@@ -213,51 +215,76 @@ struct StateWrap
         }
 
         template <class T>
-        T extract(python::object mobj, std::string name) const
+        struct Extract
         {
-            python::object obj = mobj.attr(name.c_str());
-            python::extract<T> extract(obj);
-            if (extract.check())
+            T operator()(python::object mobj, std::string name) const
             {
-                T val = extract();
-                return val;
-            }
-            else
-            {
-                python::object aobj;
-                if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
-                    aobj = obj.attr("_get_any")();
-                else
-                    aobj = obj;
-                python::extract<boost::any&> extract(aobj);
-                try
+                python::object obj = mobj.attr(name.c_str());
+                python::extract<T> extract(obj);
+                if (extract.check())
                 {
-                    if (!extract.check())
-                        throw boost::bad_any_cast();
-                    boost::any& aval = extract();
-                    T val = any_cast<T>(aval);
+                    T val = extract();
                     return val;
                 }
-                catch (boost::bad_any_cast)
+                else
                 {
+                    python::object aobj;
+                    if (PyObject_HasAttrString(obj.ptr(), "_get_any"))
+                        aobj = obj.attr("_get_any")();
+                    else
+                        aobj = obj;
+                    python::extract<boost::any&> extract(aobj);
                     try
                     {
-                        typedef std::reference_wrapper
-                            <typename std::remove_reference<T>::type>
-                            ref_wrap_t;
+                        if (!extract.check())
+                            throw boost::bad_any_cast();
                         boost::any& aval = extract();
-                        auto val = any_cast<ref_wrap_t>(aval);
-                        return val.get();
+                        T val = any_cast<T>(aval);
+                        return val;
                     }
                     catch (boost::bad_any_cast)
                     {
-                        throw ValueException("Cannot extract parameter '" + name +
-                                             "' of desired type: " +
-                                             name_demangle(typeid(T).name()));
+                        try
+                        {
+                            typedef std::reference_wrapper
+                                <typename std::remove_reference<T>::type>
+                                ref_wrap_t;
+                            boost::any& aval = extract();
+                            auto val = any_cast<ref_wrap_t>(aval);
+                            return val.get();
+                        }
+                        catch (boost::bad_any_cast)
+                        {
+                            throw ValueException("Cannot extract parameter '" + name +
+                                                 "' of desired type: " +
+                                                 name_demangle(typeid(T).name()));
+                        }
                     }
                 }
             }
-        }
+        };
+
+        template <class Type, size_t Dim>
+        struct Extract<multi_array_ref<Type, Dim>>
+        {
+            multi_array_ref<Type, Dim> operator()(python::object mobj,
+                                                  std::string name) const
+            {
+                python::object obj = mobj.attr(name.c_str());
+                try
+                {
+                    return get_array<Type, Dim>(obj);
+                }
+                catch (InvalidNumpyConversion& e)
+                {
+                    throw ValueException("Cannot extract parameter '" + name +
+                                         "' of desired type: " +
+                                         name_demangle(typeid(multi_array_ref<Type, Dim>).name())
+                                         + ", reason: " +
+                                         std::string(e.what()));
+                }
+            }
+        };
     };
 
     template <class TR>

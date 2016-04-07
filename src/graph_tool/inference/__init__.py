@@ -25,8 +25,8 @@
 This module contains algorithms for the identification of large-scale network
 structure via the statistical inference of generative models.
 
-Stochastic block model inference
-++++++++++++++++++++++++++++++++
+Bayesian stochastic block model inference
++++++++++++++++++++++++++++++++++++++++++
 
 High-level functions
 ====================
@@ -73,6 +73,27 @@ Auxiliary functions
    half_edge_graph
    get_block_edge_gradient
 
+Semi-Bayesian stochastic block model inference
+++++++++++++++++++++++++++++++++++++++++++++++
+
+State classes
+=============
+
+.. autosummary::
+   :nosignatures:
+
+   EMBlockState
+
+Expectation-maximization Inference
+==================================
+
+.. autosummary::
+   :nosignatures:
+
+   em_infer
+
+
+
 Contents
 ++++++++
 
@@ -96,6 +117,8 @@ __all__ = ["minimize_blockmodel_dl",
            "MulticanonicalState",
            "bisection_minimize",
            "hierarchy_minimize",
+           "EMBlockState",
+           "em_infer",
            "mf_entropy",
            "bethe_entropy",
            "half_edge_graph",
@@ -109,4 +132,5 @@ from . nested_blockmodel import *
 from . mcmc import *
 from . bisection import *
 from . minimize import *
+from . blockmodel_em import *
 from . util import *

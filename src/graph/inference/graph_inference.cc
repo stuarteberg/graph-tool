@@ -148,6 +148,7 @@ extern void export_layered_overlap_blockmodel_bundled_mcmc();
 extern void export_layered_overlap_blockmodel_gibbs();
 extern void export_layered_overlap_blockmodel_multicanonical();
 extern void export_layered_overlap_blockmodel_vacate();
+extern void export_em_blockmodel_state();
 
 BOOST_PYTHON_MODULE(libgraph_tool_inference)
 {
@@ -175,6 +176,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_layered_overlap_blockmodel_gibbs();
     export_layered_overlap_blockmodel_multicanonical();
     export_layered_overlap_blockmodel_vacate();
+    export_em_blockmodel_state();
 
     def("vertex_marginals", collect_vertex_marginals);
     def("edge_marginals", collect_edge_marginals);

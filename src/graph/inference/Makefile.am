@@ -17,6 +17,7 @@ libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_la_SOURCES = \
     cache.cc \
     graph_blockmodel.cc \
+    graph_blockmodel_em.cc \
     graph_blockmodel_gibbs.cc \
     graph_blockmodel_layers.cc \
     graph_blockmodel_layers_gibbs.cc \
@@ -46,6 +47,7 @@ libgraph_tool_inference_la_include_HEADERS = \
     cache.hh \
     gibbs_loop.hh \
     graph_blockmodel.hh \
+    graph_blockmodel_em.hh \
     graph_blockmodel_gibbs.hh \
     graph_blockmodel_layers.hh \
     graph_blockmodel_layers_util.hh \
