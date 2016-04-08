@@ -451,7 +451,7 @@ class MulticanonicalState(object):
     def get_entropy(self, S, B=None):
         r = self.get_density(B)
         dS = (self._S_max - self._S_min) / len(r)
-        j = round((S - self._S_min) / dS)
+        j = int(round((S - self._S_min) / dS))
         return r[j]
 
     def get_hist(self):
