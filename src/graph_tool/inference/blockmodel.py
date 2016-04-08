@@ -585,13 +585,13 @@ class BlockState(object):
 
         return adjacency(self.bg, weight=self.mrs)
 
-    def virtual_vertex_move(self, v, s, dense=False, multigraph=True,
-                            dl=False, edges_dl=False):
+    def virtual_vertex_move(self, v, s, dense=False, multigraph=True, dl=True,
+                            edges_dl=True, partition_dl=True):
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
         :meth:`graph_tool.BlockState.entropy`."""
         return self._state.virtual_move(int(v), s, dense, multigraph, dl,
-                                         edges_dl)
+                                        edges_dl, partition_dl)
 
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``."""
