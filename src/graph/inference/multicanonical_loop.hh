@@ -49,7 +49,6 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
     int M = hist.size();
     double S_min = state._S_min;
     double S_max = state._S_max;
-    double f = state._f;
 
     auto get_bin = [&](double x) -> int
         {
@@ -100,7 +99,11 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
         }
 
         hist[i]++;
-        dens[i] += f;
+        dens[i] += state._f;
+
+        state._time += 1./M;
+        if (state._refine)
+            state._f = 1. / state._time;
     }
     return make_pair(S, nmoves);
 }

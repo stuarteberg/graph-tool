@@ -259,7 +259,6 @@ class OverlapBlockState(BlockState):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**state)
-        return state
 
     def get_block_state(self, b=None, vweight=False, overlap=False,
                         deg_corr=False, **kwargs):

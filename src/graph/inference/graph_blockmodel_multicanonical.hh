@@ -40,6 +40,8 @@ using namespace std;
     ((S_min, , double, 0))                                                     \
     ((S_max, , double, 0))                                                     \
     ((f, , double, 0))                                                         \
+    ((time, , double, 0))                                                      \
+    ((refine, , bool, 0))                                                      \
     ((S, , double, 0))                                                         \
     ((E,, size_t, 0))                                                          \
     ((vlist,&, std::vector<size_t>&, 0))                                       \

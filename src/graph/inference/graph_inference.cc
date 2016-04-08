@@ -26,7 +26,7 @@ using namespace boost;
 using namespace graph_tool;
 
 void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
-                              boost::any op)
+                              boost::any op, double update)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
@@ -34,22 +34,24 @@ void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
     run_action<>()
         (gi, [&](auto& g, auto p)
          {
+             typename property_traits<decltype(p)>::value_type::value_type
+                 up = update;
              parallel_vertex_loop
                  (g,
                   [&](auto v)
                   {
-                     auto r = b[v];
-                     auto& pv = p[v];
-                     if (pv.size() <= size_t(r))
-                         pv.resize(r + 1);
-                     pv[r]++;
+                      auto r = b[v];
+                      auto& pv = p[v];
+                      if (pv.size() <= size_t(r))
+                          pv.resize(r + 1);
+                      pv[r] += up;
                   });
          },
          vertex_scalar_vector_properties())(op);
 }
 
 void collect_edge_marginals(GraphInterface& gi, size_t B, boost::any ob,
-                            boost::any op)
+                            boost::any op, double update)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
@@ -58,6 +60,8 @@ void collect_edge_marginals(GraphInterface& gi, size_t B, boost::any ob,
         (gi,
          [&](auto& g, auto p)
          {
+             typename property_traits<decltype(p)>::value_type::value_type
+                 up = update;
              parallel_edge_loop
                  (g,
                   [&](const auto& e)
@@ -72,7 +76,7 @@ void collect_edge_marginals(GraphInterface& gi, size_t B, boost::any ob,
                       if (pv.size() < B * B)
                           pv.resize(B * B);
                       size_t j = r + B * s;
-                      pv[j]++;
+                      pv[j] += up;
                   });
          },
          edge_scalar_vector_properties())(op);

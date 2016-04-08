@@ -381,6 +381,8 @@ class MulticanonicalState(object):
 
     Parameters
     ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
     S_min : ``float``
         Minimum energy.
     S_max : ``float``
@@ -389,26 +391,34 @@ class MulticanonicalState(object):
         Number of bins.
     """
 
-    def __init__(self, S_min, S_max, nbins=1000):
+    def __init__(self, g, S_min, S_max, nbins=1000):
+        self._g = g
+        self._N = g.num_vertices()
         self._S_min = S_min
         self._S_max = S_max
         self._density = Vector_double()
         self._density.resize(nbins)
         self._hist = Vector_size_t()
         self._hist.resize(nbins)
+        self._perm_hist = numpy.zeros(nbins, dtype="int")
+        self._f = None
+        self._time = 0
+        self._refine = False
 
     def __getstate__(self):
-        state = [self._S_min, self._S_max,
-                 numpy.array(self._density.get_array()),
-                 numpy.array(self._hist.get_array())]
+        state = [self._g, self._S_min, self._S_max,
+                 numpy.array(self._density.a), numpy.array(self._hist.a),
+                 numpy.array(self._perm_hist), self._f, self._time,
+                 self._refine]
         return state
 
     def __setstate__(self, state):
-        S_min, S_max, density, hist = state
-        self.__init__(S_min, S_max, len(hist))
-        self._density.get_array()[:] = density
-        self._hist.get_array()[:] = hist
-        return state
+        g, S_min, S_max, density, hist, phist, self._f, self._time, \
+            self._refine = state
+        self.__init__(g, S_min, S_max, len(hist))
+        self._density.a[:] = density
+        self._hist.a[:] = hist
+        self._perm_hist[:] = phist
 
     def get_energies(self):
         "Get energy bounds."
@@ -416,7 +426,7 @@ class MulticanonicalState(object):
 
     def get_allowed_energies(self):
         "Get allowed energy bounds."
-        h = self._hist.get_array()
+        h = self._hist.a
         Ss = self.get_range()
         Ss = Ss[h > 0]
         return Ss[0], Ss[-1]
@@ -425,63 +435,66 @@ class MulticanonicalState(object):
         "Get energy range."
         return numpy.linspace(self._S_min, self._S_max, len(self._hist))
 
-    def get_density(self):
-        """Get density of states, normalized so that the **integral** over the energy
-        range is unity."""
-        r = numpy.array(self._density.get_array())
+    def get_density(self, B=None):
+        """Get density of states, normalized so that total sum is :math:`B^N`, where
+        :math:`B` is the number of groups, and :math:`N` is the number of
+        nodes. If not supplied :math:`B=N` is assumed.
+        """
+        r = numpy.array(self._density.a)
         r -= r.max()
-        N = len(r)
-        dS = (self._S_max - self._S_min) / N
-        I = exp(r).sum() * dS
-        r -= log(I)
+        r -= log(exp(r).sum())
+        if B == None:
+            B = self._g.num_vertices()
+        r += self._g.num_vertices() * log(B)
         return r
 
-    def get_prob(self, S):
-        r = self.get_density()
-        dS = (self._S_max - self._S_min) / N
+    def get_entropy(self, S, B=None):
+        r = self.get_density(B)
+        dS = (self._S_max - self._S_min) / len(r)
         j = round((S - self._S_min) / dS)
         return r[j]
 
     def get_hist(self):
         "Get energy histogram."
-        return numpy.array(self._hist.get_array())
+        return numpy.array(self._hist.a)
 
-    def get_flatness(self):
+    def get_perm_hist(self):
+        "Get permanent energy histogram."
+        return self._perm_hist
+
+    def get_flatness(self, use_ent=True, h=None):
         "Get energy histogram flatness."
-        h = self._hist.get_array()
+        if h is None:
+            h = self._hist.a
         if h.sum() == 0:
-            return numpy.inf
+            return 0
         h = array(h[h>0], dtype="float")
-        h /= h.sum()
-        S = -(h * log(h)).sum()
-        return len(h) / exp(S) - 1
+        if not use_ent:
+            h_mean = h.mean()
+            return h.min() / h_mean
+        else:
+            h /= h.sum()
+            S = -(h * log(h)).sum()
+            return exp(S - log(len(h)))
 
-    def get_mean(self):
-        "Get energy mean."
-        r = self.get_density()
-        N = len(r)
-        dS = (self._S_max - self._S_min) / N
-        Ss = numpy.linspace(self._S_min, self._S_max, N)
-        return (Ss * exp(r) * dS).sum()
-
-    def get_posterior(self):
-        "Get posterior mean."
-        r = self.get_density()
-        N = len(r)
-        dS = (self._S_max - self._S_min) / N
-        Ss = numpy.linspace(self._S_min, self._S_max, N)
+    def get_posterior(self, N=None):
+        "Get posterior probability."
+        r = self.get_density(N)
+        Ss = numpy.linspace(self._S_min, self._S_max, len(r))
         y = -Ss + r
         y_max = y.max()
         y -= y_max
-        return y_max + log((exp(y) * dS).sum())
+        return y_max + log(exp(y).sum())
 
     def reset_hist(self):
         "Reset energy histogram."
-        self._hist.get_array()[:] = 0
+        self._perm_hist += asarray(self._hist.a[:], dtype="int")
+        self._hist.a[:] = 0
 
-def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
-                               flatness=.01, callback=None,
-                               multicanonical_args={}, verbose=False):
+def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
+                               f_refine=True, r=2, flatness=.99, use_ent=True,
+                               callback=None, multicanonical_args={},
+                               verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
      algorithm.
 
@@ -493,11 +506,17 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
         Initial multicanonical state, where the state density will be stored.
     f_range : ``tuple`` of two floats (optional, default: ``(1., 1e-6)``)
         Range of density updates.
+    f_refine : ``bool`` (optional, default: ``True``)
+        If ``True``, the refinement steps described in [belardinelli-wang-2007]_
+        will be used.
     r : ``float`` (optional, default: ``2.``)
         Greediness of convergence. At each iteration, the density updates will
         be reduced by a factor ``r``.
-    flatness : ``float`` (optional, default: ``1e-3``)
+    flatness : ``float`` (optional, default: ``.99``)
         Sufficient histogram flatness threshold used to continue the algorithm.
+    use_ent : ``bool`` (optional, default: ``True``)
+        If ``True``, the histogram entropy will be used to determine flatness,
+        otherwise the smallest count relative to the mean will be used.
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current ``state`` and ``m_state`` as arguments.
@@ -524,24 +543,35 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
        range random walk algorithm to calculate the density of states", Phys.
        Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
        :arxiv:`cond-mat/0011174`
+    .. [belardinelli-wang-2007] R. E. Belardinelli, V. D. Pereyra,
+       "Wang-Landau algorithm: A theoretical analysis of the saturation of
+       the error", J. Chem. Phys. 127, 184105 (2007),
+       :doi:`10.1063/1.2803061`, :arxiv:`cond-mat/0702414`
     """
 
     count = 0
-    f = f_range[0]
-    while f >= f_range[1]:
-        state.multicanonical_sweep(m_state, **overlay(multicanonical_args, f=f))
-        hf = m_state.get_flatness()
-        if hf < flatness:
-            f /= r
-            if f >= f_range[1]:
-                m_state.reset_hist()
+    if m_state._f is None:
+        m_state._f = f_range[0]
+    while m_state._f >= f_range[1]:
+        state.multicanonical_sweep(m_state, **multicanonical_args)
+        hf = m_state.get_flatness(use_ent=use_ent)
 
         if callback is not None:
-            calback(state, m_state)
+            callback(state, m_state)
 
-        count += 1
         if check_verbose(verbose):
             print(verbose_pad(verbose) +
-                  "iter: %d  f: %g  flatness: %g" % (count, f, hf))
+                  "count: %d  time: %#8.8g  f: %#8.8g  flatness: %#8.8g  S: %#8.8g" % \
+                  (count, m_state._time, m_state._f, hf,
+                   state.entropy(multicanonical_args.get("entropy_args", {}))))
+
+        if not m_state._refine:
+            if hf > flatness:
+                m_state._f /= r
+                if m_state._f >= f_range[1]:
+                    m_state.reset_hist()
+                if f_refine and m_state._f < 1 / m_state._time:
+                    m_state._refine = True
+        count += 1
 
     return count

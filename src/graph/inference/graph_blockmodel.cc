@@ -139,14 +139,12 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
                                    boost::any opv)
 {
     typedef vprop_map_t<vector<double>>::type vmap_t;
-    typedef eprop_map_t<vector<int32_t>>::type emap_t;
-    emap_t p = any_cast<emap_t>(op);
     vmap_t pv = any_cast<vmap_t>(opv);
 
     double H=0, sH=0, Hmf=0, sHmf=0;
-    run_action<graph_tool::all_graph_views, boost::mpl::true_>()
+    run_action<>()
         (gi,
-         [&](auto& g)
+         [&](auto& g, auto p)
          {
              for (auto v : vertices_range(g))
              {
@@ -204,7 +202,8 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
                      sHmf += pow((log(pi) + 1) * sqrt(pi / sum), 2);
                  }
              }
-         })();
+         },
+         edge_scalar_vector_properties())(op);
 
     return boost::python::make_tuple(H, sH, Hmf, sHmf);
 }

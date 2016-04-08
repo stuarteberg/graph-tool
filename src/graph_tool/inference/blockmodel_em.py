@@ -122,6 +122,21 @@ class EMBlockState(object):
                     self.prs[r, s] = self.N * m[r, s] / (init_state.wr[r] * init_state.wr[s])
                     self.prs[s, r] = self.prs[r, s]
 
+    def __getstate__(self):
+        state = [self.g, self.B, self.vm, self.em_s, self.em_t, self.wr,
+                 self.prs]
+        return state
+
+    def __setstate__(self, state):
+        conv_pickle_state(state)
+        g, B, vm, em_s, em_t, wr, prs = state
+        self.__init__(g, B)
+        g.copy_property(vm, self.vm)
+        g.copy_property(em_s, self.em_s)
+        g.copy_property(em_t, self.em_t)
+        self.wr[:] = wr
+        self.prs[:,:] = prs
+
     def get_vertex_marginals(self):
         """Return the vertex marginals."""
         return self.vm

@@ -101,7 +101,6 @@ class NestedBlockState(object):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**overlay(dmask(state, ["kwargs"]), **state["kwargs"]))
-        return state
 
     def project_partition(self, j, l):
         """Project partition of level ``j`` onto level ``l``, and return it."""

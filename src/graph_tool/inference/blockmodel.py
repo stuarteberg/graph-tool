@@ -286,7 +286,6 @@ class BlockState(object):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**state)
-        return state
 
     def get_block_state(self, b=None, vweight=False, deg_corr=False, **kwargs):
         r"""Returns a :class:`~graph_tool.community.BlockState`` corresponding to the
@@ -950,9 +949,9 @@ class BlockState(object):
         return libinference.multicanonical_sweep(multicanonical_state,
                                                  self._state, _get_rng())
 
-    def multicanonical_sweep(self, m_state, f=1., c=1., niter=1,
-                             entropy_args={}, allow_empty=True, vertices=None,
-                             block_list=None, verbose=False):
+    def multicanonical_sweep(self, m_state, c=1., niter=1, entropy_args={},
+                             allow_empty=True, vertices=None, block_list=None,
+                             verbose=False):
         r"""Perform ``niter`` sweeps of a non-markovian multicanonical sampling using
         the Wang-Landau algorithm.
 
@@ -961,8 +960,6 @@ class BlockState(object):
         m_state : :class:`~graph_tool.inference.MulticanonicalState`
             :class:`~graph_tool.inference.MulticanonicalState` instance
             containing the current state of the Wang-Landau run.
-        f : ``float`` (optional, default: ``1.``)
-            Density of states update step.
         c : ``float`` (optional, default: ``1.``)
             Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
             blocks are sampled according to the local neighbourhood of a given
@@ -992,13 +989,18 @@ class BlockState(object):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of vertices moved.
-
+ 
         References
         ----------
         .. [wang-efficient-2001] Fugao Wang, D. P. Landau, "An efficient, multiple
            range random walk algorithm to calculate the density of states", Phys.
            Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
            :arxiv:`cond-mat/0011174`
+
+        .. [belardinelli-wang-2007] R. E. Belardinelli, V. D. Pereyra,
+           "Wang-Landau algorithm: A theoretical analysis of the saturation of
+           the error", J. Chem. Phys. 127, 184105 (2007),
+           :doi:`10.1063/1.2803061`, :arxiv:`cond-mat/0702414`
         """
 
         niter *= self.g.num_vertices()
@@ -1032,12 +1034,19 @@ class BlockState(object):
                                              ["xi_fast", "deg_dl_alt"]))
         multi_state.state = self._state
 
+        multi_state.f = m_state._f
+        multi_state.time = m_state._time
+        multi_state.refine = m_state._refine
         multi_state.S_min = m_state._S_min
         multi_state.S_max = m_state._S_max
         multi_state.hist = m_state._hist
         multi_state.dens = m_state._density
 
-        S, nmoves = self._multicanonical_sweep_dispatch(multi_state)
+        S, nmoves, f, time = \
+                self._multicanonical_sweep_dispatch(multi_state)
+
+        m_state._f = f
+        m_state._time = time
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1154,7 +1163,7 @@ class BlockState(object):
             assert nB == B, "wrong number of groups after shrink: %d (should be %d)" % (nB, B)
         return state
 
-    def collect_edge_marginals(self, p=None):
+    def collect_edge_marginals(self, p=None, update=1.):
         r"""Collect the edge marginal histogram, which counts the number of times
         the endpoints of each node have been assigned to a given block pair.
 
@@ -1168,7 +1177,10 @@ class BlockState(object):
             membership counts.  Each vector entry corresponds to ``b[i] + B *
             b[j]``, where ``b`` is the block membership and ``i = min(source(e),
             target(e))`` and ``j = max(source(e), target(e))``. If not provided, an
-            empty histogram will be created.
+            empty histogram will be created
+        update : float (optional, default: ``1.``)
+            Each call increases the current count by the amount given by this
+            parameter.
 
         Returns
         -------
@@ -1199,15 +1211,16 @@ class BlockState(object):
         """
 
         if p is None:
-            p = self.g.new_ep("vector<int>")
+            p = self.g.new_ep("vector<double>")
 
         libinference.edge_marginals(self.g._Graph__graph,
                                     self.B,
                                     _prop("v", self.g, self.b),
-                                    _prop("e", self.g, p))
+                                    _prop("e", self.g, p),
+                                    update)
         return p
 
-    def collect_vertex_marginals(self, p=None):
+    def collect_vertex_marginals(self, p=None, update=1.):
         r"""Collect the vertex marginal histogram, which counts the number of times a
         node was assigned to a given block.
 
@@ -1219,6 +1232,9 @@ class BlockState(object):
         p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
             Vertex property map with vector-type values, storing the previous block
             membership counts. If not provided, an empty histogram will be created.
+        update : float (optional, default: ``1.``)
+            Each call increases the current count by the amount given by this
+            parameter.
 
         Returns
         -------
@@ -1262,11 +1278,12 @@ class BlockState(object):
         """
 
         if p is None:
-            p = self.g.new_vp("vector<int>")
+            p = self.g.new_vp("vector<double>")
 
         libinference.vertex_marginals(self.g._Graph__graph,
                                       _prop("v", self.g, self.b),
-                                      _prop("v", self.g, p))
+                                      _prop("v", self.g, p),
+                                      update)
         return p
 
     def draw(self, **kwargs):

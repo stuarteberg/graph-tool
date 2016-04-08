@@ -63,7 +63,8 @@ python::object multicanonical_layered_sweep(python::object omulticanonical_state
                       [&](auto& s)
                       {
                           auto ret_ = multicanonical_sweep(s, rng);
-                          ret = python::make_tuple(ret_.first, ret_.second);
+                          ret = python::make_tuple(ret_.first, ret_.second,
+                                                   s._f, s._time, s._refine);
                       });
              },
              false);

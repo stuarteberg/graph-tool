@@ -3086,7 +3086,7 @@ def _set_array_view(self, v):
     self.get_array()[:] = v
 
 vector_types = [Vector_bool, Vector_int16_t, Vector_int32_t, Vector_int64_t,
-                Vector_double, Vector_long_double]
+                Vector_double, Vector_long_double, Vector_size_t]
 for vt in vector_types:
     vt.a = property(_get_array_view, _set_array_view,
                     doc=r"""Shortcut to the `get_array` method as an attribute.""")

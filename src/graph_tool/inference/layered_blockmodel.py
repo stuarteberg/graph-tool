@@ -301,7 +301,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**state)
-        return state
 
     def __copy__(self):
         return self.copy()
