@@ -468,7 +468,13 @@ class MulticanonicalState(object):
             h = self._hist.a
         if h.sum() == 0:
             return 0
-        h = array(h[h>0], dtype="float")
+        idx = h > 0
+        Ss = self.get_range()
+        h = array(h[numpy.logical_and(Ss >= Ss[idx].min(),
+                                      Ss <= Ss[idx].max())],
+                  dtype="float")
+        if len(h) == 1:
+            h = array([0] + list(h))
         if not use_ent:
             h_mean = h.mean()
             return h.min() / h_mean
