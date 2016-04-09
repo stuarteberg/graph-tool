@@ -57,6 +57,9 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
 
     int i = get_bin(S);
 
+    if (i < 0 || i >= M)
+        throw ValueException("current state lies outside the allowed entropy range");
+
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
         auto v = vertex(uniform_sample(vlist, rng), g);
