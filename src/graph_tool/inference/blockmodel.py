@@ -952,7 +952,7 @@ class BlockState(object):
     def multicanonical_sweep(self, m_state, c=1., niter=1, entropy_args={},
                              allow_empty=True, vertices=None, block_list=None,
                              verbose=False):
-        r"""Perform ``niter`` sweeps of a non-markovian multicanonical sampling using
+        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using
         the Wang-Landau algorithm.
 
         Parameters
@@ -989,7 +989,7 @@ class BlockState(object):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of vertices moved.
- 
+
         References
         ----------
         .. [wang-efficient-2001] Fugao Wang, D. P. Landau, "An efficient, multiple
@@ -1052,9 +1052,9 @@ class BlockState(object):
             assert self._check_clabel(), "invalid clabel after sweep"
             Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
                               **dmask(entropy_args, ["xi_fast", "deg_dl_alt"]))
-            assert abs(dS - (Sf - Si)) < 1e-6, \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
+            assert abs(S - Sf) < 1e-6, \
+                "inconsistent entropy after sweep %g (%g): %s" % \
+                (S, Sf, str(entropy_args))
 
         return S, nmoves
 
