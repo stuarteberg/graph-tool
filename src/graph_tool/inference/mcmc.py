@@ -426,7 +426,7 @@ class MulticanonicalState(object):
 
     def get_allowed_energies(self):
         "Get allowed energy bounds."
-        h = self._hist.a
+        h = self._hist.a.copy()
         h += self._perm_hist
         Ss = self.get_range()
         Ss = Ss[h > 0]
