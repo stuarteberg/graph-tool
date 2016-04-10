@@ -400,7 +400,7 @@ class MulticanonicalState(object):
         self._density.resize(nbins)
         self._hist = Vector_size_t()
         self._hist.resize(nbins)
-        self._perm_hist = numpy.zeros(nbins, dtype="int")
+        self._perm_hist = numpy.zeros(nbins, dtype=self._hist.a.dtype)
         self._f = None
         self._time = 0
         self._refine = False
@@ -427,6 +427,7 @@ class MulticanonicalState(object):
     def get_allowed_energies(self):
         "Get allowed energy bounds."
         h = self._hist.a
+        h += self._perm_hist
         Ss = self.get_range()
         Ss = Ss[h > 0]
         return Ss[0], Ss[-1]
@@ -470,11 +471,11 @@ class MulticanonicalState(object):
             return 0
         idx = h > 0
         Ss = self.get_range()
-        h = array(h[numpy.logical_and(Ss >= Ss[idx].min(),
-                                      Ss <= Ss[idx].max())],
-                  dtype="float")
+        S_min, S_max = self.get_allowed_energies()
+        h = array(h[numpy.logical_and(Ss >= S_min, Ss <= S_max)],
+                    dtype="float")
         if len(h) == 1:
-            h = array([0] + list(h))
+            h = array([1e-6] + list(h))
         if not use_ent:
             h_mean = h.mean()
             return min(h.min() / h_mean,
@@ -495,11 +496,11 @@ class MulticanonicalState(object):
 
     def reset_hist(self):
         "Reset energy histogram."
-        self._perm_hist += asarray(self._hist.a[:], dtype="int")
-        self._hist.a[:] = 0
+        self._perm_hist += self._hist.a
+        self._hist.a = 0
 
 def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
-                               f_refine=True, r=2, flatness=.99, use_ent=True,
+                               f_refine=1e-5, r=2, flatness=.99, use_ent=True,
                                callback=None, multicanonical_args={},
                                verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
@@ -513,9 +514,10 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         Initial multicanonical state, where the state density will be stored.
     f_range : ``tuple`` of two floats (optional, default: ``(1., 1e-6)``)
         Range of density updates.
-    f_refine : ``bool`` (optional, default: ``True``)
-        If ``True``, the refinement steps described in [belardinelli-wang-2007]_
-        will be used.
+    f_refine : ``float`` (optional, default: ``1e-5``)
+        If the value of ``f`` decreases below this threshold, the refinement
+        steps described in [belardinelli-wang-2007]_ will be employed, instead
+        of histogram flatness.
     r : ``float`` (optional, default: ``2.``)
         Greediness of convergence. At each iteration, the density updates will
         be reduced by a factor ``r``.
@@ -578,7 +580,8 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
                 m_state._f /= r
                 if m_state._f >= f_range[1]:
                     m_state.reset_hist()
-                if f_refine and m_state._f < 1 / m_state._time:
+                if m_state._f <= f_refine:
+                    m_state._f = f_refine
                     m_state._refine = True
         count += 1
 

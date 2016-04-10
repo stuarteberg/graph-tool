@@ -106,7 +106,7 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
 
         state._time += 1./M;
         if (state._refine)
-            state._f = 1. / state._time;
+            state._f *= (state._time - 1. / M) / state._time;
     }
     return make_pair(S, nmoves);
 }
