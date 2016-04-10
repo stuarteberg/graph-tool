@@ -477,7 +477,8 @@ class MulticanonicalState(object):
             h = array([0] + list(h))
         if not use_ent:
             h_mean = h.mean()
-            return h.min() / h_mean
+            return min(h.min() / h_mean,
+                       h_mean / h.max())
         else:
             h /= h.sum()
             S = -(h * log(h)).sum()
@@ -522,7 +523,8 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         Sufficient histogram flatness threshold used to continue the algorithm.
     use_ent : ``bool`` (optional, default: ``True``)
         If ``True``, the histogram entropy will be used to determine flatness,
-        otherwise the smallest count relative to the mean will be used.
+        otherwise the smallest and largest counts relative to the mean will be
+        used.
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current ``state`` and ``m_state`` as arguments.
