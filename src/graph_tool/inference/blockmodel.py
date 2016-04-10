@@ -814,18 +814,17 @@ class BlockState(object):
         mcmc_state.block_list = self.block_list
         if block_list is not None:
             mcmc_state.block_list = Vector_size_t()
-            mcmc_state.block_list.extend(block_list)
+            mcmc_state.block_list.resize(len(block_list))
+            mcmc_state.block_list.a = block_list
         mcmc_state.vlist = Vector_size_t()
         if vertices is None:
-            idx = self.g.vertex_index.copy().fa
+            vertices = self.g.vertex_index.copy().fa
             if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
-                mcmc_state.vlist.extend(idx[vw > 0])
-            else:
-                mcmc_state.vlist.extend(idx)
-        else:
-            mcmc_state.vlist.extend(vertices)
+                vertices = vertices[vw > 0]
+        mcmc_state.vlist.resize(len(vertices))
+        mcmc_state.vlist.a = vertices
         mcmc_state.E = self.E
         mcmc_state.state = self._state
 
@@ -911,18 +910,17 @@ class BlockState(object):
         gibbs_state.block_list = self.block_list
         if block_list is not None:
             gibbs_state.block_list = Vector_size_t()
-            gibbs_state.block_list.extend(block_list)
+            gibbs_state.block_list.resize(len(block_list))
+            gibbs_state.block_list.a = block_list
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
-            idx = self.g.vertex_index.copy().fa
+            vertices = self.g.vertex_index.copy().fa
             if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
-                gibbs_state.vlist.extend(idx[vw > 0])
-            else:
-                gibbs_state.vlist.extend(idx)
-        else:
-            gibbs_state.vlist.extend(vertices)
+                vertices = vertices[vw > 0]
+        gibbs_state.vlist.resize(len(vertices))
+        gibbs_state.vlist.a = vertices
         gibbs_state.E = self.E
         gibbs_state.state = self._state
 
@@ -1016,18 +1014,17 @@ class BlockState(object):
         multi_state.block_list = self.block_list
         if block_list is not None:
             multi_state.block_list = Vector_size_t()
-            multi_state.block_list.extend(block_list)
+            multi_state.block_list.resize(len(block_list))
+            multi_state.block_list.a = block_list
         multi_state.vlist = Vector_size_t()
         if vertices is None:
-            idx = self.g.vertex_index.copy().fa
+            vertices = self.g.vertex_index.copy().fa
             if self.is_vertex_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
-                multi_state.vlist.extend(idx[vw > 0])
-            else:
-                multi_state.vlist.extend(idx)
-        else:
-            multi_state.vlist.extend(vertices)
+                vertices = vertices[vw > 0]
+        multi_state.vlist.resize(len(vertices))
+        multi_state.vlist.a = vertices
         multi_state.E = self.E
         multi_state.S = self.entropy(xi_fast=True, dl_deg_alt=False,
                                      **dmask(entropy_args,
