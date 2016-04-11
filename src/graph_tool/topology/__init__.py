@@ -200,12 +200,13 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
     ``sim_type == "dice"``
 
        The Sørensen–Dice similarity [sorensen-dice]_ is twice the number of
-       common neighbours between two nodes divided by the sum of their degrees.
+       common neighbours between two vertices divided by the sum of their
+       degrees.
 
     ``sim_type == "jaccard"``
 
        The Jaccard similarity [jaccard]_ is the number of common neighbours
-       between two nodes divided by the size of the set of all neighbours to
+       between two vertices divided by the size of the set of all neighbours to
        both vertices.
 
     ``sim_type == "inv-log-weight"``
@@ -213,7 +214,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
        The inverse log weighted similarity [adamic-friends-2003]_ is the sum of
        the weights of common neighbours between two vertices, where the weights
        are computed as :math:`1/\log(k)`, with :math:`k` being the degree of the
-       node.
+       vertex.
 
 
     For directed graphs, only out-neighbours are considered in the above
@@ -254,6 +255,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
                      output="polbooks-jaccard.png")
 
     .. figure:: polbooks-jaccard.*
+       :align: center
 
        Jaccard similarities to vertex ``0`` in a political books network.
 
