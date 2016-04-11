@@ -35,6 +35,7 @@ Summary
    all_paths
    pseudo_diameter
    similarity
+   vertex_similarity
    isomorphism
    subgraph_isomorphism
    mark_subgraph
@@ -70,7 +71,7 @@ dl_import("from . import libgraph_tool_topology")
 
 from .. import _prop, Vector_int32_t, _check_prop_writable, \
      _check_prop_scalar, _check_prop_vector, Graph, PropertyMap, GraphView,\
-     libcore, _get_rng, _degree, perfect_prop_hash
+     libcore, _get_rng, _degree, perfect_prop_hash, _limit_args
 from .. stats import label_self_loops
 import random, sys, numpy, collections
 
@@ -83,7 +84,8 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "label_out_component", "kcore_decomposition", "shortest_distance",
            "shortest_path", "all_shortest_paths", "all_predecessors",
            "all_paths", "pseudo_diameter", "is_bipartite", "is_DAG",
-           "is_planar", "make_maximal_planar", "similarity", "edge_reciprocity"]
+           "is_planar", "make_maximal_planar", "similarity", "vertex_similarity",
+           "edge_reciprocity"]
 
 def similarity(g1, g2, label1=None, label2=None, norm=True):
     r"""Return the adjacency similarity between the two graphs.
@@ -158,6 +160,147 @@ def similarity(g1, g2, label1=None, label2=None, norm=True):
         s /= 2
     if norm:
         s /= float(max(g1.num_edges(), g2.num_edges()))
+    return s
+
+@_limit_args({"sim_type": ["dice", "jaccard", "inv-log-weight"]})
+def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
+                      sim_map=None):
+    r"""Return the similarity between pairs of vertices.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        The graph to be used.
+    sim_type : ``str`` (optional, default: ``"jaccard"``)
+        Type of similarity to use. This must be one of ``"dice"``, ``"jaccard"``
+        or ``"inv-log-weight"``.
+    vertex_pairs : iterable of pairs of integers (optional, default: ``None``)
+        Pairs of vertices to compute the similarity. If omitted, all pairs will
+        be considered.
+    self_loops : bool (optional, default: ``True``)
+        If ``True``, vertices will be considered adjacent to themselves for the
+        purpose of the similarity computation.
+    sim_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        If provided, and ``vertex_pairs == None``, the vertex similarities will
+        be stored in this vector-valued property. Otherwise, a new one will be
+        created.
+
+    Returns
+    -------
+    similarities : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`
+        If ``vertex_pairs`` was supplied, this will be a :class:`numpy.ndarray`
+        with the corresponding similarities, otherwise it will be a
+        vector-valued vertex :class:`~graph_tool.PropertyMap`, with the
+        similarities to all other vertices.
+
+    Notes
+    -----
+    According to ``sim_type``, this function computes the following similarities:
+
+    ``sim_type == "dice"``
+
+       The Sørensen–Dice similarity [sorensen-dice]_ is twice the number of
+       common neighbours between two nodes divided by the sum of their degrees.
+
+    ``sim_type == "jaccard"``
+
+       The Jaccard similarity [jaccard]_ is the number of common neighbours
+       between two nodes divided by the size of the set of all neighbours to
+       both vertices.
+
+    ``sim_type == "inv-log-weight"``
+
+       The inverse log weighted similarity [adamic-friends-2003]_ is the sum of
+       the weights of common neighbours between two vertices, where the weights
+       are computed as :math:`1/\log(k)`, with :math:`k` being the degree of the
+       node.
+
+
+    For directed graphs, only out-neighbours are considered in the above
+    algorthms (for "inv-log-weight", the in-degrees are used to compute the
+    weights). To use the in-neighbours instead, a :class:`~graph_tool.GraphView`
+    should be used to reverse the graph, e.g. ``vertex_similarity(GraphView(g,
+    reversed=True))``.
+
+    The algorithm runs with complexity :math:`O(\left<k\right>N^2)` if
+    ``vertex_pairs == None``, otherwise with :math:`O(\left<k\right>P)` where
+    :math:`P` is the length of ``vertex_pairs``.
+
+    If enabled during compilation, this algorithm runs in parallel.
+
+    Examples
+    --------
+    .. testcode::
+       :hide:
+
+       import matplotlib
+
+    >>> g = gt.collection.data["polbooks"]
+    >>> s = gt.vertex_similarity(g, "jaccard")
+    >>> color = g.new_vp("double")
+    >>> color.a = s[0].a
+    >>> gt.graph_draw(g, pos=g.vp.pos, vertex_text=g.vertex_index,
+    ...               vertex_color=color, vertex_fill_color=color,
+    ...               vcmap=matplotlib.cm.inferno,
+    ...               output="polbooks-jaccard.pdf")
+    <...>
+
+    .. testcode::
+       :hide:
+
+       gt.graph_draw(g, pos=g.vp.pos, vertex_text=g.vertex_index,
+                     vertex_color=color, vertex_fill_color=color,
+                     vcmap=matplotlib.cm.inferno,
+                     output="polbooks-jaccard.png")
+
+    .. figure:: polbooks-jaccard.*
+
+       Jaccard similarities to vertex ``0`` in a political books network.
+
+    References
+    ----------
+    .. [sorensen-dice] https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient
+    .. [jaccard] https://en.wikipedia.org/wiki/Jaccard_index
+    .. [adamic-friends-2003] Lada A. Adamic and Eytan Adar, "Friends and neighbors
+       on the Web", Social Networks Volume 25, Issue 3, Pages 211–230 (2003)
+       :doi:`10.1016/S0378-8733(03)00009-1`
+    .. [liben-nowell-link-prediction-2007] David Liben-Nowell and Jon Kleinberg,
+       "The link-prediction problem for social networks", Journal of the
+       American Society for Information Science and Technology, Volume 58, Issue
+       7, pages 1019–1031 (2007), :doi:`10.1002/asi.20591`
+    """
+
+    if vertex_pairs is None:
+        if sim_map is None:
+            s = g.new_vp("vector<double>")
+        else:
+            s = sim_map
+        if sim_type == "dice":
+            libgraph_tool_topology.dice_similarity(g._Graph__graph,
+                                                   _prop("v", g, s),
+                                                   self_loops)
+        elif sim_type == "jaccard":
+            libgraph_tool_topology.jaccard_similarity(g._Graph__graph,
+                                                      _prop("v", g, s),
+                                                      self_loops)
+        elif sim_type == "inv-log-weight":
+            libgraph_tool_topology.inv_log_weight_similarity(g._Graph__graph,
+                                                             _prop("v", g, s))
+    else:
+        vertex_pairs = numpy.asarray(vertex_pairs, dtype="int64")
+        s = numpy.zeros(vertex_pairs.shape[0], dtype="double")
+        if sim_type == "dice":
+            libgraph_tool_topology.dice_similarity_pairs(g._Graph__graph,
+                                                         vertex_pairs,
+                                                         s, self_loops)
+        elif sim_type == "jaccard":
+            libgraph_tool_topology.jaccard_similarity_pairs(g._Graph__graph,
+                                                            vertex_pairs,
+                                                            s, self_loops)
+        elif sim_type == "inv-log-weight":
+            libgraph_tool_topology.\
+                inv_log_weight_similarity_pairs(g._Graph__graph, vertex_pairs,
+                                                s)
     return s
 
 

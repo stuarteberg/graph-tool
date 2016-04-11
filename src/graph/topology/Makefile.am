@@ -36,10 +36,12 @@ libgraph_tool_topology_la_SOURCES = \
     graph_topological_sort.cc \
     graph_topology.cc \
     graph_tsp.cc \
-    graph_transitive_closure.cc
+    graph_transitive_closure.cc \
+    graph_vertex_similarity.cc
 
 
 libgraph_tool_topology_la_include_HEADERS = \
     graph_components.hh \
     graph_kcore.hh \
-    graph_similarity.hh
+    graph_similarity.hh \
+    graph_vertex_similarity.hh
