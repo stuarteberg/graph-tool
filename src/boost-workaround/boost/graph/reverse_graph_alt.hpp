@@ -89,8 +89,8 @@ class reverse_graph {
     typedef transform_iterator<detail::reverse_graph_edge_descriptor_maker<typename Traits::edge_descriptor>, typename Traits::out_edge_iterator> in_edge_iterator;
 
     // AdjacencyGraph requirements
-    typedef typename adjacency_iterator_generator<Self,
-                                                  vertex_descriptor, out_edge_iterator>::type adjacency_iterator;
+    typedef typename BidirectionalGraph::in_adjacency_iterator adjacency_iterator;
+    typedef typename graph_traits<BidirectionalGraph>::adjacency_iterator in_adjacency_iterator;
 
     // VertexListGraph requirements
     typedef typename Traits::vertex_iterator vertex_iterator;
@@ -250,17 +250,31 @@ in_edges(const typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
 
 template <class BidirectionalGraph, class GRef>
 inline std::pair<typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator,
-    typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator>
+                 typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator>
+out_neighbours(typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
+               const reverse_graph<BidirectionalGraph,GRef>& g)
+{
+    return in_neighbours(u, g.m_g);
+}
+
+template <class BidirectionalGraph, class GRef>
+inline std::pair<typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator,
+                 typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator>
+in_neighbours(typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
+              const reverse_graph<BidirectionalGraph,GRef>& g)
+{
+    return out_neighbours(u, g.m_g);
+}
+
+template <class BidirectionalGraph, class GRef>
+inline std::pair<typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator,
+                 typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator>
 adjacent_vertices(typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
                   const reverse_graph<BidirectionalGraph,GRef>& g)
 {
-    typedef reverse_graph<BidirectionalGraph,GRef> Graph;
-    typename graph_traits<Graph>::out_edge_iterator first, last;
-    boost::tie(first, last) = out_edges(u, g);
-    typedef typename graph_traits<Graph>::adjacency_iterator adjacency_iterator;
-    return std::make_pair(adjacency_iterator(first, const_cast<Graph*>(&g)),
-                          adjacency_iterator(last, const_cast<Graph*>(&g)));
+    return out_neighbours(u, g);
 }
+
 
 template <class BidirectionalGraph, class GRef>
 inline typename graph_traits<BidirectionalGraph>::degree_size_type
@@ -281,14 +295,16 @@ degree(const typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
 
 template <class Edge, class BidirectionalGraph, class GRef>
 inline typename graph_traits<BidirectionalGraph>::vertex_descriptor
-source(const detail::reverse_graph_edge_descriptor<Edge>& e, const reverse_graph<BidirectionalGraph,GRef>& g)
+source(const detail::reverse_graph_edge_descriptor<Edge>& e,
+       const reverse_graph<BidirectionalGraph,GRef>& g)
 {
     return target(Edge(e), g.m_g);
 }
 
 template <class Edge, class BidirectionalGraph, class GRef>
 inline typename graph_traits<BidirectionalGraph>::vertex_descriptor
-target(const detail::reverse_graph_edge_descriptor<Edge>& e, const reverse_graph<BidirectionalGraph,GRef>& g)
+target(const detail::reverse_graph_edge_descriptor<Edge>& e,
+       const reverse_graph<BidirectionalGraph,GRef>& g)
 {
     return source(Edge(e), g.m_g);
 }

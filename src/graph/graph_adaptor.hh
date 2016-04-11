@@ -99,9 +99,9 @@ struct get_iterator_category
 };
 
 
-template <class Graph, class Inverted = mpl::false_>
+template <class Graph>
 class joined_edge_iterator
-    : public boost::iterator_facade<joined_edge_iterator<Graph, Inverted>,
+    : public boost::iterator_facade<joined_edge_iterator<Graph>,
                                     typename graph_traits<Graph>::edge_descriptor,
                                     typename get_iterator_category<Graph>::type,
                                     typename graph_traits<Graph>::edge_descriptor>
@@ -110,15 +110,13 @@ class joined_edge_iterator
     typedef typename graph_traits<Graph>::in_edge_iterator in_iter_t;
     typedef typename graph_traits<Graph>::out_edge_iterator out_iter_t;
 
-    typedef typename mpl::if_<Inverted, out_iter_t, in_iter_t>::type iter1_t;
-    typedef typename mpl::if_<Inverted, in_iter_t, out_iter_t>::type iter2_t;
-
     joined_edge_iterator() {}
-    explicit joined_edge_iterator(std::pair<iter1_t, iter1_t>&& range1,
-                                  std::pair<iter2_t, iter2_t>&& range2,
+    template <class InRange, class OutRange>
+    __attribute__((always_inline))
+    explicit joined_edge_iterator(InRange&& range1, OutRange&& range2,
                                   bool begin)
-        : _range1(std::forward<std::pair<iter1_t, iter1_t>>(range1)),
-          _range2(std::forward<std::pair<iter2_t, iter2_t>>(range2))
+        : _range1(std::forward<InRange>(range1)),
+          _range2(std::forward<OutRange>(range2))
     {
         if (!begin)
         {
@@ -129,6 +127,7 @@ class joined_edge_iterator
 
  private:
     friend class boost::iterator_core_access;
+    __attribute__((always_inline))
     void increment()
     {
         if (_range1.first == _range1.second)
@@ -137,7 +136,8 @@ class joined_edge_iterator
             ++_range1.first;
     }
 
-    typedef typename std::iterator_traits<iter1_t>::difference_type diff_t;
+    typedef typename std::iterator_traits<in_iter_t>::difference_type diff_t;
+    __attribute__((always_inline))
     void advance(diff_t n)
     {
         diff_t d1 = _range1.second - _range1.first;
@@ -152,12 +152,14 @@ class joined_edge_iterator
         }
     }
 
-    diff_t distance_to(joined_edge_iterator const& other)
+    __attribute__((always_inline))
+    diff_t distance_to(joined_edge_iterator const& other) const
     {
         return (other._range1.first - _range1.first) +
             (other._range2.first - _range2.first);
     }
 
+    __attribute__((always_inline))
     bool equal(joined_edge_iterator const& other) const
     {
         return (_range2.first == other._range2.first &&
@@ -165,12 +167,14 @@ class joined_edge_iterator
     }
 
     template <class Edge>
-    Edge inv(Edge&& e) const
+    __attribute__((always_inline))
+    Edge inv(Edge e) const
     {
-        e.inv = true;
+        e.inv ^= true;
         return e;
     }
 
+    __attribute__((always_inline))
     typename graph_traits<Graph>::edge_descriptor dereference() const
     {
         if (_range1.first == _range1.second)
@@ -179,27 +183,89 @@ class joined_edge_iterator
             return inv(*_range1.first);
     }
 
-    std::pair<iter1_t, iter1_t> _range1;
-    std::pair<iter2_t, iter2_t> _range2;
+    std::pair<in_iter_t, in_iter_t> _range1;
+    std::pair<out_iter_t, out_iter_t> _range2;
 };
-
-
-
-//==============================================================================
-// UndirectedAdaptorAdjacencyIterator
-// just keeps an internal reference to out_edge_iterator and calls target() when
-// referenced
-//==============================================================================
 
 template <class Graph>
-struct get_undirected_adjacency_iterator
+class joined_neighbour_iterator
+    : public boost::iterator_facade<joined_neighbour_iterator<Graph>,
+                                    typename graph_traits<Graph>::vertex_descriptor,
+                                    typename get_iterator_category<Graph>::type,
+                                    typename graph_traits<Graph>::vertex_descriptor>
 {
-    typedef joined_edge_iterator<Graph> out_edge_iter_t;
-    typedef typename boost::adjacency_iterator_generator<UndirectedAdaptor<Graph>,
-                                                         typename graph_traits<Graph>::vertex_descriptor,
-                                                         out_edge_iter_t>::type type;
-};
+ public:
+    typedef typename Graph::in_adjacency_iterator in_iter_t;
+    typedef typename graph_traits<Graph>::adjacency_iterator out_iter_t;
 
+    joined_neighbour_iterator() {}
+    template <class InRange, class OutRange>
+    explicit joined_neighbour_iterator(InRange&& range1, OutRange&& range2,
+                                       bool begin)
+        : _range1(std::forward<InRange>(range1)),
+          _range2(std::forward<OutRange>(range2))
+    {
+        if (!begin)
+        {
+            _range1.first = _range1.second;
+            _range2.first = _range2.second;
+        }
+    }
+
+ private:
+    friend class boost::iterator_core_access;
+
+    __attribute__((always_inline))
+    void increment()
+    {
+        if (_range1.first == _range1.second)
+            ++_range2.first;
+        else
+            ++_range1.first;
+    }
+
+    typedef typename std::iterator_traits<in_iter_t>::difference_type diff_t;
+    __attribute__((always_inline))
+    void advance(diff_t n)
+    {
+        diff_t d1 = _range1.second - _range1.first;
+        if (n < d1)
+        {
+            _range1.first += n;
+        }
+        else
+        {
+            _range1.first = _range1.second;
+            _range2.first += n - d1;
+        }
+    }
+
+    __attribute__((always_inline))
+    diff_t distance_to(joined_neighbour_iterator const& other) const
+    {
+        return (other._range1.first - _range1.first) +
+            (other._range2.first - _range2.first);
+    }
+
+    __attribute__((always_inline))
+    bool equal(joined_neighbour_iterator const& other) const
+    {
+        return (_range2.first == other._range2.first &&
+                _range1.first == other._range1.first);
+    }
+
+    __attribute__((always_inline))
+    typename graph_traits<Graph>::vertex_descriptor dereference() const
+    {
+        if (_range1.first == _range1.second)
+            return *_range2.first;
+        else
+            return *_range1.first;
+    }
+
+    std::pair<in_iter_t, in_iter_t> _range1;
+    std::pair<out_iter_t, out_iter_t> _range2;
+};
 
 //==============================================================================
 // graph_traits<UndirectedAdaptor>
@@ -210,9 +276,9 @@ struct graph_traits<UndirectedAdaptor<Graph> > {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_descriptor;
     typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
 
-    typedef typename get_undirected_adjacency_iterator<Graph>::type adjacency_iterator;
-    typedef joined_edge_iterator<Graph, mpl::false_> out_edge_iterator;
-    typedef joined_edge_iterator<Graph, mpl::true_> in_edge_iterator;
+    typedef joined_neighbour_iterator<Graph> adjacency_iterator;
+    typedef joined_edge_iterator<Graph> out_edge_iterator;
+    typedef joined_edge_iterator<Graph> in_edge_iterator;
     typedef typename graph_traits<Graph>::vertex_iterator vertex_iterator;
     typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
 
@@ -338,15 +404,15 @@ edge(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
 template <class Graph>
 inline __attribute__((always_inline))
 std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator,
-          typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator >
+          typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator>
 out_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
           const UndirectedAdaptor<Graph>& g)
 {
     typedef joined_edge_iterator<Graph> iter_t;
-    return std::make_pair(iter_t(in_edges(u, g.original_graph()),
-                                 out_edges(u, g.original_graph()), true),
-                          iter_t(in_edges(u, g.original_graph()),
-                                 out_edges(u, g.original_graph()), false));
+    auto ies = in_edges(u, g.original_graph());
+    auto oes = out_edges(u, g.original_graph());
+    return std::make_pair(iter_t(ies, oes, true),
+                          iter_t(ies, oes, false));
 }
 
 //==============================================================================
@@ -359,11 +425,37 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator,
 in_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
          const UndirectedAdaptor<Graph>& g)
 {
-    typedef joined_edge_iterator<Graph, mpl::true_> iter_t;
-    return std::make_pair(iter_t(out_edges(u, g.original_graph()),
-                                 in_edges(u, g.original_graph()), true),
-                          iter_t(out_edges(u, g.original_graph()),
-                                 in_edges(u, g.original_graph()), false));
+    return out_edges(u, g);
+}
+
+//==============================================================================
+// out_neighbours(u, g)
+//==============================================================================
+template <class Graph>
+inline __attribute__((always_inline))
+std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator,
+          typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator>
+out_neighbours(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
+               const UndirectedAdaptor<Graph>& g)
+{
+    typedef joined_neighbour_iterator<Graph> iter_t;
+    auto ins = in_neighbours(u, g.original_graph());
+    auto ons = out_neighbours(u, g.original_graph());
+    return std::make_pair(iter_t(ins, ons, true),
+                          iter_t(ins, ons, false));
+}
+
+//==============================================================================
+// in_neighbours(u, g)
+//==============================================================================
+template <class Graph>
+inline __attribute__((always_inline))
+std::pair<typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator,
+          typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator>
+in_neighbours(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
+              const UndirectedAdaptor<Graph>& g)
+{
+    return out_neighbours(u, g);
 }
 
 //==============================================================================
@@ -377,11 +469,7 @@ adjacent_vertices
     (typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
      const UndirectedAdaptor<Graph>& g)
 {
-    typedef typename graph_traits<UndirectedAdaptor<Graph> >::adjacency_iterator
-        adjacency_iterator;
-    auto e_range = out_edges(u, g);
-    return std::make_pair(adjacency_iterator(e_range.first, &g),
-                          adjacency_iterator(e_range.second, &g));
+    return out_neighbours(u, g);
 }
 
 //==============================================================================

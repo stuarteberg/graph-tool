@@ -82,6 +82,16 @@ std::pair<typename adj_list<Vertex>::adjacency_iterator,
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g);
 
 template <class Vertex>
+std::pair<typename adj_list<Vertex>::adjacency_iterator,
+          typename adj_list<Vertex>::adjacency_iterator>
+out_neighbours(Vertex v, const adj_list<Vertex>& g);
+
+template <class Vertex>
+std::pair<typename adj_list<Vertex>::adjacency_iterator,
+          typename adj_list<Vertex>::adjacency_iterator>
+in_neighbours(Vertex v, const adj_list<Vertex>& g);
+
+template <class Vertex>
 size_t num_vertices(const adj_list<Vertex>& g);
 
 template <class Vertex>
@@ -178,13 +188,16 @@ public:
     {
         get_vertex() {}
         typedef Vertex result_type;
+        __attribute__((always_inline))
         Vertex operator()(const std::pair<vertex_t, vertex_t>& v) const
         { return v.first; }
     };
 
-    typedef transform_random_access_iterator<get_vertex, typename edge_list_t::const_iterator>
+    typedef transform_random_access_iterator<get_vertex,
+                                             typename edge_list_t::const_iterator>
         adjacency_iterator;
 
+    typedef adjacency_iterator in_adjacency_iterator;
 
     template <class Deference>
     struct base_edge_iterator:
@@ -426,6 +439,12 @@ private:
     friend std::pair<adjacency_iterator, adjacency_iterator>
     adjacent_vertices<>(Vertex v, const adj_list<Vertex>& g);
 
+    friend std::pair<adjacency_iterator, adjacency_iterator>
+    out_neighbours<>(Vertex v, const adj_list<Vertex>& g);
+
+    friend std::pair<adjacency_iterator, adjacency_iterator>
+    in_neighbours<>(Vertex v, const adj_list<Vertex>& g);
+
     friend size_t num_vertices<>(const adj_list<Vertex>& g);
 
     friend size_t num_edges<>(const adj_list<Vertex>& g);
@@ -479,6 +498,7 @@ struct graph_traits<adj_list<Vertex> >
     typedef size_t degree_size_type;
 
     static Vertex null_vertex() { return adj_list<Vertex>::null_vertex(); }
+
 private:
     BOOST_STATIC_ASSERT((is_convertible<typename std::iterator_traits<out_edge_iterator>::iterator_category,
                                         std::random_access_iterator_tag>::value));
@@ -631,13 +651,35 @@ template <class Vertex>
 inline __attribute__((always_inline))
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
-adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
+out_neighbours(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::adjacency_iterator ai_t;
     auto& edges = g._out_edges[v];
     return std::make_pair(ai_t(edges.begin()),
                           ai_t(edges.end()));
 }
+
+template <class Vertex>
+inline __attribute__((always_inline))
+std::pair<typename adj_list<Vertex>::adjacency_iterator,
+          typename adj_list<Vertex>::adjacency_iterator>
+in_neighbours(Vertex v, const adj_list<Vertex>& g)
+{
+    typedef typename adj_list<Vertex>::adjacency_iterator ai_t;
+    auto& edges = g._in_edges[v];
+    return std::make_pair(ai_t(edges.begin()),
+                          ai_t(edges.end()));
+}
+
+template <class Vertex>
+inline __attribute__((always_inline))
+std::pair<typename adj_list<Vertex>::adjacency_iterator,
+          typename adj_list<Vertex>::adjacency_iterator>
+adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
+{
+    return out_neighbours(v, g);
+}
+
 
 template <class Vertex>
 inline __attribute__((always_inline))

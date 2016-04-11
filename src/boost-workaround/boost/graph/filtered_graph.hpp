@@ -182,10 +182,14 @@ namespace boost {
     typedef typename adjacency_iterator_generator<self,
       vertex_descriptor, out_edge_iterator>::type      adjacency_iterator;
 
+
     // BidirectionalGraph requirements
     typedef filter_iterator<
         InEdgePred, typename Traits::in_edge_iterator
     > in_edge_iterator;
+
+    typedef typename adjacency_iterator_generator<self,
+      vertex_descriptor, in_edge_iterator>::type       in_adjacency_iterator;
 
     // VertexListGraph requirements
     typedef filter_iterator<
@@ -390,8 +394,8 @@ namespace boost {
   inline __attribute__((always_inline))
   std::pair<typename filtered_graph<G, EP, VP>::adjacency_iterator,
             typename filtered_graph<G, EP, VP>::adjacency_iterator>
-  adjacent_vertices(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
-                    const filtered_graph<G, EP, VP>& g)
+  out_neighbours(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
+                 const filtered_graph<G, EP, VP>& g)
   {
     typedef filtered_graph<G, EP, VP> Graph;
     typedef typename Graph::adjacency_iterator adjacency_iterator;
@@ -399,6 +403,31 @@ namespace boost {
     return std::make_pair(adjacency_iterator(range.first, const_cast<Graph*>(&g)),
                           adjacency_iterator(range.second, const_cast<Graph*>(&g)));
   }
+
+template <typename G, typename EP, typename VP>
+  inline __attribute__((always_inline))
+  std::pair<typename filtered_graph<G, EP, VP>::in_adjacency_iterator,
+            typename filtered_graph<G, EP, VP>::in_adjacency_iterator>
+  in_neighbours(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
+                const filtered_graph<G, EP, VP>& g)
+  {
+    typedef filtered_graph<G, EP, VP> Graph;
+    typedef typename Graph::in_adjacency_iterator adjacency_iterator;
+    auto range = in_edges(u, g);
+    return std::make_pair(adjacency_iterator(range.first, const_cast<Graph*>(&g)),
+                          adjacency_iterator(range.second, const_cast<Graph*>(&g)));
+  }
+
+  template <typename G, typename EP, typename VP>
+  inline __attribute__((always_inline))
+  std::pair<typename filtered_graph<G, EP, VP>::adjacency_iterator,
+            typename filtered_graph<G, EP, VP>::adjacency_iterator>
+  adjacent_vertices(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
+                    const filtered_graph<G, EP, VP>& g)
+  {
+      return out_neighbours(u, g);
+  }
+
 
   template <typename G, typename EP, typename VP>
   inline __attribute__((always_inline))

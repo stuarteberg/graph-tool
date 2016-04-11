@@ -404,6 +404,7 @@ struct get_all_edges<Graph,std::false_type>
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     typedef typename boost::graph_traits<Graph>::out_edge_iterator type;
+    inline __attribute__((always_inline))
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
@@ -467,6 +468,179 @@ struct in_or_out_edge_iteratorS
     }
 };
 
+// helper types for in_neighbour_iteratorS
+
+template <class Graph, class IsDirected>
+struct get_in_neighbours
+{
+    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((is_convertible
+                      <typename boost::graph_traits<Graph>::directed_category,
+                      boost::directed_tag>));
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::in_neighbour_iterator type;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_edges(vertex_descriptor v,
+                                          const Graph& g)
+    {
+        using namespace boost;
+        return in_neighbours(v, g);
+    }
+};
+
+template <class Graph>
+struct get_in_neighbours<Graph,std::false_type>
+{
+    BOOST_MPL_ASSERT((is_convertible
+                      <typename boost::graph_traits<Graph>::directed_category,
+                      boost::undirected_tag>));
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::out_neighbours_iterator type;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor,
+                                               const Graph&)
+    {
+        return make_pair(type(), type());
+    }
+};
+
+// this in-neighbour iterator selector returns the in-neighbour range for
+// directed graphs and an empty out-neighbour range for undirected graphs. The
+// iterator type is given by in_neighbour_iteratorS<Graph>::type.
+template <class Graph>
+struct in_neighbour_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::directed_category
+        directed_category;
+    typedef typename is_convertible<directed_category,
+                                    boost::directed_tag>::type is_directed;
+    typedef typename get_in_edges<Graph,is_directed>::type type;
+
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        return get_in_neighbours<Graph,is_directed>::get_neighbours(v, g);
+    }
+};
+
+// out edges selector for completeness
+template <class Graph>
+struct out_neighbour_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::out_neighbours_iterator type;
+
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        return out_neighbours(v, g);
+    }
+};
+
+
+// helper types for all_neighbours_iteratorS
+template <class Graph, class IsDirected>
+struct get_all_neighbours
+{
+    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((is_convertible
+                      <typename boost::graph_traits<Graph>::directed_category,
+                      boost::directed_tag>));
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    typedef typename boost::graph_traits<boost::UndirectedAdaptor<Graph> >::adjacency_iterator
+        type;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        using namespace boost;
+        const boost::UndirectedAdaptor<Graph> ug(g);
+        return out_neighbours(v, ug);
+    }
+};
+
+template <class Graph>
+struct get_all_neighbours<Graph,std::false_type>
+{
+    BOOST_MPL_ASSERT((is_convertible
+                      <typename boost::graph_traits<Graph>::directed_category,
+                      boost::undirected_tag>));
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::out_neighbours_iterator type;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        using namespace boost;
+        return out_neighbours(v, g);
+    }
+};
+
+// this "all neighbours" iterator selector returns the in-neighbours +
+// out-neighbours ranges for directed graphs and the out-neighbours range for
+// undirected graphs. The iterator type is given by
+// all_neighbours_iteratorS<Graph>::type.
+template <class Graph>
+struct all_neighbours_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::directed_category
+        directed_category;
+    typedef typename is_convertible<directed_category,
+                                    boost::directed_tag>::type is_directed;
+    typedef typename get_all_edges<Graph,is_directed>::type type;
+
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        return get_all_neighbours<Graph,is_directed>::get_edges(v, g);
+    }
+};
+
+// helper types for in_or_out_neighbours_iteratorS
+template <class Graph, class IsDirected>
+struct get_in_or_out_neighbours
+    : public get_in_neighbours<Graph,IsDirected>
+{};
+
+template <class Graph>
+struct get_in_or_out_neighbours<Graph,std::false_type>
+    : public get_all_neighbours<Graph,std::false_type>
+{};
+
+// this "in or out" iterator selector returns the in-neighbour range for
+// directed graphs and the out-neighbour range for undirected graphs. The
+// iterator type is given by in_or_adjacency_iteratorS<Graph>::type
+template <class Graph>
+struct in_or_out_neighbours_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::directed_category
+        directed_category;
+    typedef typename is_convertible<directed_category,
+                                    boost::directed_tag>::type is_directed;
+    typedef typename get_in_or_out_neighbours<Graph,is_directed>::type type;
+
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor
+        vertex_descriptor;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbours(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        return get_in_or_out_neighbours<Graph,is_directed>::get_neighbours(v, g);
+    }
+};
+
 // range adaptors
 
 template <class Iter>
@@ -520,11 +694,29 @@ auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
 
 template <class Graph>
 inline __attribute__((always_inline))
+auto out_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                          const Graph& g)
+{
+    return mk_range(out_neighbours(v, g));
+}
+
+
+template <class Graph>
+inline __attribute__((always_inline))
 auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
                     const Graph& g)
 {
     return mk_range(in_edge_iteratorS<Graph>::get_edges(v, g));
 }
+
+template <class Graph>
+inline __attribute__((always_inline))
+auto in_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                         const Graph& g)
+{
+    return mk_range(in_neighbours(v, g));
+}
+
 
 template <class Graph>
 inline __attribute__((always_inline))
@@ -536,12 +728,27 @@ auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
 
 template <class Graph>
 inline __attribute__((always_inline))
+auto all_neighbours_range(typename all_neighbours_iteratorS<Graph>::vertex_descriptor v,
+                          const Graph& g)
+{
+    return mk_range(all_neighbours_iteratorS<Graph>::get_neighbours(v, g));
+}
+
+template <class Graph>
+inline __attribute__((always_inline))
 auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
                            const Graph& g)
 {
     return mk_range(in_or_out_edge_iteratorS<Graph>::get_edges(v, g));
 }
 
+template <class Graph>
+inline __attribute__((always_inline))
+auto in_or_out_neighbours_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
+                                const Graph& g)
+{
+    return mk_range(in_or_out_edge_iteratorS<Graph>::get_neighbours(v, g));
+}
 
 // useful type lists
 
