@@ -149,8 +149,8 @@ def random_layout(g, shape=None, pos=None, dim=2):
         d = r[1] - r[0]
 
         # deal with filtering
-        p = pos[i].ma
-        p[:] = numpy.random.random(len(p)) * d + r[0]
+        p = pos[i].fa
+        pos[i].fa = numpy.random.random(len(p)) * d + r[0]
 
     pos = group_vector_property(pos)
     return pos
