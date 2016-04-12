@@ -149,12 +149,14 @@ struct get_sampled_distance_histogram
                         DistanceMap dist_map, no_weightS) const
         {
             typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-            typedef gt_hash_map<vertex_t,default_color_type,
-                                DescriptorHash<VertexIndex> > cmap_t;
-            cmap_t cmap(0, DescriptorHash<VertexIndex>(vertex_index));
-            InitializedPropertyMap<cmap_t>
-                color_map(cmap, color_traits<default_color_type>::white());
-
+            typedef typename vprop_map_t<default_color_type>::type::unchecked_t vmap_t;
+            vmap_t color_map(vertex_index, num_vertices(g));
+            parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     color_map[v] = color_traits<default_color_type>::white();
+                 });
             breadth_first_visit(g, s,
                                 visitor(make_bfs_visitor
                                         (record_distances(dist_map,

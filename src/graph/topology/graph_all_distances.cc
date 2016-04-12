@@ -38,14 +38,13 @@ struct do_all_pairs_search
         typedef typename property_traits<DistMap>::value_type::value_type
             dist_t;
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime)\
-            if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            dist_map[i].clear();
-            dist_map[i].resize(num_vertices(g), 0);
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto& v)
+             {
+                 dist_map[v].clear();
+                 dist_map[v].resize(num_vertices(g), 0);
+             });
 
         if (dense)
         {
