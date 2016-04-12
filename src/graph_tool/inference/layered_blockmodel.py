@@ -91,9 +91,12 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     def __init__(self, g, ec, eweight=None, vweight=None, b=None, B=None,
                  clabel=None, pclabel=False, layers=False, deg_corr=True,
                  overlap=False, **kwargs):
+
+        kwargs = kwargs.copy()
+
         self.g = g
 
-        if kwargs.get("ec_done", False):
+        if extract_arg(kwargs, "ec_done", False):
             self.ec = ec
         else:
             self.ec = ec = perfect_prop_hash([ec], "int32_t")[0]
@@ -112,7 +115,9 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             eweight = g.new_ep("int", 1)
 
         if not overlap:
-            ldegs = kwargs.get("degs", libinference.simple_degs_t())
+            kwargs = dmask(kwargs, ["base_g", "node_index", "eindex",
+                                    "half_edges"])
+            ldegs = extract_arg(kwargs, "degs", libinference.simple_degs_t())
             if not isinstance(ldegs, libinference.simple_degs_t):
                 tdegs = libinference.get_mapped_block_degs(self.g._Graph__graph,
                                                            ldegs, 0,
@@ -125,15 +130,21 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                      B=B, eweight=eweight, vweight=vweight,
                                      clabel=clabel, pclabel=pclabel,
                                      deg_corr=deg_corr, max_BE=max_BE,
-                                     degs=tdegs, **dmask(kwargs, ["degs"]))
+                                     degs=tdegs,
+                                     **dmask(kwargs, ["degs", "lweights",
+                                                      "layer_entropy"]))
         else:
+            kwargs = dmask(kwargs, ["degs"])
             ldegs = None
-            total_state = OverlapBlockState(g, b=b, B=B, eweight=eweight,
-                                            vweight=vweight, clabel=clabel,
+            total_state = OverlapBlockState(g, b=b, B=B, clabel=clabel,
                                             pclabel=pclabel, deg_corr=deg_corr,
-                                            max_BE=max_BE, **kwargs)
+                                            max_BE=max_BE,
+                                            **dmask(kwargs, ["degs", "lweights",
+                                                             "layer_entropy"]))
             self.base_g = total_state.base_g
             self.g = total_state.g
+            kwargs = dmask(kwargs, ["base_g", "node_index", "eindex",
+                                    "half_edges"])
 
         self.total_state = total_state
 
@@ -173,7 +184,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.gs = []
         self.block_map = libinference.bmap_t()
 
-        lweights = kwargs.get("lweights", g.new_vp("vector<int>"))
+        lweights = extract_arg(kwargs, "lweights", g.new_vp("vector<int>"))
 
         for l in range(0, self.C):
             u = Graph(directed=g.is_directed())
@@ -226,7 +237,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.block_list = Vector_size_t()
         self.block_list.extend(arange(total_state.B, dtype="int"))
 
-        self.__layer_entropy = kwargs.get("layer_entropy", None)
+        self.__layer_entropy = extract_arg(kwargs, "layer_entropy", None)
 
         if not self.overlap:
             self._state = \
@@ -240,6 +251,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         if _bm_test():
             assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
     def __get_base_u(self, u):
         node_index = u.vp["vmap"].copy("int64_t")
@@ -269,14 +284,12 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                eweight=u.ep["weight"],
                                vweight=u.vp["weight"],
                                deg_corr=self.deg_corr,
-                               force_weighted=self.is_weighted,
                                degs=degs,
                                max_BE=self.max_BE)
         else:
             base_u, node_index = self.__get_base_u(u)
             state = OverlapBlockState(u, b=u.vp["b"].fa,
                                       B=B,
-                                      vweight=u.vp["weight"],
                                       node_index=node_index,
                                       base_g=base_u,
                                       deg_corr=self.deg_corr,

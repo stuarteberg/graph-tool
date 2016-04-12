@@ -71,6 +71,12 @@ class NestedBlockState(object):
         if _bm_test():
             self._consistency_check()
 
+    def _regen_levels(self):
+        for l in range(1, len(self.levels)):
+            state = self.levels[l]
+            nstate = self.levels[l-1].get_block_state(b=state.b, deg_corr=False)
+            self.levels[l] = nstate
+
     def __repr__(self):
         return "<NestedBlockState object, with base %s, and %d levels of sizes %s at 0x%x>" % \
             (repr(self.levels[0]), len(self.levels),
@@ -217,6 +223,38 @@ class NestedBlockState(object):
             S += self.level_entropy(l, dense=dense, multigraph=multigraph,
                                     **kwargs)
         return S
+
+    def move_vertex(self, v, s):
+        r"""Move vertex ``v`` to block ``s``."""
+        self.levels[0].move_vertex(v, s)
+        self._regen_levels()
+
+    def remove_vertex(self, v):
+        r"""Remove vertex ``v`` from its current group.
+
+        This optionally accepts a list of vertices to remove.
+
+        .. warning::
+
+           This will leave the state in an inconsistent state before the vertex
+           is returned to some other group, or if the same vertex is removed
+           twice.
+        """
+        self.levels[0].remove_vertex(v)
+        self._regen_levels()
+
+    def add_vertex(self, v, r):
+        r"""Add vertex ``v`` to block ``r``.
+
+        This optionally accepts a list of vertices and blocks to add.
+
+        .. warning::
+
+           This can leave the state in an inconsistent state if a vertex is
+           added twice to the same group.
+        """
+        self.levels[0].add_vertex(v, r)
+        self._regen_levels()
 
     def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
         """Compute the log-probability of the missing (or spurious if ``missing=False``)

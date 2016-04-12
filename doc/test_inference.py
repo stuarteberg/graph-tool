@@ -140,13 +140,13 @@ for directed in [True, False]:
                 print("\ndirected:", directed, "overlap:", overlap,
                       "layered:", layered, "deg-corr:", deg_corr, file=out)
 
+                state_args = dict(ec=ec, layers=(layered == True)) if layered != False else {}
                 state = minimize_blockmodel_dl(GraphView(g, directed=directed),
                                                verbose=(1, "\t") if verbose else False,
                                                deg_corr=deg_corr,
                                                overlap=overlap,
                                                layers=layered != False,
-                                               state_args=dict(ec=ec,
-                                                               layers=(layered == True)))
+                                               state_args=state_args)
                 print(state.B, state.entropy(), file=out)
 
                 state = minimize_nested_blockmodel_dl(GraphView(g, directed=directed),
@@ -154,8 +154,7 @@ for directed in [True, False]:
                                                       deg_corr=deg_corr,
                                                       overlap=overlap,
                                                       layers=layered != False,
-                                                      state_args=dict(ec=ec,
-                                                                      layers=(layered == True)))
+                                                      state_args=state_args)
                 if verbose:
                     state.print_summary()
                 print(state.entropy(), file=out)

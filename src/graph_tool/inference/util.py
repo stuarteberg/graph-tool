@@ -55,6 +55,12 @@ def dmask(d, ks):
             del d[k]
     return d
 
+def extract_arg(kwargs, arg, default=None):
+    val = kwargs.get(arg, default)
+    if arg in kwargs:
+        del kwargs[arg]
+    return val
+
 def check_verbose(verbose):
     if isinstance(verbose, tuple):
         return verbose[0] != False

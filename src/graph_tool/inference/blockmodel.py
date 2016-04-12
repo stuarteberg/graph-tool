@@ -100,6 +100,7 @@ class BlockState(object):
     def __init__(self, g, eweight=None, vweight=None, b=None, B=None,
                  clabel=None, pclabel=None, deg_corr=True, max_BE=1000,
                  **kwargs):
+        kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
         if eweight is None or isinstance(eweight, libinference.unity_eprop_t):
@@ -125,7 +126,7 @@ class BlockState(object):
 
         self.deg_corr = deg_corr
         self.overlap = False
-        self.degs = kwargs.get("degs", libinference.simple_degs_t())
+        self.degs = extract_arg(kwargs, "degs", libinference.simple_degs_t())
         if self.degs is None:
             self.degs = libinference.simple_degs_t()
 
@@ -210,17 +211,22 @@ class BlockState(object):
         else:
             self.use_hash = libinference.false_type()
 
-        self.ignore_degrees = kwargs.get("ignore_degrees", None)
+        self.ignore_degrees = extract_arg(kwargs, "ignore_degrees", None)
         if self.ignore_degrees is None:
             self.ignore_degrees = g.new_vp("bool", False)
 
-        self.merge_map = kwargs.get("merge_map", self.g.vertex_index.copy("int"))
+        self.merge_map = extract_arg(kwargs, "merge_map",
+                                     self.g.vertex_index.copy("int"))
 
         self.block_list = Vector_size_t()
         self.block_list.extend(arange(self.B, dtype="int"))
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
 
     def __repr__(self):
@@ -498,8 +504,10 @@ class BlockState(object):
             del args["self"]
             del args["kwargs"]
 
-        xi_fast = kwargs.get("xi_fast", False)
-        dl_deg_alt = kwargs.get("dl_deg_alt", True)
+        kwargs = kwargs.copy()
+
+        xi_fast = extract_arg(kwargs, "xi_fast", False)
+        dl_deg_alt = extract_arg(kwargs, "dl_deg_alt", True)
 
         E = self.E
         N = self.N
@@ -525,11 +533,11 @@ class BlockState(object):
 
                 S += S_seq
 
-        callback = kwargs.get("callback", None)
+        callback = extract_arg(kwargs, "callback", None)
         if callback is not None:
             S += callback(self)
 
-        if _bm_test() and kwargs.get("test", True):
+        if _bm_test() and extract_arg(kwargs, "test", True):
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
@@ -538,6 +546,9 @@ class BlockState(object):
             assert abs(S - Salt) < 1e-6, \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
         return S
 
     def get_matrix(self):

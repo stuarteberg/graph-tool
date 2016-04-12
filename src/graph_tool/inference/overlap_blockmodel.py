@@ -74,15 +74,17 @@ class OverlapBlockState(BlockState):
     def __init__(self, g, b=None, B=None, clabel=None, pclabel=None,
                  deg_corr=True, max_BE=1000, **kwargs):
 
+        kwargs = kwargs.copy()
+
         # determine if there is a base graph, and overlapping structure
-        self.base_g = kwargs.get("base_g", None)
+        self.base_g = extract_arg(kwargs, "base_g", None)
 
         # overlapping information
-        node_index = kwargs.get("node_index", None)
-        node_in_degs = kwargs.get("node_in_degs", None)
-        node_out_degs = kwargs.get("node_out_degs", None)
-        half_edges = kwargs.get("half_edges", None)
-        eindex = kwargs.get("eindex", None)
+        node_index = extract_arg(kwargs, "node_index", None)
+        node_in_degs = extract_arg(kwargs, "node_in_degs", None)
+        node_out_degs = extract_arg(kwargs, "node_out_degs", None)
+        half_edges = extract_arg(kwargs, "half_edges", None)
+        eindex = extract_arg(kwargs, "eindex", None)
 
         if node_index is not None and self.base_g is None:
             raise ValueError("Must specify base graph if node_index is specified...")
@@ -202,6 +204,10 @@ class OverlapBlockState(BlockState):
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_overlap_block_state(self, _get_rng())
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
     def __repr__(self):
         return "<OverlapBlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
