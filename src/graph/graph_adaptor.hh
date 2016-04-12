@@ -99,17 +99,14 @@ struct get_iterator_category
 };
 
 
-template <class Graph>
+template <class Graph, class InIter, class OutIter>
 class joined_edge_iterator
-    : public boost::iterator_facade<joined_edge_iterator<Graph>,
+    : public boost::iterator_facade<joined_edge_iterator<Graph, InIter, OutIter>,
                                     typename graph_traits<Graph>::edge_descriptor,
                                     typename get_iterator_category<Graph>::type,
                                     typename graph_traits<Graph>::edge_descriptor>
 {
  public:
-    typedef typename graph_traits<Graph>::in_edge_iterator in_iter_t;
-    typedef typename graph_traits<Graph>::out_edge_iterator out_iter_t;
-
     joined_edge_iterator() {}
     template <class InRange, class OutRange>
     __attribute__((always_inline))
@@ -136,7 +133,7 @@ class joined_edge_iterator
             ++_range1.first;
     }
 
-    typedef typename std::iterator_traits<in_iter_t>::difference_type diff_t;
+    typedef typename std::iterator_traits<InIter>::difference_type diff_t;
     __attribute__((always_inline))
     void advance(diff_t n)
     {
@@ -183,8 +180,8 @@ class joined_edge_iterator
             return inv(*_range1.first);
     }
 
-    std::pair<in_iter_t, in_iter_t> _range1;
-    std::pair<out_iter_t, out_iter_t> _range2;
+    std::pair<InIter, InIter> _range1;
+    std::pair<OutIter, OutIter> _range2;
 };
 
 template <class Graph>
@@ -277,8 +274,14 @@ struct graph_traits<UndirectedAdaptor<Graph> > {
     typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
 
     typedef joined_neighbour_iterator<Graph> adjacency_iterator;
-    typedef joined_edge_iterator<Graph> out_edge_iterator;
-    typedef joined_edge_iterator<Graph> in_edge_iterator;
+    typedef joined_edge_iterator<Graph,
+                                 typename graph_traits<Graph>::in_edge_iterator,
+                                 typename graph_traits<Graph>::out_edge_iterator>
+        out_edge_iterator;
+    typedef joined_edge_iterator<Graph,
+                                 typename graph_traits<Graph>::out_edge_iterator,
+                                 typename graph_traits<Graph>::in_edge_iterator>
+        in_edge_iterator;
     typedef typename graph_traits<Graph>::vertex_iterator vertex_iterator;
     typedef typename graph_traits<Graph>::edge_iterator edge_iterator;
 
@@ -408,7 +411,9 @@ std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator,
 out_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
           const UndirectedAdaptor<Graph>& g)
 {
-    typedef joined_edge_iterator<Graph> iter_t;
+    // only the first range will have its edges reversed
+    typedef typename graph_traits<UndirectedAdaptor<Graph>>::out_edge_iterator
+        iter_t;
     auto ies = in_edges(u, g.original_graph());
     auto oes = out_edges(u, g.original_graph());
     return std::make_pair(iter_t(ies, oes, true),
@@ -421,11 +426,17 @@ out_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
 template <class Graph>
 inline __attribute__((always_inline))
 std::pair<typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator,
-          typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator >
+          typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator>
 in_edges(typename graph_traits<UndirectedAdaptor<Graph>>::vertex_descriptor u,
          const UndirectedAdaptor<Graph>& g)
 {
-    return out_edges(u, g);
+    // only the first range will have its edges reversed
+    typedef typename graph_traits<UndirectedAdaptor<Graph>>::in_edge_iterator
+        iter_t;
+    auto ies = in_edges(u, g.original_graph());
+    auto oes = out_edges(u, g.original_graph());
+    return std::make_pair(iter_t(oes, ies, true),
+                          iter_t(oes, ies, false));
 }
 
 //==============================================================================
@@ -511,7 +522,7 @@ out_degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u
 // in_degree(u,g)
 //==============================================================================
 template <class Graph>
-inline
+inline __attribute__((always_inline))
 typename graph_traits<UndirectedAdaptor<Graph> >::degree_size_type
 in_degree(typename graph_traits<UndirectedAdaptor<Graph> >::vertex_descriptor u,
           const UndirectedAdaptor<Graph>& g)
