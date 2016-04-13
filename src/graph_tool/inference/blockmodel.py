@@ -1075,6 +1075,115 @@ class BlockState(object):
 
         return S, nmoves
 
+    def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
+        if callback is not None:
+            return libinference.exhaustive_sweep(exhaustive_state, self._state,
+                                                 callback)
+        else:
+            if hist is None:
+                return libinference.exhaustive_sweep_iter(exhaustive_state,
+                                                          self._state)
+            else:
+                return libinference.exhaustive_dens(exhaustive_state,
+                                                    self._state, hist[0],
+                                                    hist[1], hist[2])
+
+    def exhaustive_sweep(self, entropy_args={}, callback=None, density=None,
+                         vertices=None, initial_partition=None, max_iter=None):
+        r"""Perform an exhaustive loop over all possible network partitions.
+
+        Parameters
+        ----------
+        entropy_args : ``dict`` (optional, default: ``{}``)
+            Entropy arguments, with the same meaning and defaults as in
+            :meth:`graph_tool.inference.BlockState.entropy`.
+        callback : callable object (optional, default: ``None``)
+            Function to be called for each partition, with three arguments ``(S,
+            S_min, b_min)`` corresponding to the the current entropy value, the
+            minimum entropy value so far, and the corresponding partition,
+            respectively. If not provided, and ``hist == None`` an iterator over
+            the same values will be returned instead.
+        density : ``tuple`` (optional, default: ``None``)
+            If provided, it should contain a tuple with values ``(S_min, S_max,
+            n_bins)``, which will be used to obtain the density of states via a
+            histogram of size ``n_bins``. This parameter is ignored unless
+            ``callback == None``.
+        vertices : iterable of ints (optional, default: ``None``)
+            If provided, this should be a list of vertices which will be
+            moved. Otherwise, all vertices will.
+        initial_partition : iterable  of ints (optional, default: ``None``)
+            If provided, this will provide the initial partition for the
+            iteration.
+        max_iter : ``int`` (optional, default: ``None``)
+            If provided, this will limit the total number of iterations.
+
+        Returns
+        -------
+        states : iterator over (S, S_min, b_min)
+            If ``callback`` is ``None`` and ``hist`` is ``None``, the function
+            will return an iterator over ``(S, S_min, b_min)`` corresponding to
+            the the current entropy value, the minimum entropy value so far, and
+            the corresponding partition, respectively.
+        Ss, counts : pair of :class:`numpy.ndarray`
+            If ``callback is None`` and ``hist is not None``, the function will
+            return the values of each bin (``Ss``) and the state count of each
+            bin (``counts``).
+        b_min : :class:`~graph_tool.PropertyMap`
+            If ``callback is not None`` or ``hist is not None``, the function
+            will also return partition with smallest entropy.
+
+        Notes
+        -----
+
+        This algorithm has an :math:`O(B^N)` complexity, where :math:`B` is the
+        number of groups, and :math:`N` is the number of vertices.
+
+        """
+
+        exhaustive_state = DictState(dict(max_iter=max_iter if max_iter is not None else 0))
+        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
+                                    edges_dl=True, dense=False, multigraph=True),
+                               **entropy_args)
+        if not entropy_args["dl"]:
+            entropy_args = overlay(entropy_args, partition_dl=False,
+                                   degree_dl=False, edges_dl=False)
+        exhaustive_state.update(entropy_args)
+        exhaustive_state.vlist = Vector_size_t()
+        if vertices is None:
+            vertices = self.g.vertex_index.copy().fa
+            if self.is_vertex_weighted:
+                # ignore vertices with zero weight
+                vw = self.vweight.fa
+                vertices = vertices[vw > 0]
+        if initial_partition is None:
+            initial_partition = zeros(len(vertices), dtype="uint64")
+        self.move_vertex(vertices, initial_partition)
+        exhaustive_state.vlist.resize(len(vertices))
+        exhaustive_state.vlist.a = vertices
+        exhaustive_state.S = self.entropy(xi_fast=True, dl_deg_alt=False,
+                                          **dmask(entropy_args,
+                                                  ["xi_fast", "deg_dl_alt"]))
+        exhaustive_state.state = self._state
+        exhaustive_state.b_min = b_min = self.g.new_vp("int32_t")
+
+        if density is not None:
+            density = (density[0], density[1],
+                       numpy.zeros(density[2], dtype="uint64"))
+        if callback is not None:
+            _callback = lambda S, S_min: callback(S, S_min, b_min)
+        else:
+            _callback = None
+        ret = self._exhaustive_sweep_dispatch(exhaustive_state, _callback,
+                                              density)
+        if _callback is None:
+            if density is None:
+                return ((S, S_min, b_min) for S, S_min in ret)
+            else:
+                Ss = numpy.linspace(density[0], density[1], len(density[2]))
+                return (Ss, density[2]), b_min
+        else:
+            return b_min
+
     def _merge_sweep_dispatch(self, merge_state):
         if not self.is_vertex_weighted or not self.is_edge_weighted:
             raise ValueError("state must be weighted to perform merges")

@@ -523,6 +523,20 @@ class OverlapBlockState(BlockState):
                                                          self._state,
                                                          _get_rng())
 
+    def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
+        if callback is not None:
+            return libinference.exhaustive_overlap_sweep(exhaustive_state,
+                                                         self._state, callback)
+        else:
+            if hist is None:
+                return libinference.exhaustive_overlap_sweep_iter(exhaustive_state,
+                                                                  self._state)
+            else:
+                return libinference.exhaustive_overlap_dens(exhaustive_state,
+                                                            self._state,
+                                                            hist[0], hist[1],
+                                                            hist[2])
+
     def _gibbs_sweep_dispatch(self, gibbs_state):
         return libinference.gibbs_overlap_sweep(multicanonical_state,
                                                 self._state,

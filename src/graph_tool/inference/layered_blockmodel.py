@@ -588,6 +588,37 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                                                      self._state,
                                                                      _get_rng())
 
+    def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
+        if not self.overlap:
+            if callback is not None:
+                return libinference.exhaustive_layered_sweep(exhaustive_state,
+                                                             self._state,
+                                                             callback)
+            else:
+                if hist is None:
+                    return libinference.exhaustive_layered_sweep_iter(exhaustive_state,
+                                                                      self._state)
+                else:
+                    return libinference.exhaustive_layered_sweep_dens(exhaustive_state,
+                                                                      self._state,
+                                                                      hist[0],
+                                                                      hist[1],
+                                                                      hist[2])
+        else:
+            if callback is not None:
+                return libinference.exhaustive_layered_overlap_sweep(exhaustive_state,
+                                                                     self._state,
+                                                                     callback)
+            else:
+                if hist is None:
+                    return libinference.exhaustive_layered_overlap_sweep_iter(exhaustive_state,
+                                                                              self._state)
+                else:
+                    return libinference.exhaustive_layered_overlap_dens(exhaustive_state,
+                                                                        self._state,
+                                                                        hist[0],
+                                                                        hist[1],
+                                                                        hist[2])
     def _merge_sweep_dispatch(self, merge_state):
         if not self.overlap:
             return libinference.merge_layered_sweep(merge_state, self._state,

@@ -18,13 +18,16 @@ libgraph_tool_inference_la_SOURCES = \
     cache.cc \
     graph_blockmodel.cc \
     graph_blockmodel_em.cc \
+    graph_blockmodel_exhaustive.cc \
     graph_blockmodel_gibbs.cc \
     graph_blockmodel_layers.cc \
+    graph_blockmodel_layers_exhaustive.cc \
     graph_blockmodel_layers_gibbs.cc \
     graph_blockmodel_layers_mcmc.cc \
     graph_blockmodel_layers_merge.cc \
     graph_blockmodel_layers_multicanonical.cc \
     graph_blockmodel_layers_overlap.cc \
+    graph_blockmodel_layers_overlap_exhaustive.cc \
     graph_blockmodel_layers_overlap_mcmc.cc \
     graph_blockmodel_layers_overlap_mcmc_bundled.cc \
     graph_blockmodel_layers_overlap_gibbs.cc \
@@ -34,6 +37,7 @@ libgraph_tool_inference_la_SOURCES = \
     graph_blockmodel_multicanonical.cc \
     graph_blockmodel_merge.cc \
     graph_blockmodel_overlap.cc \
+    graph_blockmodel_overlap_exhaustive.cc \
     graph_blockmodel_overlap_gibbs.cc \
     graph_blockmodel_overlap_mcmc.cc \
     graph_blockmodel_overlap_mcmc_bundled.cc \
@@ -45,9 +49,11 @@ libgraph_tool_inference_la_SOURCES = \
 libgraph_tool_inference_la_include_HEADERS = \
     bundled_vacate_loop.hh \
     cache.hh \
+    exhaustive_loop.hh \
     gibbs_loop.hh \
     graph_blockmodel.hh \
     graph_blockmodel_em.hh \
+    graph_blockmodel_exhaustive.hh \
     graph_blockmodel_gibbs.hh \
     graph_blockmodel_layers.hh \
     graph_blockmodel_layers_util.hh \
