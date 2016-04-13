@@ -226,9 +226,7 @@ public:
 
     void remove_vertices(python::object ovs)
     {
-        vector<size_t> vs;
-        for (int i = 0; i < python::len(ovs); ++i)
-            vs.push_back(python::extract<size_t>(ovs[i]));
+        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
         remove_vertices(vs);
     }
 
@@ -400,13 +398,10 @@ public:
 
     void add_vertices(python::object ovs, python::object ors)
     {
-        vector<size_t> vs;
-        vector<size_t> rs;
-        for (int i = 0; i < python::len(ovs); ++i)
-        {
-            vs.push_back(python::extract<size_t>(ovs[i]));
-            rs.push_back(python::extract<size_t>(ors[i]));
-        }
+        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
+        multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
+        if (vs.size() != rs.size())
+            throw ValueException("vertex and group lists do not have the same size");
         add_vertices(vs, rs);
     }
 
@@ -420,6 +415,22 @@ public:
             throw ValueException("cannot move vertex across clabel barriers");
         remove_vertex(v);
         add_vertex(v, nr);
+    }
+
+    template <class Vec>
+    void move_vertices(Vec& v, Vec& nr)
+    {
+        for (size_t i = 0; i < std::min(v.size(), nr.size()); ++i)
+            move_vertex(v[i], nr[i]);
+    }
+
+    void move_vertices(python::object ovs, python::object ors)
+    {
+        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
+        multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
+        if (vs.size() != rs.size())
+            throw ValueException("vertex and group lists do not have the same size");
+        move_vertices(vs, rs);
     }
 
     template <class VMap>

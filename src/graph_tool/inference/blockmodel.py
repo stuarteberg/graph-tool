@@ -605,8 +605,16 @@ class BlockState(object):
                                         edges_dl, partition_dl)
 
     def move_vertex(self, v, s):
-        r"""Move vertex ``v`` to block ``s``."""
-        self._state.move_vertex(int(v), s)
+        r"""Move vertex ``v`` to block ``s``.
+
+        This optionally accepts a list of vertices and blocks to move
+        simultaneously.
+        """
+        if not isinstance(v, collections.Iterable):
+            self._state.move_vertex(int(v), s)
+        else:
+            self._state.move_vertices(numpy.asarray(v, dtype="uint64"),
+                                      numpy.asarray(s, dtype="uint64"))
 
     def remove_vertex(self, v):
         r"""Remove vertex ``v`` from its current group.
@@ -620,7 +628,7 @@ class BlockState(object):
            twice.
         """
         if isinstance(v, collections.Iterable):
-            self._state.remove_vertices(list(v))
+            self._state.remove_vertices(numpy.asarray(v, dtype="uint64"))
         else:
             self._state.remove_vertex(int(v))
 
@@ -635,7 +643,8 @@ class BlockState(object):
            added twice to the same group.
         """
         if isinstance(v, collections.Iterable):
-            self._state.add_vertices(list(v), list(r))
+            self._state.add_vertices(numpy.asarray(v, dtype="uint64"),
+                                     numpy.asarray(r, dtype="uint64"))
         else:
             self._state.add_vertex(int(v), r)
 
