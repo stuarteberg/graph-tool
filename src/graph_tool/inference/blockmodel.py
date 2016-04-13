@@ -815,6 +815,11 @@ class BlockState(object):
         nmoves : ``int``
             Number of vertices moved.
 
+        Notes
+        -----
+        This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
+        number of edges (independent of the number of blocks).
+
         References
         ----------
         .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and
@@ -917,6 +922,12 @@ class BlockState(object):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of vertices moved.
+
+        Notes
+        -----
+        This algorithm has an :math:`O(E\times B)` complexity, where :math:`B`
+        is the number of blocks, and :math:`E` is the number of edges.
+
         """
 
         gibbs_state = DictState(locals())
@@ -1007,6 +1018,11 @@ class BlockState(object):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of vertices moved.
+
+        Notes
+        -----
+        This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
+        number of edges (independent of the number of blocks).
 
         References
         ----------
@@ -1136,7 +1152,7 @@ class BlockState(object):
         -----
 
         This algorithm has an :math:`O(B^N)` complexity, where :math:`B` is the
-        number of groups, and :math:`N` is the number of vertices.
+        number of blocks, and :math:`N` is the number of vertices.
 
         """
 
@@ -1286,7 +1302,7 @@ class BlockState(object):
         state = self.copy(b=b)
         if _bm_test():
             nB = (state.wr.a > 0).sum()
-            assert nB == B, "wrong number of groups after shrink: %d (should be %d)" % (nB, B)
+            assert nB == B, "wrong number of blocks after shrink: %d (should be %d)" % (nB, B)
         return state
 
     def collect_edge_marginals(self, p=None, update=1.):
