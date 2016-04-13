@@ -92,19 +92,23 @@ public:
     template <class Dispatch>
     CoroGenerator(Dispatch& dispatch)
         : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
-          _iter(begin(*_coro)), _end(end(*_coro)) {}
+          _iter(begin(*_coro)), _end(end(*_coro)), _first(true) {}
     boost::python::object next()
     {
+        if (_first)
+            _first = false;
+        else
+            ++_iter;
         if (_iter == _end)
             boost::python::objects::stop_iteration_error();
         boost::python::object oe = *_iter;
-        ++_iter;
         return oe;
     }
 private:
     std::shared_ptr<coro_t::pull_type> _coro;
     coro_t::pull_type::iterator _iter;
     coro_t::pull_type::iterator _end;
+    bool _first;
 };
 
 #endif // HAVE_BOOST_COROUTINE
