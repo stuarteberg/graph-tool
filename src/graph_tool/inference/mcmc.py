@@ -444,7 +444,7 @@ class MulticanonicalState(object):
         r = numpy.array(self._density.a)
         r -= r.max()
         r -= log(exp(r).sum())
-        if B == None:
+        if B is None:
             B = self._g.num_vertices()
         r += self._g.num_vertices() * log(B)
         return r
@@ -463,17 +463,19 @@ class MulticanonicalState(object):
         "Get permanent energy histogram."
         return self._perm_hist
 
-    def get_flatness(self, use_ent=True, h=None):
+    def get_flatness(self, use_ent=True, h=None, allow_gaps=False):
         "Get energy histogram flatness."
         if h is None:
             h = self._hist.a
         if h.sum() == 0:
             return 0
-        idx = h > 0
-        Ss = self.get_range()
-        S_min, S_max = self.get_allowed_energies()
-        h = array(h[numpy.logical_and(Ss >= S_min, Ss <= S_max)],
-                    dtype="float")
+        if allow_gaps:
+            h = array(h[h>0], dtype="float")
+        else:
+            Ss = self.get_range()
+            S_min, S_max = self.get_allowed_energies()
+            h = array(h[numpy.logical_and(Ss >= S_min, Ss <= S_max)],
+                      dtype="float")
         if len(h) == 1:
             h = array([1e-6] + list(h))
         if not use_ent:
@@ -501,8 +503,8 @@ class MulticanonicalState(object):
 
 def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
                                f_refine=1e-5, r=2, flatness=.99, use_ent=True,
-                               callback=None, multicanonical_args={},
-                               verbose=False):
+                               allow_gaps=False, callback=None,
+                               multicanonical_args={}, verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
      algorithm.
 
@@ -527,6 +529,9 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         If ``True``, the histogram entropy will be used to determine flatness,
         otherwise the smallest and largest counts relative to the mean will be
         used.
+    allow_gaps : ``bool`` (optional, default: ``False``)
+        If ``True``, gaps in the histogram (regions with zero count) will be
+        ignored when computing the flatness.
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current ``state`` and ``m_state`` as arguments.
@@ -564,7 +569,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         m_state._f = f_range[0]
     while m_state._f >= f_range[1]:
         state.multicanonical_sweep(m_state, **multicanonical_args)
-        hf = m_state.get_flatness(use_ent=use_ent)
+        hf = m_state.get_flatness(use_ent=use_ent, allow_gaps=allow_gaps)
 
         if callback is not None:
             callback(state, m_state)
