@@ -679,7 +679,10 @@ class BlockState(object):
         ``reverse == True``, the reverse probability of moving the node back
         from block ``s`` to its current one is obtained.
         """
-        return self._state.get_move_prob(int(v), self.b[v], s, c, reverse)
+        if not reverse:
+            return self._state.get_move_prob(int(v), self.b[v], s, c, False)
+        else:
+            return self._state.get_move_prob(int(v), s, self.b[v], c, True)
 
     def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
         """Compute the log-probability of the missing (or spurious if ``missing=False``)

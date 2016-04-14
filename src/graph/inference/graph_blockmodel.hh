@@ -890,11 +890,7 @@ public:
             size_t ew = _eweight[e];
             w += ew;
 
-            int mts;
-            if (t == r && s == size_t(_b[u]))
-                mts = _mrs[_emat.get_bedge(e)];
-            else
-                mts = get_mrs(t, s, _mrs, _emat);
+            int mts = get_mrs(t, s, _mrs, _emat);
             int mtp = _mrp[t];
             int mst = mts;
             int mtm = mtp;
@@ -947,6 +943,9 @@ public:
 
     double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse)
     {
+        _m_entries.clear();
+        move_entries(v, (reverse) ? r : s, _b, _eweight, _mrs,
+                     _emat.get_bedge_map(), _g, _bg, _m_entries);
         return get_move_prob(v, r, s, c, reverse, _m_entries);
     }
 
