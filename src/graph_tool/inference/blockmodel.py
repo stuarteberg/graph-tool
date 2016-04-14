@@ -981,9 +981,9 @@ class BlockState(object):
         return libinference.multicanonical_sweep(multicanonical_state,
                                                  self._state, _get_rng())
 
-    def multicanonical_sweep(self, m_state, c=1., niter=1, entropy_args={},
-                             allow_empty=True, vertices=None, block_list=None,
-                             verbose=False):
+    def multicanonical_sweep(self, m_state, c=numpy.inf, niter=1,
+                             entropy_args={}, allow_empty=True, vertices=None,
+                             block_list=None, verbose=False):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using
         the Wang-Landau algorithm.
 
@@ -992,7 +992,7 @@ class BlockState(object):
         m_state : :class:`~graph_tool.inference.MulticanonicalState`
             :class:`~graph_tool.inference.MulticanonicalState` instance
             containing the current state of the Wang-Landau run.
-        c : ``float`` (optional, default: ``1.``)
+        c : ``float`` (optional, default: ``numpy.inf``)
             Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
             blocks are sampled according to the local neighbourhood of a given
             node and their block connections; for :math:`c\to\infty` the blocks

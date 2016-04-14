@@ -80,7 +80,7 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
         }
         else
         {
-            double a = dens[i] - dens[j] + dS.second;
+            double a = (dens[i] - dens[j]) + dS.second;
             if (a > 0)
             {
                 accept = true;

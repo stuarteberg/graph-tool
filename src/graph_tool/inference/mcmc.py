@@ -470,7 +470,8 @@ class MulticanonicalState(object):
         if h.sum() == 0:
             return 0
         if allow_gaps:
-            h = array(h[h>0], dtype="float")
+            h_all = h + self._perm_hist
+            h = array(h[h_all>0], dtype="float")
         else:
             Ss = self.get_range()
             S_min, S_max = self.get_allowed_energies()
@@ -502,7 +503,7 @@ class MulticanonicalState(object):
         self._hist.a = 0
 
 def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
-                               f_refine=1e-5, r=2, flatness=.99, use_ent=True,
+                               f_refine=1e-5, r=2, flatness=.95, use_ent=False,
                                allow_gaps=False, callback=None,
                                multicanonical_args={}, verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
@@ -525,7 +526,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         be reduced by a factor ``r``.
     flatness : ``float`` (optional, default: ``.99``)
         Sufficient histogram flatness threshold used to continue the algorithm.
-    use_ent : ``bool`` (optional, default: ``True``)
+    use_ent : ``bool`` (optional, default: ``False``)
         If ``True``, the histogram entropy will be used to determine flatness,
         otherwise the smallest and largest counts relative to the mean will be
         used.
