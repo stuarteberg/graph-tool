@@ -15,8 +15,8 @@ from graph_tool.all import *
 import numpy.random
 from numpy.random import randint
 
-seed_rng(42)
 numpy.random.seed(42)
+seed_rng(42)
 
 graph_tool.inference.set_test(True)
 

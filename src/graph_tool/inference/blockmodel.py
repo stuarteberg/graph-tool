@@ -1352,7 +1352,7 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, state.B, pe)[0]
-           4.806605480346...
+           -2.09061858931...
         """
 
         if p is None:
@@ -1405,7 +1405,7 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           4.989264427809...
+           24.44066050499...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.pdf")
            <...>

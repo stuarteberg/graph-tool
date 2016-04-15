@@ -8,8 +8,8 @@ import numpy.random
 from numpy.random import randint
 import scipy.stats
 
-seed_rng(43)
 numpy.random.seed(43)
+seed_rng(43)
 
 verbose = __name__ == "__main__"
 
@@ -57,7 +57,7 @@ for directed in [True, False]:
         for s in range(state.B):
             mp[s] = state.get_move_prob(v, s, c)
 
-        n_samples = 20000
+        n_samples = 40000
 
         # actual samples
         samples = [state.sample_vertex_move(v, c) for i in range(n_samples)]
@@ -110,7 +110,7 @@ for directed in [True, False]:
     for i, c in enumerate(cs):
         mcmc_args=dict(beta=1, c=c, niter=100, allow_empty=True)
         if i == 0:
-            mcmc_equilibrate(state, mcmc_args=mcmc_args, wait=1000,
+            mcmc_equilibrate(state, mcmc_args=mcmc_args, wait=10000,
                              verbose=(1, "c = %g (t) " % c)  if verbose else False)
         hists[c] = mcmc_equilibrate(state, mcmc_args=mcmc_args,
                                     force_niter=1000,
