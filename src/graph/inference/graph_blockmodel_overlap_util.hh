@@ -1210,17 +1210,12 @@ public:
 
     void set_move(size_t, size_t) {}
 
-    void insert_delta(size_t r, size_t s, int delta, bool source,
+    void insert_delta(size_t t, size_t s, int delta,
                       size_t mrs = numeric_limits<size_t>::max())
     {
-        auto& entry = _entries[_pos];
-        if (source)
-            entry = make_pair(s, r);
-        else
-            entry = make_pair(r, s);
-        if (!is_directed::apply<Graph>::type::value &&
-            entry.second < entry.first)
-            std::swap(entry.first, entry.second);
+        if (!is_directed::apply<Graph>::type::value && (t > s))
+            std::swap(t, s);
+        _entries[_pos] = make_pair(t, s);
         _delta[_pos] = delta;
         _mrs[_pos] = mrs;
         ++_pos;
@@ -1228,9 +1223,14 @@ public:
 
     int get_delta(size_t t, size_t s)
     {
-        auto& entry = _entries[0];
-        if (entry.first == t && entry.second == s)
-            return _delta[0];
+        if (!is_directed::apply<Graph>::type::value && (t > s))
+            std::swap(t, s);
+        for (size_t i = 0; i < 2; ++i)
+        {
+            auto& entry = _entries[i];
+            if (entry.first == t && entry.second == s)
+                return _delta[i];
+        }
         return 0;
     }
 
@@ -1238,7 +1238,7 @@ public:
 
     const std::array<pair<size_t, size_t>,2>& get_entries() { return _entries; }
     const std::array<int, 2>& get_delta() { return _delta; }
-    std::array<size_t, 2>& get_mrs() { return _mrs; }
+    const std::array<size_t, 2>& get_mrs() { return _mrs; }
 
 private:
     size_t _pos;
