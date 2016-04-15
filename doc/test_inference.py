@@ -2,10 +2,7 @@
 
 from __future__ import print_function
 
-verbose=False
-
-if __name__ == "__main__":
-    verbose = True
+verbose = __name__ == "__main__"
 
 import os
 import sys
