@@ -1207,9 +1207,7 @@ public:
     template <class Edge, class RNG>
     const auto& sample_edge(const vector<Edge>& elist, RNG& rng)
     {
-        std::uniform_int_distribution<size_t> urand(0, elist.size() - 1);
-        size_t ur = urand(rng);
-        return get<0>(elist[ur]);
+        return get<0>(uniform_sample(elist, rng));
     }
 
     template <class Vertex, class RNG>
@@ -1296,8 +1294,7 @@ auto sample_neighbour(Sampler& sampler, RNG& rng)
 template <class Vertex, class RNG>
 auto sample_neighbour(vector<Vertex>& sampler, RNG& rng)
 {
-    std::uniform_int_distribution<Vertex> rand(0, sampler.size() - 1);
-    return sampler[rand(rng)];
+    return uniform_sample(sampler, rng);
 }
 
 
