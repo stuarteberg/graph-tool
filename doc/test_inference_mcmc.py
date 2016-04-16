@@ -49,7 +49,7 @@ for directed in [True, False]:
     state = minimize_blockmodel_dl(g, deg_corr=False, B_min=B, B_max=B)
     state = state.copy(B=B+1)
 
-    c = 0.01
+    c = 0.1
     for v in g.vertices():
 
         # computed probabilities
@@ -57,7 +57,7 @@ for directed in [True, False]:
         for s in range(state.B):
             mp[s] = state.get_move_prob(v, s, c)
 
-        n_samples = 40000
+        n_samples = min(int(200 / mp.min()), 1000000)
 
         # actual samples
         samples = [state.sample_vertex_move(v, c) for i in range(n_samples)]
