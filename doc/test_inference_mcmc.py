@@ -105,22 +105,30 @@ for directed in [True, False]:
     state = minimize_blockmodel_dl(g, deg_corr=False, B_min=B, B_max=B)
     state = state.copy(B=B+1)
 
-    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, 0.001]))
+    cs = list(reversed(["gibbs", numpy.inf, 1, 0.1, 0.01, 0.001]))
 
     for i, c in enumerate(cs):
-        mcmc_args=dict(beta=1, c=c, niter=100, allow_empty=True)
+        if c != "gibbs":
+            mcmc_args=dict(beta=1, c=c, niter=100, allow_empty=True)
+        else:
+            mcmc_args=dict(beta=1, niter=100, allow_empty=True)
         if i == 0:
-            mcmc_equilibrate(state, mcmc_args=mcmc_args, wait=10000,
-                             verbose=(1, "c = %g (t) " % c)  if verbose else False)
+            mcmc_equilibrate(state, mcmc_args=mcmc_args, gibbs=c=="gibbs",
+                             wait=10000,
+                             verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state, mcmc_args=mcmc_args,
+                                    gibbs=c=="gibbs",
                                     force_niter=1000,
-                                    verbose=(1, "c = %g " % c) if verbose else False,
+                                    verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
     for c1 in cs:
         for c2 in cs:
-            if c2 < c1:
-                continue
+            try:
+                if c2 < c1:
+                    continue
+            except TypeError:
+                pass
             Ss1 = array(list(zip(*hists[c1]))[0])
             Ss2 = array(list(zip(*hists[c2]))[0])
             # add very small normal noise, to solve discreetness issue
@@ -131,16 +139,17 @@ for directed in [True, False]:
                 print("directed:", directed, "c1:", c1, "c2:", c2,
                       "D", D, "p-value:", p)
             if p < .01:
-                print(("Warning, distributions for (c1, c2) = (%g, %g) are not "
-                       "the same, with a p-value: %g (D=%g)") % (c1, c2, p, D))
+                print(("Warning, distributions for (c1, c2) = (%s, %s) are not "
+                       "the same, with a p-value: %g (D=%g)") %
+                      (str(c1), str(c2), p, D))
 
     bins = None
     for c in cs:
         hist = hists[c]
         h = histogram(list(zip(*hist))[0], 1000000)
-        plot(h[-1][:-1], numpy.cumsum(h[0]), "-", label="c=%g" % c)
+        plot(h[-1][:-1], numpy.cumsum(h[0]), "-", label="c=%s" % str(c))
 
-        if not isinf(c):
+        if c != numpy.inf:
             hist = hists[numpy.inf]
             h2 = histogram(list(zip(*hist))[0], bins=h[-1])
             res = abs(numpy.cumsum(h2[0]) - numpy.cumsum(h[0]))
