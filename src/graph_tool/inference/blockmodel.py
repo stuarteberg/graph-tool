@@ -628,6 +628,8 @@ class BlockState(object):
            twice.
         """
         if isinstance(v, collections.Iterable):
+            if not isinstance(v, numpy.ndarray):
+                v = list(v)
             self._state.remove_vertices(numpy.asarray(v, dtype="uint64"))
         else:
             self._state.remove_vertex(int(v))
@@ -643,6 +645,10 @@ class BlockState(object):
            added twice to the same group.
         """
         if isinstance(v, collections.Iterable):
+            if not isinstance(v, numpy.ndarray):
+                v = list(v)
+            if not isinstance(r, numpy.ndarray):
+                r = list(r)
             self._state.add_vertices(numpy.asarray(v, dtype="uint64"),
                                      numpy.asarray(r, dtype="uint64"))
         else:
