@@ -83,7 +83,7 @@ for directed in [True, False]:
         if verbose:
             print("directed:", directed, "vertex:", v, "p-value:", p)
 
-        if p < 0.01:
+        if p < 0.001:
             print(("Warning, move probability for node %d does not " +
                    "match the computed distribution, with p-value: %g") %
                   (v, p))
@@ -96,6 +96,9 @@ for directed in [True, False]:
 
     savefig("test_mcmc_move_prob_directed%s.pdf" % directed)
 
+g = collection.data["karate"]
+B = 3
+
 for directed in [True, False]:
     clf()
     g.set_directed(directed)
@@ -105,20 +108,20 @@ for directed in [True, False]:
     state = minimize_blockmodel_dl(g, deg_corr=False, B_min=B, B_max=B)
     state = state.copy(B=B+1)
 
-    cs = list(reversed(["gibbs", numpy.inf, 1, 0.1, 0.01, 0.001]))
+    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, 0.001, "gibbs"]))
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=100, allow_empty=True)
+            mcmc_args=dict(beta=1, c=c, niter=300, allow_empty=True)
         else:
-            mcmc_args=dict(beta=1, niter=100, allow_empty=True)
+            mcmc_args=dict(beta=1, niter=300, allow_empty=True)
         if i == 0:
             mcmc_equilibrate(state, mcmc_args=mcmc_args, gibbs=c=="gibbs",
-                             wait=10000,
+                             wait=1000,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state, mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    force_niter=5000,
+                                    force_niter=2000,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
@@ -138,10 +141,10 @@ for directed in [True, False]:
             if verbose:
                 print("directed:", directed, "c1:", c1, "c2:", c2,
                       "D", D, "p-value:", p)
-            if p < .01:
-                print(("Warning, distributions for (c1, c2) = (%s, %s) are not "
-                       "the same, with a p-value: %g (D=%g)") %
-                      (str(c1), str(c2), p, D))
+            if p < .001:
+                print(("Warning, distributions for directed=%s (c1, c2) = " +
+                       "(%s, %s) are not the same, with a p-value: %g (D=%g)") %
+                      (str(directed), str(c1), str(c2), p, D))
 
     bins = None
     for c in cs:
