@@ -118,7 +118,7 @@ for directed in [True, False]:
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state, mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    force_niter=1000,
+                                    force_niter=5000,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
