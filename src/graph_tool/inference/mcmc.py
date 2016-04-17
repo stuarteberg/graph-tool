@@ -485,7 +485,8 @@ class MulticanonicalState(object):
                        h_mean / h.max())
         else:
             h /= h.sum()
-            S = -(h * log(h)).sum()
+            _h = h[h > 0]
+            S = -(_h * log(_h)).sum()
             return exp(S - log(len(h)))
 
     def get_posterior(self, N=None):
