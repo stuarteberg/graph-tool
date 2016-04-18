@@ -112,9 +112,9 @@ for directed in [True, False]:
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=300, allow_empty=True)
+            mcmc_args=dict(beta=1, c=c, niter=600, allow_empty=True)
         else:
-            mcmc_args=dict(beta=1, niter=300, allow_empty=True)
+            mcmc_args=dict(beta=1, niter=600, allow_empty=True)
         if i == 0:
             mcmc_equilibrate(state, mcmc_args=mcmc_args, gibbs=c=="gibbs",
                              wait=1000,
