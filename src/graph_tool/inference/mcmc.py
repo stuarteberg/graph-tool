@@ -246,7 +246,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     beta = beta_range[0]
     hist = ([], [], [])
     nmoves = 0
-    speed = exp((log(beta_range[1]) - log(beta_range[0])) / nsteps)
+    speed = exp((log(beta_range[1]) - log(beta_range[0])) / niter)
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     while beta < beta_range[1] * speed:
         ret = mcmc_equilibrate(state,
