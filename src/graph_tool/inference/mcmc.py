@@ -463,7 +463,7 @@ class MulticanonicalState(object):
         "Get permanent energy histogram."
         return self._perm_hist
 
-    def get_flatness(self, use_ent=True, h=None, allow_gaps=False):
+    def get_flatness(self, use_ent=False, h=None, allow_gaps=False):
         "Get energy histogram flatness."
         if h is None:
             h = self._hist.a
