@@ -2302,7 +2302,7 @@ def tsp_tour(g, src, weight=None):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be used.
+        Graph to be used. The graph must be undirected.
     src : :class:`~graph_tool.Vertex`
         The source (and target) of the tour.
     weight : :class:`~graph_tool.PropertyMap` (optional, default: None)
@@ -2335,6 +2335,8 @@ def tsp_tour(g, src, weight=None):
 
     """
 
+    if g.is_directed():
+        raise ValueError("The graph must be undirected.")
     tour = libgraph_tool_topology.\
         get_tsp(g._Graph__graph, int(src), _prop("e", g, weight))
     return tour.a.copy()
