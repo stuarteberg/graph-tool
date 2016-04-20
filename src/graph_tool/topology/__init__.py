@@ -1982,7 +1982,7 @@ def is_planar(g, embedding=False, kuratowski=False):
         return tuple(ret)
 
 
-def make_maximal_planar(g, unfilter=False):
+def make_maximal_planar(g):
     """
     Add edges to the graph to make it maximally planar.
 
@@ -2006,19 +2006,20 @@ def make_maximal_planar(g, unfilter=False):
 
     Examples
     --------
-    >>> g = gt.lattice([42, 42])
+    >>> g = gt.lattice([10, 10])
     >>> gt.make_maximal_planar(g)
     >>> gt.is_planar(g)
     True
     >>> print(g.num_vertices(), g.num_edges())
-    1764 5286
-    >>> gt.graph_draw(g, output_size=(300, 300), output="maximal_planar.pdf")
+    100 294
+    >>> pos = gt.planar_layout(g)
+    >>> gt.graph_draw(g, pos, output_size=(300, 300), output="maximal_planar.pdf")
     <...>
 
     .. testcode::
        :hide:
 
-       gt.graph_draw(g, output_size=(300, 300), output="maximal_planar.png")
+       gt.graph_draw(g, pos, output_size=(300, 300), output="maximal_planar.png")
 
     .. figure:: maximal_planar.*
         :align: center

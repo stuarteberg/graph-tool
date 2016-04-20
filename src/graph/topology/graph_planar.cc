@@ -63,17 +63,14 @@ struct get_planar_embedding
              boyer_myrvold_params::embedding = embedding,
              boyer_myrvold_params::kuratowski_subgraph = kur_insert);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            embed_map[v].resize(embedding[v].size());
-            for (size_t j = 0; j < embedding[v].size(); ++j)
-                embed_map[v][j] = edge_index[embedding[v][j]];
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 embed_map[v].clear();
+                 for (auto& e : embedding[v])
+                     embed_map[v].push_back(edge_index[e]);
+             });
     }
 
     template <class Graph, class VertexIndex, class EdgeIndex, class KurMap>
@@ -87,7 +84,6 @@ struct get_planar_embedding
              boyer_myrvold_params::edge_index_map = edge_index,
              boyer_myrvold_params::kuratowski_subgraph = kur_insert);
     }
-
 };
 
 bool is_planar(GraphInterface& gi, boost::any embed_map, boost::any kur_map)

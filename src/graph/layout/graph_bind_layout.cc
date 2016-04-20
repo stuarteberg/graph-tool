@@ -22,6 +22,7 @@ void export_arf();
 void export_fruchterman_reingold();
 void export_sfdp();
 void export_radial();
+void export_planar();
 
 BOOST_PYTHON_MODULE(libgraph_tool_layout)
 {
@@ -29,4 +30,5 @@ BOOST_PYTHON_MODULE(libgraph_tool_layout)
     export_fruchterman_reingold();
     export_sfdp();
     export_radial();
+    export_planar();
 }

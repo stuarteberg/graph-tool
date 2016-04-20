@@ -35,6 +35,7 @@ Layout algorithms
    fruchterman_reingold_layout
    arf_layout
    radial_tree_layout
+   planar_layout
    random_layout
    get_hierarchy_control_points
 
@@ -67,10 +68,11 @@ Contents
 
 from __future__ import division, absolute_import, print_function
 
-from .. import GraphView, _check_prop_vector, group_vector_property, \
+from .. import Graph, GraphView, _check_prop_vector, group_vector_property, \
      ungroup_vector_property, infect_vertex_property, _prop, _get_rng
 from .. topology import max_cardinality_matching, max_independent_vertex_set, \
-    label_components, pseudo_diameter, shortest_distance
+    label_components, pseudo_diameter, shortest_distance, make_maximal_planar, \
+    is_planar
 from .. stats import label_parallel_edges
 from .. generation import predecessor_tree, condensation_graph
 import numpy.random
@@ -82,9 +84,9 @@ dl_import("from . import libgraph_tool_layout")
 
 
 __all__ = ["graph_draw", "graphviz_draw", "fruchterman_reingold_layout",
-           "arf_layout", "sfdp_layout", "random_layout", "radial_tree_layout",
-           "cairo_draw", "prop_to_size", "get_hierarchy_control_points",
-           "default_cm"]
+           "arf_layout", "sfdp_layout", "planar_layout", "random_layout",
+           "radial_tree_layout", "cairo_draw", "prop_to_size",
+           "get_hierarchy_control_points", "default_cm"]
 
 
 def random_layout(g, shape=None, pos=None, dim=2):
@@ -153,6 +155,68 @@ def random_layout(g, shape=None, pos=None, dim=2):
         pos[i].fa = numpy.random.random(len(p)) * d + r[0]
 
     pos = group_vector_property(pos)
+    return pos
+
+
+def planar_layout(g, pos=None):
+    r"""Performs a canonical layout of a planar graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Planar graph to be used.
+    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Vector vertex property maps where the coordinates should be stored.
+
+    Returns
+    -------
+    pos : :class:`~graph_tool.PropertyMap`
+        A vector-valued vertex property map with the coordinates of the
+        vertices.
+
+    Notes
+    -----
+    This algorithm has complexity :math:`O(V + E)`.
+
+    Examples
+    --------
+    >>> g = gt.lattice([10, 10])
+    >>> pos = gt.planar_layout(g)
+    >>> gt.graph_draw(g, pos=pos, output="lattice-planar.pdf")
+    <...>
+
+    .. testcode::
+       :hide:
+
+       gt.graph_draw(g, pos=pos, output="lattice-planar.png")
+
+    .. figure:: lattice-planar.*
+        :align: center
+
+        Straight-line drawing of planar graph (a 2D square lattice).
+
+    References
+    ----------
+    .. [straight-line-boost] http://www.boost.org/doc/libs/graph/doc/straight_line_drawing.html
+    .. [chrobak-linear-1995] M. Chrobak, T. Payne, "A Linear-time Algorithm for
+       Drawing a Planar Graph on the Grid", Information Processing Letters 54:
+       241-246, (1995), :doi:`10.1016/0020-0190(95)00020-D`
+    """
+
+    if g.num_vertices() < 3:
+        raise ValueError("Graph must have at least 3 vertices.")
+    if not is_planar(g):
+        raise ValueError("Graph is not planar.")
+    u = Graph(GraphView(g, directed=False, skip_properties=True))
+    make_maximal_planar(u)
+    embed = is_planar(u, embedding=True)[1]
+    if pos is None:
+        pos = u.new_vp("vector<double>")
+    make_maximal_planar(u)
+    libgraph_tool_layout.planar_layout(u._Graph__graph,
+                                       _prop("v", u, embed),
+                                       _prop("v", u, pos))
+    pos = g.own_property(pos)
     return pos
 
 

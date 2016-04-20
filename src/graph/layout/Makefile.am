@@ -16,6 +16,7 @@ libgraph_tool_layout_la_LDFLAGS = $(MOD_LDFLAGS)
 
 libgraph_tool_layout_la_SOURCES = \
     graph_arf.cc \
+    graph_planar_layout.cc \
     graph_fruchterman_reingold.cc \
     graph_sfdp.cc \
     graph_radial.cc \
