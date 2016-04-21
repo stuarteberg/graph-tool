@@ -1810,9 +1810,8 @@ def pseudo_diameter(g, source=None, weights=None):
     return dist, (g.vertex(source), g.vertex(target))
 
 
-def is_bipartite(g, partition=False):
-    """
-    Test if the graph is bipartite.
+def is_bipartite(g, partition=False, find_odd_cycle=False):
+    """Test if the graph is bipartite.
 
     Parameters
     ----------
@@ -1820,14 +1819,19 @@ def is_bipartite(g, partition=False):
         Graph to be used.
     partition : bool (optional, default: ``False``)
         If ``True``, return the two partitions in case the graph is bipartite.
+    find_odd_cycle : bool (optional, default: ``False``)
+        If ``True``, return an odd cycle if the graph is not bipartite.
 
     Returns
     -------
-    is_bipartite : bool
+    is_bipartite : ``bool``
         Whether or not the graph is bipartite.
-    partition : :class:`~graph_tool.PropertyMap` (only if `partition=True`)
-        A vertex property map with the graph partitioning (or `None`) if the
+    partition : :class:`~graph_tool.PropertyMap` (only if ``partition=True``)
+        A vertex property map with the graph partitioning (or ``None``) if the
         graph is not bipartite.
+    odd_cycle : list of vertices (only if ``find_odd_cycle=True``)
+        A list of vertices corresponding to an odd cycle, or ``None`` if none is
+        found.
 
     Notes
     -----
@@ -1859,22 +1863,37 @@ def is_bipartite(g, partition=False):
     References
     ----------
     .. [boost-bipartite] http://www.boost.org/libs/graph/doc/is_bipartite.html
+
     """
 
     if partition:
         part = g.new_vertex_property("bool")
     else:
         part = None
-    g = GraphView(g, directed=False)
+    g = GraphView(g, directed=False, skip_properties=True)
+    cycle = []
     is_bi = libgraph_tool_topology.is_bipartite(g._Graph__graph,
-                                                _prop("v", g, part))
+                                                _prop("v", g, part),
+                                                find_odd_cycle, cycle)
     if not is_bi and part is not None:
         part.a = 0
 
-    if partition:
-        return is_bi, part
+    if len(cycle) == 0:
+        cycle = None
     else:
-        return is_bi
+        cycle.append(cycle[0])
+
+    if find_odd_cycle:
+        if partition:
+            return is_bi, part, cycle
+        else:
+            return is_bi, cycle
+    else:
+        if partition:
+            return is_bi, part
+        else:
+            return is_bi
+
 
 
 def is_planar(g, embedding=False, kuratowski=False):

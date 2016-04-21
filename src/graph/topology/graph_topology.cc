@@ -44,7 +44,8 @@ python::object subgraph_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
 double reciprocity(GraphInterface& gi);
 size_t sequential_coloring(GraphInterface& gi, boost::any order,
                            boost::any color);
-bool is_bipartite(GraphInterface& gi, boost::any part_map);
+bool is_bipartite(GraphInterface& gi, boost::any part_map, bool find_cycle,
+                  boost::python::list cycle);
 void get_random_spanning_tree(GraphInterface& gi, size_t root,
                               boost::any weight_map, boost::any tree_map,
                               rng_t& rng);
