@@ -63,7 +63,7 @@ typedef boost::mpl::map<
     > numpy_types;
 
 template <class ValueType>
-boost::python::object wrap_vector_owned(vector<ValueType>& vec)
+boost::python::object wrap_vector_owned(const vector<ValueType>& vec)
 {
     int val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp size[1];
@@ -76,7 +76,7 @@ boost::python::object wrap_vector_owned(vector<ValueType>& vec)
     else
     {
         ValueType* new_data = new ValueType[vec.size()];
-        memcpy(new_data, &vec[0], vec.size()*sizeof(ValueType));
+        memcpy(new_data, vec.data(), vec.size() * sizeof(ValueType));
         ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(1, size, val_type,
                                                              new_data);
     }
@@ -97,7 +97,7 @@ boost::python::object wrap_vector_not_owned(vector<ValueType>& vec)
         return wrap_vector_owned(vec); // return an _owned_ array of size one.
     else
         ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(1, &size, val_type,
-                                                             &vec[0]);
+                                                             vec.data());
     PyArray_ENABLEFLAGS(ndarray,NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS |
                         NPY_ARRAY_WRITEABLE);
     boost::python::handle<> x((PyObject*) ndarray);
@@ -107,10 +107,11 @@ boost::python::object wrap_vector_not_owned(vector<ValueType>& vec)
 
 
 template <class ValueType, int Dim>
-boost::python::object wrap_multi_array_owned(boost::multi_array<ValueType,Dim>& array)
+boost::python::object
+wrap_multi_array_owned(const boost::multi_array<ValueType,Dim>& array)
 {
     ValueType* new_data = new ValueType[array.num_elements()];
-    memcpy(new_data, array.data(), array.num_elements()*sizeof(ValueType));
+    memcpy(new_data, array.data(), array.num_elements() * sizeof(ValueType));
     int val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp shape[Dim];
     for (int i = 0; i < Dim; ++i)
@@ -126,7 +127,8 @@ boost::python::object wrap_multi_array_owned(boost::multi_array<ValueType,Dim>& 
 }
 
 template <class ValueType, int Dim>
-boost::python::object wrap_multi_array_not_owned(boost::multi_array<ValueType,Dim>& array)
+boost::python::object
+wrap_multi_array_not_owned(boost::multi_array<ValueType,Dim>& array)
 {
     int val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     PyArrayObject* ndarray =
@@ -142,7 +144,8 @@ boost::python::object wrap_multi_array_not_owned(boost::multi_array<ValueType,Di
 // get multi_array_ref from numpy ndarrays
 
 template <class ValueType, size_t dim>
-class numpy_multi_array: public boost::multi_array_ref<ValueType,dim>
+class numpy_multi_array:
+    public boost::multi_array_ref<ValueType,dim>
 {
     typedef boost::multi_array_ref<ValueType,dim> base_t;
 public:
@@ -150,7 +153,7 @@ public:
     explicit numpy_multi_array(typename base_t::element* data,
                                const ExtentList& sizes,
                                const StrideList& strides)
-        :base_t(data, sizes)
+        : base_t(data, sizes)
     {
         for (size_t i = 0; i < dim; ++i)
             base_t::stride_list_[i] = strides[i];
