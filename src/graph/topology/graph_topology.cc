@@ -18,6 +18,7 @@
 #include <boost/python.hpp>
 #include "graph.hh"
 #include "random.hh"
+#include "numpy_bind.hh"
 
 using namespace boost;
 using namespace boost::python;
@@ -56,6 +57,7 @@ void export_kcore();
 void export_similarity();
 void export_dists();
 void export_all_dists();
+void export_all_circuits();
 void export_diam();
 void export_random_matching();
 void export_maximal_vertex_set();
@@ -83,6 +85,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_topology)
     export_similarity();
     export_dists();
     export_all_dists();
+    export_all_circuits();
     export_diam();
     export_random_matching();
     export_maximal_vertex_set();

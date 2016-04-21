@@ -33,6 +33,7 @@ Summary
    all_shortest_paths
    all_predecessors
    all_paths
+   all_circuits
    pseudo_diameter
    similarity
    vertex_similarity
@@ -83,7 +84,7 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "label_largest_component", "label_biconnected_components",
            "label_out_component", "kcore_decomposition", "shortest_distance",
            "shortest_path", "all_shortest_paths", "all_predecessors",
-           "all_paths", "pseudo_diameter", "is_bipartite", "is_DAG",
+           "all_paths", "all_circuits", "pseudo_diameter", "is_bipartite", "is_DAG",
            "is_planar", "make_maximal_planar", "similarity", "vertex_similarity",
            "edge_reciprocity"]
 
@@ -1730,6 +1731,59 @@ def all_paths(g, source, target, cutoff=None):
                                                          cutoff,
                                                          _prop("v", g, visited))
     return path_iterator
+
+def all_circuits(g, unique=False):
+    """Return an iterator over all the cycles in a directed graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        A directed graph to be used.
+    unique : ``bool`` (optional, default: None)
+        If ``True``, parallel edges and self-loops will be ignored.
+
+    Returns
+    -------
+    cycle_iterator : iterator over a sequence of integers
+        Iterator over sequences of vertices that form a circuit.
+
+    Notes
+    -----
+    This algorithm [hawick-enumerating-2008]_ runs in worse time
+    :math:`O[(V + E)(C + 1)]`, where :math:`C` is the number of circuits.
+
+    Examples
+    --------
+    .. testcode::
+       :hide:
+
+       gt.seed_rng(42)
+
+    >>> g = gt.random_graph(10, lambda: (1, 1))
+    >>> for c in gt.all_circuits(g):
+    ...     print(c)
+    [13 15  2]
+    [13 60  2]
+    [13 64  2]
+    [ 13 100   2]
+    [ 13 106   2]
+    [13  2]
+
+    References
+    ----------
+    .. [hawick-enumerating-2008] K.A. Hawick and H.A. James, "Enumerating
+       Circuits and Loops in Graphs with Self-Arcs and Multiple-Arcs.",
+       In Proceedings of FCS. 2008, 14-20,
+       http://cssg.massey.ac.nz/cstn/013/cstn-013.html
+    .. [hawick-bgl] http://www.boost.org/doc/libs/graph/doc/hawick_circuits.html
+
+    """
+
+    if not g.is_directed():
+        raise ValueError("The graph must be directed.")
+    circuits_iterator = libgraph_tool_topology.get_all_circuits(g._Graph__graph,
+                                                                unique)
+    return circuits_iterator
 
 
 def pseudo_diameter(g, source=None, weights=None):

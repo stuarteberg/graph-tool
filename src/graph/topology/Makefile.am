@@ -15,6 +15,7 @@ libgraph_tool_topology_la_LIBADD = $(MOD_LIBADD)
 libgraph_tool_topology_la_LDFLAGS = $(MOD_LDFLAGS)
 
 libgraph_tool_topology_la_SOURCES = \
+    graph_all_circuits.cc \
     graph_all_distances.cc \
     graph_bipartite.cc \
     graph_components.cc \
