@@ -46,33 +46,28 @@ struct get_random_span_tree
 
         // convert the predecessor map to a tree map, and avoid trouble with
         // parallel edges
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
-            vector<edge_t> edges;
-            vector<typename property_traits<WeightMap>::value_type> ws;
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                if (target(*e,g) == pred_map[v])
-                {
-                    edges.push_back(*e);
-                    ws.push_back(weights[*e]);
-                }
-            }
-            if (!edges.empty())
-            {
-                edge_t e = *(edges.begin() +
-                             size_t(min_element(ws.begin(),
-                                                ws.end())-ws.begin()));
-                tree_map[e] = 1;
-            }
-        }
+        parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     vector<edge_t> edges;
+                     vector<typename property_traits<WeightMap>::value_type> ws;
+                     for (auto e : out_edges_range(v, g))
+                     {
+                         if (target(e,g) == pred_map[v])
+                         {
+                             edges.push_back(e);
+                             ws.push_back(weights[e]);
+                         }
+                     }
+                     if (!edges.empty())
+                     {
+                         edge_t e = *(edges.begin() +
+                                      size_t(min_element(ws.begin(),
+                                                         ws.end()) - ws.begin()));
+                         tree_map[e] = 1;
+                     }
+                 });
     }
 };
 

@@ -35,16 +35,12 @@ struct get_arf_layout
     {
         typedef typename property_traits<PosMap>::value_type::value_type pos_t;
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)
-        for (i = 0; i < N; ++i)
-        {
-            typename graph_traits<Graph>::vertex_descriptor v =
-                vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            pos[v].resize(dim);
-        }
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 pos[v].resize(dim);
+             });
 
         pos_t delta = epsilon + 1;
         size_t n_iter = 0;
@@ -52,62 +48,57 @@ struct get_arf_layout
         while (delta > epsilon && (max_iter == 0 || n_iter < max_iter))
         {
             delta = 0;
-            #pragma omp parallel for default(shared) private(i) \
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
                 reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     vector<pos_t> delta_pos(dim,0);
 
-                vector<pos_t> delta_pos(dim,0);
+                     for (auto w : vertices_range(g))
+                     {
+                         if (w == v)
+                             continue;
+                         pos_t diff = 0;
+                         for (size_t j = 0; j < dim; ++j)
+                         {
+                             pos_t dx = pos[w][j] - pos[v][j];
+                             diff += dx*dx;
+                             delta_pos[j] += dx;
+                         }
+                         diff = sqrt(diff);
+                         if (diff < 1e-6)
+                             diff = 1e-6;
+                         pos_t m = r/diff;
+                         for (size_t j = 0; j < dim; ++j)
+                         {
+                             pos_t dx = pos[w][j] - pos[v][j];
+                             delta_pos[j] -= m*dx;
+                         }
+                     }
 
-                typename graph_traits<Graph>::vertex_iterator w, w_end;
-                for (tie(w, w_end) = vertices(g); w != w_end; ++w)
-                {
-                    if (*w == v)
-                        continue;
-                    pos_t diff = 0;
-                    for (size_t j = 0; j < dim; ++j)
-                    {
-                        pos_t dx = pos[*w][j] - pos[v][j];
-                        diff += dx*dx;
-                        delta_pos[j] += dx;
-                    }
-                    diff = sqrt(diff);
-                    if (diff < 1e-6)
-                        diff = 1e-6;
-                    pos_t m = r/diff;
-                    for (size_t j = 0; j < dim; ++j)
-                    {
-                        pos_t dx = pos[*w][j] - pos[v][j];
-                        delta_pos[j] -= m*dx;
-                    }
-                }
+                     for (auto e : out_edges_range(v, g))
+                     {
+                         auto u = target(e, g);
+                         if (u == v)
+                             continue;
+                         pos_t m = a * get(weight, e) - 1;
+                         for (size_t j = 0; j < dim; ++j)
+                         {
+                             pos_t dx = pos[u][j] - pos[v][j];
+                             delta_pos[j] += m * dx;
+                         }
+                     }
 
-                typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-                {
-                    typename graph_traits<Graph>::vertex_descriptor u =
-                        target(*e, g);
-                    if (u == v)
-                        continue;
-                    pos_t m = a*get(weight, *e) - 1;
-                    for (size_t j = 0; j < dim; ++j)
-                    {
-                        pos_t dx = pos[u][j] - pos[v][j];
-                        delta_pos[j] += m*dx;
-                    }
-                }
+                     for (size_t j = 0; j < dim; ++j)
+                     {
+                         #pragma omp atomic
+                         pos[v][j] += dt * delta_pos[j];
+                         delta += abs(delta_pos[j]);
+                     }
 
-                #pragma omp critical
-                for (size_t j = 0; j < dim; ++j)
-                {
-                    pos[v][j] += dt*delta_pos[j];
-                    delta += abs(delta_pos[j]);
-                }
-            }
+                 });
             n_iter++;
         }
     }

@@ -194,23 +194,20 @@ struct do_avg_dist
     template <class Graph, class PosMap>
     void operator()(Graph& g, PosMap pos, double& ad) const
     {
-        int i, N = num_vertices(g);
         size_t count = 0;
         double d = 0;
-        #pragma omp parallel for default(shared) private(i) \
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             reduction(+: d, count)
-        for (i = 0; i < N; ++i)
-        {
-            typename graph_traits<Graph>::vertex_descriptor v =
-                vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            for (auto a : adjacent_vertices_range(v, g))
-            {
-                d += dist(pos[v], pos[a]);
-                count++;
-            }
-        }
+        parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     for (auto a : adjacent_vertices_range(v, g))
+                     {
+                         d += dist(pos[v], pos[a]);
+                         count++;
+                     }
+                 });
         if (count > 0)
             d /= count;
         ad = d;
@@ -234,16 +231,12 @@ struct do_sanitize_pos
     template <class Graph, class PosMap>
     void operator()(Graph& g, PosMap pos) const
     {
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            typename graph_traits<Graph>::vertex_descriptor v =
-                vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            pos[v].resize(2);
-        }
+        parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     pos[v].resize(2);
+                 });
     }
 };
 

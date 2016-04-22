@@ -103,7 +103,7 @@ struct get_trust_transitivity
         typedef typename
             property_traits<InferredTrustMap>::value_type::value_type t_type;
 
-        size_t i, N = (target == -1) ? num_vertices(g) : target + 1;
+        size_t N = (target == -1) ? num_vertices(g) : target + 1;
 
         parallel_vertex_loop
             (g,
@@ -112,8 +112,8 @@ struct get_trust_transitivity
                  t[v].resize((source == -1 && target == -1) ? N : 1);
              });
 
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = (target == -1) ? 0 : target; i < N; ++i)
+        #pragma omp parallel for if (num_vertices(g) > OPENMP_MIN_THRESH)
+        for (size_t i = (target == -1) ? 0 : target; i < N; ++i)
         {
             vertex_t tgt = vertex(i, g);
             if (!is_valid_vertex(tgt, g))

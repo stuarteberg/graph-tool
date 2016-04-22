@@ -77,25 +77,22 @@ struct find_vertices
         auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100) \
-            num_threads(nt)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            value_type val = deg(v, g);
-            if ((is_eq && (val == range.first)) ||
-                (!is_eq && (range.first <= val && val <= range.second)))
-            {
-                PythonVertex<Graph> pv(gp, v);
-                #pragma omp critical
-                {
-                    ret.append(pv);
-                }
-            }
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) num_threads(nt)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 value_type val = deg(v, g);
+                 if ((is_eq && (val == range.first)) ||
+                     (!is_eq && (range.first <= val && val <= range.second)))
+                 {
+                     PythonVertex<Graph> pv(gp, v);
+                     #pragma omp critical
+                     {
+                         ret.append(pv);
+                     }
+                 }
+             });
     }
 };
 
@@ -123,37 +120,31 @@ struct find_edges
         auto gp = retrieve_graph_view<Graph>(gi, g);
         bool is_eq = range.first == range.second;
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100) \
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             num_threads(nt)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                if (!is_directed::apply<Graph>::type::value)
-                {
-                    if (edge_set.find(eindex[*e]) == edge_set.end())
-                        edge_set.insert(eindex[*e]);
+        parallel_edge_loop_no_spawn
+            (g,
+             [&](auto e)
+             {
+                 if (!is_directed::apply<Graph>::type::value)
+                 {
+                     if (edge_set.find(eindex[e]) == edge_set.end())
+                         edge_set.insert(eindex[e]);
                     else
-                        continue;
-                }
+                        return;
+                 }
 
-                value_type val = get(prop, *e);
-                if ((is_eq && (val == range.first)) ||
-                    (!is_eq && (range.first <= val && val <= range.second)))
-                {
-                    PythonEdge<Graph> pe(gp, *e);
-                    #pragma omp critical
-                    {
-                        ret.append(pe);
-                    }
-                }
-            }
-        }
+                 value_type val = get(prop, e);
+                 if ((is_eq && (val == range.first)) ||
+                     (!is_eq && (range.first <= val && val <= range.second)))
+                 {
+                     PythonEdge<Graph> pe(gp, e);
+                     #pragma omp critical
+                     {
+                         ret.append(pe);
+                     }
+                 }
+             });
     }
 };
 

@@ -45,9 +45,7 @@ struct get_pagerank
             (g,
              [&](auto v)
              {
-                 put(deg, v, 0);
-                 for (auto e : out_edges_range(v, g))
-                     put(deg, v, get(deg, v) + get(weight, e));
+                 put(deg, v, out_degreeS()(v, g, weight));
              });
 
         rank_type delta = epsilon + 1;
@@ -56,29 +54,27 @@ struct get_pagerank
         while (delta >= epsilon)
         {
             delta = 0;
-            size_t i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i)                \
-                schedule(runtime) if (N > 100) reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                rank_type r = 0;
-                for (const auto& e : in_or_out_edges_range(v, g))
-                {
-                    typename graph_traits<Graph>::vertex_descriptor s;
-                    if (is_directed::apply<Graph>::type::value)
-                        s = source(e, g);
-                    else
-                        s = target(e, g);
-                    r += (get(rank, s) * get(weight, e)) / get(deg, s);
-                }
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:delta)
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     rank_type r = 0;
+                     for (const auto& e : in_or_out_edges_range(v, g))
+                     {
+                         typename graph_traits<Graph>::vertex_descriptor s;
+                         if (is_directed::apply<Graph>::type::value)
+                             s = source(e, g);
+                         else
+                             s = target(e, g);
+                         r += (get(rank, s) * get(weight, e)) / get(deg, s);
+                     }
 
-                put(r_temp, v, (1.0 - d) * get(pers, v) + d * r);
+                     put(r_temp, v, (1.0 - d) * get(pers, v) + d * r);
 
-                delta += abs(get(r_temp, v) - get(rank, v));
-            }
+                     delta += abs(get(r_temp, v) - get(rank, v));
+                 });
             swap(r_temp, rank);
             ++iter;
             if (max_iter > 0 && iter == max_iter)

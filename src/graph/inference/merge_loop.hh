@@ -52,46 +52,43 @@ auto merge_sweep(MergeState state, RNG& rng_)
                    make_tuple(0, 0,
                               numeric_limits<double>::max()));
 
-    size_t i = 0, N = state._available.size();
-    #pragma omp parallel for default(shared) private(i)                        \
-        firstprivate(state)                                                    \
-        schedule(runtime) if (state._parallel)
-    for (i = 0; i < N; ++i)
-    {
-        auto& rng = get_rng(rngs, rng_);
+    #pragma omp parallel firstprivate(state) if (state._parallel)
+    parallel_loop_no_spawn
+        (state._available,
+         [&](size_t, auto v)
+         {
+             auto& rng = get_rng(rngs, rng_);
 
-        auto v = state._available[i];
+             if (state.node_weight(v) == 0)
+                 return;
 
-        if (state.node_weight(v) == 0)
-            continue;
+             gt_hash_set<size_t> past_moves;
 
-        gt_hash_set<size_t> past_moves;
+             auto find_candidates = [&](bool random)
+                 {
+                     for (size_t iter = 0; iter < state._niter; ++iter)
+                     {
+                         auto s = state.move_proposal(v, random, rng);
+                         if (s == state._null_move)
+                             continue;
+                         if (past_moves.find(s) != past_moves.end())
+                             continue;
+                         past_moves.insert(s);
+                         double dS = state.virtual_move_dS(v, s);
+                         if (dS < get<2>(best_merge[v]))
+                             best_merge[v] = make_tuple(v, s, dS);
+                     }
+                 };
 
-        auto find_candidates = [&](bool random)
-            {
-                for (size_t iter = 0; iter < state._niter; ++iter)
-                {
-                    auto s = state.move_proposal(v, random, rng);
-                    if (s == state._null_move)
-                        continue;
-                    if (past_moves.find(s) != past_moves.end())
-                        continue;
-                    past_moves.insert(s);
-                    double dS = state.virtual_move_dS(v, s);
-                    if (dS < get<2>(best_merge[v]))
-                        best_merge[v] = make_tuple(v, s, dS);
-                }
-            };
+             find_candidates(false);
 
-        find_candidates(false);
+             // if no candidates were found, the group is likely to be "stuck"
+             // (i.e. isolated or constrained by clabel); attempt random
+             // movements instead
 
-        // if no candidates were found, the group is likely to be "stuck"
-        // (i.e. isolated or constrained by clabel); attempt random movements
-        // instead
-
-        if (get<2>(best_merge[v]) == numeric_limits<double>::max())
-            find_candidates(true);
-    }
+             if (get<2>(best_merge[v]) == numeric_limits<double>::max())
+                 find_candidates(true);
+         });
 
     auto cmp = [](auto& a, auto& b) { return get<2>(a) > get<2>(b); };
 

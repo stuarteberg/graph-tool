@@ -160,16 +160,12 @@ struct do_out_edges_op
 
         auto vprop = boost::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)     \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            op(v, eprop, vprop, g);
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 op(v, eprop, vprop, g);
+             });
     }
 };
 

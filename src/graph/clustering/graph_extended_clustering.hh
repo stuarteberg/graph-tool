@@ -80,11 +80,8 @@ struct bfs_max_depth_watcher
 template<class Graph, class Vertex, class Targets, class DirectedCategory>
 void collect_targets(Vertex v, Graph& g, Targets& t, DirectedCategory)
 {
-    typename graph_traits<Graph>::in_edge_iterator ei, ei_end;
-    typename graph_traits<Graph>::vertex_descriptor u;
-    for(tie(ei, ei_end) = in_edges(v, g); ei != ei_end; ++ei)
+    for (auto u : in_neighbours_range(v, g))
     {
-        u = source(*ei, g);
         if (u == v) // no self-loops
             continue;
         if (t.find(u) != t.end()) // avoid parallel edges
@@ -96,11 +93,8 @@ void collect_targets(Vertex v, Graph& g, Targets& t, DirectedCategory)
 template<class Graph, class Vertex, class Targets>
 void collect_targets(Vertex v, Graph& g, Targets& t, undirected_tag)
 {
-    typename graph_traits<Graph>::out_edge_iterator ei, ei_end;
-    typename graph_traits<Graph>::vertex_descriptor u;
-    for(tie(ei, ei_end) = out_edges(v, g); ei != ei_end; ++ei)
+    for (auto u : out_neighbours_range(v, g))
     {
-        u = target(*ei, g);
         if (u == v) // no self-loops
             continue;
         if (t.find(u) != t.end()) // avoid parallel edges
@@ -119,88 +113,83 @@ struct get_extended_clustering
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        int i, N = num_vertices(g);
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 // We must disconsider paths through the original vertex
+                 typedef single_vertex_filter<vertex_t> filter_t;
+                 typedef filtered_graph<Graph, keep_all, filter_t> fg_t;
+                 fg_t fg(g, keep_all(), filter_t(v));
 
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            vertex_t v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+                 typedef DescriptorHash<IndexMap> hasher_t;
+                 typedef gt_hash_set<vertex_t,hasher_t> neighbour_set_t;
+                 neighbour_set_t neighbours(0, hasher_t(vertex_index));
+                 neighbour_set_t targets(0, hasher_t(vertex_index));
 
-            // We must disconsider paths through the original vertex
-            typedef single_vertex_filter<vertex_t> filter_t;
-            typedef filtered_graph<Graph, keep_all, filter_t> fg_t;
-            fg_t fg(g, keep_all(), filter_t(v));
+                 // collect targets, neighbours and calculate normalization factor
+                 collect_targets(v, g, targets,
+                                 typename graph_traits<Graph>::directed_category());
+                 size_t k_in = targets.size(), k_out, k_inter=0, z;
+                 for (auto u : adjacent_vertices_range(v, g))
+                 {
+                     if (u == v) // no self-loops
+                         continue;
+                     if (neighbours.find(u) != neighbours.end()) // avoid parallel
+                         continue;                               // edges
 
-            typedef DescriptorHash<IndexMap> hasher_t;
-            typedef gt_hash_set<vertex_t,hasher_t> neighbour_set_t;
-            neighbour_set_t neighbours(0, hasher_t(vertex_index));
-            neighbour_set_t targets(0, hasher_t(vertex_index));
-            typename neighbour_set_t::iterator ni, ti;
+                     neighbours.insert(u);
+                     if (targets.find(u) != targets.end())
+                         ++k_inter;
+                 }
 
-            // collect targets, neighbours and calculate normalization factor
-            collect_targets(v, g, targets,
-                            typename graph_traits<Graph>::directed_category());
-            size_t k_in = targets.size(), k_out, k_inter=0, z;
-            typename graph_traits<Graph>::adjacency_iterator a, a_end;
-            for (tie(a, a_end) = adjacent_vertices(v, g); a != a_end; ++a)
-            {
-                if (*a == v) // no self-loops
-                    continue;
-                if (neighbours.find(*a) != neighbours.end()) // avoid parallel
-                    continue;                                // edges
+                 k_out = neighbours.size();
+                 z = (k_in * k_out) - k_inter;
 
-                neighbours.insert(*a);
-                if (targets.find(*a) != targets.end())
-                    ++k_inter;
-            }
-            k_out = neighbours.size();
-            z = (k_in*k_out) - k_inter;
+                 // And now we setup and start the BFS bonanza
+                 for (auto u : neighbours)
+                 {
+                     typedef gt_hash_map<vertex_t,size_t,
+                                         DescriptorHash<IndexMap> > dmap_t;
+                     dmap_t dmap(0, DescriptorHash<IndexMap>(vertex_index));
+                     InitializedPropertyMap<dmap_t>
+                         distance_map(dmap, numeric_limits<size_t>::max());
 
-            // And now we setup and start the BFS bonanza
-            for (ni = neighbours.begin(); ni != neighbours.end(); ++ni)
-            {
-                typedef gt_hash_map<vertex_t,size_t,
-                                    DescriptorHash<IndexMap> > dmap_t;
-                dmap_t dmap(0, DescriptorHash<IndexMap>(vertex_index));
-                InitializedPropertyMap<dmap_t>
-                    distance_map(dmap, numeric_limits<size_t>::max());
+                     typedef gt_hash_map<vertex_t,default_color_type,
+                                         DescriptorHash<IndexMap> > cmap_t;
+                     cmap_t cmap(0, DescriptorHash<IndexMap>(vertex_index));
+                     InitializedPropertyMap<cmap_t>
+                         color_map(cmap, color_traits<default_color_type>::white());
 
-                typedef gt_hash_map<vertex_t,default_color_type,
-                                    DescriptorHash<IndexMap> > cmap_t;
-                cmap_t cmap(0, DescriptorHash<IndexMap>(vertex_index));
-                InitializedPropertyMap<cmap_t>
-                    color_map(cmap, color_traits<default_color_type>::white());
+                     try
+                     {
+                         distance_map[u] = 0;
+                         neighbour_set_t specific_targets = targets;
+                         specific_targets.erase(u);
+                         bfs_max_depth_watcher<neighbour_set_t,
+                                               InitializedPropertyMap<dmap_t> >
+                             watcher(specific_targets, cmaps.size(),
+                                     distance_map);
+                         breadth_first_visit(fg, u,
+                                             visitor
+                                             (make_bfs_visitor
+                                              (make_pair(record_distances
+                                                         (distance_map,
+                                                          boost::on_tree_edge()),
+                                                         watcher))).
+                                             color_map(color_map));
+                     }
+                     catch (bfs_stop_exception) {}
 
-                try
-                {
-                    distance_map[*ni] = 0;
-                    neighbour_set_t specific_targets = targets;
-                    specific_targets.erase(*ni);
-                    bfs_max_depth_watcher<neighbour_set_t,
-                                          InitializedPropertyMap<dmap_t> >
-                        watcher(specific_targets, cmaps.size(), distance_map);
-                    breadth_first_visit(fg, *ni,
-                                        visitor
-                                        (make_bfs_visitor
-                                         (make_pair(record_distances
-                                                    (distance_map,
-                                                     boost::on_tree_edge()),
-                                                    watcher))).
-                                        color_map(color_map));
-                }
-                catch (bfs_stop_exception) {}
-
-                for (ti = targets.begin(); ti != targets.end(); ++ti)
-                {
-                    if (*ti == *ni) // no self-loops
-                        continue;
-                    if (distance_map[*ti] <= cmaps.size())
-                        cmaps[distance_map[*ti]-1][v] += 1.0/z;
-                }
-            }
-        }
+                     for (auto t : targets)
+                     {
+                         if (t == u) // no self-loops
+                             continue;
+                         if (distance_map[t] <= cmaps.size())
+                             cmaps[distance_map[t]-1][v] += 1. / z;
+                     }
+                 }
+             });
     }
 };
 

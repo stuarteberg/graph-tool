@@ -111,21 +111,19 @@ struct do_all_pairs_search_unweighted
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        int i, N = num_vertices(g);
-        vector<vertex_t> pred_map(N);
-        #pragma omp parallel for default(shared) private(i) \
-            firstprivate(pred_map) schedule(runtime) if (N > 30)
-        for (i = 0; i < N; ++i)
-        {
-            dist_map[i].resize(num_vertices(g), 0);
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            bfs_visitor<typename std::remove_reference<decltype(dist_map[i])>::type,
-                        vector<size_t>>
-                vis(dist_map[i], pred_map, v);
-            breadth_first_search(g, v, visitor(vis));
-        }
+        vector<vertex_t> pred_map(num_vertices(g));
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(pred_map)
+        parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     dist_map[v].resize(num_vertices(g), 0);
+                     bfs_visitor<typename std::remove_reference<decltype(dist_map[v])>::type,
+                                 vector<size_t>>
+                         vis(dist_map[v], pred_map, v);
+                     breadth_first_search(g, v, visitor(vis));
+                 });
     }
 };
 

@@ -98,34 +98,33 @@ double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Graph& g)
 template <class Graph, class VMap, class Sim>
 void all_pairs_similarity(Graph& g, VMap s, Sim&& f)
 {
-    size_t i, N = num_vertices(g);
-    vector<bool> mask(N, false);
-    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
-        firstprivate(mask) if (N > OPENMP_MIN_THRESH)
-    for (i = 0; i < N; ++i)
-    {
-        auto v = vertex(i, g);
-        if (!is_valid_vertex(v, g))
-            continue;
-        s[v].resize(num_vertices(g));
-        for (auto w : vertices_range(g))
-            s[v][w] = f(v, w, mask);
-    }
+    vector<bool> mask(num_vertices(g), false);
+    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        firstprivate(mask)
+    parallel_vertex_loop_no_spawn
+        (g,
+         [&](auto v)
+         {
+             s[v].resize(num_vertices(g));
+             for (auto w : vertices_range(g))
+                 s[v][w] = f(v, w, mask);
+         });
 }
 
 template <class Graph, class Vlist, class Slist, class Sim>
 void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f)
 {
     vector<bool> mask(num_vertices(g), false);
-    size_t i, N = vlist.shape()[0];
-    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
-        firstprivate(mask) if (N > OPENMP_MIN_THRESH)
-    for (i = 0; i < N; ++i)
-    {
-        size_t u = vlist[i][0];
-        size_t v = vlist[i][1];
-        slist[i] = f(u, v, mask);
-    }
+    #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+        firstprivate(mask)
+    parallel_loop_no_spawn
+        (vlist,
+         [&](size_t i, const auto& val)
+         {
+             size_t u = val[0];
+             size_t v = val[1];
+             slist[i] = f(u, v, mask);
+         });
 }
 
 } // graph_tool namespace

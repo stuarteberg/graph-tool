@@ -357,10 +357,10 @@ struct get_all_motifs
             V.resize(n);
         }
 
-        int i, N = (p < 1) ? V.size() : num_vertices(g);
-        #pragma omp parallel for default(shared) private(i, sig) \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
+        size_t N = (p < 1) ? V.size() : num_vertices(g);
+        #pragma omp parallel for if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            private(sig)
+        for (size_t i = 0; i < N; ++i)
         {
             std::vector<std::vector<typename graph_traits<Graph>::vertex_descriptor> >
                 subgraphs;

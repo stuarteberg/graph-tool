@@ -179,33 +179,28 @@ struct do_infect_vertex_property
 
         PropertyMap temp(index, num_vertices(g));
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            if (!all && vals.find(prop[v]) == vals.end())
-                continue;
-            for (auto a : adjacent_vertices_range(v, g))
-            {
-                if (prop[a] == prop[v])
-                    continue;
-                marked[a] = true;
-                temp[a] = prop[v];
-            }
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 if (!all && vals.find(prop[v]) == vals.end())
+                     return;
+                 for (auto a : adjacent_vertices_range(v, g))
+                 {
+                     if (prop[a] == prop[v])
+                         continue;
+                     marked[a] = true;
+                     temp[a] = prop[v];
+                 }
+             });
 
-        #pragma omp parallel for default(shared) private(i)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            if (marked[v])
-                prop[v] = temp[v];
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 if (marked[v])
+                     prop[v] = temp[v];
+             });
     }
 };
 
@@ -232,17 +227,12 @@ struct do_mark_edges
     template <class Graph, class EdgePropertyMap>
     void operator()(Graph& g, EdgePropertyMap prop) const
     {
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            for (auto e : out_edges_range(v, g))
-                prop[e] = true;
-        }
+        parallel_edge_loop
+            (g,
+             [&](auto e)
+             {
+                 prop[e] = true;
+             });
     }
 };
 

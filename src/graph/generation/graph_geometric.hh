@@ -132,41 +132,40 @@ struct get_geometric
             boxes.insert(make_pair(box, v));
         }
 
-        int i;
-        #pragma omp parallel for default(shared) private(i, box) \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            private(box)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 size_t i = v;
+                 get_box(points[i], w, box, ranges, periodic_boundary);
+                 for (int k = 0; k < power(3, int(box.size())); ++k)
+                 {
+                     for (int j = 0; j < int(box.size()); ++j)
+                         box[j] += ((k / power(3, j)) % 3) - 1;
 
-            get_box(points[i], w, box, ranges, periodic_boundary);
-            for (int k = 0; k < power(3, int(box.size())); ++k)
-            {
-                for (int j = 0; j < int(box.size()); ++j)
-                  box[j] += ((k / power(3, j)) % 3) - 1;
+                     if (periodic_boundary)
+                         periodic(box, box_ranges);
 
-                if (periodic_boundary)
-                    periodic(box, box_ranges);
+                     decltype(boxes.begin()) iter, end;
+                     for (tie(iter, end) = boxes.equal_range(box);
+                          iter != end; ++iter)
+                     {
+                         auto w = iter->second;
+                         double d = get_dist(pos[v], pos[w], ranges,
+                                             periodic_boundary);
 
-                decltype(boxes.begin()) iter, end;
-                for (tie(iter, end) = boxes.equal_range(box);
-                     iter != end; ++iter)
-                {
-                    typename graph_traits<Graph>::vertex_descriptor w =
-                        iter->second;
-                    double d = get_dist(pos[v], pos[w], ranges,
-                                        periodic_boundary);
-
-                    if (w > v && d <= r &&
-                        (!periodic_boundary || !is_adjacent(v, w, g)))
-                    {
-                        #pragma omp critical
-                        add_edge(v, w, g);
-                    }
-                }
-                get_box(points[i], w, box, ranges, periodic_boundary);
-            }
-        }
+                         if (w > v && d <= r &&
+                             (!periodic_boundary || !is_adjacent(v, w, g)))
+                         {
+                             #pragma omp critical
+                             add_edge(v, w, g);
+                         }
+                     }
+                     get_box(points[i], w, box, ranges, periodic_boundary);
+                 }
+             });
     }
 };
 

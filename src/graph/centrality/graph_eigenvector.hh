@@ -58,31 +58,31 @@ struct get_eigenvector
         {
             prev_delta = delta;
             norm = 0;
-            size_t i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100) reduction(+:norm)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:norm)
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     c_temp[v] = 0;
+                     for (const auto& e : in_or_out_edges_range(v, g))
+                     {
+                         typename graph_traits<Graph>::vertex_descriptor s;
+                         if (is_directed::apply<Graph>::type::value)
+                             s = source(e, g);
+                         else
+                             s = target(e, g);
+                         c_temp[v] += get(w, e) * c[s];
+                     }
+                     norm += power(c_temp[v], 2);
+                 });
 
-                c_temp[v] = 0;
-                for (const auto& e : in_or_out_edges_range(v, g))
-                {
-                    typename graph_traits<Graph>::vertex_descriptor s;
-                    if (is_directed::apply<Graph>::type::value)
-                        s = source(e, g);
-                    else
-                        s = target(e, g);
-                    c_temp[v] += get(w, e) * c[s];
-                }
-                norm += power(c_temp[v], 2);
-            }
             norm = sqrt(norm);
 
             delta = 0;
-            parallel_vertex_loop
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:delta)
+            parallel_vertex_loop_no_spawn
                 (g,
                  [&](auto v)
                  {

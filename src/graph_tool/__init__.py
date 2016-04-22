@@ -3101,9 +3101,9 @@ Vector_string.__repr__ = lambda self: repr(list(self))
 _rng = libcore.get_rng((numpy.random.randint(0, sys.maxsize) + os.getpid()) % sys.maxsize)
 
 def seed_rng(seed):
-    "Seed the random number generator used by graph-tool's algorithms."
+    """Seed the random number generator used by graph-tool's algorithms"""
     import graph_tool
-    graph_tool._rng = libcore.get_rng(int(seed))
+    graph_tool._rng = libcore.get_rng(seed)
 
 def _get_rng():
     global _rng

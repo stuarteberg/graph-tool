@@ -69,17 +69,13 @@ struct copy_vertex_property_dispatch
         auto p_src = psrc->get_unchecked(num_vertices(src));
         auto p_tgt = ptgt->get_unchecked(num_vertices(tgt));
 
-        int i, N = num_vertices(src);
-        #pragma omp parallel for default(shared) private(i) \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, src);
-            if (!is_valid_vertex(v, src))
-                continue;
-            auto new_v = vertex(index_map[i], tgt);
-            p_tgt[new_v] = p_src[v];
-        }
+        parallel_vertex_loop
+            (src,
+             [&](auto v)
+             {
+                 auto new_v = vertex(index_map[v], tgt);
+                 p_tgt[new_v] = p_src[v];
+             });
     }
 };
 

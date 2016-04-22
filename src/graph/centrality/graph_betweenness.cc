@@ -34,8 +34,8 @@ void normalize_betweenness(const Graph& g,
                            VertexBetweenness vertex_betweenness,
                            size_t n)
 {
-    double vfactor = (n > 2) ? 1.0/((n-1)*(n-2)) : 1.0;
-    double efactor = (n > 1) ? 1.0/(n*(n-1)) : 1.0;
+    double vfactor = (n > 2) ? 1.0 / ((n - 1) * (n - 2)) : 1.0;
+    double efactor = (n > 1) ? 1.0 / (n * (n - 1)) : 1.0;
     if (std::is_convertible<typename graph_traits<Graph>::directed_category,
                             undirected_tag>::value)
     {
@@ -43,22 +43,19 @@ void normalize_betweenness(const Graph& g,
         efactor *= 2;
     }
 
-    int i, N = num_vertices(g);
-    #pragma omp parallel for default(shared) private(i)   \
-        schedule(runtime) if (N > 100)
-    for (i = 0; i < N; ++i)
-    {
-        auto v = vertex(i, g);
-        if (!is_valid_vertex(v, g))
-            continue;
-        put(vertex_betweenness, v, vfactor * get(vertex_betweenness, v));
-    }
+    parallel_vertex_loop
+        (g,
+         [&](auto v)
+         {
+             put(vertex_betweenness, v, vfactor * get(vertex_betweenness, v));
+         });
 
-    typename graph_traits<Graph>::edge_iterator e, e_end;
-    for (tie(e, e_end) = edges(g); e != e_end; ++e)
-    {
-        put(edge_betweenness, *e, efactor * get(edge_betweenness, *e));
-    }
+    parallel_edge_loop
+        (g,
+         [&](const auto& e)
+         {
+             put(edge_betweenness, e, efactor * get(edge_betweenness, e));
+         });
 }
 
 struct get_betweenness

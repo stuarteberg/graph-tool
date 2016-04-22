@@ -122,32 +122,31 @@ struct get_similarity_fast
 
         size_t ss = 0;
 
-        int64_t i, N = std::min(lmap1.size(), lmap2.size());
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) \
-            reduction(+:ss) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v1 = lmap1[i];
-            auto v2 = lmap2[i];
+        #pragma omp parallel if (num_vertices(g1) > OPENMP_MIN_THRESH) \
+            reduction(+:ss)
+        parallel_loop_no_spawn
+            (lmap1,
+             [&](size_t i, auto v1)
+             {
+                 auto v2 = lmap2[i];
+                 std::unordered_set<label_t> keys;
+                 std::unordered_multiset<label_t> adj1;
+                 std::unordered_multiset<label_t> adj2;
 
-            std::unordered_set<label_t> keys;
-            std::unordered_multiset<label_t> adj1;
-            std::unordered_multiset<label_t> adj2;
+                 for (auto a1 : adjacent_vertices_range(v1, g1))
+                 {
+                     adj1.insert(get(l1, a1));
+                     keys.insert(get(l1, a1));
+                 }
 
-            for (auto a1 : adjacent_vertices_range(v1, g1))
-            {
-                adj1.insert(get(l1, a1));
-                keys.insert(get(l1, a1));
-            }
+                 for (auto a2 : adjacent_vertices_range(v2, g2))
+                 {
+                     adj2.insert(get(l2, a2));
+                     keys.insert(get(l2, a2));
+                 }
 
-            for (auto a2 : adjacent_vertices_range(v2, g2))
-            {
-                adj2.insert(get(l2, a2));
-                keys.insert(get(l2, a2));
-            }
-
-            ss += intersection_size(keys, adj1, adj2);
-        }
+                 ss += intersection_size(keys, adj1, adj2);
+             });
 
         s = ss;
     }

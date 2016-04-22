@@ -29,15 +29,12 @@ struct do_group_vector_property
     void operator()(Graph& g, VectorPropertyMap vector_map, PropertyMap map,
                     size_t pos) const
     {
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            dispatch_descriptor(g, vector_map, map, v, pos, Edge());
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 this->dispatch_descriptor(g, vector_map, map, v, pos, Edge());
+             });
     }
 
     template <class Graph, class VectorPropertyMap, class PropertyMap,
@@ -46,14 +43,12 @@ struct do_group_vector_property
                                     PropertyMap& map, const Descriptor& v,
                                     size_t pos, boost::mpl::true_) const
     {
-        typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
-        for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
+        for (auto e : out_edges_range(v, g))
         {
-            typename boost::property_traits<VectorPropertyMap>::value_type& vec =
-                vector_map[*e];
+            auto& vec = vector_map[e];
             if (vec.size() <= pos)
-                vec.resize(pos+1);
-            group_or_ungroup(vector_map, map, *e, pos, Group());
+                vec.resize(pos + 1);
+            group_or_ungroup(vector_map, map, e, pos, Group());
         }
     }
 
@@ -64,7 +59,7 @@ struct do_group_vector_property
                                     size_t pos, boost::mpl::false_) const
     {
         if (vector_map[v].size() <= pos)
-            vector_map[v].resize(pos+1);
+            vector_map[v].resize(pos + 1);
         group_or_ungroup(vector_map, map, v, pos, Group());
     }
 

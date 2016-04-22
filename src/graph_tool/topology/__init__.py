@@ -1762,12 +1762,8 @@ def all_circuits(g, unique=False):
     >>> g = gt.random_graph(10, lambda: (1, 1))
     >>> for c in gt.all_circuits(g):
     ...     print(c)
-    [13 15  2]
-    [13 60  2]
-    [13 64  2]
-    [ 13 100   2]
-    [ 13 106   2]
-    [13  2]
+    [0 8 4 5 3]
+    [1 6 7 9 2]
 
     References
     ----------
@@ -2354,6 +2350,9 @@ def edge_reciprocity(g):
     <...>
     >>> gt.edge_reciprocity(g)
     1.0
+    >>> g = gt.collection.data["pgp-strong-2009"]
+    >>> gt.edge_reciprocity(g)
+    0.692196963163...
 
     References
     ----------

@@ -781,10 +781,9 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
         }
     };
 
-    int i, N = g._out_edges.size();
-    #pragma omp parallel for default(shared) private(i) \
-        schedule(runtime) if (N > 100)
-    for (i = 0; i < N; ++i)
+    size_t N = g._out_edges.size();
+    #pragma omp parallel for schedule(runtime) if (N > 100)
+    for (size_t i = 0; i < N; ++i)
     {
         shift_es(g._out_edges, i);
         shift_es(g._in_edges, i);

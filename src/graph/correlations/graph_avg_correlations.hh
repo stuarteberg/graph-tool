@@ -65,21 +65,19 @@ struct get_avg_correlation
         SharedHistogram<sum_t> s_sum2(sum2);
         SharedHistogram<count_t> s_count(count);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) \
-            firstprivate(s_sum, s_sum2, s_count) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            put_point(v, deg1, deg2, g, weight, s_sum, s_sum2, s_count);
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(s_sum, s_sum2, s_count)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 put_point(v, deg1, deg2, g, weight, s_sum, s_sum2, s_count);
+             });
         s_sum.gather();
         s_sum2.gather();
         s_count.gather();
 
-        for (i = 0; i < int(sum.get_array().size()); ++i)
+        for (size_t i = 0; i < sum.get_array().size(); ++i)
         {
             sum.get_array()[i] /= count.get_array()[i];
             sum2.get_array()[i] =

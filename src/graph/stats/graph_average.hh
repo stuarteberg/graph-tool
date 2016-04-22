@@ -141,16 +141,14 @@ struct get_average
         size_t count = 0;
 
         AverageTraverse traverse;
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) \
-            reduction(+:a,aa,count) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            traverse(g, v, deg, a, aa, count);
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            reduction(+:a,aa,count)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 traverse(g, v, deg, a, aa, count);
+             });
 
         _a = boost::python::object(a);
         _dev = boost::python::object(aa);

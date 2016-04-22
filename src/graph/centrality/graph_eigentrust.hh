@@ -83,30 +83,27 @@ struct get_eigentrust
         while (delta >= epslon)
         {
             delta = 0;
-            size_t i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i)     \
-                schedule(runtime) if (N > 100) reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-
-                t_temp[v] = 0;
-                for (const auto& e : in_or_out_edges_range(v, g))
-                {
-                    typename graph_traits<Graph>::vertex_descriptor s;
-                    if (is_directed::apply<Graph>::type::value)
-                        s = source(e, g);
-                    else
-                        s = target(e, g);
-                    if (!is_directed::apply<Graph>::type::value)
-                        t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
-                    else
-                        t_temp[v] += get(c, e) * t[s];
-                }
-                delta += abs(t_temp[v] - t[v]);
-            }
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:delta)
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     t_temp[v] = 0;
+                     for (const auto& e : in_or_out_edges_range(v, g))
+                     {
+                         typename graph_traits<Graph>::vertex_descriptor s;
+                         if (is_directed::apply<Graph>::type::value)
+                             s = source(e, g);
+                         else
+                             s = target(e, g);
+                         if (!is_directed::apply<Graph>::type::value)
+                             t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
+                         else
+                             t_temp[v] += get(c, e) * t[s];
+                     }
+                     delta += abs(t_temp[v] - t[v]);
+                 });
             swap(t_temp, t);
 
             ++iter;

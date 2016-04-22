@@ -68,7 +68,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
         else
         {
             parallel_loop(vlist,
-                          [&](auto v)
+                          [&](size_t, auto v)
                           {
                               best_move[v] =
                                   std::make_pair(state.node_state(v),
@@ -76,85 +76,77 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                           });
         }
 
-        size_t i = 0, N = vlist.size();
-        #pragma omp parallel for default(shared) private(i)                    \
-            firstprivate(state, probs, deltas, idx)                            \
-            schedule(runtime) if (state._parallel)
-        for (i = 0; i < N; ++i)
-        {
-            auto& rng = get_rng(rngs, rng_);
+        #pragma omp parallel firstprivate(state, probs, deltas, idx) \
+            if (state._parallel)
+        parallel_loop_no_spawn
+            (vlist,
+             [&](size_t, auto v)
+             {
+                 auto& rng = get_rng(rngs, rng_);
 
-            size_t v;
-            if (state._sequential)
-            {
-                v = vertex(vlist[i], g);
-            }
-            else
-            {
-                std::uniform_int_distribution<size_t> v_rand(0, N - 1);
-                v = vertex(vlist[v_rand(rng)], g);
-            }
+                 if (!state._sequential)
+                     v = uniform_sample(vlist, rng);
 
-            if (state.node_weight(v) == 0)
-                continue;
+                 if (state.node_weight(v) == 0)
+                     return;
 
-            vector<size_t>& moves = state.get_moves(v);
-            auto& weights = state.get_weights(v);
+                 vector<size_t>& moves = state.get_moves(v);
+                 auto& weights = state.get_weights(v);
 
-            probs.resize(moves.size());
-            deltas.resize(moves.size());
-            idx.resize(moves.size());
+                 probs.resize(moves.size());
+                 deltas.resize(moves.size());
+                 idx.resize(moves.size());
 
-            double dS_min = numeric_limits<double>::max();
-            for (size_t j = 0; j < moves.size(); ++j)
-            {
-                size_t s = moves[j];
-                double dS = state.virtual_move_dS(v, s);
-                dS_min = std::min(dS, dS_min);
-                deltas[j] = dS;
-                idx[j] = j;
-            }
+                 double dS_min = numeric_limits<double>::max();
+                 for (size_t j = 0; j < moves.size(); ++j)
+                 {
+                     size_t s = moves[j];
+                     double dS = state.virtual_move_dS(v, s);
+                     dS_min = std::min(dS, dS_min);
+                     deltas[j] = dS;
+                     idx[j] = j;
+                 }
 
-            if (!std::isinf(beta))
-            {
-                for (size_t j = 0; j < moves.size(); ++j)
-                {
-                    if (std::isinf(deltas[j]))
-                        probs[j] = 0;
-                    else
-                        probs[j] = exp((-deltas[j] + dS_min) * beta) * weights[j];
-                }
-            }
-            else
-            {
-                for (size_t j = 0; j < moves.size(); ++j)
-                    probs[j] = (deltas[j] == dS_min) ? weights[j] : 0;
-            }
+                 if (!std::isinf(beta))
+                 {
+                     for (size_t j = 0; j < moves.size(); ++j)
+                     {
+                         if (std::isinf(deltas[j]))
+                             probs[j] = 0;
+                         else
+                             probs[j] = exp((-deltas[j] + dS_min) * beta) * weights[j];
+                     }
+                 }
+                 else
+                 {
+                     for (size_t j = 0; j < moves.size(); ++j)
+                         probs[j] = (deltas[j] == dS_min) ? weights[j] : 0;
+                 }
 
-            Sampler<size_t> sampler(idx, probs);
+                 Sampler<size_t> sampler(idx, probs);
 
-            size_t j = sampler.sample(rng);
+                 size_t j = sampler.sample(rng);
 
-            assert(probs[j] > 0);
+                 assert(probs[j] > 0);
 
-            size_t s = moves[j];
-            size_t r = state.node_state(v);
+                 size_t s = moves[j];
+                 size_t r = state.node_state(v);
 
-            if (s == r)
-                continue;
+                 if (s == r)
+                     return;
 
-            if (!state._parallel)
-            {
-                state.perform_move(v, s);
-                nmoves += state.node_weight(v);
-                S += deltas[j];
-            }
-            else
-            {
-                best_move[v].first = s;
-                best_move[v].second = deltas[j];
-            }
-        }
+                 if (!state._parallel)
+                 {
+                     state.perform_move(v, s);
+                     nmoves += state.node_weight(v);
+                     S += deltas[j];
+                 }
+                 else
+                 {
+                     best_move[v].first = s;
+                     best_move[v].second = deltas[j];
+                 }
+             });
 
         if (state._parallel)
         {

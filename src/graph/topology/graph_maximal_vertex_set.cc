@@ -60,108 +60,103 @@ struct do_maximal_vertex_set
             tmp.clear();
             tmp_max_deg = 0;
 
-            int i, N = vlist.size();
-            #pragma omp parallel for default(shared) private(i)
-            for (i = 0; i < N; ++i)
-            {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    vlist[i];
+            parallel_loop
+                (vlist,
+                 [&](size_t, auto v)
+                 {
+                     marked[v] = false;
+                     bool include = true;
+                     for (auto u : adjacent_vertices_range(v, g))
+                     {
+                         if (mvs[u])
+                         {
+                             include = false;
+                             break;
+                         }
+                     }
+                     if (!include)
+                         return;
 
-                marked[v] = false;
-                bool include = true;
-                typename graph_traits<Graph>::adjacency_iterator a, a_end;
-                for(tie(a, a_end) = adjacent_vertices(v, g); a != a_end; ++a)
-                {
-                    if (mvs[*a])
-                    {
-                        include = false;
-                        break;
-                    }
-                }
-                if (!include)
-                    continue;
+                     include = false;
+                     if (out_degree(v, g) > 0)
+                     {
+                         double p, r;
+                         if (high_deg)
+                             p = out_degree(v, g) / max_deg;
+                         else
+                             p = 1. / (2 * out_degree(v, g));
 
-                include = false;
-                if (out_degree(v, g) > 0)
-                {
-                    double p, r;
-                    if (high_deg)
-                        p = out_degree(v, g) / max_deg;
-                    else
-                        p = 1. / (2 * out_degree(v, g));
+                         #pragma omp critical
+                         {
+                             r = sample(rng);
+                         }
+                         if (r < p)
+                             include = true;
+                     }
+                     else
+                     {
+                         include = true;
+                     }
 
-                    #pragma omp critical
-                    {
-                        r = sample(rng);
-                    }
-                    if (r < p)
-                        include = true;
-                }
-                else
-                {
-                    include = true;
-                }
+                     if (include)
+                     {
+                         marked[v] = true;
+                         #pragma omp critical (selected)
+                         {
+                             selected.push_back(v);
+                         }
+                     }
+                     else
+                     {
+                         #pragma omp critical (tmp)
+                         {
+                             tmp.push_back(v);
+                             tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
+                         }
+                     }
+                 });
 
-                if (include)
-                {
-                    marked[v] = true;
-                    #pragma omp critical
-                    {
-                        selected.push_back(v);
-                    }
-                }
-                else
-                {
-                    #pragma omp critical
-                    {
-                        tmp.push_back(v);
-                        tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
-                    }
-                }
-            }
+            parallel_loop
+                (selected,
+                 [&](size_t, auto v)
+                 {
+                     bool include = true;
+                     for (auto u : adjacent_vertices_range(v, g))
+                     {
+                         if (u == v)  //skip self-loops
+                             continue;
+                         if (mvs[u])
+                         {
+                             include = false;
+                             break;
+                         }
 
-            N = selected.size();
-            #pragma omp parallel for default(shared) private(i)
-            for (i = 0; i < N; ++i)
-            {
-                typename graph_traits<Graph>::vertex_descriptor v =
-                    selected[i];
-                bool include = true;
-                typename graph_traits<Graph>::adjacency_iterator a, a_end;
-                for(tie(a, a_end) = adjacent_vertices(v, g); a != a_end; ++a)
-                {
-                    if (*a == v)  //skip self-loops
-                        continue;
-                    if (mvs[*a])
-                    {
-                        include = false;
-                        break;
-                    }
+                         if (marked[u])
+                         {
+                             bool inc = ((high_deg && (out_degree(v, g) >
+                                                       out_degree(u, g))) ||
+                                         (!high_deg && (out_degree(v, g) <
+                                                   out_degree(u, g))));
+                             if (out_degree(v, g) == out_degree(u, g))
+                                 inc = v < u;
+                             include = include && inc;
+                         }
+                     }
 
-                    if (marked[*a])
-                    {
-                        bool inc = ((high_deg && (out_degree(v, g) >
-                                                  out_degree(*a, g))) ||
-                                    (!high_deg && (out_degree(v, g) <
-                                                   out_degree(*a, g))));
-                        if (out_degree(v, g) == out_degree(*a, g))
-                            inc = v < *a;
-                        include = include && inc;
-                    }
-                }
-
-                if (include)
-                {
-                    mvs[v] = true;
-                }
-                else
-                {
-                    #pragma omp critical
-                    tmp.push_back(v);
-                    tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
-                }
-                marked[v] = false;
-            }
+                     if (include)
+                     {
+                         mvs[v] = true;
+                     }
+                     else
+                     {
+                         #pragma omp critical (tmp)
+                         {
+                             tmp.push_back(v);
+                             tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
+                         }
+                     }
+                     marked[v] = false;
+                 });
 
             vlist = tmp;
             max_deg = tmp_max_deg;

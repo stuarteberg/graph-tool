@@ -85,42 +85,34 @@ struct get_global_clustering
     void operator()(const Graph& g, double& c, double& c_err) const
     {
         size_t triangles = 0, n = 0;
-        pair<size_t, size_t> temp;
-
         vector<bool> mask(num_vertices(g), false);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i,temp) \
-            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH) \
-            reduction(+:triangles, n)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            temp = get_triangles(v, mask, g);
-            triangles += temp.first;
-            n += temp.second;
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(mask) reduction(+:triangles, n)
+        parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     auto temp = get_triangles(v, mask, g);
+                     triangles += temp.first;
+                     n += temp.second;
+                 });
         c = double(triangles) / n;
 
         // "jackknife" variance
         c_err = 0.0;
         double cerr = 0.0;
-
-        #pragma omp parallel for default(shared) private(i,temp) \
-            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH) \
-            reduction(+:cerr)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            temp = get_triangles(v, mask, g);
-            double cl = double(triangles - temp.first) / (n - temp.second);
-
-            cerr += power(c - cl, 2);
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(mask) reduction(+:cerr)
+        parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     auto temp = get_triangles(v, mask, g);
+                     double cl = double(triangles - temp.first) /
+                         (n - temp.second);
+                     cerr += power(c - cl, 2);
+                 });
         c_err = sqrt(cerr);
     }
 };
@@ -133,23 +125,20 @@ struct set_clustering_to_property
     {
         typedef typename property_traits<ClustMap>::value_type c_type;
         typename get_undirected_graph<Graph>::type ug(g);
-        int i, N = num_vertices(g);
-
         vector<bool> mask(num_vertices(g), false);
 
-        #pragma omp parallel for default(shared) private(i) \
-            firstprivate(mask) schedule(runtime) if (N > OPENMP_MIN_THRESH)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            auto triangles = get_triangles(v, mask, ug); // get from ug
-            double clustering = (triangles.second > 0) ?
-                double(triangles.first)/triangles.second :
-                0.0;
-            clust_map[v] = c_type(clustering);
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(mask)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 auto triangles = get_triangles(v, mask, ug); // get from ug
+                 double clustering = (triangles.second > 0) ?
+                     double(triangles.first)/triangles.second :
+                     0.0;
+                 clust_map[v] = c_type(clustering);
+             });
     }
 
     template <class Graph>

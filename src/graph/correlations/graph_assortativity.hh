@@ -49,27 +49,23 @@ struct get_assortativity_coefficient
         map_t a, b;
 
         SharedMap<map_t> sa(a), sb(b);
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) firstprivate(sa,sb)\
-            schedule(runtime) if (N > 100) reduction(+:e_kk, n_edges)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
-            val_t k1 = deg(v, g);
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                val_t k2 = deg(target(*e, g), g);
-                if (k1 == k2)
-                    e_kk += c;
-                sa[k1] += c;
-                sb[k2] += c;
-                n_edges += c;
-            }
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) firstprivate(sa, sb) \
+            reduction(+:e_kk, n_edges)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 val_t k1 = deg(v, g);
+                 for (auto w : out_neighbours_range(v, g))
+                 {
+                     val_t k2 = deg(w, g);
+                     if (k1 == k2)
+                         e_kk += c;
+                     sa[k1] += c;
+                     sb[k2] += c;
+                     n_edges += c;
+                 }
+             });
 
         sa.Gather();
         sb.Gather();
@@ -86,30 +82,26 @@ struct get_assortativity_coefficient
         r = (t1 - t2)/(1.0 - t2);
 
         // "jackknife" variance
-        double err = 0.0;
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)\
-            reduction(+:err)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
-            val_t k1 = deg(v, g);
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                val_t k2 = deg(target(*e,g), g);
-                double tl2 = (t2*(n_edges*n_edges) - b[k1] - a[k2])/
-                    ((n_edges-1.)*(n_edges-1.));
-                double tl1 = t1*n_edges;
-                if (k1 == k2)
-                    tl1 -= 1;
-                tl1 /= n_edges - 1;
-                double rl = (tl1 - tl2)/(1.0 - tl2);
-                err += (r-rl)*(r-rl)*c;
-            }
-        }
+        double err = 0;
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:err)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 val_t k1 = deg(v, g);
+                 for (auto w : out_neighbours_range(v, g))
+                 {
+                     val_t k2 = deg(w, g);
+                     double tl2 = (t2 * (n_edges * n_edges) - b[k1] - a[k2]) /
+                         ((n_edges - 1.) * (n_edges - 1.));
+                     double tl1 = t1 * n_edges;
+                     if (k1 == k2)
+                         tl1 -= 1;
+                     tl1 /= n_edges - 1;
+                     double rl = (tl1 - tl2) / (1.0 - tl2);
+                     err += (r - rl) * (r - rl) * c;
+                }
+             });
         r_err = sqrt(err);
     }
 };
@@ -128,30 +120,26 @@ struct get_scalar_assortativity_coefficient
 
         count_t c = (is_directed::apply<Graph>::type::value) ? count_t(1) : count_t(0.5);
         count_t n_edges = 0;
-        double e_xy = 0.0;
-        double a = 0.0, b = 0.0, da = 0.0, db = 0.0;
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) \
-            schedule(runtime) if (N > 100) reduction(+:e_xy,n_edges,a,b,da,db)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+        double e_xy = 0;
+        double a = 0, b = 0, da = 0, db = 0;
 
-            double k1 = double(deg(v, g));
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                double k2 = double(deg(target(*e,g),g));
-                a += k1*c;
-                da += k1*k1*c;
-                b += k2*c;
-                db += k2*k2*c;
-                e_xy += k1*k2*c;
-                n_edges += c;
-            }
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:e_xy,n_edges,a,b,da,db)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 double k1 = double(deg(v, g));
+                 for (auto u : out_neighbours_range(v, g))
+                 {
+                     auto k2 = deg(u, g);
+                     a += k1 * c;
+                     da += k1 * k1 * c;
+                     b += k2 * c;
+                     db += k2 * k2 * c;
+                     e_xy += k1 * k2 * c;
+                     n_edges += c;
+                 }
+             });
 
         double t1 = e_xy/n_edges;
         a /= n_edges;
@@ -168,33 +156,30 @@ struct get_scalar_assortativity_coefficient
         r_err = 0.0;
 
         double err = 0.0;
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)\
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             reduction(+:err)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 double k1 = double(deg(v, g));
+                 double al = (a * n_edges - k1) / (n_edges - 1);
+                 double dal = sqrt((da - k1 * k1) / (n_edges - 1) - al * al);
 
-            double k1 = double(deg(v, g));
-            double al = (a*n_edges - k1)/(n_edges-1);
-            double dal = sqrt((da - k1*k1)/(n_edges-1) - al*al);
-
-            typename graph_traits<Graph>::out_edge_iterator e, e_end;
-            for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
-            {
-                double k2 = double(deg(target(*e, g), g));
-                double bl = (b*n_edges - k2)/(n_edges-1);
-                double dbl = sqrt((db - k2*k2)/(n_edges-1) - bl*bl);
-                double t1l = (e_xy - k1*k2)/(n_edges-1);
-                double rl;
-                if (dal*dbl > 0)
-                    rl = (t1l - al*bl)/(dal*dbl);
-                else
-                    rl = (t1l - al*bl);
-                err += (r-rl)*(r-rl)*c;
-            }
-        }
+                 for (auto u : out_neighbours_range(v, g))
+                 {
+                     double k2 = deg(u, g);
+                     double bl = (b * n_edges - k2) / (n_edges - 1);
+                     double dbl = sqrt((db - k2 * k2) / (n_edges - 1) - bl * bl);
+                     double t1l = (e_xy - k1 * k2)/(n_edges - 1);
+                     double rl;
+                     if (dal * dbl > 0)
+                         rl = (t1l - al * bl)/(dal * dbl);
+                     else
+                         rl = (t1l - al * bl);
+                     err += (r - rl) * (r - rl) * c;
+                 }
+             });
         r_err = sqrt(err);
     }
 };

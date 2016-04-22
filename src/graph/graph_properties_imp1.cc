@@ -41,26 +41,22 @@ struct do_edge_endpoint
         eprop_t eprop = any_cast<eprop_t>(aeprop);
         eprop.reserve(edge_index_range);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i)     \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            for (const auto& e : out_edges_range(v, g))
-            {
-                auto s = v;
-                auto t = target(e, g);
-                if (!is_directed::apply<Graph>::type::value && s > t)
-                    continue;
-                if (src)
-                    eprop[e] = prop[s];
-                else
-                    eprop[e] = prop[t];
-            }
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 for (const auto& e : out_edges_range(v, g))
+                 {
+                     auto s = v;
+                     auto t = target(e, g);
+                     if (!is_directed::apply<Graph>::type::value && s > t)
+                         continue;
+                     if (src)
+                         eprop[e] = prop[s];
+                     else
+                         eprop[e] = prop[t];
+                 }
+             });
     }
 };
 

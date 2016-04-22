@@ -119,16 +119,14 @@ struct get_histogram
         hist_t hist(bin_list);
         SharedHistogram<hist_t> s_hist(hist);
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) \
-            firstprivate(s_hist) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            filler(g, v, deg, s_hist);
-        }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(s_hist)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 filler(g, v, deg, s_hist);
+             });
         s_hist.gather();
 
         bin_list = hist.get_bins();

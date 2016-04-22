@@ -32,33 +32,24 @@ struct get_reciprocity
     {
         size_t L = 0, Lbd = 0;
 
-        int i, NV = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) reduction(+:L,Lbd) \
-            schedule(runtime) if (NV > 100)
-        for (i = 0; i < NV; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-
-            typename graph_traits<Graph>::out_edge_iterator e, e_begin, e_end;
-            tie(e_begin,e_end) = out_edges(v,g);
-            for(e = e_begin; e != e_end; ++e)
-            {
-                typename graph_traits<Graph>::vertex_descriptor t;
-                t = target(*e, g);
-
-                typename graph_traits<Graph>::adjacency_iterator a, a_end;
-                for (tie(a, a_end) = adjacent_vertices(t, g); a != a_end; ++a)
-                    if (*a == v)
-                    {
-                        Lbd += 1;
-                        break;
-                    }
-                L++;
-            }
-        }
-
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            reduction(+: L, Lbd)
+        parallel_edge_loop_no_spawn
+            (g,
+             [&](auto e)
+             {
+                 auto v = source(e, g);
+                 auto t = target(e, g);
+                 for (auto a : adjacent_vertices_range(t, g))
+                 {
+                     if (a == v)
+                     {
+                         Lbd++;
+                         break;
+                     }
+                 }
+                 L++;
+             });
         reciprocity = Lbd / double(L);
     }
 };

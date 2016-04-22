@@ -258,8 +258,8 @@ out_neighbours(typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
 }
 
 template <class BidirectionalGraph, class GRef>
-inline std::pair<typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator,
-                 typename reverse_graph<BidirectionalGraph,GRef>::adjacency_iterator>
+inline std::pair<typename reverse_graph<BidirectionalGraph,GRef>::in_adjacency_iterator,
+                 typename reverse_graph<BidirectionalGraph,GRef>::in_adjacency_iterator>
 in_neighbours(typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
               const reverse_graph<BidirectionalGraph,GRef>& g)
 {

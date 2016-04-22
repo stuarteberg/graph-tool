@@ -195,29 +195,23 @@ struct label_attractors
         const
     {
         typedef typename property_traits<CompMap>::value_type c_type;
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            typename graph_traits<Graph>::vertex_descriptor v =
-                vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
+        parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     c_type c = get(comp_map, v);
+                     if (attr[size_t(c)] == false)
+                         return;
 
-            c_type c = get(comp_map, v);
-            if (attr[size_t(c)] == false)
-                continue;
-
-            typename graph_traits<Graph>::adjacency_iterator a, a_end;
-            for (tie(a, a_end) = adjacent_vertices(v, g); a != a_end; ++a)
-            {
-                if (get(comp_map, *a) != c)
-                {
-                    attr[size_t(c)] = false;
-                    break;
-                }
-            }
-        }
+                     for (auto a : adjacent_vertices_range(v, g))
+                     {
+                         if (get(comp_map, a) != c)
+                         {
+                             attr[size_t(c)] = false;
+                             break;
+                         }
+                     }
+                 });
     }
 };
 

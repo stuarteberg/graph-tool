@@ -306,15 +306,12 @@ struct get_degree_map
         map_t cdeg_map(get(vertex_index, g));
         typename map_t::unchecked_t deg_map = cdeg_map.get_unchecked(num_vertices(g));
 
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            deg_map[v] = deg(v, g, weight);
-        }
+        parallel_vertex_loop
+            (g,
+             [&](auto v)
+             {
+                 deg_map[v] = deg(v, g, weight);
+             });
 
         odeg_map = python::object(PythonPropertyMap<map_t>(cdeg_map));
     }

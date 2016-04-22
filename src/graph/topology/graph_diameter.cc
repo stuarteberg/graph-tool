@@ -102,15 +102,12 @@ struct do_bfs_search
     {
         typedef unchecked_vector_property_map<size_t, VertexIndexMap> dist_map_t;
         dist_map_t dist_map(vertex_index, num_vertices(g));
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            auto v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            dist_map[v] = numeric_limits<size_t>::max();
-        }
+        parallel_vertex_loop
+                (g,
+                 [&](auto v)
+                 {
+                     dist_map[v] = numeric_limits<size_t>::max();
+                 });
         dist_map[vertex(source,g)] = 0;
 
         unchecked_vector_property_map<boost::default_color_type, VertexIndexMap>

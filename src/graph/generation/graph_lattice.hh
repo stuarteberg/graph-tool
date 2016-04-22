@@ -70,8 +70,6 @@ struct get_lattice
             add_vertex(g);
 
         vector<int> pos(shape.size());
-        //#pragma omp parallel for default(shared) private(i) 
-        //    firstprivate(pos) schedule(runtime) if (N > 100)
         for (int i = 0; i < N; ++i)
         {
             get_pos(i, shape, pos);
@@ -86,10 +84,7 @@ struct get_lattice
                     {
                         int m = get_idx(pos, shape);
                         if (m > i)
-                        {
-                            #pragma omp critical
                             add_edge(vertex(i, g), vertex(m, g), g);
-                        }
                     }
                     pos[j] -= k;
                     if (periodic_boundary)

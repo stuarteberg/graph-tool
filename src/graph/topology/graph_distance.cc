@@ -415,24 +415,20 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
 template <class Graph, class Dist, class Pred, class Preds>
 void get_all_preds(Graph g, Dist dist, Pred pred, Preds preds)
 {
-    int i, N = num_vertices(g);
-    #pragma omp parallel for default(shared) private(i)     \
-        schedule(runtime) if (N > 100)
-    for (i = 0; i < N; ++i)
-    {
-        size_t v = vertex(i, g);
-        if (!is_valid_vertex(v, g))
-            continue;
-        if (size_t(pred[v]) == v)
-            continue;
-        auto d = dist[pred[v]];
-        for (auto e : in_or_out_edges_range(v, g))
-        {
-            auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
-            if (dist[u] == d)
-                preds[v].push_back(u);
-        }
-    }
+    parallel_vertex_loop
+        (g,
+         [&](auto v)
+         {
+            if (size_t(pred[v]) == v)
+                return;
+            auto d = dist[pred[v]];
+            for (auto e : in_or_out_edges_range(v, g))
+            {
+                auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
+                if (dist[u] == d)
+                    preds[v].push_back(u);
+            }
+         });
 };
 
 void do_get_all_preds(GraphInterface& gi, boost::any adist,

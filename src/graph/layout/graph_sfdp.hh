@@ -313,142 +313,143 @@ struct get_sfdp_layout
             std::shuffle(vertices.begin(), vertices.end(), rng);
 
             size_t nmoves = 0;
-            int i = 0, N = vertices.size();
             vector<QuadTree<pos_t, vweight_t>*> Q;
-            #pragma omp parallel for default(shared) private(i, Q) \
-                reduction(+:E, delta, nmoves) schedule(runtime) if (N > 100)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(vertices[i], g);
 
-                pos_t diff(2, 0), pos_u(2, 0), ftot(2, 0), cm(2, 0);
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                private(Q) reduction(+:E, delta, nmoves)
+            parallel_loop_no_spawn
+                (vertices,
+                 [&](size_t, auto v)
+                 {
+                     pos_t diff(2, 0), pos_u(2, 0), ftot(2, 0), cm(2, 0);
 
-                // global repulsive forces
-                Q.push_back(&qt);
-                while (!Q.empty())
-                {
-                    auto& q = *Q.back();
-                    Q.pop_back();
+                     // global repulsive forces
+                     Q.push_back(&qt);
+                     while (!Q.empty())
+                     {
+                         auto& q = *Q.back();
+                         Q.pop_back();
 
-                    auto& dleafs = q.get_dense_leafs();
-                    if (!dleafs.empty())
-                    {
-                        for (auto& dleaf : dleafs)
-                        {
-                            val_t d = get_diff(get<0>(dleaf), pos[v], diff);
-                            if (d == 0)
-                                continue;
-                            val_t f = f_r(C, K, p, pos[v], get<0>(dleaf));
-                            f *= get<1>(dleaf) * get(vweight, v);
-                            for (size_t l = 0; l < 2; ++l)
-                                ftot[l] += f * diff[l];
-                        }
-                    }
-                    else
-                    {
-                        double w = q.get_w();
-                        q.get_cm(cm);
-                        double d = get_diff(cm, pos[v], diff);
-                        if (w > theta * d)
-                        {
-                            for (auto& leaf : q.get_leafs())
-                            {
-                                if (leaf.get_count() > 0)
-                                    Q.push_back(&leaf);
-                            }
-                        }
-                        else
-                        {
-                            if (d > 0)
-                            {
-                                val_t f = f_r(C, K, p, cm, pos[v]);
-                                f *= q.get_count() * get(vweight, v);
-                                for (size_t l = 0; l < 2; ++l)
-                                    ftot[l] += f * diff[l];
-                            }
-                        }
-                    }
-                }
+                         auto& dleafs = q.get_dense_leafs();
+                         if (!dleafs.empty())
+                         {
+                             for (auto& dleaf : dleafs)
+                             {
+                                 val_t d = get_diff(get<0>(dleaf), pos[v], diff);
+                                 if (d == 0)
+                                     continue;
+                                 val_t f = f_r(C, K, p, pos[v], get<0>(dleaf));
+                                 f *= get<1>(dleaf) * get(vweight, v);
+                                 for (size_t l = 0; l < 2; ++l)
+                                     ftot[l] += f * diff[l];
+                             }
+                         }
+                         else
+                         {
+                             double w = q.get_w();
+                             q.get_cm(cm);
+                             double d = get_diff(cm, pos[v], diff);
+                             if (w > theta * d)
+                             {
+                                 for (auto& leaf : q.get_leafs())
+                                 {
+                                     if (leaf.get_count() > 0)
+                                         Q.push_back(&leaf);
+                                 }
+                             }
+                             else
+                             {
+                                 if (d > 0)
+                                 {
+                                     val_t f = f_r(C, K, p, cm, pos[v]);
+                                     f *= q.get_count() * get(vweight, v);
+                                     for (size_t l = 0; l < 2; ++l)
+                                         ftot[l] += f * diff[l];
+                                 }
+                             }
+                         }
+                     }
 
-                // local attractive forces
-                auto& pos_v = pos[v];
-                for (auto e : out_edges_range(v, g))
-                {
-                    auto u = target(e, g);
-                    if (u == v)
-                        continue;
-                    pos_u = pos[u];
-                    get_diff(pos_u, pos_v, diff);
-                    val_t f = f_a(K, pos_u, pos_v);
-                    f *= get(eweight, e) * get(vweight, u) * get(vweight, v);
-                    for (size_t l = 0; l < 2; ++l)
-                        ftot[l] += f * diff[l];
-                }
+                     // local attractive forces
+                     auto& pos_v = pos[v];
+                     for (auto e : out_edges_range(v, g))
+                     {
+                         auto u = target(e, g);
+                         if (u == v)
+                             continue;
+                         pos_u = pos[u];
+                         get_diff(pos_u, pos_v, diff);
+                         val_t f = f_a(K, pos_u, pos_v);
+                         f *= get(eweight, e) * get(vweight, u) * get(vweight, v);
+                         for (size_t l = 0; l < 2; ++l)
+                             ftot[l] += f * diff[l];
+                     }
 
-                // inter-group attractive forces
-                if (gamma > 0)
-                {
-                    for (size_t s = 0; s < group_cm.size(); ++s)
-                    {
-                        if (group_size[s] == 0)
+                     // inter-group attractive forces
+                     if (gamma > 0)
+                     {
+                         for (size_t s = 0; s < group_cm.size(); ++s)
+                         {
+                             if (group_size[s] == 0)
+                                 continue;
+                             if (s == size_t(group[v]))
+                                 continue;
+                             val_t d = get_diff(group_cm[s], pos[v], diff);
+                             if (d == 0)
+                                 continue;
+                             double Kp = K * power(HN, 2);
+                             val_t f = f_a(Kp, group_cm[s], pos[v]) * gamma * \
+                                 group_size[s] * get(vweight, v);
+                             for (size_t l = 0; l < 2; ++l)
+                                 ftot[l] += f * diff[l];
+                         }
+                     }
+
+                     // inter-group repulsive forces
+                     if (gamma < 0)
+                     {
+                         for (size_t s = 0; s < group_cm.size(); ++s)
+                         {
+                             if (group_size[s] == 0)
+                                 continue;
+                             if (s == size_t(group[v]))
+                                 continue;
+                             val_t d = get_diff(group_cm[s], pos[v], diff);
+                             if (d == 0)
                             continue;
-                        if (s == size_t(group[v]))
-                            continue;
-                        val_t d = get_diff(group_cm[s], pos[v], diff);
-                        if (d == 0)
-                            continue;
-                        double Kp = K * power(HN, 2);
-                        val_t f = f_a(Kp, group_cm[s], pos[v]) * gamma * \
-                            group_size[s] * get(vweight, v);
-                        for (size_t l = 0; l < 2; ++l)
-                            ftot[l] += f * diff[l];
-                    }
-                }
+                             val_t f = f_r(C, K, p, cm, pos[v]);
+                             f *= group_size[s] * get(vweight, v) * abs(gamma);
+                             for (size_t l = 0; l < 2; ++l)
+                                 ftot[l] += f * diff[l];
+                         }
+                     }
 
-                // inter-group repulsive forces
-                if (gamma < 0)
-                {
-                    for (size_t s = 0; s < group_cm.size(); ++s)
-                    {
-                        if (group_size[s] == 0)
-                            continue;
-                        if (s == size_t(group[v]))
-                            continue;
-                        val_t d = get_diff(group_cm[s], pos[v], diff);
-                        if (d == 0)
-                            continue;
-                        val_t f = f_r(C, K, p, cm, pos[v]);
-                        f *= group_size[s] * get(vweight, v) * abs(gamma);
-                        for (size_t l = 0; l < 2; ++l)
-                            ftot[l] += f * diff[l];
-                    }
-                }
+                     // intra-group attractive forces
+                     if (mu > 0 && group_size[group[v]] > 1)
+                     {
+                         val_t d = get_diff(group_cm[group[v]], pos[v], diff);
+                         if (d > 0)
+                         {
+                             double Kp = K * pow(double(group_size[group[v]]), mu_p);
+                             val_t f = f_a(Kp, group_cm[group[v]], pos[v]) * mu * \
+                                 group_size[group[v]] * get(vweight, v);
+                             for (size_t l = 0; l < 2; ++l)
+                                 ftot[l] += f * diff[l];
+                         }
+                     }
 
-                // intra-group attractive forces
-                if (mu > 0 && group_size[group[v]] > 1)
-                {
-                    val_t d = get_diff(group_cm[group[v]], pos[v], diff);
-                    if (d > 0)
-                    {
-                        double Kp = K * pow(double(group_size[group[v]]), mu_p);
-                        val_t f = f_a(Kp, group_cm[group[v]], pos[v]) * mu * \
-                            group_size[group[v]] * get(vweight, v);
-                        for (size_t l = 0; l < 2; ++l)
-                            ftot[l] += f * diff[l];
-                    }
-                }
+                     E += power(norm(ftot), 2);
 
-                E += power(norm(ftot), 2);
+                     for (size_t l = 0; l < 2; ++l)
+                     {
+                         ftot[l] *= step;
+                         pos[v][l] += ftot[l];
+                     }
 
-                for (size_t l = 0; l < 2; ++l)
-                {
-                    ftot[l] *= step;
-                    pos[v][l] += ftot[l];
-                }
+                     delta += norm(ftot);
+                     nmoves++;
+                 });
 
-                delta += norm(ftot);
-                nmoves++;
-            }
             n_iter++;
             delta /= nmoves;
 

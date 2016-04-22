@@ -179,17 +179,25 @@ void graph_copy(const GraphOrig& g, GraphTarget& gt)
 // ==============
 
 template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
-void parallel_vertex_loop(const Graph& g, F&& f)
+void parallel_vertex_loop_no_spawn(const Graph& g, F&& f)
 {
-    size_t i, N = num_vertices(g);
-    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
-        if (N > thres)
-    for (i = 0; i < N; ++i)
+    size_t N = num_vertices(g);
+    #pragma omp for schedule(runtime)
+    for (size_t i = 0; i < N; ++i)
     {
         auto v = vertex(i, g);
         if (!is_valid_vertex(v, g))
             continue;
         f(v);
+    }
+}
+
+template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_vertex_loop(const Graph& g, F&& f)
+{
+    #pragma omp parallel if (num_vertices(g) > thres)
+    {
+        parallel_vertex_loop_no_spawn<Graph, F, thres>(g, std::forward<F>(f));
     }
 }
 
@@ -202,7 +210,7 @@ const auto& get_dir(const Graph& g, std::false_type)
 { return g.original_graph(); }
 
 template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
-void parallel_edge_loop(const Graph& g, F&& f)
+void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
 {
     auto& u = get_dir(g, typename is_directed::apply<Graph>::type());
     typedef typename std::remove_const
@@ -215,18 +223,36 @@ void parallel_edge_loop(const Graph& g, F&& f)
              for (auto e : out_edges_range(v, u))
                  f(e);
         };
-    typedef typename std::remove_reference<decltype(dispatch)>::type dispatch_t;
-    parallel_vertex_loop<graph_t, dispatch_t&, thres>(u, dispatch);
+    typedef decltype(dispatch) dispatch_t;
+    parallel_vertex_loop_no_spawn<graph_t, dispatch_t&, thres>(u, dispatch);
+}
+
+template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_edge_loop(const Graph& g, F&& f)
+{
+    #pragma omp parallel if (num_vertices(g) > thres)
+    {
+        parallel_edge_loop_no_spawn<Graph, F, thres>(g, std::forward<F>(f));
+    }
 }
 
 template <class Container, class F, size_t thres = OPENMP_MIN_THRESH>
-void parallel_loop(Container& v, F&& f)
+void parallel_loop_no_spawn(Container&& v, F&& f)
 {
-    size_t i, N = v.size();
-    #pragma omp parallel for default(shared) private(i) schedule(runtime)      \
-        if (N > thres)
-    for (i = 0; i < N; ++i)
-        f(v[i]);
+    size_t N = v.size();
+    #pragma omp for schedule(runtime)
+    for (size_t i = 0; i < N; ++i)
+        f(i, v[i]);
+}
+
+template <class Container, class F, size_t thres = OPENMP_MIN_THRESH>
+void parallel_loop(Container&& v, F&& f)
+{
+    #pragma omp parallel if (v.size() > thres)
+    {
+        parallel_loop_no_spawn<Container, F, thres>(std::forward<Container>(v),
+                                                    std::forward<F>(f));
+    }
 }
 
 } // namespace graph_tool

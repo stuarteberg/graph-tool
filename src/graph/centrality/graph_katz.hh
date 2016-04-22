@@ -54,7 +54,10 @@ struct get_katz
         size_t iter = 0;
         while (delta >= epsilon)
         {
-            parallel_vertex_loop
+            delta = 0;
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:delta)
+            parallel_vertex_loop_no_spawn
                 (g,
                  [&](auto v)
                  {
@@ -68,19 +71,8 @@ struct get_katz
                              s = target(e, g);
                          c_temp[v] += alpha * get(w, e) * c[s];
                      }
+                     delta += abs(c_temp[v] - c[v]);
                  });
-
-            delta = 0;
-            size_t i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100) reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                delta += abs(c_temp[v] - c[v]);
-            }
             swap(c_temp, c);
 
             ++iter;

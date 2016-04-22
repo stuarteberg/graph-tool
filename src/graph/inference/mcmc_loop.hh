@@ -65,7 +65,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
         else
         {
             parallel_loop(vlist,
-                          [&](auto v)
+                          [&](size_t, auto v)
                           {
                               best_move[v] =
                                   std::make_pair(state.node_state(v),
@@ -73,73 +73,64 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
                           });
         }
 
-        size_t i = 0, N = vlist.size();
-        #pragma omp parallel for default(shared) private(i)                    \
-            firstprivate(state)                                                \
-            schedule(runtime) if (state._parallel)
-        for (i = 0; i < N; ++i)
-        {
-            auto& rng = get_rng(rngs, rng_);
+        #pragma omp parallel firstprivate(state) if (state._parallel)
+        parallel_loop_no_spawn
+            (vlist,
+             [&](size_t, auto v)
+             {
+                 auto& rng = get_rng(rngs, rng_);
 
-            size_t v;
-            if (state._sequential)
-            {
-                v = vertex(vlist[i], g);
-            }
-            else
-            {
-                std::uniform_int_distribution<size_t> v_rand(0, N - 1);
-                v = vertex(vlist[v_rand(rng)], g);
-            }
+                 if (!state._sequential)
+                     v = uniform_sample(vlist, rng);
 
-            if (state.node_weight(v) == 0)
-                continue;
+                 if (state.node_weight(v) == 0)
+                     return;
 
-            auto r = state.node_state(v);
-            auto s = state.move_proposal(v, rng);
+                 auto r = state.node_state(v);
+                 auto s = state.move_proposal(v, rng);
 
-            if (s == r)
-                continue;
+                 if (s == r)
+                     return;
 
-            std::pair<double, double> dS = state.virtual_move_dS(v, s);
+                 std::pair<double, double> dS = state.virtual_move_dS(v, s);
 
-            bool accept = false;
-            if (std::isinf(beta))
-            {
-                accept = dS.first < 0;
-            }
-            else
-            {
-                double a = -dS.first * beta + dS.second;
-                if (a > 0)
-                {
-                    accept = true;
-                }
-                else
-                {
-                    typedef std::uniform_real_distribution<> rdist_t;
-                    double sample = rdist_t()(rng);
-                    accept = sample < exp(a);
-                }
-            }
+                 bool accept = false;
+                 if (std::isinf(beta))
+                 {
+                     accept = dS.first < 0;
+                 }
+                 else
+                 {
+                     double a = -dS.first * beta + dS.second;
+                     if (a > 0)
+                     {
+                         accept = true;
+                     }
+                     else
+                     {
+                         typedef std::uniform_real_distribution<> rdist_t;
+                         double sample = rdist_t()(rng);
+                         accept = sample < exp(a);
+                     }
+                 }
 
-            if (accept)
-            {
-                if (!state._parallel)
-                {
-                    state.perform_move(v, s);
-                    nmoves += state.node_weight(v);
-                    S += dS.first;
-                }
-                else
-                {
-                    best_move[v].first = s;
-                    best_move[v].second = dS.first;
-                }
-                if (state._verbose)
-                    cout << v << ": " << r << " -> " << s << " " << S << endl;
-            }
-        }
+                 if (accept)
+                 {
+                     if (!state._parallel)
+                     {
+                         state.perform_move(v, s);
+                         nmoves += state.node_weight(v);
+                         S += dS.first;
+                     }
+                     else
+                     {
+                         best_move[v].first = s;
+                         best_move[v].second = dS.first;
+                     }
+                     if (state._verbose)
+                         cout << v << ": " << r << " -> " << s << " " << S << endl;
+                 }
+             });
 
         if (state._parallel)
         {

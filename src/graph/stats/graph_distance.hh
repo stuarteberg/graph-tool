@@ -79,35 +79,32 @@ struct get_distance_histogram
 
         typename hist_t::point_t point;
         get_vertex_dists_t get_vertex_dists;
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i,point) \
-            firstprivate(s_hist) schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-        {
-            vertex_t v = vertex(i, g);
-            if (!is_valid_vertex(v, g))
-                continue;
-            unchecked_vector_property_map<val_type,VertexIndex>
-                dist_map(vertex_index, num_vertices(g));
 
-            for (size_t j = 0; j < size_t(N); ++j)
-            {
-                if (!is_valid_vertex(vertex(j, g), g))
-                    dist_map[vertex(j,g)] =  numeric_limits<val_type>::max();
-            }
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(s_hist)
+        parallel_vertex_loop_no_spawn
+            (g,
+             [&](auto v)
+             {
+                 unchecked_vector_property_map<val_type,VertexIndex>
+                     dist_map(vertex_index, num_vertices(g));
 
-            dist_map[v] = 0;
-            get_vertex_dists(g, v, vertex_index, dist_map, weights);
+                 for (auto u : vertices_range(g))
+                     dist_map[u] = numeric_limits<val_type>::max();
 
-            typename graph_traits<Graph>::vertex_iterator v2, v_end;
-            for (tie(v2, v_end) = vertices(g); v2 != v_end; ++v2)
-                if (*v2 != v &&
-                    dist_map[*v2] != numeric_limits<val_type>::max())
-                {
-                    point[0] = dist_map[*v2];
-                    s_hist.put_value(point);
-                }
-        }
+                 dist_map[v] = 0;
+                 get_vertex_dists(g, v, vertex_index, dist_map, weights);
+
+                 for (auto v2 : vertices_range(g))
+                 {
+                     if (v2 != v &&
+                         dist_map[v2] != numeric_limits<val_type>::max())
+                     {
+                         point[0] = dist_map[v2];
+                         s_hist.put_value(point);
+                     }
+                 }
+             });
         s_hist.gather();
 
         python::list ret;

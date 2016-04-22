@@ -68,52 +68,50 @@ struct get_hits
         while (delta >= epsilon)
         {
             x_norm = 0, y_norm=0;
-            size_t i, N = num_vertices(g);
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100) reduction(+:x_norm, y_norm)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
 
-                x_temp[v] = 0;
-                for (const auto& ie : in_or_out_edges_range(v, g))
-                {
-                    typename graph_traits<Graph>::vertex_descriptor s;
-                    if (is_directed::apply<Graph>::type::value)
-                        s = source(ie, g);
-                    else
-                        s = target(ie, g);
-                    x_temp[v] += get(w, ie) * y[s];
-                }
-                x_norm += power(x_temp[v], 2);
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:x_norm, y_norm)
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     x_temp[v] = 0;
+                     for (const auto& ie : in_or_out_edges_range(v, g))
+                     {
+                         typename graph_traits<Graph>::vertex_descriptor s;
+                         if (is_directed::apply<Graph>::type::value)
+                             s = source(ie, g);
+                         else
+                             s = target(ie, g);
+                         x_temp[v] += get(w, ie) * y[s];
+                     }
+                     x_norm += power(x_temp[v], 2);
 
-                y_temp[v] = 0;
+                     y_temp[v] = 0;
 
-                for (const auto& e : out_edges_range(v, g))
-                {
-                    auto s = target(e, g);
-                    y_temp[v] += get(w, e) * x[s];
-                }
-                y_norm += power(y_temp[v], 2);
-            }
+                     for (const auto& e : out_edges_range(v, g))
+                     {
+                         auto s = target(e, g);
+                         y_temp[v] += get(w, e) * x[s];
+                     }
+                     y_norm += power(y_temp[v], 2);
+                 });
+
             x_norm = sqrt(x_norm);
             y_norm = sqrt(y_norm);
 
             delta = 0;
-            #pragma omp parallel for default(shared) private(i) \
-                schedule(runtime) if (N > 100) reduction(+:delta)
-            for (i = 0; i < N; ++i)
-            {
-                auto v = vertex(i, g);
-                if (!is_valid_vertex(v, g))
-                    continue;
-                x_temp[v] /= x_norm;
-                y_temp[v] /= y_norm;
-                delta += abs(x_temp[v] - x[v]);
-                delta += abs(y_temp[v] - y[v]);
-            }
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:delta)
+            parallel_vertex_loop_no_spawn
+                (g,
+                 [&](auto v)
+                 {
+                     x_temp[v] /= x_norm;
+                     y_temp[v] /= y_norm;
+                     delta += abs(x_temp[v] - x[v]);
+                     delta += abs(y_temp[v] - y[v]);
+                 });
+
             swap(x_temp, x);
             swap(y_temp, y);
 
