@@ -197,7 +197,7 @@ def planar_layout(g, pos=None):
 
     References
     ----------
-    .. [straight-line-boost] http://www.boost.org/doc/libs/graph/doc/straight_line_drawing.html
+    .. [straight-line-boost] http://www.boost.org/doc/libs/release/libs/graph/doc/straight_line_drawing.html
     .. [chrobak-linear-1995] M. Chrobak, T. Payne, "A Linear-time Algorithm for
        Drawing a Planar Graph on the Grid", Information Processing Letters 54:
        241-246, (1995), :doi:`10.1016/0020-0190(95)00020-D`
