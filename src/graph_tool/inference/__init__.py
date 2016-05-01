@@ -25,8 +25,8 @@
 This module contains algorithms for the identification of large-scale network
 structure via the statistical inference of generative models.
 
-Bayesian stochastic block model inference
-+++++++++++++++++++++++++++++++++++++++++
+Nonparametric stochastic block model inference
+++++++++++++++++++++++++++++++++++++++++++++++
 
 High-level functions
 ====================
@@ -73,8 +73,8 @@ Auxiliary functions
    half_edge_graph
    get_block_edge_gradient
 
-Semi-Bayesian stochastic block model inference
-++++++++++++++++++++++++++++++++++++++++++++++
+Semiparametric stochastic block model inference
++++++++++++++++++++++++++++++++++++++++++++++++
 
 State classes
 =============
