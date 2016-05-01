@@ -93,7 +93,7 @@ if sys.version_info < (3,):
     range = xrange
 
 from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, \
-    perfect_prop_hash
+    perfect_prop_hash, inference
 import random
 import sys
 
