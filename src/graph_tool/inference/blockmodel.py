@@ -214,6 +214,8 @@ class BlockState(object):
         self.ignore_degrees = extract_arg(kwargs, "ignore_degrees", None)
         if self.ignore_degrees is None:
             self.ignore_degrees = g.new_vp("bool", False)
+        else:
+            self.ignore_degrees = self.ignore_degrees.copy("bool")
 
         self.merge_map = extract_arg(kwargs, "merge_map",
                                      self.g.vertex_index.copy("int"))
@@ -283,7 +285,7 @@ class BlockState(object):
                      pclabel=self.pclabel,
                      deg_corr=self.deg_corr,
                      max_BE=self.max_BE,
-                     ignore_degrees=self.ignore_degrees,
+                     ignore_degrees=self.ignore_degrees.copy("int"),
                      degs=self.degs if not isinstance(self.degs,
                                                       libinference.simple_degs_t) else None,
                      merge_map=self.merge_map)
