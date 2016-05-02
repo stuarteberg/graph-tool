@@ -963,8 +963,8 @@ public:
     {
         if (_ignore_degrees[v] == 1)
             return 0;
-        auto kin = in_degreeS()(v, _g);
-        auto kout = out_degreeS()(v, _g);
+        auto kin = in_degreeS()(v, _g, _eweight);
+        auto kout = out_degreeS()(v, _g, _eweight);
         if (_ignore_degrees[v] == 2)
             kout = 0;
         double S = -lgamma_fast(kin + 1) - lgamma_fast(kout + 1);

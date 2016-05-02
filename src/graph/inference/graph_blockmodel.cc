@@ -39,12 +39,12 @@ python::object make_block_state(boost::python::object ostate,
     return state;
 }
 
-degs_map_t get_block_degs(GraphInterface& gi, boost::any ab)
+degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
 {
     degs_map_t degs;
     vmap_t b = boost::any_cast<vmap_t>(ab);
     run_action<>()(gi,
-                   [&](auto& g)
+                   [&](auto& g, auto& eweight)
                    {
                        std::vector<gt_hash_map<std::tuple<size_t, size_t>,
                                                size_t>> hist;
@@ -53,8 +53,8 @@ degs_map_t get_block_degs(GraphInterface& gi, boost::any ab)
                            size_t r = b[v];
                            if (r >= hist.size())
                                hist.resize(r + 1);
-                           size_t kin = in_degreeS()(v, g);
-                           size_t kout = out_degreeS()(v, g);
+                           size_t kin = in_degreeS()(v, g, eweight);
+                           size_t kout = out_degreeS()(v, g, eweight);
                            hist[r][std::make_tuple(kin, kout)]++;
                        }
 
@@ -66,7 +66,8 @@ degs_map_t get_block_degs(GraphInterface& gi, boost::any ab)
                                                 get<1>(kn.first),
                                                 kn.second);
                        }
-                   })();
+                   },
+                   eweight_tr())(aweight);
     return degs;
 }
 

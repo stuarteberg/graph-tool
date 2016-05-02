@@ -303,7 +303,8 @@ class BlockState(object):
         if deg_corr and vweight:
             if isinstance(self.degs, libinference.simple_degs_t):
                 degs = libinference.get_block_degs(self.g._Graph__graph,
-                                                   _prop("v", self.g, self.b))
+                                                   _prop("v", self.g, self.b),
+                                                   self.eweight._get_any())
             else:
                 degs = libinference.get_weighted_block_degs(self.g._Graph__graph,
                                                             self.degs,
