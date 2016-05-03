@@ -1804,8 +1804,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
                                                     _prop("v", g, prop),
                                                     _prop("v", gp, cprop),
                                                     _prop("e", g, eweight),
-                                                    aep,
-                                                    self_loops)
+                                                    aep)
     return gp, cprop, vcount, ecount, r_avp, r_aep
 
 class Sampler(libgraph_tool_generation.Sampler):

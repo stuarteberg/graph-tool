@@ -111,8 +111,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
 void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
                             boost::any community_property,
                             boost::any condensed_community_property,
-                            boost::any eweight, boost::python::list aeprops,
-                            bool self_loops);
+                            boost::any eweight, boost::python::list aeprops);
 
 using namespace boost::python;
 

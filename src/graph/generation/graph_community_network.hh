@@ -261,10 +261,9 @@ struct get_weighted_edge_property
 struct get_edge_community_property_sum
 {
     template <class Graph, class CommunityGraph, class CommunityMap,
-              class CCommunityMap, class Eprop>
+              class CCommunityMap, class Eprop, class CEprop>
     void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    CCommunityMap cs_map, Eprop eprop, Eprop ceprop,
-                    bool self_loops) const
+                    CCommunityMap cs_map, Eprop eprop, CEprop ceprop) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
         typedef typename graph_traits<CommunityGraph>::vertex_descriptor
@@ -292,11 +291,12 @@ struct get_edge_community_property_sum
         {
             cvertex_t cs = comms[get(s_map, source(e, g))];
             cvertex_t ct = comms[get(s_map, target(e, g))];
-            if (cs == ct && !self_loops)
-                continue;
             auto& ces = comm_edges[make_pair(cs, ct)];
+            if (ces.empty())
+                continue;
             ceprop[ces.back()] += eprop[e];
-            ces.pop_back();
+            if (ces.size() > 1)
+                ces.pop_back();
         }
     }
 };

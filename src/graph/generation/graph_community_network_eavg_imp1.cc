@@ -41,22 +41,18 @@ struct get_edge_sum_dispatch
     template <class Graph, class CommunityGraph, class CommunityMap,
               class Eprop>
     void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    boost::any acs_map, Eprop eprop, boost::any aceprop,
-                    bool self_loops) const
+                    boost::any acs_map, Eprop eprop, boost::any aceprop) const
     {
         typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
         typename Eprop::checked_t ceprop = boost::any_cast<typename Eprop::checked_t>(aceprop);
-        get_edge_community_property_sum()(g, cg, s_map, cs_map.get_unchecked(num_vertices(cg)),
-                                          eprop, ceprop.get_unchecked(num_edges(cg)),
-                                          self_loops);
+        get_edge_community_property_sum()(g, cg, s_map, cs_map, eprop, ceprop);
     }
 };
 
 void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                 boost::any community_property,
                 boost::any condensed_community_property,
-                boost::any ceprop, boost::any eprop,
-                bool self_loops)
+                boost::any ceprop, boost::any eprop)
 {
     typedef boost::mpl::insert_range<writable_edge_scalar_properties,
                                      boost::mpl::end<writable_edge_scalar_properties>::type,
@@ -69,8 +65,8 @@ void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
         (gi, std::bind(get_edge_sum_dispatch(),
                        std::placeholders::_1, std::ref(cgi.get_graph()),
                        std::placeholders::_2,
-                       condensed_community_property, std::placeholders::_3, ceprop,
-                       self_loops),
+                       condensed_community_property, std::placeholders::_3,
+                       ceprop),
          writable_vertex_properties(), eprops_t())
         (community_property, eprop);
 }
