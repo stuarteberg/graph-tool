@@ -56,6 +56,9 @@ typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
     ((pclabel,, vmap_t, 0))                                                    \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
+    ((use_waiting,, bool, 0))                                                  \
+    ((vtfield,, vprop_map_t<double>::type, 0))                                 \
+    ((btfield,, vprop_map_t<double>::type, 0))                                 \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
@@ -795,6 +798,22 @@ public:
                 dS += ps.get_delta_edges_dl(v, r, nr, _vweight, _g);
         }
 
+        if (_use_waiting && (r != nr) && _ignore_degrees[v] > 0)
+        {
+            double dt = _vtfield[v];
+            int k = out_degreeS()(v, _g, _eweight);
+            if (_mrp[r] > 0)
+                dS -= _mrp[r] * log(_btfield[r]) - lgamma_fast(_mrp[r]);
+            if (_mrp[nr] > 0)
+                dS -= _mrp[nr] * log(_btfield[nr]) - lgamma_fast(_mrp[nr]);
+            if (_mrp[r] > k)
+                dS += (_mrp[r] - k) * log(_btfield[r] - dt)
+                    - lgamma_fast(_mrp[r] - k);
+            if (_mrp[nr] + k > 0)
+                dS += (_mrp[nr] + k) * log(_btfield[nr] + dt)
+                    - lgamma_fast(_mrp[nr] + k);
+        }
+
         return dS;
     }
 
@@ -1053,10 +1072,19 @@ public:
 
     double entropy(bool dense, bool multigraph, bool deg_entropy)
     {
+        double S = 0;
         if (dense)
-            return dense_entropy(multigraph);
+            S = dense_entropy(multigraph);
         else
-            return sparse_entropy(multigraph, deg_entropy);
+            S = sparse_entropy(multigraph, deg_entropy);
+
+        if (_use_waiting)
+        {
+            for (auto r : vertices_range(_bg))
+                if (_btfield[r] > 0)
+                    S += _mrp[r] * log(_btfield[r]) - lgamma_fast(_mrp[r]);
+        }
+        return S;
     }
 
     double get_partition_dl()
