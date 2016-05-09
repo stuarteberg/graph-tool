@@ -49,7 +49,7 @@ auto merge_sweep(MergeState state, RNG& rng_)
     std::vector<merge_t>
         best_merge(*std::max_element(state._available.begin(),
                                      state._available.end()) + 1,
-                   make_tuple(0, 0,
+                   make_tuple(size_t(0), size_t(0),
                               numeric_limits<double>::max()));
 
     #pragma omp parallel firstprivate(state) if (state._parallel)

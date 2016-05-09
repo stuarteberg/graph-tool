@@ -126,9 +126,9 @@ auto get_degs(size_t v, Vprop& vweight, Eprop& eweight, const simple_degs_t&,
               Graph& g)
 {
     std::array<std::tuple<size_t, size_t, size_t>, 1>
-        degs {{make_tuple(in_degreeS()(v, g, eweight),
-                          out_degreeS()(v, g, eweight),
-                          vweight[v])}};
+        degs {{make_tuple(size_t(in_degreeS()(v, g, eweight)),
+                          size_t(out_degreeS()(v, g, eweight)),
+                          size_t(vweight[v]))}};
     return degs;
 }
 
