@@ -1439,18 +1439,18 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     if source is not None:
         pmap = g.copy_property(u.vertex_index, value_type="int64_t")
-        libgraph_tool_topology.get_dists(g._Graph__graph,
+        libgraph_tool_topology.get_dists(u._Graph__graph,
                                          int(source),
                                          target,
-                                         _prop("v", g, dist_map),
-                                         _prop("e", g, weights),
-                                         _prop("v", g, pmap),
+                                         _prop("v", u, dist_map),
+                                         _prop("e", u, weights),
+                                         _prop("v", u, pmap),
                                          float(max_dist),
                                          negative_weights)
     else:
         libgraph_tool_topology.get_all_dists(u._Graph__graph,
-                                             _prop("v", g, dist_map),
-                                             _prop("e", g, weights), dense)
+                                             _prop("v", u, dist_map),
+                                             _prop("e", u, weights), dense)
 
     if source is not None and len(target) > 0:
         if len(target) == 1:
