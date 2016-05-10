@@ -704,6 +704,7 @@ struct get_augmented_overlap
             {
                 idx = pos;
                 idx_map[br] = pos++;
+                idx_rmap.push_back(br);
             }
             br_map[v] = idx;
         }
