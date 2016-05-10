@@ -693,7 +693,7 @@ struct get_augmented_overlap
         for (auto v : vertices_range(g))
         {
             size_t vi = node_index[v];
-            auto br = std::make_tuple(b[v], vi);
+            auto br = std::make_tuple(int(b[v]), int(vi));
             size_t idx;
             auto iter = idx_map.find(br);
             if (iter != idx_map.end())
@@ -704,7 +704,6 @@ struct get_augmented_overlap
             {
                 idx = pos;
                 idx_map[br] = pos++;
-                idx_rmap.push_back(br);
             }
             br_map[v] = idx;
         }
