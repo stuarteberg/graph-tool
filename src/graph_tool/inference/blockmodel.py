@@ -239,7 +239,7 @@ class BlockState(object):
             self.btfield = self.bg.degree_property_map("out", self.bg.ep.dt)
             tokens = self.ignore_degrees.fa == 0
             token_groups = bincount(self.b.fa[tokens]) > 0
-            token_groups = token_groups.resize(self.bg.num_vertices())
+            token_groups.resize(self.bg.num_vertices())
             self.btfield.a[token_groups] = 0
         else:
             self.vtfield = self.g.new_vp("double")
