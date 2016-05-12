@@ -49,14 +49,14 @@ def _bm_test():
     global __test__
     return __test__
 
-def get_block_graph(g, B, b, vcount=None, ecount=None, edt=None):
+def get_block_graph(g, B, b, vcount=None, ecount=None, ecov=None):
     if isinstance(ecount, libinference.unity_eprop_t):
         ecount = None
     if isinstance(vcount, libinference.unity_vprop_t):
         vcount = None
     aeprops = []
-    if edt is not None:
-        aeprops.append(edt)
+    if ecov is not None:
+        aeprops.append(ecov)
     cg, br, vcount, ecount, av, ae = condensation_graph(g, b,
                                                         vweight=vcount,
                                                         eweight=ecount,
@@ -64,8 +64,8 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, edt=None):
                                                         self_loops=True)
     cg.vp.count = vcount
     cg.ep.count = ecount
-    if edt is not None:
-        cg.ep.dt = ae[0]
+    if ecov is not None:
+        cg.ep.ecov = ae[0]
         del ae[0]
 
     cg = Graph(cg, vorder=br)
@@ -105,9 +105,9 @@ class BlockState(object):
         the block graph. Otherwise a dense matrix will be used.
     """
 
-    def __init__(self, g, eweight=None, vweight=None, b=None, B=None,
-                 clabel=None, pclabel=None, deg_corr=True, max_BE=1000,
-                 **kwargs):
+    def __init__(self, g, eweight=None, vweight=None, b=None, B=None, ecov=None,
+                 ecov_type=None, clabel=None, pclabel=None, deg_corr=True,
+                 max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
@@ -170,7 +170,7 @@ class BlockState(object):
 
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, self.vweight, self.eweight,
-                                  edt=kwargs.get("edt", None))
+                                  ecov=ecov)
         self.bg.set_fast_edge_removal()
 
         self.mrs = self.bg.ep["count"]
@@ -232,18 +232,17 @@ class BlockState(object):
         self.block_list = Vector_size_t()
         self.block_list.extend(arange(self.B, dtype="int"))
 
-        self.edt = extract_arg(kwargs, "edt", None)
-        self.use_waiting = self.edt is not None
-        if self.use_waiting:
-            self.vtfield = self.g.degree_property_map("out", self.edt)
-            self.btfield = self.bg.degree_property_map("out", self.bg.ep.dt)
+        self.ecov = ecov
+        self.ecov_type = 3 if self.ecov is not None else 0
+        if self.ecov_type == 3: # waiting times
+            self.bcovsum = self.bg.degree_property_map("out", self.bg.ep.ecov)
             tokens = self.ignore_degrees.fa == 0
             token_groups = bincount(self.b.fa[tokens]) > 0
             token_groups.resize(self.bg.num_vertices())
-            self.btfield.a[token_groups] = 0
+            self.bcovsum.a[token_groups] = 0
         else:
-            self.vtfield = self.g.new_vp("double")
-            self.btfield = self.bg.new_vp("double")
+            self.ecov = self.g.new_ep("double")
+            self.bcovsum = self.bg.new_vp("double")
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
@@ -284,7 +283,7 @@ class BlockState(object):
                                ignore_degrees=kwargs.pop("ignore_degrees", self.ignore_degrees),
                                degs=self.degs.copy(),
                                merge_map=kwargs.get("merge_map", self.merge_map.copy()),
-                               edt=self.edt,
+                               ecov=self.ecov,
                                **dmask(kwargs, ["ignore_degrees", "merge_map"]))
         else:
             state = OverlapBlockState(self.g if g is None else g,

@@ -56,9 +56,9 @@ typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
     ((pclabel,, vmap_t, 0))                                                    \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
-    ((use_waiting,, bool, 0))                                                  \
-    ((vtfield,, vprop_map_t<double>::type, 0))                                 \
-    ((btfield,, vprop_map_t<double>::type, 0))                                 \
+    ((ecov_type,, int, 0))                                                     \
+    ((ecov,, eprop_map_t<double>::type, 0))                                    \
+    ((bcovsum,, vprop_map_t<double>::type, 0))                                 \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
@@ -97,8 +97,10 @@ public:
     }
 
     // remove a vertex from its current block
-    template <class EFilt>
-    void remove_vertex(size_t v, EFilt&& efilt)
+    template <class EFilt, class EOP>
+    void remove_vertex(size_t v,
+                       EFilt&& efilt = [](auto&){ return false; },
+                       EOP&& eop = [](auto&, auto&){})
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
 
@@ -132,6 +134,8 @@ public:
                 if (_mrs[me] == 0)
                     _emat.remove_me(r, s, me, _bg);
             }
+
+            eop(e, me);
         }
 
         if (self_weight > 0)
@@ -166,6 +170,8 @@ public:
 
             if (_mrs[me] == 0)
                 _emat.remove_me(s, r, me, _bg);
+
+            eop(e, me);
         }
 
         _wr[r] -= _vweight[v];
@@ -176,11 +182,20 @@ public:
         if (is_partition_stats_enabled())
             get_partition_stats(v).remove_vertex(v, r, _deg_corr, _g, _vweight,
                                                  _eweight, _degs);
+
+        if (_ecov_type == 3) // waiting times
+        {
+            if (_ignore_degrees[v] > 0)
+            {
+                double dt = out_degreeS()(v, _g, _ecov);
+                _bcovsum[r] -= dt;
+            }
+        }
     }
 
     void remove_vertex(size_t v)
     {
-        remove_vertex(v, [](auto&){ return false; });
+        remove_vertex(v, [](auto&){ return false; }, [](auto&, auto&){});
     }
 
     template <class Vlist>
@@ -203,7 +218,8 @@ public:
         }
 
         for (auto v : vset)
-            remove_vertex(v, [&](auto& e) { return eset.find(e) != eset.end(); });
+            remove_vertex(v, [&](auto& e) { return eset.find(e) != eset.end(); },
+                          [](auto&, auto&){});
 
         for (auto& e : eset)
         {
@@ -234,8 +250,10 @@ public:
     }
 
     // add a vertex to block r
-    template <class BEdge, class Efilt>
-    void add_vertex(size_t v, size_t r, BEdge&& bedge, Efilt&& efilt)
+    template <class BEdge, class Efilt, class EOP>
+    void add_vertex(size_t v, size_t r, BEdge&& bedge,
+                    Efilt&& efilt = [](auto&){ return false; },
+                    EOP&& eop = [](auto&, auto&){})
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
         typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
@@ -279,6 +297,8 @@ public:
                 _mrp[r] += ew;
                 _mrm[s] += ew;
             }
+
+            eop(e, me);
         }
 
         if (self_weight > 0)
@@ -322,6 +342,8 @@ public:
 
             _mrp[s] += ew;
             _mrm[r] += ew;
+
+            eop(e, me);
         }
 
         _wr[r] += _vweight[v];
@@ -333,11 +355,23 @@ public:
         if (is_partition_stats_enabled())
             get_partition_stats(v).add_vertex(v, r, _deg_corr, _g, _vweight,
                                               _eweight, _degs);
+
+        if (_ecov_type == 3) // waiting times
+        {
+            if (_ignore_degrees[v] > 0)
+            {
+                double dt = out_degreeS()(v, _g, _ecov);
+                _bcovsum[r] += dt;
+            }
+        }
+
     }
 
     void add_vertex(size_t v, size_t r)
     {
-        add_vertex(v, r, _emat.get_bedge_map(), [](auto&) { return false; });
+        add_vertex(v, r, _emat.get_bedge_map(),
+                   [](auto&){ return false; },
+                   [](auto&, auto&){});
     }
 
     template <class Vlist, class Blist>
@@ -368,7 +402,8 @@ public:
 
         for (auto vr : vset)
             add_vertex(vr.first, vr.second, bedge,
-                       [&](auto& e){ return eset.find(e) != eset.end(); });
+                       [&](auto& e){ return eset.find(e) != eset.end(); },
+                       [](auto&, auto&){});
 
         for (auto e : eset)
         {
@@ -798,20 +833,23 @@ public:
                 dS += ps.get_delta_edges_dl(v, r, nr, _vweight, _g);
         }
 
-        if (_use_waiting && (r != nr) && _ignore_degrees[v] > 0)
+        if (_ecov_type == 3) // waiting times
         {
-            double dt = _vtfield[v];
-            int k = out_degreeS()(v, _g, _eweight);
-            if (_mrp[r] > 0)
-                dS -= _mrp[r] * log(_btfield[r]) - lgamma_fast(_mrp[r]);
-            if (_mrp[nr] > 0)
-                dS -= _mrp[nr] * log(_btfield[nr]) - lgamma_fast(_mrp[nr]);
-            if (_mrp[r] > k)
-                dS += (_mrp[r] - k) * log(_btfield[r] - dt)
-                    - lgamma_fast(_mrp[r] - k);
-            if (_mrp[nr] + k > 0)
-                dS += (_mrp[nr] + k) * log(_btfield[nr] + dt)
-                    - lgamma_fast(_mrp[nr] + k);
+            if ((r != nr) && _ignore_degrees[v] > 0)
+            {
+                double dt = out_degreeS()(v, _g, _ecov);
+                int k = out_degreeS()(v, _g, _eweight);
+                if (_mrp[r] > 0)
+                    dS -= _mrp[r] * log(_bcovsum[r]) - lgamma_fast(_mrp[r]);
+                if (_mrp[nr] > 0)
+                    dS -= _mrp[nr] * log(_bcovsum[nr]) - lgamma_fast(_mrp[nr]);
+                if (_mrp[r] > k)
+                    dS += (_mrp[r] - k) * log(_bcovsum[r] - dt)
+                        - lgamma_fast(_mrp[r] - k);
+                if (_mrp[nr] + k > 0)
+                    dS += (_mrp[nr] + k) * log(_bcovsum[nr] + dt)
+                        - lgamma_fast(_mrp[nr] + k);
+            }
         }
 
         return dS;
@@ -1078,11 +1116,11 @@ public:
         else
             S = sparse_entropy(multigraph, deg_entropy);
 
-        if (_use_waiting)
+        if (_ecov_type == 3) // waiting times
         {
             for (auto r : vertices_range(_bg))
-                if (_btfield[r] > 0)
-                    S += _mrp[r] * log(_btfield[r]) - lgamma_fast(_mrp[r]);
+                if (_bcovsum[r] > 0)
+                    S += _mrp[r] * log(_bcovsum[r]) - lgamma_fast(_mrp[r]);
         }
         return S;
     }
