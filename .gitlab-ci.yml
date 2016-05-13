@@ -1,7 +1,7 @@
 job_gcc_amd64:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --enable-openmp
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -12,7 +12,7 @@ job_gcc_amd64:
 job_clang_amd64:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages  --enable-openmp
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -23,7 +23,7 @@ job_clang_amd64:
 job_gcc_py2_amd64:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache g++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache g++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --enable-openmp
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -34,7 +34,7 @@ job_gcc_py2_amd64:
 job_clang_py2_amd64:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache clang++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
+    - ./configure CXX="ccache clang++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --enable-openmp
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -45,7 +45,7 @@ job_clang_py2_amd64:
 job_gcc_amd64_nosh:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --disable-sparsehash
+    - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --enable-openmp --disable-sparsehash
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
@@ -56,7 +56,7 @@ job_gcc_amd64_nosh:
 job_clang_amd64_nosh:
   script:
     - ./autogen.sh
-    - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages  --disable-sparsehash
+    - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --enable-openmp --disable-sparsehash
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
