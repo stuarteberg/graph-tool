@@ -59,7 +59,8 @@ typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
     ((ecov_type,, int, 0))                                                     \
     ((ecov,, eprop_map_t<double>::type, 0))                                    \
     ((bcovsum,, vprop_map_t<double>::type, 0))                                 \
-    ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))
+    ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
+    ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
 
@@ -1214,7 +1215,8 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _vweight, _eweight, _degs,
-                                              _ignore_degrees, _bmap);
+                                              _ignore_degrees, _bmap,
+                                              _allow_empty);
 
             for (auto r : vertices_range(_bg))
                 _partition_stats[rc[r]].get_r(r);

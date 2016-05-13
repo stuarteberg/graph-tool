@@ -100,6 +100,9 @@ class BlockState(object):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
+    allow_empty : ``bool`` (optional, default: ``True``)
+        If ``True``, partition description length computed will allow for empty
+        groups.
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this value, a sparse matrix is used for
         the block graph. Otherwise a dense matrix will be used.
@@ -107,7 +110,7 @@ class BlockState(object):
 
     def __init__(self, g, eweight=None, vweight=None, b=None, B=None, ecov=None,
                  ecov_type=None, clabel=None, pclabel=None, deg_corr=True,
-                 max_BE=1000, **kwargs):
+                 allow_empty=True, max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
@@ -244,6 +247,7 @@ class BlockState(object):
             self.ecov = self.g.new_ep("double")
             self.bcovsum = self.bg.new_vp("double")
 
+        self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
 
@@ -341,8 +345,11 @@ class BlockState(object):
                            vweight=self.wr if vweight else self.bg.new_vp("int", 1),
                            b=self.bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
+                           allow_empty=kwargs.get("allow_empty",
+                                                  self.allow_empty),
                            degs=degs,
-                           max_BE=self.max_BE, **kwargs)
+                           max_BE=self.max_BE,
+                           **dmask(kwargs, ["allow_empty"]))
         return state
 
     def get_bclabel(self):
@@ -1478,7 +1485,7 @@ class BlockState(object):
                                            "vertex_color",
                                            "edge_gradient"]))
 
-def model_entropy(B, N, E, directed=False, nr=None):
+def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     r"""Computes the amount of information necessary for the parameters of the
     traditional blockmodel ensemble, for ``B`` blocks, ``N`` vertices, ``E``
     edges, and either a directed or undirected graph.
@@ -1505,18 +1512,27 @@ def model_entropy(B, N, E, directed=False, nr=None):
     number of :math:`k` combinations with repetitions from a set of size
     :math:`n`.
 
+    For the node partition we assume a two-level Bayesian hierarchy, where first
+    the group size histogram is generated, and conditioned on it the partition,
+    which leads to a description length:
+
+    .. math::
+
+       \mathcal{L}_p = \ln\left(\!\!{B \choose N}\!\!\right) + \ln N! - \sum_r \ln n_r!,
+
+    where :math:`n_r` is the number of nodes in block :math:`r`. If we forbid
+    empty groups, with ``allow_empty == False``, this changes slightly to
+
+       \mathcal{L}_p = \ln {N - 1 \choose B - 1} + \ln N! - \sum_r \ln n_r!.
+
     The total information necessary to describe the model is then,
 
     .. math::
 
-       \mathcal{L}_t = \ln\Omega_m + \ln\left(\!\!{B \choose N}\!\!\right) +
-       \ln N! - \sum_r \ln n_r!,
+       \mathcal{L}_t = \ln\Omega_m + \mathcal{L}_p.
 
-
-    where the remaining term is the information necessary to describe the block
-    partition, where :math:`n_r` is the number of nodes in block :math:`r`.
-
-    If ``nr`` is ``None``, it is assumed :math:`n_r=N/B`.
+    If ``nr`` is ``None``, it is assumed :math:`n_r=N/B`. If ``nr`` is
+    ``False``, the partition term :math:`\mathcal{L}_p` is omitted entirely.
 
     References
     ----------
@@ -1528,6 +1544,10 @@ def model_entropy(B, N, E, directed=False, nr=None):
        structures and high-resolution model selection in large networks ",
        Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
        :arxiv:`1310.4377`.
+    .. [peixoto-model-2016] Tiago P. Peixoto, "Model selection and hypothesis
+       testing for large-scale network models with overlapping groups",
+       Phys. Rev. X 5, 011033 (2016), :doi:`10.1103/PhysRevX.5.011033`,
+       :arxiv:`1409.3059`.
 
     """
 

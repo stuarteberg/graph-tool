@@ -68,6 +68,7 @@ Auxiliary functions
 .. autosummary::
    :nosignatures:
 
+   model_entropy
    mf_entropy
    bethe_entropy
    half_edge_graph
@@ -119,6 +120,7 @@ __all__ = ["minimize_blockmodel_dl",
            "hierarchy_minimize",
            "EMBlockState",
            "em_infer",
+           "model_entropy",
            "mf_entropy",
            "bethe_entropy",
            "half_edge_graph",

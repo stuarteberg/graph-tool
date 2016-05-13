@@ -149,12 +149,14 @@ public:
               class Mprop, class Vlist>
     partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E, size_t B,
                       VWprop& vweight, Eprop& eweight, Degs& degs,
-                      const Mprop& ignore_degree, std::vector<size_t>& bmap)
+                      const Mprop& ignore_degree, std::vector<size_t>& bmap,
+                      bool allow_empty)
         : _bmap(bmap)
     {
         _N = 0;
         _E = E;
         _total_B = B;
+        _allow_empty = allow_empty;
 
         for (auto v : vlist)
         {
@@ -212,7 +214,10 @@ public:
     double get_partition_dl()
     {
         double S = 0;
-        S += lbinom(_actual_B + _N - 1, _N);
+        if (_allow_empty)
+            S += lbinom(_actual_B + _N - 1, _N);
+        else
+            S += lbinom(_N - 1, _actual_B - 1);
         S += lgamma(_N + 1);
         for (auto nr : _total)
             S -= lgamma(nr + 1);
@@ -297,8 +302,16 @@ public:
 
         if (dB != 0)
         {
-            S_b += lbinom(_actual_B + _N - 1, _N);
-            S_a += lbinom(_actual_B + dB + _N - 1, _N);
+            if (_allow_empty)
+            {
+                S_b += lbinom(_actual_B + _N - 1, _N);
+                S_a += lbinom(_actual_B + dB + _N - 1, _N);
+            }
+            else
+            {
+                S_b += lbinom(_N - 1, _actual_B - 1);
+                S_a += lbinom(_N - 1, _actual_B + dB - 1);
+            }
         }
 
         return S_a - S_b;
@@ -491,6 +504,7 @@ private:
     size_t _E;
     size_t _actual_B;
     size_t _total_B;
+    bool _allow_empty;
     vector<map_t> _hist;
     vector<int> _total;
     vector<int> _ep;
