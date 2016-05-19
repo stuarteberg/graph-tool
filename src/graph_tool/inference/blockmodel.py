@@ -569,7 +569,7 @@ class BlockState(object):
         if callback is not None:
             S += callback(self)
 
-        if _bm_test() and extract_arg(kwargs, "test", True):
+        if extract_arg(kwargs, "test", True) and _bm_test():
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
