@@ -50,14 +50,14 @@ struct get_weighted_edge_property_dispatch
 
 void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                 boost::any community_property,
-                boost::any condensed_community_property,
-                boost::any ceprop, boost::any eprop);
+                boost::any condensed_community_property, boost::any ceprop,
+                boost::any eprop, bool self_loops, bool parallel_edges);
 
 void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
                             boost::any community_property,
                             boost::any condensed_community_property,
-                            boost::any eweight,
-                            boost::python::list aeprops)
+                            boost::any eweight, boost::python::list aeprops,
+                            bool self_loops, bool parallel_edges)
 {
     typedef boost::mpl::push_back<writable_edge_scalar_properties, no_eweight_map_t>::type
         eweight_properties;
@@ -85,7 +85,7 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
         if (!no_weight)
         {
             // compute weighted values to temp
-            run_action<graph_tool::detail::always_directed>()
+            run_action<>()
                 (gi, std::bind(get_weighted_edge_property_dispatch(),
                                std::placeholders::_1, std::placeholders::_2,
                                std::placeholders::_3, temp),
@@ -94,14 +94,15 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
 
             // sum weighted values
             sum_eprops(gi, cgi, community_property,
-                       condensed_community_property, ceprop, temp);
+                       condensed_community_property, ceprop, temp,
+                       self_loops, parallel_edges);
         }
         else
         {
             // sum unweighted values
             sum_eprops(gi, cgi, community_property,
-                       condensed_community_property,
-                       ceprop, eprop);
+                       condensed_community_property, ceprop, eprop,
+                       self_loops, parallel_edges);
         }
 
     }

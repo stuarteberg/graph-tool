@@ -41,18 +41,20 @@ struct get_edge_sum_dispatch
     template <class Graph, class CommunityGraph, class CommunityMap,
               class Eprop>
     void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    boost::any acs_map, Eprop eprop, boost::any aceprop) const
+                    boost::any acs_map, Eprop eprop, boost::any aceprop,
+                    bool self_loops, bool parallel_edges) const
     {
         typename CommunityMap::checked_t cs_map = boost::any_cast<typename CommunityMap::checked_t>(acs_map);
         typename Eprop::checked_t ceprop = boost::any_cast<typename Eprop::checked_t>(aceprop);
-        get_edge_community_property_sum()(g, cg, s_map, cs_map, eprop, ceprop);
+        get_edge_community_property_sum()(g, cg, s_map, cs_map, eprop, ceprop,
+                                          self_loops, parallel_edges);
     }
 };
 
 void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                 boost::any community_property,
-                boost::any condensed_community_property,
-                boost::any ceprop, boost::any eprop)
+                boost::any condensed_community_property, boost::any ceprop,
+                boost::any eprop, bool self_loops, bool parallel_edges)
 {
     typedef boost::mpl::insert_range<writable_edge_scalar_properties,
                                      boost::mpl::end<writable_edge_scalar_properties>::type,
@@ -61,12 +63,12 @@ void sum_eprops(GraphInterface& gi, GraphInterface& cgi,
                                   eprop_map_t<boost::python::object>::type >::type
         eprops_t;
 
-    run_action<graph_tool::detail::always_directed>()
+    run_action<>()
         (gi, std::bind(get_edge_sum_dispatch(),
                        std::placeholders::_1, std::ref(cgi.get_graph()),
                        std::placeholders::_2,
                        condensed_community_property, std::placeholders::_3,
-                       ceprop),
+                       ceprop, self_loops, parallel_edges),
          writable_vertex_properties(), eprops_t())
         (community_property, eprop);
 }

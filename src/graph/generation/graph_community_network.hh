@@ -263,7 +263,8 @@ struct get_edge_community_property_sum
     template <class Graph, class CommunityGraph, class CommunityMap,
               class CCommunityMap, class Eprop, class CEprop>
     void operator()(const Graph& g, CommunityGraph& cg, CommunityMap s_map,
-                    CCommunityMap cs_map, Eprop eprop, CEprop ceprop) const
+                    CCommunityMap cs_map, Eprop eprop, CEprop ceprop,
+                    bool self_loops, bool parallel_edges) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
         typedef typename graph_traits<CommunityGraph>::vertex_descriptor
@@ -291,12 +292,21 @@ struct get_edge_community_property_sum
         {
             cvertex_t cs = comms[get(s_map, source(e, g))];
             cvertex_t ct = comms[get(s_map, target(e, g))];
-            auto& ces = comm_edges[make_pair(cs, ct)];
-            if (ces.empty())
-                continue;
-            ceprop[ces.back()] += eprop[e];
-            if (ces.size() > 1)
-                ces.pop_back();
+            if (cs == ct && !self_loops)
+                continue;  // self-loops not allowed
+
+            auto* ces = &comm_edges[make_pair(cs, ct)];
+            if (ces->empty() && !is_directed::apply<Graph>::type::value)
+                ces = &comm_edges[make_pair(ct, cs)];
+            if (ces->empty())
+            {
+                throw GraphException("Bug: condensed edge not found! " +
+                                     lexical_cast<string>(cs) +  " " +
+                                     lexical_cast<string>(ct));
+            }
+            ceprop[ces->back()] += eprop[e];
+            if (parallel_edges)
+                ces->pop_back();
         }
     }
 };

@@ -96,7 +96,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
         if (!no_weight)
         {
             // compute weighted values to temp
-            run_action<graph_tool::detail::always_directed_never_reversed>()
+            run_action<>()
                 (gi, std::bind(get_weighted_vertex_property_dispatch(),
                                std::placeholders::_1, std::placeholders::_2,
                                std::placeholders::_3, temp),
@@ -104,7 +104,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
                 (vweight, vprop);
 
             // sum weighted values
-            run_action<graph_tool::detail::always_directed_never_reversed>()
+            run_action<>()
                 (gi, std::bind(get_vertex_sum_dispatch(),
                                std::placeholders::_1, std::ref(cgi.get_graph()),
                                std::placeholders::_2,
@@ -116,7 +116,7 @@ void community_network_vavg(GraphInterface& gi, GraphInterface& cgi,
         else
         {
             // sum unweighted values
-            run_action<graph_tool::detail::always_directed_never_reversed>()
+            run_action<>()
                 (gi, std::bind(get_vertex_sum_dispatch(),
                                std::placeholders::_1, std::ref(cgi.get_graph()),
                                std::placeholders::_2,

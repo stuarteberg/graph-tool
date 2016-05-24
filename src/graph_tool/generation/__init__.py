@@ -1798,13 +1798,13 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
                                                     _prop("v", g, vweight),
                                                     avp)
 
-    u = GraphView(g, directed=True)
-    libgraph_tool_generation.community_network_eavg(u._Graph__graph,
+    libgraph_tool_generation.community_network_eavg(g._Graph__graph,
                                                     gp._Graph__graph,
                                                     _prop("v", g, prop),
                                                     _prop("v", gp, cprop),
                                                     _prop("e", g, eweight),
-                                                    aep)
+                                                    aep, self_loops,
+                                                    parallel_edges)
     return gp, cprop, vcount, ecount, r_avp, r_aep
 
 class Sampler(libgraph_tool_generation.Sampler):
