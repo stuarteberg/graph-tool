@@ -33,10 +33,11 @@ from numpy import *
 import numpy
 import copy
 
-def get_edges_dl(state):
+def get_edges_dl(state, hstate_args, hentropy_args):
     bclabel = state.get_bclabel()
-    bstate = state.get_block_state(b=bclabel, deg_corr=False)
-    return bstate.entropy(dl=True, edges_dl=False, dense=True, multigraph=True)
+    bstate = state.get_block_state(b=bclabel, **hstate_args)
+    return bstate.entropy(**overlay(hentropy_args, dl=True, edges_dl=False,
+                                    multigraph=True))
 
 
 class NestedBlockState(object):
@@ -48,24 +49,50 @@ class NestedBlockState(object):
         Graph to be modeled.
     bs : ``list`` of :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
         Hierarchical node partition.
-    base_type : ``type``
+    base_type : ``type`` (optional, default: :class:`~graph_tool.inference.BlockState`)
         State type for lowermost level
         (e.g. :class:`~graph_tool.inference.BlockState`,
         :class:`~graph_tool.inference.OverlapBlockState` or
         :class:`~graph_tool.inference.LayeredBlockState`)
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Vertex multiplicities (for block graphs).
+    hstate_args : ``dict`` (optional, default: `{}`)
+        Keyword arguments to be passed to the constructor of the higher-level
+        states.
+    hentropy_args : ``dict`` (optional, default: `{}`)
+        Keyword arguments to be passed to the ``entropy()`` method of the
+        higher-level states.
+    sampling : ``bool`` (optional, default: ``False``)
+        If ``True``, the state will be properly prepared for MCMC sampling (as
+        opposed to minimization).
     **kwargs :  keyword arguments
         Keyword arguments to be passed to base type constructor.
     """
-
-    def __init__(self, g, bs, base_type=BlockState, **kwargs):
+    def __init__(self, g, bs, base_type=BlockState, hstate_args={},
+                 hentropy_args={}, sampling=False, **kwargs):
         self.g = g
         self.kwargs = kwargs.copy()
+        self.hstate_args = overlay(dict(deg_corr=False), **hstate_args)
+        if sampling:
+            self.hstate_args = overlay(self.hstate_args, vweight="nonempty",
+                                       copy_bg=False, B=g.num_vertices())
+            self.kwargs = overlay(self.kwargs, vweight="unity", eweight="unity",
+                                  B=g.num_vertices())
+            nbs = []
+            for b in bs:
+                nb = numpy.zeros(g.num_vertices(), dtype="int")
+                nb[:len(b)] = b
+                nbs.append(nb)
+            bs = nbs
+        self.hentropy_args = overlay(dict(adjacency=True,
+                                          dl=True, partition_dl=True,
+                                          degree_dl=True,
+                                          degree_dl_kind="distributed",
+                                          edges_dl=True, dense=True,
+                                          multigraph=True, exact=True),
+                                     **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.kwargs)]
         for b in bs[1:]:
             state = self.levels[-1]
-            bstate = state.get_block_state(b=b, deg_corr=False)
+            bstate = state.get_block_state(b=b, **self.hstate_args)
             self.levels.append(bstate)
 
         if _bm_test():
@@ -74,13 +101,14 @@ class NestedBlockState(object):
     def _regen_levels(self):
         for l in range(1, len(self.levels)):
             state = self.levels[l]
-            nstate = self.levels[l-1].get_block_state(b=state.b, deg_corr=False)
+            nstate = self.levels[l-1].get_block_state(b=state.b,
+                                                      **self.hstate_args)
             self.levels[l] = nstate
 
     def __repr__(self):
         return "<NestedBlockState object, with base %s, and %d levels of sizes %s at 0x%x>" % \
             (repr(self.levels[0]), len(self.levels),
-             str([(s.N, s.B) for s in self.levels]), id(self))
+             str([(s.get_N(), s.get_nonempty_B()) for s in self.levels]), id(self))
 
     def __copy__(self):
         return self.copy()
@@ -135,11 +163,15 @@ class NestedBlockState(object):
             clabel.fa += (clabel.fa.max() + 1) * b.fa
         return clabel
 
+    def impose_bclabels(self):
+        for l in range(len(self.levels) - 1):
+            self.levels[l].bclabel.a = self.levels[l + 1].b.a
+
     def _consistency_check(self):
         for l in range(1, len(self.levels)):
             b = self.levels[l].b.fa.copy()
             state = self.levels[l-1]
-            bstate = state.get_block_state(b=b, deg_corr=False)
+            bstate = state.get_block_state(b=b, **self.hstate_args)
             b2 = bstate.b.fa.copy()
             continuous_map(b)
             continuous_map(b2)
@@ -148,7 +180,8 @@ class NestedBlockState(object):
                 "inconsistent level %d (%s %g,  %s %g): %s" % \
                 (l, str(bstate), bstate.entropy(), str(self.levels[l]),
                  self.levels[l].entropy(), str(self))
-            assert (bstate.N >= bstate.B), (l, bstate.N, bstate.B, str(self))
+            assert (bstate.get_N() >= bstate.get_nonempty_B()), \
+                (l, bstate.get_N(), bstate.get_nonempty_B(), str(self))
 
     def replace_level(self, l, b):
         """Replace level ``l`` given the new partition ``b``"""
@@ -160,7 +193,8 @@ class NestedBlockState(object):
             bclabel = self.levels[l].bg.new_vertex_property("int")
             reverse_map(self.levels[l].b, bclabel)
             pmap(bclabel, clabel)
-            bstate = self.levels[l].get_block_state(b=bclabel)
+            bstate = self.levels[l].get_block_state(b=bclabel,
+                                                    **self.hstate_args)
             self.levels[l + 1] = bstate
 
         if _bm_test():
@@ -185,43 +219,33 @@ class NestedBlockState(object):
         if _bm_test():
             self._consistency_check()
 
-    def level_entropy(self, l, dense=False, multigraph=True, bstate=None,
-                      **kwargs):
+    def level_entropy(self, l, bstate=None, **kwargs):
         """Compute the entropy of level ``l``."""
 
         if bstate is None:
             bstate = self.levels[l]
 
-        S = bstate.entropy(dl=True,
-                           edges_dl=(l == (len(self.levels) - 1)),
-                           dense=dense or (l > 0),
-                           multigraph=multigraph or l > 0,
-                           **kwargs)
+        if l > 0:
+            eargs = overlay(self.hentropy_args,
+                            **overlay(kwargs, multigraph=True))
+        else:
+            eargs = kwargs
+
+        S = bstate.entropy(**overlay(eargs, dl=True,
+                                     edges_dl=(l == (len(self.levels) - 1))))
         return S
 
-    def entropy(self, dense=False, multigraph=True, **kwargs):
+    def entropy(self, **kwargs):
         """Compute the entropy of whole hierarchy.
 
-        Parameters
-        ----------
-        dense : ``bool`` (optional, default: ``False``)
-            If ``True``, the "dense" variant of the entropy will be computed.
-        multigraph : ``bool`` (optional, default: ``True``)
-            If ``True``, the multigraph entropy will be used.
-
-        Notes
-        -----
-
-        The remaining keyword arguments are passed to the ``entropy()`` method
-        of the underlying state objects
+        The keyword arguments are passed to the ``entropy()`` method of the
+        underlying state objects
         (e.g. :class:`graph_tool.inference.BlockState.entropy`,
         :class:`graph_tool.inference.OverlapBlockState.entropy`, or
-        :class:`graph_tool.inference.LayeredBlockState.entropy`).
-        """
+        :class:`graph_tool.inference.LayeredBlockState.entropy`).  """
         S = 0
         for l in range(len(self.levels)):
-            S += self.level_entropy(l, dense=dense, multigraph=multigraph,
-                                    **kwargs)
+            S += self.level_entropy(l, **kwargs)
         return S
 
     def move_vertex(self, v, s):
@@ -268,7 +292,7 @@ class NestedBlockState(object):
             eargs = overlay(entropy_args, dl=True,
                             edges_dl=(l == (len(self.levels) - 1)))
             if l > 0:
-                eargs = overlay(eargs, dense=True, multigraph=True)
+                eargs = overlay(eargs, **self.hentropy_args)
             L += state.get_edges_prob(edge_list, missing=missing,
                                       entropy_args=eargs)
             edge_list = [(state.b[u], state.b[v]) for u, v in edge_list]
@@ -290,13 +314,14 @@ class NestedBlockState(object):
             if l == 0:
                 cg = GraphView(cg, skip_properties=True)
             cg.vp["b"] = bstate.b.copy()
-            if bstate.is_edge_weighted:
-                cg.ep["count"] = bstate.eweight
+            if bstate.is_weighted:
+                cg.ep["count"] = cg.own_property(bstate.eweight.copy())
+                cg.vp["count"] = cg.own_property(bstate.vweight.copy())
             else:
                 cg.ep["count"] = cg.new_ep("int", 1)
 
             bstack.append(cg)
-            if bstate.N == 1:
+            if bstate.get_N() == 1:
                 break
         return bstack
 
@@ -309,7 +334,8 @@ class NestedBlockState(object):
     def print_summary(self):
         """Print a hierarchy summary."""
         for l, state in enumerate(self.levels):
-            print("l: %d, N: %d, B: %d" % (l, state.N, state.B))
+            print("l: %d, N: %d, B: %d" % (l, state.get_N(),
+                                           state.get_nonempty_B()))
 
     def find_new_level(self, l, sparse_thres=100, bisection_args={}, B_min=None,
                        B_max=None, b_min=None, b_max=None):
@@ -330,14 +356,19 @@ class NestedBlockState(object):
         entropy_args = overlay(entropy_args, dl=True,
                                edges_dl=l==len(self.levels) - 1)
         extra_entropy_args = bisection_args.get("extra_entropy_args", {})
-        if l > 0:
+        if l > 0 and self.hentropy_args.get("dense"):
             entropy_args = overlay(entropy_args,
-                                   dense=self.levels[l].N < sparse_thres)
-            if self.levels[l].N >= sparse_thres:
+                                   dense=self.levels[l].get_N() < sparse_thres)
+            if self.levels[l].get_N() >= sparse_thres:
                 extra_entropy_args = overlay(extra_entropy_args, dense=True)
         if l < len(self.levels) - 1:
-            entropy_args = overlay(entropy_args, callback=get_edges_dl)
-        mcmc_args = overlay(mcmc_args, entropy_args=entropy_args)
+            entropy_args = overlay(entropy_args,
+                                   callback=lambda s: get_edges_dl(s,
+                                                                   self.hstate_args,
+                                                                   self.hentropy_args))
+        mcmc_args = overlay(mcmc_args, entropy_args=entropy_args,
+                            disable_callback_test=isinstance(self.levels[0],
+                                                             LayeredBlockState))
         if l > 0:
             mcmc_args = dmask(mcmc_args, ["bundled"])
         mcmc_equilibrate_args = overlay(mcmc_equilibrate_args,
@@ -387,6 +418,87 @@ class NestedBlockState(object):
             assert state.B >= min_state.B, (l, state.B, min_state.B, str(self))
             assert state._check_clabel(), "invalid clabel %s" % str((l, self))
         return state
+
+    def _h_sweep(self, algo, **kwargs):
+        verbose = kwargs.get("verbose", False)
+        entropy_args = kwargs.get("entropy_args", {})
+
+        for l in range(len(self.levels) - 1):
+            eargs = overlay(self.hentropy_args,
+                            **overlay(entropy_args,
+                                      adjacency=True,
+                                      dense=True,
+                                      edges_dl=(l + 1 == len(self.levels) - 1)))
+            self.levels[l]._couple_state(self.levels[l + 1],
+                                         get_entropy_args(eargs))
+            self.levels[l + 1]._state.clear_egroups()
+            self.levels[l + 1]._state.sync_emat()
+
+        self.impose_bclabels()
+
+        dS = 0
+        nmoves = 0
+
+        for l in range(len(self.levels)):
+            if check_verbose(verbose):
+                print(verbose_pad(verbose) + "level:", l)
+            if l > 0:
+                eargs = overlay(self.hentropy_args,
+                                **overlay(entropy_args, multigraph=True))
+            else:
+                eargs = entropy_args
+
+            eargs = overlay(eargs, dl=True,
+                            edges_dl=(l == len(self.levels) - 1))
+
+            if l < len(self.levels) - 1:
+                def callback(s):
+                    s = self.levels[l + 1]
+                    S = s.entropy(**overlay(self.hentropy_args,
+                                            **overlay(entropy_args,
+                                                      adjacency=True,
+                                                      dense=True,
+                                                      edges_dl=(l + 1 == len(self.levels) - 1))))
+                    return S
+                eargs = overlay(eargs, callback=callback)
+
+            if l > 0:
+                self.levels[l]._state.sync_emat()
+            if l < len(self.levels) - 1:
+                self.levels[l + 1]._state.sync_emat()
+
+            ret = algo(self.levels[l], **overlay(kwargs, entropy_args=eargs))
+            dS += ret[0]
+            nmoves += ret[1]
+
+        return dS, nmoves
+
+    def mcmc_sweep(self, **kwargs):
+        r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
+        sampling MCMC to sample hierarchical network partitions.
+
+        The arguments accepted are the same as in
+        :method:`graph_tool.inference.BlockState.mcmc_sweep`.
+        """
+        return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), **kwargs)
+
+    def gibbs_sweep(self, **kwargs):
+        r"""Perform ``niter`` sweeps of a rejection-free Gibbs sampling MCMC
+        to sample network partitions.
+
+        The arguments accepted are the same as in
+        :method:`graph_tool.inference.BlockState.gibbs_sweep`.
+        """
+        return self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
+
+    def multicanonical_sweep(self, **kwargs):
+        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
+        Wang-Landau algorithm.
+
+        The arguments accepted are the same as in
+        :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
+        """
+        return self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
 
     def draw(self, **kwargs):
         r"""Convenience wrapper to :func:`~graph_tool.draw.draw_hierarchy` that
@@ -509,17 +621,18 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
                 if check_verbose(verbose):
                     print(verbose_pad(verbose) + "level", l, ": replaced",
-                          (bstates[0].N, bstates[0].B), "->",
-                          (bstate.N, bstate.B),", dS:", Sf - Si,
-                          len(state.levels))
+                          (bstates[0].get_N(), bstates[0].get_nonempty_B()), "->",
+                          (bstate.get_N(), bstate.get_nonempty_B()),", dS:",
+                          Sf - Si, len(state.levels))
             else:
                 state.levels[l:l+len(bstates)] = bstates
 
                 if check_verbose(verbose):
                     print(verbose_pad(verbose) + "level", l,
                           ": rejected replacement",
-                          (bstates[0].N, bstates[0].B), "->",
-                          (bstate.N, bstate.B),", dS:", Sf - Si)
+                          (bstates[0].get_N(), bstates[0].get_nonempty_B()), "->",
+                          (bstate.get_N(), bstate.get_nonempty_B()),", dS:",
+                          Sf - Si)
 
         # delete level
         if (kept and l > 0 and l < len(state.levels) - 1 and
@@ -543,8 +656,8 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
                 if check_verbose(verbose):
                     print(verbose_pad(verbose) + "level", l, ": deleted",
-                          (bstates[1].N, bstates[1].B), ", dS:", Sf - Si,
-                          len(state.levels))
+                          (bstates[1].get_N(), bstates[1].get_nonempty_B()),
+                          ", dS:", Sf - Si, len(state.levels))
 
             if _bm_test():
                 if kept:
@@ -656,9 +769,9 @@ def get_hierarchy_tree(state, empty_branches=True):
         bg = Graph(directed=g.is_directed())
         bg.add_vertex()
         e = bg.add_edge(0, 0)
-        bg.vp.count = g.new_vp("int", 1)
-        bg.ep.count = g.new_ep("int", g.ep.count.fa.sum())
-        bg.vp.b = g.new_vp("int", 0)
+        bg.vp.count = bg.new_vp("int", 1)
+        bg.ep.count = bg.new_ep("int", g.ep.count.fa.sum())
+        bg.vp.b = bg.new_vp("int", 0)
         bstack.append(bg)
 
     t = Graph()
@@ -671,6 +784,7 @@ def get_hierarchy_tree(state, empty_branches=True):
         t.set_vertex_filter(t.own_property(filt[0].copy()),
                             filt[1])
     label = t.vertex_index.copy("int")
+    t.vp.mask = t.new_vp("bool", True)
 
     order = t.own_property(g.degree_property_map("total").copy())
     t_vertices = list(t.vertices())
@@ -683,6 +797,11 @@ def get_hierarchy_tree(state, empty_branches=True):
         else:
             t_vertices.append(t.add_vertex(s.num_vertices()))
         label.a[-s.num_vertices():] = arange(s.num_vertices())
+
+        if "count" in s.vp:
+            t.vp.mask.a[-s.num_vertices():] = s.vp.count.fa > 0
+        else:
+            t.vp.mask.a[-s.num_vertices():] = True
 
         # relative ordering based on total degree
         count = s.ep["count"].copy("double")
@@ -711,8 +830,7 @@ def get_hierarchy_tree(state, empty_branches=True):
         b = g.vp["b"]
 
     if not empty_branches:
-        vmask = t.new_vertex_property("bool")
-        vmask.a = True
+        vmask = t.new_vertex_property("bool", True)
         for vi in range(state.g.num_vertices(), t.num_vertices()):
             v = t_vertices[vi]
             if v.out_degree() == 0:
@@ -721,11 +839,14 @@ def get_hierarchy_tree(state, empty_branches=True):
                     v = list(v.in_neighbours())[0]
                     vmask[v] = False
                 vmask[v] = True
-        t = GraphView(t, vfilt=vmask)
-        t.vp["label"] = label
+        t = GraphView(t, vfilt=logical_and(vmask.fa, t.vp.mask.fa))
+        t.vp.label = t.own_property(label)
+        t.vp.order = t.own_property(order)
         t = Graph(t, prune=True)
-        label = t.vp["label"]
+        label = t.vp.label
+        order = t.vp.order
         del t.vp["label"]
+        del t.vp["order"]
 
     return t, label, order
 

@@ -72,11 +72,10 @@ void export_layered_overlap_blockmodel_state()
                   {
                       typedef typename std::remove_reference<decltype(*s)>::type state_t;
 
-                      double (state_t::*virtual_move)(size_t, size_t, bool, bool, bool,
-                                                      bool, bool) =
+                      double (state_t::*virtual_move)(size_t, size_t, size_t,
+                                                      entropy_args_t) =
                           &state_t::virtual_move;
-                      size_t (state_t::*sample_block)(size_t, double, vector<size_t>&,
-                                                      rng_t&)
+                      size_t (state_t::*sample_block)(size_t, double, rng_t&)
                           = &state_t::sample_block;
                       double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                                        bool)

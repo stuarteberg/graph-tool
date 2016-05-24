@@ -37,21 +37,16 @@ using namespace std;
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((block_list,&, std::vector<size_t>&, 0))                                  \
     ((beta,, double, 0))                                                       \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
-    ((allow_empty,, bool, 0))                                                  \
+    ((entropy_args,, entropy_args_t, 0))                                       \
+    ((allow_vacate,, bool, 0))                                                 \
     ((parallel,, bool, 0))                                                     \
     ((sequential,, bool, 0))                                                   \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
 
-template <class State, template <class Graph> class MEntries = EntrySet>
+template <class State>
 struct Gibbs
 {
     GEN_STATE_BASE(GibbsBlockStateBase, GIBBS_BLOCK_STATE_params(State))
@@ -71,70 +66,23 @@ struct Gibbs
         GibbsBlockState(ATs&&... as)
            : GibbsBlockStateBase<Ts...>(as...),
             _g(_state._g),
-            _m_entries(num_vertices(_state._bg)),
-            _B(num_vertices(_state._bg)),
-            _tglobal(std::make_shared<tglobal_t>())
+            _m_entries(num_vertices(_state._bg))
         {
             _state.init_mcmc(numeric_limits<double>::infinity(),
-                             _partition_dl || _degree_dl || _edges_dl);
-
-            size_t C = 0;
-            for (auto v : vertices_range(_g))
-                C = std::max(C, _state._bclabel[_state._b[v]]);
-            C++;
-
-            auto& moves = _tglobal->moves;
-            auto& weights = _tglobal->weights;
-            auto& empty = _tglobal->empty;
-
-            empty.resize(C);
-
-            for(size_t c = 0; c < C; ++c)
-            {
-                moves.push_back(_B + c);
-                weights.push_back(0);
-            }
-
-            for (auto r : _block_list)
-            {
-                if (_state._wr[r] > 0)
-                {
-                    moves.push_back(r);
-                    weights.push_back(1);
-                }
-                else
-                {
-                    auto c = _state._bclabel[r];
-                    empty[c].push_back(r);
-                }
-            }
-
-            for (size_t c = 0; c < C; ++c)
-                weights[c] = empty[c].size();
+                             (_entropy_args.partition_dl ||
+                              _entropy_args.degree_dl ||
+                              _entropy_args.edges_dl));
         }
 
         typename state_t::g_t& _g;
-        MEntries<typename state_t::g_t> _m_entries;
+        typename state_t::m_entries_t _m_entries;
 
-        size_t _B;
-
-        struct tglobal_t
-        {
-            vector<size_t> moves;
-            vector<size_t> weights;
-            vector<vector<size_t>> empty;
-        };
-
-        std::shared_ptr<tglobal_t> _tglobal;
-
-        auto& get_moves(size_t) { return _tglobal->moves; }
-        auto& get_weights(size_t) { return _tglobal->weights; }
+        auto& get_moves(size_t) { return _state._candidate_blocks; }
 
         size_t node_state(size_t v)
         {
             return _state._b[v];
         }
-
 
         size_t node_weight(size_t v)
         {
@@ -143,27 +91,10 @@ struct Gibbs
 
         double virtual_move_dS(size_t v, size_t nr)
         {
-            if (nr >= _B)
-            {
-                if (_allow_empty)
-                {
-                    auto& empty = _tglobal->empty;
-                    auto c = nr - _B;
-                    if (empty[c].empty())
-                        return numeric_limits<double>::infinity();
-                    nr = empty[c].back();
-                }
-                else
-                {
-                    return numeric_limits<double>::infinity();
-                }
-            }
             size_t r = _state._b[v];
-            if (_state._bclabel[r] != _state._bclabel[nr])
+            if (!_state.allow_move(r, nr))
                 return numeric_limits<double>::infinity();
-            return _state.virtual_move(v, nr, _dense, _multigraph,
-                                       _partition_dl, _degree_dl, _edges_dl,
-                                       _m_entries);
+            return _state.virtual_move(v, r, nr, _entropy_args, _m_entries);
         }
 
         void perform_move(size_t v, size_t nr)
@@ -173,38 +104,7 @@ struct Gibbs
             if (r == nr)
                 return;
 
-            auto& moves = _tglobal->moves;
-            auto& weights = _tglobal->weights;
-            auto& empty = _tglobal->empty;
-
-            if (nr >= _B)
-            {
-                auto c = nr - _B;
-                assert(!empty[c].empty());
-                nr = empty[c].back();
-                empty[c].pop_back();
-                weights[c]--;
-                moves.push_back(nr);
-                weights.push_back(1);
-            }
-
-            assert(_state._wr[r] > 0);
-
             _state.move_vertex(v, nr);
-
-            if (_state._wr[r] == 0)
-            {
-                auto c = _state._bclabel[r];
-                empty[c].push_back(r);
-                weights[c]++;
-
-                auto iter = find(moves.begin(), moves.end(), r);
-                assert(iter != moves.end());
-                size_t pos = iter - moves.begin();
-                std::swap(moves[pos], moves.back());
-                moves.pop_back();
-                weights.pop_back();
-            }
         }
     };
 };

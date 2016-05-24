@@ -38,11 +38,7 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((__class__, &, mpl::vector<python::object>, 1))                           \
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((parallel,, bool, 0))                                                     \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))                                                      \
@@ -73,7 +69,8 @@ struct Merge
         {
             _state._egroups.clear();
 
-            if (_partition_dl || _degree_dl || _edges_dl)
+            if (_entropy_args.partition_dl || _entropy_args.degree_dl ||
+                _entropy_args.edges_dl)
                 _state.enable_partition_stats();
             else
                 _state.disable_partition_stats();
@@ -86,7 +83,7 @@ struct Merge
         }
 
         typename state_t::g_t& _g;
-        EntrySet<typename state_t::g_t> _m_entries;
+        typename state_t::m_entries_t _m_entries;
         const size_t _null_move;
         vector<size_t> _available;
 
@@ -114,7 +111,7 @@ struct Merge
                 s = uniform_sample(_available, rng);
             }
 
-            if (s == v || _state._bclabel[v] != _state._bclabel[s])
+            if (s == v || !_state.allow_move(v, s))
                 return _null_move;
 
             return s;
@@ -122,8 +119,7 @@ struct Merge
 
         double virtual_move_dS(size_t v, size_t nr)
         {
-            return _state.virtual_move(v, nr, _dense, _multigraph,
-                                       _partition_dl, _degree_dl, _edges_dl,
+            return _state.virtual_move(v, _state._b[v], nr, _entropy_args,
                                        _m_entries);
         }
 

@@ -17,6 +17,7 @@ libgraph_tool_inference_la_LDFLAGS = $(MOD_LDFLAGS)
 libgraph_tool_inference_la_SOURCES = \
     cache.cc \
     graph_blockmodel.cc \
+    graph_blockmodel_imp.cc \
     graph_blockmodel_em.cc \
     graph_blockmodel_exhaustive.cc \
     graph_blockmodel_gibbs.cc \
@@ -44,6 +45,7 @@ libgraph_tool_inference_la_SOURCES = \
     graph_blockmodel_overlap_multicanonical.cc \
     graph_blockmodel_overlap_vacate.cc \
     graph_inference.cc \
+    int_part.cc \
     spence.cc
 
 libgraph_tool_inference_la_include_HEADERS = \
@@ -70,4 +72,5 @@ libgraph_tool_inference_la_include_HEADERS = \
     merge_loop.hh \
     multicanonical_loop.hh \
     parallel_rng.hh \
+    int_part.hh \
     util.hh

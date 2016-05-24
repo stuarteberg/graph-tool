@@ -37,22 +37,17 @@ using namespace std;
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((block_list,&, std::vector<size_t>&, 0))                                  \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
-    ((allow_empty,, bool, 0))                                                  \
+    ((entropy_args,, entropy_args_t, 0))                                       \
+    ((allow_vacate,, bool, 0))                                                 \
     ((parallel,, bool, 0))                                                     \
     ((sequential,, bool, 0))                                                   \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
 
-template <class State, template <class Graph> class MEntries = EntrySet>
+template <class State>
 struct MCMC
 {
     GEN_STATE_BASE(MCMCBlockStateBase, MCMC_BLOCK_STATE_params(State))
@@ -74,11 +69,14 @@ struct MCMC
             _g(_state._g),
             _m_entries(num_vertices(_state._bg))
         {
-            _state.init_mcmc(_c, _partition_dl || _degree_dl || _edges_dl);
+            _state.init_mcmc(_c,
+                             (_entropy_args.partition_dl ||
+                              _entropy_args.degree_dl ||
+                              _entropy_args.edges_dl));
         }
 
         typename state_t::g_t& _g;
-        MEntries<typename state_t::g_t> _m_entries;
+        typename state_t::m_entries_t _m_entries;
 
         size_t node_state(size_t v)
         {
@@ -95,12 +93,12 @@ struct MCMC
         {
             auto r = _state._b[v];
 
-            if (!_allow_empty && _state.is_last(v))
+            if (!_allow_vacate && _state.is_last(v))
                 return r;
 
-            size_t s = _state.sample_block(v, _c, _block_list, rng);
+            size_t s = _state.sample_block(v, _c, rng);
 
-            if (_state._bclabel[s] != _state._bclabel[r])
+            if (!_state.allow_move(r, s))
                 return r;
 
             return s;
@@ -108,9 +106,8 @@ struct MCMC
 
         std::pair<double, double> virtual_move_dS(size_t v, size_t nr)
         {
-            double dS = _state.virtual_move(v, nr, _dense, _multigraph,
-                                            _partition_dl, _degree_dl,
-                                            _edges_dl, _m_entries);
+            double dS = _state.virtual_move(v, _state._b[v], nr, _entropy_args,
+                                            _m_entries);
             double a = 0;
             if (!std::isinf(_c))
             {

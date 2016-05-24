@@ -49,29 +49,82 @@ def _bm_test():
     global __test__
     return __test__
 
-def get_block_graph(g, B, b, vcount=None, ecount=None, ecov=None):
+def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
     if isinstance(ecount, libinference.unity_eprop_t):
         ecount = None
     if isinstance(vcount, libinference.unity_vprop_t):
         vcount = None
+    avprops = []
+    if vcount is not None:
+        avprops.append(vcount)
     aeprops = []
-    if ecov is not None:
-        aeprops.append(ecov)
-    cg, br, vcount, ecount, av, ae = condensation_graph(g, b,
-                                                        vweight=vcount,
-                                                        eweight=ecount,
-                                                        aeprops=aeprops,
-                                                        self_loops=True)
+    if ecount is not None:
+        aeprops.append(ecount)
+    if rec is not None:
+        aeprops.append(rec)
+    if drec is not None:
+        aeprops.append(drec)
+    cg, br, vc, ec, av, ae = condensation_graph(g, b,
+                                                avprops=avprops,
+                                                aeprops=aeprops,
+                                                self_loops=True)
+    if vcount is not None:
+        vcount = av[0]
+        del av[0]
+    else:
+        vcount = vc
     cg.vp.count = vcount
+
+    if ecount is not None:
+        ecount = ae[0]
+        del ae[0]
+    else:
+        ecount = ec
     cg.ep.count = ecount
-    if ecov is not None:
-        cg.ep.ecov = ae[0]
+
+    if rec is not None:
+        cg.ep.rec = ae[0]
+        del ae[0]
+
+    if drec is not None:
+        cg.ep.drec = ae[0]
         del ae[0]
 
     cg = Graph(cg, vorder=br)
 
     cg.add_vertex(B - cg.num_vertices())
     return cg
+
+def get_entropy_args(args):
+    args = DictState(args)
+    deg_dl_kind = args.degree_dl_kind
+    if deg_dl_kind == "entropy":
+        kind = libinference.deg_dl_kind.ent
+    elif deg_dl_kind == "uniform":
+        kind = libinference.deg_dl_kind.uniform
+    elif deg_dl_kind == "distributed":
+        kind = libinference.deg_dl_kind.dist
+    ea = libinference.entropy_args()
+    ea.exact = args.exact
+    ea.dense = args.dense
+    ea.multigraph = args.multigraph
+    ea.adjacency = args.adjacency
+    if args.dl:
+        ea.partition_dl = args.partition_dl
+        ea.degree_dl = args.degree_dl
+        ea.edges_dl = args.edges_dl
+    else:
+        ea.partition_dl = False
+        ea.degree_dl = False
+        ea.edges_dl = False
+    ea.degree_dl_kind = kind
+    return ea
+
+_q_cache_max_n = 10000
+def init_q_cache(max_n=None):
+    if max_n is None:
+        max_n = _q_cache_max_n
+    libinference.init_q_cache(min(_q_cache_max_n, max_n))
 
 class BlockState(object):
     r"""The stochastic block model state of a given graph.
@@ -84,6 +137,15 @@ class BlockState(object):
         Edge multiplicities (for multigraphs or block graphs).
     vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex multiplicities (for block graphs).
+    rec : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Real-valued edge covariates.
+    rec_type : `"positive"`, `"signed"` or `None` (optional, default: ``None``)
+        Type of edge covariates. If not specified, it will be guessed from
+        ``rec``.
+    rec_params : ``dict`` (optional, default: ``{}``)
+        Model hyperparameters for real-valued covariates. This should be a
+        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type ==
+        positive`` or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == signed``.
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial block labels on the vertices. If not supplied, it will be
         randomly sampled.
@@ -108,32 +170,41 @@ class BlockState(object):
         the block graph. Otherwise a dense matrix will be used.
     """
 
-    def __init__(self, g, eweight=None, vweight=None, b=None, B=None, ecov=None,
-                 ecov_type=None, clabel=None, pclabel=None, deg_corr=True,
-                 allow_empty=True, max_BE=1000, **kwargs):
+    def __init__(self, g, eweight=None, vweight=None, rec=None, rec_type=None,
+                 rec_params={}, b=None, B=None, clabel=None, pclabel=None,
+                 deg_corr=True, allow_empty=False, max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
-        if eweight is None or isinstance(eweight, libinference.unity_eprop_t):
+        if eweight == "unity":
+            eweight = g.new_ep("int", 1)
+        elif eweight is None or isinstance(eweight, libinference.unity_eprop_t):
             eweight = libinference.unity_eprop_t()
-        else:
+        elif eweight.value_type() != "int32_t":
             eweight = g.own_property(eweight.copy(value_type="int32_t"))
-        if vweight is None or isinstance(vweight, libinference.unity_vprop_t):
-            vweight = libinference.unity_vprop_t()
         else:
+            eweight = g.own_property(eweight)
+        if vweight == "unity":
+            vweight = g.new_vp("int", 1)
+        elif vweight is None or isinstance(vweight, libinference.unity_vprop_t):
+            vweight = libinference.unity_vprop_t()
+        elif vweight.value_type() != "int32_t":
             vweight = g.own_property(vweight.copy(value_type="int32_t"))
+        else:
+            vweight = g.own_property(vweight)
         self.eweight = eweight
         self.vweight = vweight
 
-        self.is_edge_weighted = not isinstance(eweight, libinference.unity_eprop_t)
-        self.is_vertex_weighted = not isinstance(vweight, libinference.unity_vprop_t)
-        self.is_weighted = self.is_edge_weighted or self.is_vertex_weighted
+        is_edge_weighted = not isinstance(eweight, libinference.unity_eprop_t)
+        is_vertex_weighted = not isinstance(vweight, libinference.unity_vprop_t)
+        if not is_edge_weighted and is_vertex_weighted:
+            self.eweight = g.new_ep("int", 1)
+        if not is_vertex_weighted and is_edge_weighted:
+            self.vweight = g.new_vp("int", 1)
+        self.is_weighted = is_edge_weighted or is_vertex_weighted
 
         # configure the main graph and block model parameters
         self.g = g
-
-        self.E = int(self.eweight.fa.sum()) if self.is_edge_weighted else g.num_edges()
-        self.N = int(self.vweight.fa.sum()) if self.is_vertex_weighted else g.num_vertices()
 
         self.deg_corr = deg_corr
         self.overlap = False
@@ -171,9 +242,20 @@ class BlockState(object):
             raise ValueError("Maximum value of b is larger or equal to B! (%d vs %d)" %
                              (self.b.fa.max(), B))
 
+        if rec is None:
+            self.rec = self.g.new_ep("double")
+        else:
+            self.rec = rec.copy("double")
+        self.drec = extract_arg(kwargs, "drec", None)
+        if self.drec is None:
+            self.drec = self.rec.copy()
+            self.drec.fa **= 2
+        else:
+            self.drec = self.drec.copy()
+
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, self.vweight, self.eweight,
-                                  ecov=ecov)
+                                  rec=self.rec, drec=self.drec)
         self.bg.set_fast_edge_removal()
 
         self.mrs = self.bg.ep["count"]
@@ -218,10 +300,7 @@ class BlockState(object):
 
         self.max_BE = max_BE
 
-        if self.B > self.max_BE:
-            self.use_hash = libinference.true_type()
-        else:
-            self.use_hash = libinference.false_type()
+        self.use_hash = self.B > self.max_BE
 
         self.ignore_degrees = extract_arg(kwargs, "ignore_degrees", None)
         if self.ignore_degrees is None:
@@ -232,24 +311,62 @@ class BlockState(object):
         self.merge_map = extract_arg(kwargs, "merge_map",
                                      self.g.vertex_index.copy("int"))
 
-        self.block_list = Vector_size_t()
-        self.block_list.extend(arange(self.B, dtype="int"))
+        self.candidate_blocks = Vector_size_t()
+        self.candidate_pos = self.bg.new_vp("int")
+        self.empty_blocks = Vector_size_t()
+        self.empty_pos = self.bg.new_vp("int")
 
-        self.ecov = ecov
-        self.ecov_type = 3 if self.ecov is not None else 0
-        if self.ecov_type == 3: # waiting times
-            self.bcovsum = self.bg.degree_property_map("out", self.bg.ep.ecov)
+        if rec is None:
+            self.rec_type = libinference.rec_type.none
+        elif rec_type is None:
+            if self.rec.fa.min() > 0:
+                self.rec_type = libinference.rec_type.positive
+            else:
+                self.rec_type = libinference.rec_type.signed
+        elif rec_type == "positive":
+            self.rec_type = libinference.rec_type.positive
+        elif rec_type == "signed":
+            self.rec_type = libinference.rec_type.signed
+        elif rec_type == "delta_t":
+            self.rec_type = libinference.rec_type.delta_t
+        else:
+            self.rec_type = rec_type
+
+        if self.rec_type == libinference.rec_type.delta_t: # waiting times
+            self.brecsum = self.bg.degree_property_map("out", self.bg.ep.rec)
             tokens = self.ignore_degrees.fa == 0
             token_groups = bincount(self.b.fa[tokens]) > 0
             token_groups.resize(self.bg.num_vertices())
-            self.bcovsum.a[token_groups] = 0
+            self.brecsum.a[token_groups] = 0
         else:
-            self.ecov = self.g.new_ep("double")
-            self.bcovsum = self.bg.new_vp("double")
+            self.brecsum = self.bg.new_vp("double")
+
+        self.brec = self.bg.ep.rec
+        self.bdrec = self.bg.ep.drec
+
+        self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
+                               v0=self.rec.fa.std() ** 2, nu0=3)
+        if self.is_weighted:
+            idx = self.eweight.fa > 0
+            self.rec_params.update(dict(alpha=1, beta=self.rec.fa[idx].mean()))
+        else:
+            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean()))
+        self.rec_params.update(rec_params)
+        self.__dict__.update(self.rec_params)
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
+        self._avweight = self.vweight._get_any()
+        self._aeweight = self.eweight._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
+
+        if deg_corr:
+            init_q_cache(max(self.get_E(), self.get_N()) + 1)
+
+        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
+                                  degree_dl=True, degree_dl_kind="distributed",
+                                  edges_dl=True, dense=False, multigraph=True,
+                                  exact=True)
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
@@ -257,9 +374,14 @@ class BlockState(object):
 
 
     def __repr__(self):
-        return "<BlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
-            (self.B, " degree corrected," if self.deg_corr else "", str(self.g),
-             id(self))
+        return "<BlockState object with %d blocks (%d nonempty),%s%s for graph %s, at 0x%x>" % \
+            (self.B, self.get_nonempty_B(),
+             " degree-corrected," if self.deg_corr else "",
+             ((" with %s real-typed edge covariates," %
+               ("positive" if self.rec_type == libinference.rec_type.positive
+                else "signed"))
+              if self.rec_type != libinference.rec_type.none else ""),
+             str(self.g), id(self))
 
     def __copy__(self):
         return self.copy()
@@ -269,8 +391,8 @@ class BlockState(object):
         return self.copy(g=g)
 
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
-             deg_corr=None, clabel=None, overlap=False, pclabel=None, max_BE=None,
-             **kwargs):
+             deg_corr=None, clabel=None, overlap=False, pclabel=None,
+             max_BE=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
 
@@ -284,33 +406,59 @@ class BlockState(object):
                                pclabel=self.pclabel if pclabel is None else pclabel,
                                deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                max_BE=self.max_BE if max_BE is None else max_BE,
-                               ignore_degrees=kwargs.pop("ignore_degrees", self.ignore_degrees),
+                               ignore_degrees=kwargs.pop("ignore_degrees",
+                                                         self.ignore_degrees),
                                degs=self.degs.copy(),
-                               merge_map=kwargs.get("merge_map", self.merge_map.copy()),
-                               ecov=self.ecov,
-                               **dmask(kwargs, ["ignore_degrees", "merge_map"]))
+                               merge_map=kwargs.get("merge_map",
+                                                    self.merge_map.copy()),
+                               rec=kwargs.get("rec", self.rec),
+                               drec=kwargs.get("drec", self.drec),
+                               rec_type=kwargs.get("rec_type", self.rec_type),
+                               rec_params=kwargs.get("rec_params",
+                                                     self.rec_params),
+                               allow_empty=kwargs.get("allow_empty",
+                                                      self.allow_empty),
+                               **dmask(kwargs,
+                                       ["ignore_degrees", "merge_map", "rec",
+                                        "rec_type", "rec_params", "drec",
+                                        "allow_empty"]))
         else:
             state = OverlapBlockState(self.g if g is None else g,
                                       b=self.b.copy() if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
+                                      rec=kwargs.get("rec", self.rec),
+                                      drec=kwargs.get("drec", self.drec),
+                                      rec_type=kwargs.get("rec_type",
+                                                          self.rec_type),
+                                      rec_params=kwargs.get("rec_params",
+                                                            self.rec_params),
                                       clabel=self.clabel if clabel is None else clabel,
                                       pclabel=self.pclabel if pclabel is None else pclabel,
                                       deg_corr=self.deg_corr if deg_corr is None else deg_corr,
+                                      allow_empty=kwargs.get("allow_empty",
+                                                             self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
-                                      **kwargs)
+                                      **dmask(kwargs, ["rec", "rec_type",
+                                                       "rec_params", "drec",
+                                                       "allow_empty"]))
         return state
 
 
     def __getstate__(self):
         state = dict(g=self.g,
-                     eweight=self.eweight if self.is_edge_weighted else None,
-                     vweight=self.vweight if self.is_vertex_weighted else None,
+                     eweight=self.eweight if self.is_weighted else None,
+                     vweight=self.vweight if self.is_weighted else None,
                      b=self.b,
                      B=self.B,
                      clabel=self.clabel,
                      pclabel=self.pclabel,
                      deg_corr=self.deg_corr,
+                     allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
+                     rec=self.rec if self.rec_type != libinference.rec_type.none else None,
+                     drec=self.drec if self.rec_type == libinference.rec_type.signed else None,
+                     rec_type=int(self.rec_type),
+                     rec_params=self.rec_params,
                      ignore_degrees=self.ignore_degrees.copy("int"),
                      degs=self.degs if not isinstance(self.degs,
                                                       libinference.simple_degs_t) else None,
@@ -321,12 +469,15 @@ class BlockState(object):
         conv_pickle_state(state)
         self.__init__(**state)
 
-    def get_block_state(self, b=None, vweight=False, deg_corr=False, **kwargs):
+    def get_block_state(self, b=None, vweight=False, **kwargs):
         r"""Returns a :class:`~graph_tool.community.BlockState`` corresponding to the
         block graph (i.e. the blocks of the current state become the nodes). The
         parameters have the same meaning as the in the constructor. If ``vweight
         == True`` the nodes of the block state are weighted with the node
         counts."""
+
+        deg_corr = kwargs.get("deg_corr", self.deg_corr)
+        copy_bg = extract_arg(kwargs, "copy_bg", True)
 
         if deg_corr and vweight:
             if isinstance(self.degs, libinference.simple_degs_t):
@@ -341,16 +492,56 @@ class BlockState(object):
         else:
             degs = libinference.simple_degs_t()
 
-        state = BlockState(self.bg.copy(), eweight=self.mrs,
-                           vweight=self.wr if vweight else self.bg.new_vp("int", 1),
-                           b=self.bg.vertex_index.copy("int") if b is None else b,
+        if copy_bg:
+            bg = self.bg.copy()
+            eweight = bg.own_property(self.mrs.copy())
+        else:
+            bg = self.bg
+            eweight = self.mrs
+        if vweight == "nonempty":
+            vweight = bg.new_vp("int", self.wr.a > 0)
+        elif vweight == "unity":
+            vweight = bg.new_vp("int", 1)
+        elif vweight == True:
+            if copy_bg:
+                vweight = bg.own_property(self.wr.copy())
+            else:
+                vweight = self.wr
+        else:
+            vweight = None
+        state = BlockState(bg,
+                           eweight=eweight,
+                           vweight=vweight,
+                           b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
                            allow_empty=kwargs.get("allow_empty",
                                                   self.allow_empty),
                            degs=degs,
+                           rec_type=kwargs.get("rec_type", self.rec_type if vweight else None),
+                           rec=kwargs.get("rec", bg.ep.rec if vweight else None),
+                           drec=kwargs.get("drec", bg.ep.drec if vweight else None),
+                           rec_params=kwargs.get("rec_params", self.rec_params),
                            max_BE=self.max_BE,
-                           **dmask(kwargs, ["allow_empty"]))
+                           **dmask(kwargs, ["allow_empty", "rec_type",
+                                            "rec_params", "rec", "drec",
+                                            "deg_corr"]))
         return state
+
+    def get_E(self):
+        r"Returns the total number of edges."
+        return int(self.eweight.fa.sum()) if self.is_weighted else self.g.num_edges()
+
+    def get_N(self):
+        r"Returns the total number of nodes."
+        return int(self.vweight.fa.sum()) if self.is_weighted else self.g.num_vertices()
+
+    def get_B(self):
+        r"Returns the total number of blocks."
+        return self.bg.num_vertices()
+
+    def get_nonempty_B(self):
+        r"Returns the total number of nonempty blocks."
+        return int((self.wr.a > 0).sum())
 
     def get_bclabel(self):
         r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to constraint
@@ -376,6 +567,12 @@ class BlockState(object):
         continuous_map(b)
         continuous_map(b2)
         return (b == b2).all()
+
+    def _couple_state(self, state, entropy_args):
+        if state is None:
+            self._state.decouple_state()
+        else:
+            self._state.couple_state(state._state, entropy_args)
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -412,122 +609,154 @@ class BlockState(object):
         sizes :math:`n_r`."""
         return self.wr
 
-    def entropy(self, dl=True, partition_dl=True, degree_dl=True,
-                edges_dl=True, dense=False, multigraph=True, dl_ent=False,
-                deg_entropy=True, **kwargs):
+    def entropy(self, adjacency=True, dl=True, partition_dl=True,
+                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
+                dense=False, multigraph=True, deg_entropy=True, exact=True,
+                **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
         ----------
-        dl : ``bool`` (optional, default: ``False``)
-            If ``True``, the full description length will be returned.
+        adjacency : ``bool`` (optional, default: ``True``)
+            If ``True``, the adjacency term of the description length will be
+            included.
+        dl : ``bool`` (optional, default: ``True``)
+            If ``True``, the description length for the parameters will be
+            included.
         partition_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the partition description length
-            will be considered.
+            will be included.
         degree_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the degree sequence description
-            length will be considered.
+            length will be included (for degree-corrected models).
+        degree_dl_kind : ``str`` (optional, default: ``"distributed"``)
+            This specifies the prior used for the degree sequence. It must be
+            one of: ``"uniform"``, ``"distributed"`` (default) or ``"entropy"``.
         edges_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge matrix description length
-            will be considered.
+            will be included.
         dense : ``bool`` (optional, default: ``False``)
             If ``True``, the "dense" variant of the entropy will be computed.
-        multigraph : ``bool`` (optional, default: ``False``)
+        multigraph : ``bool`` (optional, default: ``True``)
             If ``True``, the multigraph entropy will be used.
-        dl_ent : ``bool`` (optional, default: ``False``)
-            If ``True``, the description length of the degree sequence will be
-            approximated by its entropy.
         deg_entropy : ``bool`` (optional, default: ``True``)
             If ``True``, the degree entropy term that is independent of the
-            network partition will be returned.
+            network partition will be included (for degree-corrected models).
+        exact : ``bool`` (optional, default: ``True``)
+            If ``True``, the exact expressions will be used. Otherwise,
+            Stirling's factorial approximation will be used for some terms.
 
         Notes
         -----
-        For the traditional blockmodel (``deg_corr == False``), the entropy is
-        given by
+
+        The "entropy" of the state is minus the log-likelihood of the
+        microcanonical SBM, that includes the generated graph
+        :math:`\boldsymbol{A}` and the model parameters :math:`\boldsymbol{\theta}`,
 
         .. math::
 
-          \mathcal{S}_t &\cong E - \frac{1}{2} \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{n_rn_s}\right), \\
-          \mathcal{S}^d_t &\cong E - \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{n_rn_s}\right),
+           \mathcal{S} &= - \ln P(\boldsymbol{A},\boldsymbol{\theta}) \\
+                       &= - \ln P(\boldsymbol{A}|\boldsymbol{\theta}) - \ln P(\boldsymbol{\theta}).
+
+        This value is also called the `description length
+        <https://en.wikipedia.org/wiki/Minimum_description_length>`_ of the data,
+        and it corresponds to the amount of information required to describe it
+        (in `nats <https://en.wikipedia.org/wiki/Nat_(unit)>`_).
+
+        For the traditional blockmodel (``deg_corr == False``), the model
+        parameters are :math:`\boldsymbol{\theta} = \{\boldsymbol{e},
+        \boldsymbol{b}\}`, where :math:`\boldsymbol{e}` is the matrix of edge
+        counts between blocks, and :math:`\boldsymbol{b}` is the partition of the
+        nodes into blocks. For the degree-corrected blockmodel (``deg_corr ==
+        True``), we have an additional set of parameters, namely the degree
+        sequence :math:`\boldsymbol{k}`.
+
+        For the traditional blockmodel, the model likelihood is
+
+        .. math::
+
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b}) &= \frac{\prod_{r<s}e_{rs}!\prod_re_{rr}!!}{\prod_rn_r^{e_r}}\times \frac{1}{\prod_{i<j}A_{ij}!\prod_iA_{ii}!!},\\
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b}) &= \frac{\prod_{rs}e_{rs}!}{\prod_rn_r^{e_r}}\times \frac{1}{\prod_{ij}A_{ij}!},
 
         for undirected and directed graphs, respectively, where :math:`e_{rs}`
         is the number of edges from block :math:`r` to :math:`s` (or the number
         of half-edges for the undirected case when :math:`r=s`), and :math:`n_r`
         is the number of vertices in block :math:`r` .
 
-        For the degree-corrected variant with "hard" degree constraints the
-        equivalent expressions are
+        For the degree-corrected variant the equivalent expressions are
 
         .. math::
 
-            \mathcal{S}_c &\cong -E -\sum_kN_k\ln k! - \frac{1}{2} \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{e_re_s}\right), \\
-            \mathcal{S}^d_c &\cong -E -\sum_{k^+}N_{k^+}\ln k^+!  -\sum_{k^-}N_{k^-}\ln k^-! - \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{e^+_re^-_s}\right),
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b},\boldsymbol{k}) &= \frac{\prod_{r<s}e_{rs}!\prod_re_{rr}!!}{\prod_re_r!}\times \frac{\prod_ik_i!}{\prod_{i<j}A_{ij}!\prod_iA_{ii}!!},\\
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b},\boldsymbol{k}) &= \frac{\prod_{rs}e_{rs}!}{\prod_re_r^+!\prod_re_r^-!}\times \frac{\prod_ik_i^+!\prod_ik_i^-!}{\prod_{ij}A_{ij}!},
 
         where :math:`e_r = \sum_se_{rs}` is the number of half-edges incident on
         block :math:`r`, and :math:`e^+_r = \sum_se_{rs}` and :math:`e^-_r =
         \sum_se_{sr}` are the numbers of out- and in-edges adjacent to block
         :math:`r`, respectively.
 
-        If ``dense == False`` and ``multigraph == True``, the entropy used will
-        be of the "Poisson" model, with the additional term:
+        If ``exact == False``, `Stirling's approximation
+        <https://en.wikipedia.org/wiki/Stirling%27s_approximation>`_ is used in
+        the above expression.
+
+        If ``dense == True``, the likelihood for the non-degree-corrected model
+        becomes instead
 
         .. math::
 
-            {\mathcal{S}_{cm}^{(d)}} = \mathcal{S}_c^{(d)} + \sum_{i>j} \ln A_{ij}! + \sum_i \ln A_{ii}!!
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b})^{-1} &= \prod_{r<s}{n_rn_s\choose e_{rs}}\prod_r{{n_r\choose 2}\choose e_{rr}/2},\\
+            P(\boldsymbol{A}|\boldsymbol{e},\boldsymbol{b})^{-1} &= \prod_{rs}{n_rn_s\choose e_{rs}}
+
+        if ``multigraph == False``, otherwise we replace :math:`{n\choose
+        m}\to\left(\!\!{n\choose m}\!\!\right)` above, where
+        :math:`\left(\!\!{n\choose m}\!\!\right) = {n+m-1\choose m}`.  A dense
+        entropy for the degree-corrected model is not available, and if
+        requested will raise a :exc:`NotImplementedError`.
+
+        If ``dl == True``, the description length :math:`\mathcal{L} = -\ln
+        P(\boldsymbol{\theta})` of the model will be returned as well. The terms
+        :math:`P(\boldsymbol{e})` and :math:`P(\boldsymbol{b})` are described in
+        described in :func:`model_entropy`.
+
+        For the degree-corrected model we need to specify the prior
+        :math:`P(\boldsymbol{k})` for the degree sequence as well. Here there
+        are three options:
+
+        1. ``degree_dl_kind == "uniform"``
+
+            .. math::
+
+                P(\boldsymbol{k}|\boldsymbol{e},\boldsymbol{b}) = \prod_r\left(\!\!{n_r\choose e_r}\!\!\right)^{-1}.
+
+        2. ``degree_dl_kind == "distributed"``
+
+            .. math::
+
+                P(\boldsymbol{k}|\boldsymbol{e},\boldsymbol{b}) = \prod_r\frac{\prod_k\eta_k^r!}{n_r!} \prod_r q(e_r, n_r)^{-1}
+
+            with :math:`\eta_k^r` being the number of nodes with degree
+            :math:`k` in group :math:`r`, and :math:`q(n,m)` being the number of
+            `partitions
+            <https://en.wikipedia.org/wiki/Partition_(number_theory)>`_ of
+            integer :math:`n` into at most :math:`m` parts.
+
+        3. ``degree_dl_kind == "entropy"``
+
+            .. math::
+
+                P(\boldsymbol{k}|\boldsymbol{e},\boldsymbol{b}) \approx \prod_r\exp\left(-n_rH(\boldsymbol{k}_r)\right)
+
+            where :math:`H(\boldsymbol{k}_r) = -\sum_kp_r(k)\ln p_r(k)` is the
+            entropy of the degree distribution inside block :math:`r`.
+
+            Note that, differently from the other two choices, this represents
+            only an approximation of the description length. It is meant to be
+            used only for comparison purposes, and should be avoided in practice.
 
 
-        If ``dl == True``, the description length :math:`\mathcal{L}_t` of the
-        model will be returned as well, as described in
-        :func:`model_entropy`. Note that for the degree-corrected version the
-        description length is
+        For the directed case, the above expressions are duplicated for the in-
+        and out-degrees.
 
-        .. math::
-
-            \mathcal{L}_c = \mathcal{L}_t + \sum_r\min\left(\mathcal{L}^{(1)}_r, \mathcal{L}^{(2)}_r\right),
-
-        with
-
-        .. math::
-
-              \mathcal{L}^{(1)}_r &= \ln{\left(\!\!{n_r \choose e_r}\!\!\right)}, \\
-              \mathcal{L}^{(2)}_r &= \ln\Xi_r + \ln n_r! - \sum_k \ln n^r_k!,
-
-        and :math:`\ln\Xi_r \simeq 2\sqrt{\zeta(2)e_r}`, where :math:`\zeta(x)`
-        is the `Riemann zeta function
-        <https://en.wikipedia.org/wiki/Riemann_zeta_function>`_, and
-        :math:`n^r_k` is the number of nodes in block :math:`r` with degree
-        :math:`k`. For directed graphs we have instead :math:`k \to (k^-, k^+)`,
-        and :math:`\ln\Xi_r \to \ln\Xi^+_r + \ln\Xi^-_r` with :math:`\ln\Xi_r^+
-        \simeq 2\sqrt{\zeta(2)e^+_r}` and :math:`\ln\Xi_r^- \simeq
-        2\sqrt{\zeta(2)e^-_r}`.
-
-        If ``dl_ent=True`` is passed, this will be approximated instead by
-
-        .. math::
-
-            \mathcal{L}_c \simeq \mathcal{L}_t - \sum_rn_r\sum_kp^r_k\ln p^r_k,
-
-        where :math:`p^r_k = n^r_k / n_r`.
-
-        If the "dense" entropies are requested (``dense=True``), they will be
-        computed as
-
-        .. math::
-
-            \mathcal{S}_t  &= \sum_{r>s} \ln{\textstyle {n_rn_s \choose e_{rs}}} + \sum_r \ln{\textstyle {{n_r\choose 2}\choose e_{rr}/2}}\\
-            \mathcal{S}^d_t  &= \sum_{rs} \ln{\textstyle {n_rn_s \choose e_{rs}}},
-
-        for simple graphs, and
-
-        .. math::
-
-            \mathcal{S}_m  &= \sum_{r>s} \ln{\textstyle \left(\!\!{n_rn_s \choose e_{rs}}\!\!\right)} + \sum_r \ln{\textstyle \left(\!\!{\left(\!{n_r\choose 2}\!\right)\choose e_{rr}/2}\!\!\right)}\\
-            \mathcal{S}^d_m  &= \sum_{rs} \ln{\textstyle \left(\!\!{n_rn_s \choose e_{rs}}\!\!\right)},
-
-        for multigraphs (i.e. ``multigraph == True``). A dense entropy for the
-        degree-corrected model is not available, and if requested will raise a
-        :exc:`NotImplementedError`.
         """
 
         if _bm_test() and kwargs.get("test", True):
@@ -538,32 +767,39 @@ class BlockState(object):
 
         kwargs = kwargs.copy()
 
-        xi_fast = extract_arg(kwargs, "xi_fast", False)
-        dl_deg_alt = extract_arg(kwargs, "dl_deg_alt", True)
+        E = self.get_E()
+        N = self.get_N()
 
-        E = self.E
-        N = self.N
+        S = 0
+        if adjacency:
+            S += self._state.entropy(dense, multigraph, deg_entropy, exact)
 
-        S = self._state.entropy(dense, multigraph, deg_entropy)
+            if not dense and not exact:
+                if multigraph:
+                    S -= E
+                else:
+                    S += E
 
-        if not dense:
-            if self.deg_corr:
-                S -= E
-            else:
-                S += E
         if dl:
             if partition_dl:
                 S += self._state.get_partition_dl()
 
             if edges_dl:
-                actual_B = (self.wr.a > 0).sum()
+                if self.allow_empty:
+                    actual_B = self.B
+                else:
+                    actual_B = (self.wr.a > 0).sum()
                 S += model_entropy(actual_B, N, E,
                                    directed=self.g.is_directed(), nr=False)
 
             if self.deg_corr and degree_dl:
-                S_seq = self._state.get_deg_dl(dl_ent, dl_deg_alt, xi_fast)
-
-                S += S_seq
+                if degree_dl_kind == "entropy":
+                    kind = libinference.deg_dl_kind.ent
+                elif degree_dl_kind == "uniform":
+                    kind = libinference.deg_dl_kind.uniform
+                elif degree_dl_kind == "distributed":
+                    kind = libinference.deg_dl_kind.dist
+                S += self._state.get_deg_dl(kind)
 
         callback = extract_arg(kwargs, "callback", None)
         if callback is not None:
@@ -574,7 +810,8 @@ class BlockState(object):
                 "invalid entropy %g (%s) " % (S, str(args))
 
             args["test"] = False
-            Salt = self.copy().entropy(**args)
+            state_copy = self.copy()
+            Salt = state_copy.entropy(**args)
             assert abs(S - Salt) < 1e-6, \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
@@ -628,13 +865,13 @@ class BlockState(object):
 
         return adjacency(self.bg, weight=self.mrs)
 
-    def virtual_vertex_move(self, v, s, dense=False, multigraph=True, dl=True,
-                            edges_dl=True, partition_dl=True):
+    def virtual_vertex_move(self, v, s, **kwargs):
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
         :meth:`graph_tool.BlockState.entropy`."""
-        return self._state.virtual_move(int(v), s, dense, multigraph, dl,
-                                        edges_dl, partition_dl)
+        return self._state.virtual_move(int(v), self.b[v], s,
+                                        get_entropy_args(overlay(self._entropy_args,
+                                                                 **kwargs)))
 
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``.
@@ -696,19 +933,13 @@ class BlockState(object):
         self.move_vertex(u, self.b[v])
         self._state.merge_vertices(int(u), int(v))
 
-    def sample_vertex_move(self, v, c=1., block_list=None):
+    def sample_vertex_move(self, v, c=1.):
         r"""Sample block membership proposal of vertex ``v`` according to real-valued
         sampling parameter ``c``: For :math:`c\to 0` the blocks are sampled
         according to the local neighbourhood and their connections; for
-        :math:`c\to\infty` the blocks are sampled randomly. If ``block_list`` is
-        passed, it should be a list of blocks among which the sampling will be
-        constrained if :math:`c = \infty`.
+        :math:`c\to\infty` the blocks are sampled randomly.
         """
-        blist = self.block_list
-        if block_list is not None:
-            blist = Vector_size_t()
-            blist.extend(block_list)
-        return self._state.sample_block(int(v), c, blist, _get_rng())
+        return self._state.sample_block(int(v), c, _get_rng())
 
     def get_move_prob(self, v, s, c=1., reverse=False):
         r"""Compute the probability of a move proposal for vertex ``v`` to block ``s``
@@ -743,10 +974,9 @@ class BlockState(object):
                 new_es = []
                 for u, v in edge_list:
                     e = self.g.add_edge(u, v)
-                    if self.is_edge_weighted:
+                    if self.is_weighted:
                         self.eweight[e] = 1
                     new_es.append(e)
-                    self.E += 1
             else:
                 old_es = []
                 for e in edge_list:
@@ -757,14 +987,13 @@ class BlockState(object):
                             raise ValueError("edge not found: (%d, %d)" % (int(u),
                                                                            int(v)))
 
-                    if self.is_edge_weighted:
+                    if self.is_weighted:
                         self.eweight[e] -= 1
                         if self.eweight[e] == 0:
                             self.g.remove_edge(e)
                     else:
                         self.g.remove_edge(e)
                     old_es.append((u, v))
-                    self.E -= 1
 
             self.add_vertex(pos.keys(), pos.values())
 
@@ -776,10 +1005,9 @@ class BlockState(object):
             if missing:
                 for e in new_es:
                     self.g.remove_edge(e)
-                    self.E -= 1
             else:
                 for u, v in old_es:
-                    if self.is_edge_weighted:
+                    if self.is_weighted:
                         e = self.g.edge(u, v)
                         if e is None:
                             e = self.g.add_edge(u, v)
@@ -787,7 +1015,6 @@ class BlockState(object):
                         self.eweight[e] += 1
                     else:
                         self.g.add_edge(u, v)
-                    self.E += 1
             self.add_vertex(pos.keys(), pos.values())
 
         if missing:
@@ -796,18 +1023,14 @@ class BlockState(object):
             return Sf - Si
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
-        if (mcmc_state.multigraph and not mcmc_state.dense and
-            not isinstance(self.degs, libinference.simple_degs_t)):
-            raise ValueError("can only perform mcmc sweep for degree-corrected" +
-                             " grouped states with multigraph == True if dense == True")
         return libinference.mcmc_sweep(mcmc_state, self._state,
                                        _get_rng())
 
     def mcmc_sweep(self, beta=1., c=1., niter=1, entropy_args={},
-                   allow_empty=True, sequential=True, parallel=False,
-                   vertices=None, block_list=None, verbose=False):
-        r"""Perform ``niter`` sweeps of a Metropolis-Hastings rejection sampling MCMC
-        to sample network partitions.
+                   allow_vacate=True, sequential=True, parallel=False,
+                   vertices=None, verbose=False, **kwargs):
+        r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
+        sampling MCMC to sample network partitions.
 
         Parameters
         ----------
@@ -825,8 +1048,8 @@ class BlockState(object):
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
-        allow_empty : ``bool`` (optional, default: ``True``)
-            Allow movements into empty groups.
+        allow_vacate : ``bool`` (optional, default: ``True``)
+            Allow groups to be vacated.
         sequential : ``bool`` (optional, default: ``True``)
             If ``sequential == True`` each vertex move attempt is made
             sequentially, where vertices are visited in random order. Otherwise
@@ -843,9 +1066,6 @@ class BlockState(object):
         vertices : ``list`` of ints (optional, default: ``None``)
             If provided, this should be a list of vertices which will be
             moved. Otherwise, all vertices will.
-        block_list : ``list`` of ints (optional, default: ``None``)
-            If provided, this should be a list of blocks which are allowed to be
-            sampled if ``c == inf``. Otherwise, all blocks will.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -870,46 +1090,48 @@ class BlockState(object):
         """
 
         mcmc_state = DictState(locals())
-        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
-                                    edges_dl=True, dense=False, multigraph=True),
-                               **entropy_args)
-        if not entropy_args["dl"]:
-            entropy_args = overlay(entropy_args, partition_dl=False,
-                                   degree_dl=False, edges_dl=False)
-        mcmc_state.update(entropy_args)
-        mcmc_state.block_list = self.block_list
-        if block_list is not None:
-            mcmc_state.block_list = Vector_size_t()
-            mcmc_state.block_list.resize(len(block_list))
-            mcmc_state.block_list.a = block_list
+        entropy_args = overlay(self._entropy_args, **entropy_args)
+        if (_bm_test() and entropy_args["multigraph"] and
+            not entropy_args["dense"] and
+            hasattr(self, "degs") and
+            not isinstance(self.degs, libinference.simple_degs_t)):
+            entropy_args["multigraph"] = False
+        mcmc_state.entropy_args = get_entropy_args(entropy_args)
         mcmc_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa
-            if self.is_vertex_weighted:
+            if self.is_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 vertices = vertices[vw > 0]
         mcmc_state.vlist.resize(len(vertices))
         mcmc_state.vlist.a = vertices
-        mcmc_state.E = self.E
+        mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
+        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
         if _bm_test():
             assert self._check_clabel(), "invalid clabel before sweep"
-            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Si = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Si = self.entropy(**entropy_args)
 
         dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
-            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Sf = self.entropy(**entropy_args)
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
         return dS, nmoves
 
@@ -917,9 +1139,9 @@ class BlockState(object):
         return libinference.gibbs_sweep(gibbs_state, self._state,
                                         _get_rng())
 
-    def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_empty=True,
+    def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_vacate=True,
                     sequential=True, parallel=False, vertices=None,
-                    block_list=None, verbose=False):
+                    verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs sampling MCMC
         to sample network partitions.
 
@@ -933,8 +1155,8 @@ class BlockState(object):
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
-        allow_empty : ``bool`` (optional, default: ``True``)
-            Allow movements into empty groups.
+        allow_vacate : ``bool`` (optional, default: ``True``)
+            Allow groups to be vacated.
         sequential : ``bool`` (optional, default: ``True``)
             If ``sequential == True`` each vertex move attempt is made
             sequentially, where vertices are visited in random order. Otherwise
@@ -951,9 +1173,6 @@ class BlockState(object):
         vertices : ``list`` of ints (optional, default: ``None``)
             If provided, this should be a list of vertices which will be
             moved. Otherwise, all vertices will.
-        block_list : ``list`` of ints (optional, default: ``None``)
-            If provided, this should be a list of blocks which are allowed to be
-            sampled if ``c == inf``. Otherwise, all blocks will.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -972,46 +1191,43 @@ class BlockState(object):
         """
 
         gibbs_state = DictState(locals())
-        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
-                                    edges_dl=True, dense=False, multigraph=True),
-                               **entropy_args)
-        if not entropy_args["dl"]:
-            entropy_args = overlay(entropy_args, partition_dl=False,
-                                   degree_dl=False, edges_dl=False)
-        gibbs_state.update(entropy_args)
-        gibbs_state.block_list = self.block_list
-        if block_list is not None:
-            gibbs_state.block_list = Vector_size_t()
-            gibbs_state.block_list.resize(len(block_list))
-            gibbs_state.block_list.a = block_list
+        entropy_args = overlay(self._entropy_args, **entropy_args)
+        gibbs_state.entropy_args = get_entropy_args(entropy_args)
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa
-            if self.is_vertex_weighted:
+            if self.is_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 vertices = vertices[vw > 0]
         gibbs_state.vlist.resize(len(vertices))
         gibbs_state.vlist.a = vertices
-        gibbs_state.E = self.E
+        gibbs_state.E = self.get_E()
         gibbs_state.state = self._state
 
+        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
         if _bm_test():
             assert self._check_clabel(), "invalid clabel before sweep"
-            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Si = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Si = self.entropy(**entropy_args)
 
         dS, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
-            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Sf = self.entropy(**entropy_args)
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
         return dS, nmoves
 
@@ -1020,10 +1236,10 @@ class BlockState(object):
                                                  self._state, _get_rng())
 
     def multicanonical_sweep(self, m_state, c=numpy.inf, niter=1,
-                             entropy_args={}, allow_empty=True, vertices=None,
-                             block_list=None, verbose=False):
-        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using
-        the Wang-Landau algorithm.
+                             entropy_args={}, allow_vacate=True, vertices=None,
+                             verbose=False, **kwargs):
+        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
+        Wang-Landau algorithm.
 
         Parameters
         ----------
@@ -1042,14 +1258,11 @@ class BlockState(object):
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.BlockState.entropy`.
-        allow_empty : ``bool`` (optional, default: ``True``)
-            Allow movements into empty groups.
+        allow_vacate : ``bool`` (optional, default: ``True``)
+            Allow groups to be vacated.
         vertices : ``list`` of ints (optional, default: ``None``)
             If provided, this should be a list of vertices which will be
             moved. Otherwise, all vertices will.
-        block_list : ``list`` of ints (optional, default: ``None``)
-            If provided, this should be a list of blocks which are allowed to be
-            sampled if ``c == inf``. Otherwise, all blocks will.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -1081,31 +1294,20 @@ class BlockState(object):
         niter *= self.g.num_vertices()
         args = dmask(locals(), ["self"])
         multi_state = DictState(args)
-        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
-                                    edges_dl=True, dense=False, multigraph=True),
-                               **entropy_args)
-        if not entropy_args["dl"]:
-            entropy_args = overlay(entropy_args, partition_dl=False,
-                                   degree_dl=False, edges_dl=False)
+        entropy_args = overlay(self._entropy_args, **entropy_args)
+        multi_state.entropy_args = get_entropy_args(entropy_args)
         multi_state.update(entropy_args)
-        multi_state.block_list = self.block_list
-        if block_list is not None:
-            multi_state.block_list = Vector_size_t()
-            multi_state.block_list.resize(len(block_list))
-            multi_state.block_list.a = block_list
         multi_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa
-            if self.is_vertex_weighted:
+            if self.is_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 vertices = vertices[vw > 0]
         multi_state.vlist.resize(len(vertices))
         multi_state.vlist.a = vertices
-        multi_state.E = self.E
-        multi_state.S = self.entropy(xi_fast=True, dl_deg_alt=False,
-                                     **dmask(entropy_args,
-                                             ["xi_fast", "deg_dl_alt"]))
+        multi_state.E = self.get_E()
+        multi_state.S = self.entropy(**entropy_args)
         multi_state.state = self._state
 
         multi_state.f = m_state._f
@@ -1122,13 +1324,21 @@ class BlockState(object):
         m_state._f = f
         m_state._time = time
 
+        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
+
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
-            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt"]))
+            if disable_callback_test:
+                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Sf = self.entropy(**entropy_args)
             assert abs(S - Sf) < 1e-6, \
                 "inconsistent entropy after sweep %g (%g): %s" % \
                 (S, Sf, str(entropy_args))
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
 
         return S, nmoves
 
@@ -1198,17 +1408,12 @@ class BlockState(object):
         """
 
         exhaustive_state = DictState(dict(max_iter=max_iter if max_iter is not None else 0))
-        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
-                                    edges_dl=True, dense=False, multigraph=True),
-                               **entropy_args)
-        if not entropy_args["dl"]:
-            entropy_args = overlay(entropy_args, partition_dl=False,
-                                   degree_dl=False, edges_dl=False)
-        exhaustive_state.update(entropy_args)
+        entropy_args = overlay(self._entropy_args, **entropy_args)
+        exhaustive_state.entropy_args = get_entropy_args(entropy_args)
         exhaustive_state.vlist = Vector_size_t()
         if vertices is None:
             vertices = self.g.vertex_index.copy().fa
-            if self.is_vertex_weighted:
+            if self.is_weighted:
                 # ignore vertices with zero weight
                 vw = self.vweight.fa
                 vertices = vertices[vw > 0]
@@ -1217,9 +1422,7 @@ class BlockState(object):
         self.move_vertex(vertices, initial_partition)
         exhaustive_state.vlist.resize(len(vertices))
         exhaustive_state.vlist.a = vertices
-        exhaustive_state.S = self.entropy(xi_fast=True, dl_deg_alt=False,
-                                          **dmask(entropy_args,
-                                                  ["xi_fast", "deg_dl_alt"]))
+        exhaustive_state.S = self.entropy(**entropy_args)
         exhaustive_state.state = self._state
         exhaustive_state.b_min = b_min = self.g.new_vp("int32_t")
 
@@ -1242,17 +1445,18 @@ class BlockState(object):
             return b_min
 
     def _merge_sweep_dispatch(self, merge_state):
-        if not self.is_vertex_weighted or not self.is_edge_weighted:
+        if not self.is_weighted:
             raise ValueError("state must be weighted to perform merges")
 
-        if merge_state.multigraph and not merge_state.dense:
+        if (merge_state.entropy_args.multigraph and
+            not merge_state.entropy_args.dense):
             raise ValueError("can only merge multigraphs if dense == True")
 
         return libinference.merge_sweep(merge_state, self._state,
                                         _get_rng())
 
     def merge_sweep(self, nmerges=1, niter=10, entropy_args={}, parallel=True,
-                    verbose=False):
+                    verbose=False, **kwargs):
         r"""Perform ``niter`` merge sweeps, where block nodes are progressively
         merged together in a manner that least increases the entropy.
 
@@ -1293,29 +1497,27 @@ class BlockState(object):
            :arxiv:`1310.4378`
         """
         merge_state = DictState(locals())
-        merge_state.E = self.E
+        merge_state.E = self.get_E()
         merge_state.state = self._state
-        entropy_args = overlay(dict(dl=True, partition_dl=True, degree_dl=True,
-                                    edges_dl=True, dense=False, multigraph=True),
-                               **entropy_args)
-        if not entropy_args["dl"]:
-            entropy_args = overlay(entropy_args, partition_dl=False,
-                                   degree_dl=False, edges_dl=False)
-        merge_state.update(entropy_args)
+        entropy_args = overlay(self._entropy_args, **entropy_args)
+        merge_state.entropy_args = get_entropy_args(entropy_args)
 
+        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
         if _bm_test():
             self._check_clabel()
-            Si = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Si = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Si = self.entropy(**entropy_args)
 
         dS, nmoves = self._merge_sweep_dispatch(merge_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
-            Sf = self.entropy(xi_fast=True, dl_deg_alt=False,
-                              **dmask(entropy_args, ["xi_fast", "deg_dl_alt",
-                                                     "callback"]))
+            if disable_callback_test:
+                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Sf = self.entropy(**entropy_args)
             assert abs(dS - (Sf - Si)) < 1e-6, \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -1333,10 +1535,10 @@ class BlockState(object):
         bstate = self.get_block_state(vweight=True,
                                       clabel=self.get_bclabel(),
                                       deg_corr=self.deg_corr)
-        nB = (bstate.wr.a > 0).sum()
+        nB = bstate.get_nonempty_B()
         while nB > B:
             bstate.merge_sweep(nB - B, **kwargs)
-            nB = (bstate.wr.a > 0).sum()
+            nB = bstate.get_nonempty_B()
         b = self.b.copy()
         pmap(b, bstate.merge_map)
         continuous_map(b)
@@ -1390,7 +1592,7 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, state.B, pe)[0]
-           -2.09061858931...
+           6.65429696440...
         """
 
         if p is None:
@@ -1443,7 +1645,7 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           24.44066050499...
+           7.165235016952...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.pdf")
            <...>
@@ -1490,6 +1692,9 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     traditional blockmodel ensemble, for ``B`` blocks, ``N`` vertices, ``E``
     edges, and either a directed or undirected graph.
 
+    This is equivalently defined as minus the log-likelihood of sampling the
+    parameters from a nonparametric generative model.
+
     A traditional blockmodel is defined as a set of :math:`N` vertices which can
     belong to one of :math:`B` blocks, and the matrix :math:`e_{rs}` describes
     the number of edges from block :math:`r` to :math:`s` (or twice that number
@@ -1500,7 +1705,7 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
 
     .. math::
 
-       \Omega_m = \left(\!\!{\left(\!{B \choose 2}\!\right) \choose E}\!\!\right)
+       \Omega_m = \left(\!\!{B(B+1)/2 \choose E}\!\!\right)
 
     and for a directed graph,
 
@@ -1510,29 +1715,36 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
 
     where :math:`\left(\!{n \choose k}\!\right) = {n+k-1\choose k}` is the
     number of :math:`k` combinations with repetitions from a set of size
-    :math:`n`.
-
-    For the node partition we assume a two-level Bayesian hierarchy, where first
-    the group size histogram is generated, and conditioned on it the partition,
-    which leads to a description length:
+    :math:`n`. Hence, we have the description length of the edge counts
 
     .. math::
 
-       \mathcal{L}_p = \ln\left(\!\!{B \choose N}\!\!\right) + \ln N! - \sum_r \ln n_r!,
+        -\ln P(\boldsymbol{e}) = \ln \Omega_m.
+
+    For the node partition :math:`\boldsymbol{b}` we assume a two-level Bayesian
+    hierarchy, where first the group size histogram is generated, and
+    conditioned on it the partition, which leads to a description length:
+
+    .. math::
+
+       -\ln P(\boldsymbol{b}) = \ln\left(\!\!{B \choose N}\!\!\right) + \ln N! - \sum_r \ln n_r!,
 
     where :math:`n_r` is the number of nodes in block :math:`r`. If we forbid
     empty groups, with ``allow_empty == False``, this changes slightly to
 
-       \mathcal{L}_p = \ln {N - 1 \choose B - 1} + \ln N! - \sum_r \ln n_r!.
+    .. math::
+
+       -\ln P(\boldsymbol{b}) = \ln {N - 1 \choose B - 1} + \ln N! - \sum_r \ln n_r!.
 
     The total information necessary to describe the model is then,
 
     .. math::
 
-       \mathcal{L}_t = \ln\Omega_m + \mathcal{L}_p.
+       -\ln P(\boldsymbol{e}, \boldsymbol{b}) = -\ln P(\boldsymbol{e}) - \ln P(\boldsymbol{b}).
 
     If ``nr`` is ``None``, it is assumed :math:`n_r=N/B`. If ``nr`` is
-    ``False``, the partition term :math:`\mathcal{L}_p` is omitted entirely.
+    ``False``, the partition term :math:`-\ln P(\boldsymbol{b})` is omitted
+    entirely.
 
     References
     ----------
@@ -1558,7 +1770,7 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     if nr is False:
         L = lbinom(x + E - 1, E)
     else:
-        L = lbinom(x + E - 1, E) + partition_entropy(B, N, nr)
+        L = lbinom(x + E - 1, E) + partition_entropy(B, N, nr, allow_empty)
     return L
 
 def bethe_entropy(g, B, p):

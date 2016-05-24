@@ -34,7 +34,7 @@ from . nested_blockmodel import *
 
 def default_args(mcmc_args={}, anneal_args={}, mcmc_equilibrate_args={},
                  shrink_args={}, mcmc_multilevel_args={}, overlap=False):
-    mcmc_args = overlay(dict(beta=numpy.inf, c=0, niter=5, allow_empty=False,
+    mcmc_args = overlay(dict(beta=numpy.inf, c=0, niter=5, allow_vacate=False,
                              entropy_args=dict(dl=True)), **mcmc_args)
     if overlap:
         mcmc_args = overlay(mcmc_args, bundled=True)
@@ -395,8 +395,8 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
     --------
     .. testsetup:: nested_mdl
 
-       gt.seed_rng(42)
-       np.random.seed(42)
+       gt.seed_rng(43)
+       np.random.seed(43)
 
     .. doctest:: nested_mdl
 
@@ -474,7 +474,9 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
                                           deg_corr=deg_corr, overlap=overlap,
                                           nonoverlap_init=nonoverlap_init,
                                           layers=layers, clabel=clabel,
-                                          state_args=state_args,
+                                          state_args=dmask(state_args,
+                                                           ["hstate_args",
+                                                            "hentropy_args"]),
                                           mcmc_multilevel_args=mcmc_multilevel_args)
         if b_max is None:
             b_max = max_state.b.fa

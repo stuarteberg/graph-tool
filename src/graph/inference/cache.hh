@@ -23,6 +23,8 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/math/special_functions/gamma.hpp>
+
 namespace graph_tool
 {
 using namespace std;

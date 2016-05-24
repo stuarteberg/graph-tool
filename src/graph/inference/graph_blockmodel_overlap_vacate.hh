@@ -38,11 +38,7 @@ typedef vprop_map_t<int32_t>::type vmap_t;
     ((__class__, &, mpl::vector<python::object>, 1))                           \
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))                                                      \
     ((nmerges,, size_t, 0))
@@ -83,7 +79,7 @@ struct Merge
                 {
                     auto w = target(e, _g);
                     if (w == v)
-                        source(e, _g);
+                        w = source(e, _g);
                     auto s = _state._b[w];
                     bundles[s].push_back(v);
                 }
@@ -125,7 +121,7 @@ struct Merge
             else
             {
                 auto v = uniform_sample(bundle, rng);
-                s = _state.sample_block(v, 0, _block_list, rng);
+                s = _state.sample_block(v, 0, rng);
             }
 
             if (s == r || _state._bclabel[r] != _state._bclabel[s])
@@ -136,16 +132,19 @@ struct Merge
 
         double virtual_move_dS(vector<size_t>& bundle, size_t nr)
         {
+            size_t r = _state._b[bundle[0]];
+            if (r == nr)
+                return 0;
             double dS = 0;
-            auto r = _state._b[bundle[0]];
             for (auto v : bundle)
             {
-                dS += _state.virtual_move(v, nr, _dense, _multigraph,
-                                          _partition_dl, _degree_dl, _edges_dl);
+                assert(r == size_t(_state._b[v]));
+                dS += _state.virtual_move(v, r, nr, _entropy_args);
                 _state.move_vertex(v, nr);
             }
             for (auto v : bundle)
                 _state.move_vertex(v, r);
+            assert(_state._wr[r] > 0);
             return dS;
         }
 

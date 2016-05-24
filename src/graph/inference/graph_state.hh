@@ -287,6 +287,7 @@ struct StateWrap
         };
     };
 
+
     template <class TR>
     static boost::any get_any(python::object mobj, string name, TR)
     {
@@ -308,6 +309,21 @@ struct StateWrap
                      {
                          ret = obj;
                          found = true;
+                     }
+                     else if (std::is_same<val_t, std::true_type>::value ||
+                              std::is_same<val_t, std::false_type>::value)
+                     {
+                         python::extract<bool> extract(obj);
+                         if (extract.check())
+                         {
+                             bool val = extract();
+                             if (val == std::is_same<val_t, std::true_type>::value)
+                             {
+                                 ret = typename std::is_same<val_t,
+                                                             std::true_type>::type();
+                                 found = true;
+                             }
+                         }
                      }
                      else
                      {

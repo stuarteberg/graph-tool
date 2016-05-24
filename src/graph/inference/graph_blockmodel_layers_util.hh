@@ -29,15 +29,13 @@ using namespace std;
 
 
 template <class State, class MEntries>
-double virtual_move_covariate(size_t v, size_t s, State& state,
+double virtual_move_covariate(size_t v, size_t r, size_t s, State& state,
                               MEntries& m_entries, bool reset)
 {
     if (reset)
     {
         m_entries.clear();
-        move_entries(v, s, state._b, state._eweight, state._mrs,
-                     state._emat.get_bedge_map(), state._g, state._bg,
-                     m_entries);
+        state.get_move_entries(v, r, s, m_entries);
     }
 
     auto& entries = m_entries.get_entries();
@@ -49,9 +47,9 @@ double virtual_move_covariate(size_t v, size_t s, State& state,
         auto& entry = entries[i];
         auto er = entry.first;
         auto es = entry.second;
-        int d = delta[i];
+        int d = get<0>(delta[i]);
 
-        int ers = get_mrs(er, es, state._mrs, state._emat);
+        int ers = get_beprop(er, es, state._mrs, state._emat);
         assert(ers + d >= 0);
         dS -= -lgamma_fast(ers + 1);
         dS += -lgamma_fast(ers + d + 1);

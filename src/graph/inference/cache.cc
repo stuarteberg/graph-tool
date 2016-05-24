@@ -28,12 +28,15 @@ vector<double> __lgamma_cache;
 
 void init_safelog(size_t x)
 {
-    size_t old_size = __safelog_cache.size();
-    if (x >= old_size)
+    #pragma omp critical (_safelog_)
     {
-        __safelog_cache.resize(x + 1);
-        for (size_t i = old_size; i < __safelog_cache.size(); ++i)
-            __safelog_cache[i] = safelog(double(i));
+        size_t old_size = __safelog_cache.size();
+        if (x >= old_size)
+        {
+            __safelog_cache.resize(x + 1);
+            for (size_t i = old_size; i < __safelog_cache.size(); ++i)
+                __safelog_cache[i] = safelog(double(i));
+        }
     }
 }
 
@@ -45,12 +48,15 @@ void clear_safelog()
 
 void init_xlogx(size_t x)
 {
-    size_t old_size = __xlogx_cache.size();
-    if (x >= old_size)
+    #pragma omp critical (_xlogx_)
     {
-        __xlogx_cache.resize(x + 1);
-        for (size_t i = old_size; i < __xlogx_cache.size(); ++i)
-            __xlogx_cache[i] = i * safelog(i);
+        size_t old_size = __xlogx_cache.size();
+        if (x >= old_size)
+        {
+            __xlogx_cache.resize(x + 1);
+            for (size_t i = old_size; i < __xlogx_cache.size(); ++i)
+                __xlogx_cache[i] = i * safelog(i);
+        }
     }
 }
 
@@ -61,12 +67,19 @@ void clear_xlogx()
 
 void init_lgamma(size_t x)
 {
-    size_t old_size = __lgamma_cache.size();
-    if (x >= old_size)
+    using namespace boost::math::policies;
+    #pragma omp critical (_lgamma_)
     {
-        __lgamma_cache.resize(x + 1);
-        for (size_t i = old_size; i < __lgamma_cache.size(); ++i)
-            __lgamma_cache[i] = lgamma(i);
+
+        size_t old_size = __lgamma_cache.size();
+        if (x >= old_size)
+        {
+            __lgamma_cache.resize(x + 1);
+            if (old_size == 0)
+                __lgamma_cache[0] = numeric_limits<double>::infinity();
+            for (size_t i = std::max(old_size, size_t(1)); i < __lgamma_cache.size(); ++i)
+                __lgamma_cache[i] = boost::math::lgamma(i);
+        }
     }
 }
 

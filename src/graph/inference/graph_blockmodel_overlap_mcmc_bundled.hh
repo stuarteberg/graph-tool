@@ -37,14 +37,10 @@ using namespace std;
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
     ((vlist,, std::vector<size_t>, 0))                                         \
-    ((block_list,&, std::vector<size_t>&, 0))                                  \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
+    ((entropy_args,, entropy_args_t, 0))                                       \
+    ((allow_vacate,, bool, 0))                                                 \
     ((sequential,, bool, 0))                                                   \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
@@ -71,17 +67,19 @@ struct MCMC
         BundledMCMCOverlapBlockState(ATs&&... as)
            : BundledMCMCOverlapBlockStateBase<Ts...>(as...),
              _g(_state._g),
-             _m_entries(num_vertices(_state._bg)),
              _parallel(false)
         {
-            _state.init_mcmc(_c, _partition_dl || _degree_dl || _edges_dl);
+            _state.init_mcmc(_c,
+                             (_entropy_args.partition_dl ||
+                              _entropy_args.degree_dl ||
+                              _entropy_args.edges_dl));
 
             for (auto v : _vlist)
             {
                 auto i = _state._overlap_stats.get_node(v);
                 if (i >= _half_edges.size())
                     _half_edges.resize(i + 1);
-                _half_edges[i].push_back(i);
+                _half_edges[i].push_back(v);
             }
 
             for (auto& he : _half_edges)
@@ -102,7 +100,6 @@ struct MCMC
         }
 
         typename state_t::g_t& _g;
-        EntrySet<typename state_t::g_t> _m_entries;
         std::vector<std::vector<size_t>> _half_edges;
         std::vector<std::vector<size_t>> _bundles;
         bool _parallel;
@@ -124,7 +121,7 @@ struct MCMC
             auto v = _bundles[i][0];
             auto r = _state._b[v];
 
-            size_t s = _state.sample_block(v, _c, _block_list, rng);
+            size_t s = _state.sample_block(v, _c, rng);
 
             if (_state._bclabel[s] != _state._bclabel[r])
                 return r;
@@ -140,11 +137,13 @@ struct MCMC
 
             for (auto v : _bundles[i])
             {
-                dS += _state.virtual_move(v, nr, _dense, _multigraph,
-                                          _partition_dl, _degree_dl, _edges_dl,
-                                          _m_entries);
+                assert(_state._b[v] == r);
+                dS += _state.virtual_move(v, r, nr, _entropy_args);
                 _state.move_vertex(v, nr);
             }
+
+            if (!_allow_vacate || _state._wr[r] == 0)
+                dS = numeric_limits<double>::infinity();
 
             double a = 0;
             // TODO: bundled moves are not ergodic, so we give up on detailed
@@ -159,9 +158,7 @@ struct MCMC
             // }
 
             for (auto v : _bundles[i])
-            {
                 _state.move_vertex(v, r);
-            }
 
             return make_pair(dS, a);
         }

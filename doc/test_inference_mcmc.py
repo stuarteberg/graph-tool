@@ -16,7 +16,6 @@ verbose = __name__ == "__main__"
 g = collection.data["football"]
 B = 10
 
-
 for directed in [True, False]:
     clf()
     g.set_directed(directed)
@@ -96,32 +95,35 @@ for directed in [True, False]:
 
     savefig("test_mcmc_move_prob_directed%s.pdf" % directed)
 
-g = collection.data["karate"]
-B = 3
+g = collection.data["lesmis"]
+B = 6
 
 for directed in [True, False]:
-    clf()
     g.set_directed(directed)
 
     hists = {}
 
-    state = minimize_blockmodel_dl(g, deg_corr=False, B_min=B, B_max=B)
+    state = minimize_blockmodel_dl(g, deg_corr=True, B_min=B, B_max=B)
     state = state.copy(B=B+1)
 
     cs = list(reversed([numpy.inf, 1, 0.1, 0.01, 0.001, "gibbs"]))
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=600, allow_empty=True)
+            mcmc_args=dict(beta=1, c=c, niter=100, allow_vacate=True)
         else:
-            mcmc_args=dict(beta=1, niter=600, allow_empty=True)
+            mcmc_args=dict(beta=1, niter=100, allow_vacate=True)
         if i == 0:
-            mcmc_equilibrate(state, mcmc_args=mcmc_args, gibbs=c=="gibbs",
-                             wait=1000,
+            mcmc_equilibrate(state,
+                             mcmc_args=mcmc_args,
+                             gibbs=c=="gibbs",
+                             wait=100,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
-        hists[c] = mcmc_equilibrate(state, mcmc_args=mcmc_args,
+        hists[c] = mcmc_equilibrate(state,
+                                    mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    force_niter=2000,
+                                    wait=2000,
+                                    nbreaks=12,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
@@ -146,20 +148,30 @@ for directed in [True, False]:
                        "(%s, %s) are not the same, with a p-value: %g (D=%g)") %
                       (str(directed), str(c1), str(c2), p, D))
 
-    bins = None
-    for c in cs:
-        hist = hists[c]
-        h = histogram(list(zip(*hist))[0], 1000000)
-        plot(h[-1][:-1], numpy.cumsum(h[0]), "-", label="c=%s" % str(c))
+    for cum in [True, False]:
+        clf()
+        bins = None
+        for c in cs:
+            hist = hists[c]
+            if cum:
+                h = histogram(list(zip(*hist))[0], 1000000, density=True)
+                plot(h[-1][:-1], numpy.cumsum(h[0]), "-", label="c=%s" % str(c))
 
-        if c != numpy.inf:
-            hist = hists[numpy.inf]
-            h2 = histogram(list(zip(*hist))[0], bins=h[-1])
-            res = abs(numpy.cumsum(h2[0]) - numpy.cumsum(h[0]))
-            i = res.argmax()
-            axvline(h[-1][i], color="grey")
+                if c != numpy.inf:
+                    hist = hists[numpy.inf]
+                    h2 = histogram(list(zip(*hist))[0], bins=h[-1], density=True)
+                    res = abs(numpy.cumsum(h2[0]) - numpy.cumsum(h[0]))
+                    i = res.argmax()
+                    axvline(h[-1][i], color="grey")
+            else:
+                h = histogram(list(zip(*hist))[0], 40)
+                plot(h[-1][:-1], h[0], "s-", label="c=%s" % str(c))
+                gca().set_yscale("log")
 
-    legend(loc="lower right")
-    savefig("test_mcmc_directed%s.pdf" % directed)
+        if cum:
+            legend(loc="lower right")
+        else:
+            legend(loc="best")
+        savefig("test_mcmc_directed%s-cum%s.pdf" % (directed, str(cum)))
 
 print("OK")

@@ -54,8 +54,8 @@ class VertexMatrix(object):
 
     def get_box(self, p, size=None):
         if size is None:
-            return (int(round(p[0] / self.m_res)),
-                    int(round(p[1] / self.m_res)))
+            return (int(round(float(p[0] / self.m_res))),
+                    int(round(float(p[1] / self.m_res))))
         else:
             n = int(np.ceil(size / self.m_res))
             b = self.get_box(p)

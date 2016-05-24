@@ -22,6 +22,7 @@
 #include <tuple>
 
 #include "graph_blockmodel.hh"
+#include "graph_blockmodel_util.hh"
 
 namespace graph_tool
 {
@@ -380,8 +381,10 @@ struct overlap_partition_stats_t
     overlap_partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E,
                               size_t B, Eprop& eweight, overlap_stats_t& ostats,
                               std::vector<size_t>& bmap,
-                              std::vector<size_t>& vmap)
-        : _overlap_stats(ostats), _bmap(bmap), _vmap(vmap)
+                              std::vector<size_t>& vmap,
+                              bool allow_empty)
+        : _overlap_stats(ostats), _bmap(bmap), _vmap(vmap),
+          _allow_empty(allow_empty)
     {
         _D = 0;
         _N = vlist.size();
@@ -511,7 +514,11 @@ struct overlap_partition_stats_t
             size_t nd = _dhist[d];
             if (nd == 0)
                 continue;
-            double x = lbinom_fast(_actual_B, d);
+            double x;
+            if (_allow_empty)
+                x = lbinom_fast(_total_B, d);
+            else
+                x = lbinom_fast(_actual_B, d);
             double ss = lbinom_careful((exp(x) + nd) - 1, nd); // not fast
             if (std::isinf(ss) || std::isnan(ss))
                 ss = nd * x - lgamma_fast(nd + 1);
@@ -528,87 +535,108 @@ struct overlap_partition_stats_t
         return S;
     }
 
-    double get_deg_dl(bool ent, bool deg_alt, bool xi_fast) const
+    double get_deg_dl_ent() const
     {
         double S = 0;
-        if (ent)
+        for (auto& ch : _deg_hist)
         {
-            for (auto& ch : _deg_hist)
-            {
-                auto& bv = ch.first;
-                auto& cdeg_hist = ch.second;
+            auto& bv = ch.first;
+            auto& cdeg_hist = ch.second;
 
-                size_t n_bv = _bhist.find(bv)->second;
+            size_t n_bv = _bhist.find(bv)->second;
 
-                S += xlogx(n_bv);
-                for (auto& dh : cdeg_hist)
-                    S -= xlogx(dh.second);
-            }
-        }
-        else
-        {
-            S = 0;
-
-            for (auto& ch : _deg_hist)
-            {
-                auto& bv = ch.first;
-                auto& cdeg_hist = ch.second;
-
-                size_t n_bv = _bhist.find(bv)->second;
-
-                if (n_bv == 0)
-                    continue;
-
-                const auto& bmh = _embhist.find(bv)->second;
-                const auto& bph = _epbhist.find(bv)->second;
-
-                double S1 = 0;
-                for (size_t i = 0; i < bv.size(); ++i)
-                {
-                    if (xi_fast)
-                    {
-                        S1 += get_xi_fast(n_bv, bmh[i]);
-                        S1 += get_xi_fast(n_bv, bph[i]);
-                    }
-                    else
-                    {
-                        S1 += get_xi(n_bv, bmh[i]);
-                        S1 += get_xi(n_bv, bph[i]);
-                    }
-                }
-
-                S1 += lgamma_fast(n_bv + 1);
-
-                for (auto& dh : cdeg_hist)
-                    S1 -= lgamma_fast(dh.second + 1);
-
-                if (deg_alt)
-                {
-                    double S2 = 0;
-                    for (size_t i = 0; i < bv.size(); ++i)
-                    {
-                        S2 += lbinom(n_bv + bmh[i] - 1, bmh[i]);
-                        S2 += lbinom(n_bv + bph[i] - 1, bph[i]);
-                    }
-                    S += min(S1, S2);
-                }
-                else
-                {
-                    S += S1;
-                }
-            }
-
-            for (size_t r = 0; r < _r_count.size(); ++r)
-            {
-                if (_r_count[r] == 0)
-                    continue;
-                S += lbinom(_r_count[r] + _emhist[r] - 1,  _emhist[r]);
-                S += lbinom(_r_count[r] + _ephist[r] - 1,  _ephist[r]);
-            }
+            S += xlogx(n_bv);
+            for (auto& dh : cdeg_hist)
+                S -= xlogx(dh.second);
         }
         return S;
     }
 
+    double get_deg_dl_uniform() const
+    {
+        double S = 0;
+
+        for (auto& ch : _deg_hist)
+        {
+            auto& bv = ch.first;
+            size_t n_bv = _bhist.find(bv)->second;
+
+            if (n_bv == 0)
+                continue;
+
+            const auto& bmh = _embhist.find(bv)->second;
+            const auto& bph = _epbhist.find(bv)->second;
+
+            for (size_t i = 0; i < bv.size(); ++i)
+            {
+                S += lbinom(n_bv + bmh[i] - 1, bmh[i]);
+                S += lbinom(n_bv + bph[i] - 1, bph[i]);
+            }
+        }
+
+        for (size_t r = 0; r < _r_count.size(); ++r)
+        {
+            if (_r_count[r] == 0)
+                continue;
+            S += lbinom(_r_count[r] + _emhist[r] - 1,  _emhist[r]);
+            S += lbinom(_r_count[r] + _ephist[r] - 1,  _ephist[r]);
+        }
+
+        return S;
+    }
+
+    double get_deg_dl_dist() const
+    {
+        double S = 0;
+        for (auto& ch : _deg_hist)
+        {
+            auto& bv = ch.first;
+            auto& cdeg_hist = ch.second;
+
+            size_t n_bv = _bhist.find(bv)->second;
+
+            if (n_bv == 0)
+                continue;
+
+            const auto& bmh = _embhist.find(bv)->second;
+            const auto& bph = _epbhist.find(bv)->second;
+
+            for (size_t i = 0; i < bv.size(); ++i)
+            {
+                S += log_q(bmh[i], n_bv);
+                S += log_q(bph[i], n_bv);
+            }
+
+            S += lgamma_fast(n_bv + 1);
+
+            for (auto& dh : cdeg_hist)
+                S -= lgamma_fast(dh.second + 1);
+        }
+
+        for (size_t r = 0; r < _r_count.size(); ++r)
+        {
+            if (_r_count[r] == 0)
+                continue;
+            S += lbinom(_r_count[r] + _emhist[r] - 1,  _emhist[r]);
+            S += lbinom(_r_count[r] + _ephist[r] - 1,  _ephist[r]);
+        }
+        return S;
+    }
+
+    double get_deg_dl(int kind) const
+    {
+        switch (kind)
+        {
+        case deg_dl_kind::ENT:
+            return get_deg_dl_ent();
+        case deg_dl_kind::UNIFORM:
+            return get_deg_dl_uniform();
+        case deg_dl_kind::DIST:
+            return get_deg_dl_dist();
+        default:
+            return numeric_limits<double>::quiet_NaN();
+        }
+    }
 
     template <class Graph>
     bool get_n_bv(size_t v, size_t r, size_t nr, const bv_t& bv,
@@ -706,8 +734,8 @@ struct overlap_partition_stats_t
     }
 
     template <class Graph>
-    double get_delta_dl(size_t v, size_t r, size_t nr, const Graph& g,
-                        size_t in_deg = 0, size_t out_deg = 0)
+    double get_delta_partition_dl(size_t v, size_t r, size_t nr, const Graph& g,
+                                  size_t in_deg = 0, size_t out_deg = 0)
     {
         if (r == nr)
             return 0;
@@ -770,14 +798,18 @@ struct overlap_partition_stats_t
                 int nd = int(_dhist[d_i]) + delta;
                 if (nd == 0)
                     return 0.;
-                double x = lbinom_fast(_actual_B + dB, d_i);
+                double x;
+                if (_allow_empty)
+                    x = lbinom_fast(_total_B + dB, d_i);
+                else
+                    x = lbinom_fast(_actual_B + dB, d_i);
                 double S = lbinom_careful(exp(x) + nd - 1, nd); // not fast
                 if (std::isinf(S) || std::isnan(S))
                     S = nd * x - lgamma_fast(nd + 1);
                 return S;
             };
 
-        if (dB == 0)
+        if (dB == 0 || _allow_empty)
         {
             if (n_d != d)
             {
@@ -832,7 +864,7 @@ struct overlap_partition_stats_t
     template <class Graph>
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, const Graph&)
     {
-        if (r == nr)
+        if (r == nr || _allow_empty)
             return 0;
 
         double S_b = 0, S_a = 0;
@@ -853,8 +885,8 @@ struct overlap_partition_stats_t
                         return (B * (B + 1)) / 2;
                 };
 
-            S_b += lbinom(get_x(_total_B) + _E - 1, _E);
-            S_a += lbinom(get_x(_total_B + dB) + _E - 1, _E);
+            S_b += lbinom(get_x(_actual_B) + _E - 1, _E);
+            S_a += lbinom(get_x(_actual_B + dB) + _E - 1, _E);
         }
 
         return S_a - S_b;
@@ -914,16 +946,16 @@ struct overlap_partition_stats_t
 
                     for (size_t i = 0; i < bv_i.size(); ++i)
                     {
-                        S += get_xi_fast(bv_c, bmh[i] + deg_delta * int(get<0>(deg_i[i])));
-                        S += get_xi_fast(bv_c, bph[i] + deg_delta * int(get<1>(deg_i[i])));
+                        S += log_q(size_t(bmh[i] + deg_delta * int(get<0>(deg_i[i]))), bv_c);
+                        S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))), bv_c);
                     }
                 }
                 else
                 {
                     for (size_t i = 0; i < bv_i.size(); ++i)
                     {
-                        S += get_xi_fast(bv_c, deg_delta * int(get<0>(deg_i[i])));
-                        S += get_xi_fast(bv_c, deg_delta * int(get<1>(deg_i[i])));
+                        S += log_q(size_t(deg_delta * int(get<0>(deg_i[i]))), bv_c);
+                        S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))), bv_c);
                     }
                 }
 
@@ -938,12 +970,14 @@ struct overlap_partition_stats_t
 
                 for (size_t i = 0; i < bv.size(); ++i)
                 {
-                    S += get_xi_fast(bv_count, bmh[i] +
-                                     deg_delta * int(get<0>(deg[i])) +
-                                     ndeg_delta * int(get<0>(n_deg[i])));
-                    S += get_xi_fast(bv_count, bph[i] +
-                                     deg_delta * int(get<1>(deg[i])) +
-                                     ndeg_delta * int(get<1>(n_deg[i])));
+                    S += log_q(size_t(bmh[i] +
+                                      deg_delta * int(get<0>(deg[i])) +
+                                      ndeg_delta * int(get<0>(n_deg[i]))),
+                               bv_count);
+                    S += log_q(size_t(bph[i] +
+                                      deg_delta * int(get<1>(deg[i])) +
+                                      ndeg_delta * int(get<1>(n_deg[i]))),
+                               bv_count);
                 }
                 return S;
             };
@@ -1092,10 +1126,7 @@ struct overlap_partition_stats_t
                 {
                     _r_count[s]--;
                     if (_r_count[s] == 0)
-                    {
                         _actual_B--;
-                        _total_B--;
-                    }
                 }
             }
 
@@ -1119,10 +1150,7 @@ struct overlap_partition_stats_t
                 for (auto s : n_bv)
                 {
                     if (_r_count[s] == 0)
-                    {
                         _actual_B++;
-                        _total_B++;
-                    }
                     _r_count[s]++;
                 }
             }
@@ -1188,6 +1216,7 @@ private:
     size_t _actual_B;
     size_t _total_B;
     size_t _D;
+    bool _allow_empty;
     vector<int> _dhist;        // d-histogram
     vector<int> _r_count;      // m_r
     bhist_t _bhist;            // b-histogram
@@ -1201,27 +1230,29 @@ private:
 };
 
 
-template <class Graph>
+template <class Graph, class BGraph, class... EVals>
 class SingleEntrySet
 {
 public:
+    typedef typename graph_traits<BGraph>::edge_descriptor bedge_t;
+
     SingleEntrySet() : _pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
     void set_move(size_t, size_t) {}
 
-    void insert_delta(size_t t, size_t s, int delta,
-                      size_t mrs = numeric_limits<size_t>::max())
+    template <class... DVals>
+    void insert_delta(size_t t, size_t s, const bedge_t& me, DVals... delta)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
-        _delta[_pos] = delta;
-        _mrs[_pos] = mrs;
+        add_to_tuple(_delta[_pos], delta...);
+        _mes[_pos] = me;
         ++_pos;
     }
 
-    int get_delta(size_t t, size_t s)
+    const auto& get_delta(size_t t, size_t s)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -1231,20 +1262,51 @@ public:
             if (entry.first == t && entry.second == s)
                 return _delta[i];
         }
-        return 0;
+        return _null_delta;
     }
 
-    void clear() { _pos = 0; }
+    void clear()
+    {
+        for (auto& d : _delta)
+            d = std::tuple<EVals...>();
+        _pos = 0;
+    }
 
-    const std::array<pair<size_t, size_t>,2>& get_entries() { return _entries; }
-    const std::array<int, 2>& get_delta() { return _delta; }
-    const std::array<size_t, 2>& get_mrs() { return _mrs; }
+    const std::array<pair<size_t, size_t>,2>& get_entries() const { return _entries; }
+    const std::array<std::tuple<EVals...>, 2>& get_delta() const { return _delta; }
+    std::array<bedge_t, 2>& get_mes() { return _mes; }
+    const bedge_t& get_null_edge() const { return _null_edge; }
 
 private:
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
-    std::array<int, 2> _delta;
-    std::array<size_t, 2> _mrs;
+    std::array<std::tuple<EVals...>, 2> _delta;
+    std::array<bedge_t, 2> _mes;
+
+    static const std::tuple<EVals...> _null_delta;
+    static const bedge_t _null_edge;
+};
+
+template <class Graph, class BGraph, class... EVals>
+const std::tuple<EVals...> SingleEntrySet<Graph, BGraph, EVals...>::_null_delta;
+
+template <class Graph, class BGraph, class... EVals>
+const typename SingleEntrySet<Graph, BGraph, EVals...>::bedge_t
+SingleEntrySet<Graph, BGraph, EVals...>::_null_edge;
+
+struct is_loop_overlap
+{
+    is_loop_overlap(const overlap_stats_t& os)
+        : _overlap_stats(os) {}
+    const overlap_stats_t& _overlap_stats;
+
+    bool operator()(size_t v) const
+    {
+        auto u = _overlap_stats.get_out_neighbour(v);
+        if (u == _overlap_stats._null)
+             u = _overlap_stats.get_in_neighbour(v);
+        return _overlap_stats.get_node(v) == _overlap_stats.get_node(u);
+    }
 };
 
 } // namespace graph_tool

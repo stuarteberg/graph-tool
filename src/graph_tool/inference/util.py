@@ -95,12 +95,16 @@ def lbinom_careful(n, k):
 def lbinom_fast(n, k):
     return libinference.lbinom_fast(n, k)
 
-def partition_entropy(B, N, nr=None):
+def partition_entropy(B, N, nr=None, allow_empty=True):
     if nr is None:
         S = N * log(B) + log1p(-(1 - 1./B) ** N)
     else:
-        S = (lbinom(B + N - 1, N) + scipy.special.gammaln(N + 1) -
-             scipy.special.gammaln(nr + 1).sum())
+        if allow_empty:
+            S = lbinom(B + N - 1, N)
+        else:
+            S = lbinom(N - 1, B - 1)
+        S += (scipy.special.gammaln(N + 1) -
+              scipy.special.gammaln(nr + 1).sum())
     return S
 
 def pmap(prop, value_map):

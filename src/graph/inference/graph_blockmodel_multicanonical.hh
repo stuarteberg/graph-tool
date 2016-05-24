@@ -45,14 +45,9 @@ using namespace std;
     ((S, , double, 0))                                                         \
     ((E,, size_t, 0))                                                          \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((block_list,&, std::vector<size_t>&, 0))                                  \
     ((c,, double, 0))                                                          \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
-    ((allow_empty,, bool, 0))                                                  \
+    ((entropy_args,, entropy_args_t, 0))                                       \
+    ((allow_vacate,, bool, 0))                                                 \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
@@ -79,7 +74,10 @@ struct Multicanonical
            : MulticanonicalBlockStateBase<Ts...>(as...),
             _g(_state._g)
         {
-            _state.init_mcmc(_c, _partition_dl || _degree_dl || _edges_dl);
+            _state.init_mcmc(_c,
+                             (_entropy_args.partition_dl ||
+                              _entropy_args.degree_dl ||
+                              _entropy_args.edges_dl));
         }
 
         typename state_t::g_t& _g;
@@ -99,12 +97,12 @@ struct Multicanonical
         {
             auto r = _state._b[v];
 
-            size_t s = _state.sample_block(v, _c, _block_list, rng);
+            size_t s = _state.sample_block(v, _c, rng);
 
-            if (_state._bclabel[s] != _state._bclabel[r])
+            if (!_state.allow_move(r, s))
                 return r;
 
-            if (!_allow_empty && _state.virtual_remove_size(v) == 0)
+            if (!_allow_vacate && _state.virtual_remove_size(v) == 0)
                 return r;
 
             return s;
@@ -112,9 +110,7 @@ struct Multicanonical
 
         std::pair<double, double> virtual_move_dS(size_t v, size_t nr)
         {
-            double dS = _state.virtual_move(v, nr, _dense, _multigraph,
-                                            _partition_dl, _degree_dl,
-                                            _edges_dl);
+            double dS = _state.virtual_move(v, _state._b[v], nr, _entropy_args);
 
             double a = 0;
             if (!std::isinf(_c))

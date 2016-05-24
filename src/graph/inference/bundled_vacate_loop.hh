@@ -36,6 +36,9 @@ namespace graph_tool
 template <class MergeState, class RNG>
 auto bundled_vacate_sweep(MergeState& state, RNG& rng)
 {
+    if (state._nmerges == 0)
+        return make_pair(double(0), size_t(0));
+
     // individual bundles can move in different directions
     auto get_best_move = [&] (auto& bundle, auto& past_moves)
         {
@@ -134,7 +137,6 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
             double dS = 0;
             for (auto& bundle : bundles)
             {
-
                 gt_hash_set<size_t> past_moves(forbidden_moves);
                 auto best_move = get_best_move(bundle, past_moves);
                 if (get<0>(best_move) == state._null_move)
@@ -196,7 +198,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
     double S = 0;
     size_t nmerges = 0;
     gt_hash_set<size_t> vacated;
-    while (nmerges != state._nmerges && !queue.empty())
+    while (nmerges < state._nmerges && !queue.empty())
     {
         auto pos = queue.top();
         queue.pop();

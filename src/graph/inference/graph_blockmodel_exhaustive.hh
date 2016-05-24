@@ -39,11 +39,7 @@ typedef typename vprop_map_t<int32_t>::type vmap_t;
     ((state, &, State&, 0))                                                    \
     ((S, , double, 0))                                                         \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((multigraph,, bool, 0))                                                   \
-    ((dense,, bool, 0))                                                        \
-    ((partition_dl,, bool, 0))                                                 \
-    ((degree_dl,, bool, 0))                                                    \
-    ((edges_dl,, bool, 0))                                                     \
+    ((entropy_args,, entropy_args_t, 0))                                       \
     ((b_min,, vmap_t, 0))                                                      \
     ((max_iter,, size_t, 0))
 
@@ -71,7 +67,9 @@ struct Exhaustive
             _g(_state._g), _S_min(_S)
         {
             _state.init_mcmc(numeric_limits<double>::infinity(),
-                             _partition_dl || _degree_dl || _edges_dl);
+                             (_entropy_args.partition_dl ||
+                              _entropy_args.degree_dl ||
+                              _entropy_args.edges_dl));
         }
         typename State::g_t& _g;
         double _S_min;
@@ -88,9 +86,7 @@ struct Exhaustive
 
         double virtual_move_dS(size_t v, size_t nr)
         {
-            return _state.virtual_move(v, nr, _dense, _multigraph,
-                                       _partition_dl, _degree_dl,
-                                       _edges_dl);
+            return _state.virtual_move(v, _state._b[v], nr, _entropy_args);
         }
 
         void perform_move(size_t v, size_t nr)

@@ -43,19 +43,23 @@ python::object make_overlap_block_state(boost::python::object ostate,
 
 void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                     boost::any ob, boost::any onode_index,
-                    boost::any ohalf_edges, boost::any oeindex)
+                    boost::any ohalf_edges, boost::any oeindex, boost::any orec,
+                    boost::any oerec)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     typedef vprop_map_t<int64_t>::type vimap_t;
     typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
     typedef eprop_map_t<vector<int32_t>>::type evmap_t;
     typedef eprop_map_t<int64_t>::type emap_t;
+    typedef eprop_map_t<double>::type ermap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);
     vimap_t node_index = any_cast<vimap_t>(onode_index);
     vvmap_t half_edges = any_cast<vvmap_t>(ohalf_edges);
     emap_t egindex = any_cast<emap_t>(oeindex);
+    ermap_t rec = any_cast<ermap_t>(orec);
+    ermap_t erec = any_cast<ermap_t>(oerec);
 
     run_action<>()(gi,
                    [&](auto& g)
@@ -78,6 +82,7 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
                            node_index[v] = t;
                            half_edges[s].push_back(u);
                            half_edges[t].push_back(v);
+                           erec[ne] = rec[e];
                        }
                    })();
 }
@@ -150,11 +155,10 @@ void export_overlap_blockmodel_state()
          {
              typedef typename std::remove_reference<decltype(*s)>::type state_t;
 
-             double (state_t::*virtual_move)(size_t, size_t, bool, bool, bool,
-                                             bool, bool) =
+             double (state_t::*virtual_move)(size_t, size_t, size_t,
+                                             entropy_args_t) =
                  &state_t::virtual_move;
-             size_t (state_t::*sample_block)(size_t, double, vector<size_t>&,
-                                             rng_t&)
+             size_t (state_t::*sample_block)(size_t, double, rng_t&)
                  = &state_t::sample_block;
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                               bool)
@@ -163,11 +167,13 @@ void export_overlap_blockmodel_state()
                  = &state_t::set_partition;
              void (state_t::*move_vertices)(python::object, python::object) =
                  &state_t::move_vertices;
+             void (state_t::*remove_vertex)(size_t) = &state_t::remove_vertex;
+             void (state_t::*add_vertex)(size_t, size_t) = &state_t::add_vertex;
 
              class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
                                no_init);
-             c.def("remove_vertex", &state_t::remove_vertex)
-                 .def("add_vertex", &state_t::add_vertex)
+             c.def("remove_vertex", remove_vertex)
+                 .def("add_vertex", add_vertex)
                  .def("move_vertex", &state_t::move_vertex)
                  .def("move_vertices", move_vertices)
                  .def("set_partition", set_partition)

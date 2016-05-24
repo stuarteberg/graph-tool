@@ -50,9 +50,23 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((mrm,, vmap_t, 0))                                                        \
     ((wr,, vmap_t, 0))                                                         \
     ((b,, vmap_t, 0))                                                          \
+    ((candidate_blocks, &, std::vector<size_t>&, 0))                           \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
-    ((deg_corr,, bool, 0))
+    ((deg_corr,, bool, 0))                                                     \
+    ((rec_type,, int, 0))                                                      \
+    ((rec,, eprop_map_t<double>::type, 0))                                     \
+    ((drec,, eprop_map_t<double>::type, 0))                                    \
+    ((brec,, eprop_map_t<double>::type, 0))                                    \
+    ((bdrec,, eprop_map_t<double>::type, 0))                                   \
+    ((brecsum,, vprop_map_t<double>::type, 0))                                 \
+    ((m0,, double, 0))                                                         \
+    ((k0,, double, 0))                                                         \
+    ((v0,, double, 0))                                                         \
+    ((nu0,, double, 0))                                                        \
+    ((alpha,, double, 0))                                                      \
+    ((beta,, double, 0))                                                       \
+    ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(OverlapBlockStateBase, OVERLAP_BLOCK_STATE_params)
 
@@ -70,6 +84,8 @@ public:
         : OverlapBlockStateBase<Ts...>(std::forward<ATs>(args)...),
           _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
+          _c_brec(_brec.get_checked()),
+          _c_bdrec(_bdrec.get_checked()),
           _emat(_g, _b, _bg, rng),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg))
     {
@@ -82,6 +98,8 @@ public:
              (static_cast<const OverlapBlockStateBase<Ts...>&>(other)),
           _bg(other._bg),
           _c_mrs(other._c_mrs),
+          _c_brec(_brec.get_checked()),
+          _c_bdrec(_bdrec.get_checked()),
           _emat(other._emat),
           _overlap_stats(other._overlap_stats)
     {
@@ -89,7 +107,8 @@ public:
             enable_partition_stats();
     }
 
-    void remove_vertex(size_t v)
+    template <class EOP>
+    void remove_vertex(size_t v, EOP&& eop)
     {
         size_t r = _b[v];
 
@@ -102,12 +121,11 @@ public:
             auto& me = _emat.get_bedge(e);
 
             _mrs[me] -= 1;
-
-            assert(_mrs[me] >= 0);
-
             _mrp[r] -= 1;
             _mrm[s] -= 1;
+            eop(e, me);
 
+            assert(_mrs[me] >= 0);
             if (_mrs[me] == 0)
                 _emat.remove_me(r, s, me, _bg);
         }
@@ -121,9 +139,9 @@ public:
             auto& me = _emat.get_bedge(e);
 
             _mrs[me] -= 1;
-
             _mrp[s] -= 1;
             _mrm[r] -= 1;
+            eop(e, me);
 
             if (_mrs[me] == 0)
                 _emat.remove_me(s, r, me, _bg);
@@ -136,10 +154,33 @@ public:
             _egroups.remove_vertex(v, size_t(r), _g);
     }
 
-    void add_vertex(size_t v, size_t r)
+    void remove_vertex(size_t v)
     {
-        typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            remove_vertex(v,
+                          [&](auto& e, auto& me)
+                          {
+                              this->_brec[me] -=  this->_rec[e];
+                          });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            remove_vertex(v,
+                          [&](auto& e, auto& me)
+                          {
+                              this->_brec[me] -= this->_rec[e];
+                              this->_bdrec[me] -= this->_drec[e];
+                          });
+            break;
+        case weight_type::NONE: // no weights
+            remove_vertex(v, [](auto&, auto&){});
+        }
+    }
 
+    template <class EOP>
+    void add_vertex(size_t v, size_t r, EOP&& eop)
+    {
         auto u = _overlap_stats.get_out_neighbour(v);
         if (u != _overlap_stats._null)
         {
@@ -149,11 +190,13 @@ public:
 
             auto me = _emat.get_me(r, s);
 
-            if (me == bedge_t())
+            if (me == _emat.get_null_edge())
             {
                 me = add_edge(r, s, _bg).first;
                 _emat.put_me(r, s, me);
                 _c_mrs[me] = 0;
+                _c_brec[me] = 0;
+                _c_bdrec[me] = 0;
             }
 
             auto e = *out_edges(v, _g).first;
@@ -164,6 +207,7 @@ public:
             _mrs[me] += 1;
             _mrp[r] += 1;
             _mrm[s] += 1;
+            eop(e, me);
         }
 
         u = _overlap_stats.get_in_neighbour(v);
@@ -173,11 +217,13 @@ public:
 
             auto me = _emat.get_me(s, r);
 
-            if (me == bedge_t())
+            if (me == _emat.get_null_edge())
             {
                 me = add_edge(s, r, _bg).first;
                 _emat.put_me(s, r, me);
                 _c_mrs[me] = 0;
+                _c_brec[me] = 0;
+                _c_bdrec[me] = 0;
             }
 
             auto e = *in_edge_iteratorS<g_t>().get_edges(v, _g).first;
@@ -186,9 +232,9 @@ public:
             assert(me == _emat.get_me(s, r));
 
             _mrs[me] += 1;
-
             _mrp[s] += 1;
             _mrm[r] += 1;
+            eop(e, me);
         }
 
         _overlap_stats.add_half_edge(v, r, _b, _g);
@@ -200,6 +246,35 @@ public:
             _egroups.add_vertex(v, r, _eweight, _g);
     }
 
+    void add_vertex(size_t v, size_t r)
+    {
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            add_vertex(v, r,
+                       [&](auto& e, auto& me)
+                       {
+                           this->_brec[me] +=  this->_rec[e];
+                       });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            add_vertex(v, r,
+                       [&](auto& e, auto& me)
+                       {
+                           this->_brec[me] += this->_rec[e];
+                           this->_bdrec[me] += this->_drec[e];
+                       });
+            break;
+        case weight_type::NONE: // no weights
+            add_vertex(v, r, [](auto&, auto&){});
+        }
+    }
+
+    bool allow_move(size_t r, size_t nr)
+    {
+        return (_bclabel[r] == _bclabel[nr]);
+    }
+
     // move a vertex from its current block to block nr
     void move_vertex(size_t v, size_t nr)
     {
@@ -207,7 +282,7 @@ public:
         if (r == nr)
             return;
 
-        if (_bclabel[r] != _bclabel[nr])
+        if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
         if (is_partition_stats_enabled())
@@ -251,8 +326,31 @@ public:
         return _overlap_stats.virtual_remove_size(v, _b[v]);
     }
 
-    // compute the entropy difference of a virtual move of vertex from block r to nr
     template <class MEntries>
+    void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries) const
+    {
+        auto mv_entries = [&](auto&&... args)
+            {
+                move_entries(v, r, nr, _b, _emat.get_bedge_map(), _g, _bg,
+                             m_entries, is_loop_overlap(_overlap_stats),
+                             _eweight, args...);
+            };
+
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            mv_entries(_rec);
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            mv_entries(_rec, _drec);
+            break;
+        default: // no weights
+            mv_entries();
+        }
+    }
+
+    // compute the entropy difference of a virtual move of vertex from block r to nr
+    template <bool exact, class MEntries>
     double virtual_move_sparse(size_t v, size_t nr, bool multigraph,
                                MEntries& m_entries) const
     {
@@ -262,15 +360,14 @@ public:
             return 0.;
 
         m_entries.clear();
-        move_entries(v, nr, _b, _eweight, _mrs, _emat.get_bedge_map(), _g, _bg,
-                     m_entries);
+        get_move_entries(v, r, nr, m_entries);
 
         size_t kout = out_degreeS()(v, _g);
         size_t kin = 0;
         if (is_directed::apply<g_t>::type::value)
             kin = in_degreeS()(v, _g);
 
-        double dS = entries_dS(m_entries, _mrs, _emat, _bg);
+        double dS = entries_dS<exact>(m_entries, _mrs, _emat, _bg);
 
         int dwr = _wr[r] - _overlap_stats.virtual_remove_size(v, r, kin, kout);
         int dwnr = _overlap_stats.virtual_add_size(v, nr) - _wr[nr];
@@ -284,17 +381,26 @@ public:
         if (!is_directed::apply<g_t>::type::value)
             kin = kout;
 
-        dS += vterm(_mrp[r]  - kout, _mrm[r]  - kin, _wr[r]  - dwr , _deg_corr, _bg);
-        dS += vterm(_mrp[nr] + kout, _mrm[nr] + kin, _wr[nr] + dwnr, _deg_corr, _bg);
-        dS -= vterm(_mrp[r]        , _mrm[r]       , _wr[r]        , _deg_corr, _bg);
-        dS -= vterm(_mrp[nr]       , _mrm[nr]      , _wr[nr]       , _deg_corr, _bg);
+        auto vt = [&](auto mrp, auto mrm, auto nr)
+            {
+                if (exact)
+                    return vterm_exact(mrp, mrm, nr, _deg_corr, _bg);
+                else
+                    return vterm(mrp, mrm, nr, _deg_corr, _bg);
+            };
+
+        dS += vt(_mrp[r]  - kout, _mrm[r]  - kin, _wr[r]  - dwr );
+        dS += vt(_mrp[nr] + kout, _mrm[nr] + kin, _wr[nr] + dwnr);
+        dS -= vt(_mrp[r]        , _mrm[r]       , _wr[r]        );
+        dS -= vt(_mrp[nr]       , _mrm[nr]      , _wr[nr]       );
 
         return dS;
     }
 
+    template <bool exact>
     double virtual_move_sparse(size_t v, size_t nr, bool multigraph)
     {
-        return virtual_move_sparse(v, nr, multigraph, _m_entries);
+        return virtual_move_sparse<exact>(v, nr, multigraph, _m_entries);
     }
 
     template <class MEntries>
@@ -309,56 +415,114 @@ public:
     }
 
     template <class MEntries>
-    double virtual_move(size_t v, size_t nr, bool dense, bool multigraph,
-                        bool partition_dl, bool deg_dl, bool edges_dl,
+    double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea,
                         MEntries& m_entries)
     {
-        size_t r = _b[v];
+        if (r == nr)
+            return 0;
 
-        if (_bclabel[r] != _bclabel[nr])
+        if (!allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
-        double dS;
-        if (dense)
-            dS = virtual_move_dense(v, nr, multigraph, m_entries);
+        double dS = 0;
+        if (ea.adjacency)
+        {
+            if (ea.exact)
+                dS = virtual_move_sparse<true>(v, nr, ea.multigraph, m_entries);
+            else
+                dS = virtual_move_sparse<false>(v, nr, ea.multigraph, m_entries);
+        }
         else
-            dS = virtual_move_sparse(v, nr, multigraph, m_entries);
+        {
+            m_entries.clear();
+            get_move_entries(v, r, nr, m_entries);
+        }
 
-        if (partition_dl || deg_dl || edges_dl)
+        if (ea.partition_dl || ea.degree_dl || ea.edges_dl)
         {
             enable_partition_stats();
             auto& ps = get_partition_stats(v);
-            if (partition_dl)
-                dS += ps.get_delta_dl(v, r, nr, _g);
-            if (_deg_corr && deg_dl)
+            if (ea.partition_dl)
+                dS += ps.get_delta_partition_dl(v, r, nr, _g);
+            if (_deg_corr && ea.degree_dl)
                 dS += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
-            if (edges_dl)
+            if (ea.edges_dl)
                 dS += ps.get_delta_edges_dl(v, r, nr, _g);
+        }
+
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            entries_op(m_entries,
+                       [&](auto, auto, auto& me, auto& delta)
+                       {
+                           size_t ers = 0;
+                           double xrs = 0;
+                           if (me != m_entries.get_null_edge())
+                           {
+                               ers = this->_mrs[me];
+                               xrs = this->_brec[me];
+                           }
+                           auto d = get<0>(delta);
+                           auto dx = get<1>(delta);
+                           dS -= -positive_w_log_P(ers, xrs,
+                                                   this->_alpha, this->_beta);
+                           dS += -positive_w_log_P(ers + d, xrs + dx,
+                                                   this->_alpha, this->_beta);
+                       });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            entries_op(m_entries,
+                       [&](auto, auto, auto& me, auto& delta)
+                       {
+                           size_t ers = 0;
+                           double xrs = 0, x2rs = 0;
+                           if (me != m_entries.get_null_edge())
+                           {
+                               ers = this->_mrs[me];
+                               xrs = this->_brec[me];
+                               x2rs = this->_bdrec[me];
+                           }
+                           auto d = get<0>(delta);
+                           auto dx = get<1>(delta);
+                           auto dx2 = get<2>(delta);
+                           auto sigma1 = x2rs - xrs * (xrs / ers);
+                           auto sigma2 = x2rs + dx2 - (xrs + dx) * ((xrs + dx) / (ers + d));
+                           dS -= -signed_w_log_P(ers, xrs, sigma1,
+                                                 this->_m0,
+                                                 this->_k0,
+                                                 this->_v0,
+                                                 this->_nu0);
+                           dS += -signed_w_log_P(ers + d, xrs + dx,
+                                                 sigma2,
+                                                 this->_m0,
+                                                 this->_k0,
+                                                 this->_v0,
+                                                 this->_nu0);
+                       });
+            break;
         }
 
         return dS;
     }
 
-    double virtual_move(size_t v, size_t nr, bool dense, bool multigraph,
-                        bool partition_dl, bool deg_dl, bool edges_dl)
+    double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)
     {
-        return virtual_move(v, nr, dense, multigraph, partition_dl, deg_dl,
-                            edges_dl, _m_entries);
+        return virtual_move(v, r, nr, ea, _m_entries);
     }
 
-    double get_delta_dl(size_t v, size_t nr)
+    double get_delta_partition_dl(size_t v, size_t r, size_t nr)
     {
         enable_partition_stats();
-        return get_partition_stats(v).get_delta_dl(v, _b[v], nr, _g);
+        return get_partition_stats(v).get_delta_partition_dl(v, r, nr, _g);
     }
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, const vector<size_t>& block_list,
-                        RNG& rng)
+    size_t sample_block(size_t v, double c, RNG& rng)
     {
         // attempt random block
-        size_t s = uniform_sample(block_list, rng);
+        size_t s = uniform_sample(_candidate_blocks, rng);
 
         if (!std::isinf(c))
         {
@@ -394,10 +558,9 @@ public:
         return s;
     }
 
-    size_t sample_block(size_t v, double c, vector<size_t>& block_list,
-                        rng_t& rng)
+    size_t sample_block(size_t v, double c, rng_t& rng)
     {
-        return sample_block<rng_t>(v, c, block_list, rng);
+        return sample_block<rng_t>(v, c, rng);
     }
 
     template <class RNG>
@@ -454,23 +617,23 @@ public:
                 if (t == r && s == size_t(_b[u]))
                     mts = _mrs[_emat.get_bedge(e)];
                 else
-                    mts = get_mrs(t, s, _mrs, _emat);
+                    mts = get_beprop(t, s, _mrs, _emat);
                 int mtp = _mrp[t];
                 int mst = mts;
                 int mtm = mtp;
 
                 if (is_directed::apply<g_t>::type::value)
                 {
-                    mst = get_mrs(s, t, _mrs, _emat);
+                    mst = get_beprop(s, t, _mrs, _emat);
                     mtm = _mrm[t];
                 }
 
                 if (reverse)
                 {
-                    int dts = m_entries.get_delta(t, s);
+                    int dts = get<0>(m_entries.get_delta(t, s));
                     int dst = dts;
                     if (is_directed::apply<g_t>::type::value)
-                        dst = m_entries.get_delta(s, t);
+                        dst = get<0>(m_entries.get_delta(s, t));
 
                     mts += dts;
                     mst += dst;
@@ -522,13 +685,23 @@ public:
         return 1;
     }
 
-    double sparse_entropy(bool multigraph, bool deg_entropy) const
+    double sparse_entropy(bool multigraph, bool deg_entropy, bool exact) const
     {
         double S = 0;
-        for (auto e : edges_range(_bg))
-            S += eterm(source(e, _bg), target(e, _bg), _mrs[e], _bg);
-        for (auto v : vertices_range(_bg))
-            S += vterm(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+        if (exact)
+        {
+            for (auto e : edges_range(_bg))
+                S += eterm_exact(source(e, _bg), target(e, _bg), _mrs[e], _bg);
+            for (auto v : vertices_range(_bg))
+                S += vterm_exact(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+        }
+        else
+        {
+            for (auto e : edges_range(_bg))
+                S += eterm(source(e, _bg), target(e, _bg), _mrs[e], _bg);
+            for (auto v : vertices_range(_bg))
+                S += vterm(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+        }
 
         if (_deg_corr && deg_entropy)
         {
@@ -561,7 +734,16 @@ public:
             for(const auto& h : _overlap_stats.get_parallel_bundles())
             {
                 for (const auto& kc : h)
-                    S += lgamma_fast(kc.second + 1);
+                {
+                    if (kc.first.first == kc.first.second)
+                    {
+                        S += lgamma_fast(kc.second + 1) + kc.second * log(2);
+                    }
+                    else
+                    {
+                        S += lgamma_fast(kc.second + 1);
+                    }
+                }
             }
         }
         return S;
@@ -572,12 +754,36 @@ public:
         throw GraphException("Dense entropy for overlapping model not implemented!");
     }
 
-    double entropy(bool dense, bool multigraph, bool deg_entropy)
+    double entropy(bool dense, bool multigraph, bool deg_entropy, bool exact)
     {
+        double S = 0;
         if (dense)
-            return dense_entropy(multigraph);
+            S = dense_entropy(multigraph);
         else
-            return sparse_entropy(multigraph, deg_entropy);
+            S = sparse_entropy(multigraph, deg_entropy, exact);
+
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                S += -positive_w_log_P(ers, xrs, _alpha, _beta);
+            }
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                auto x2rs = _bdrec[me];
+                auto sigma = x2rs - xrs * (xrs / ers);
+                S += -signed_w_log_P(ers, xrs, sigma, _m0, _k0, _v0, _nu0);
+            }
+            break;
+        }
+        return S;
     }
 
     double get_partition_dl()
@@ -590,13 +796,13 @@ public:
         return S;
     }
 
-    double get_deg_dl(bool ent, bool dl_alt, bool xi_fast)
+    double get_deg_dl(int kind)
     {
         if (!is_partition_stats_enabled())
             enable_partition_stats();
         double S = 0;
         for (auto& ps : _partition_stats)
-            S += ps.get_deg_dl(ent, dl_alt, xi_fast);
+            S += ps.get_deg_dl(kind);
         return S;
     }
 
@@ -617,10 +823,7 @@ public:
         {
 
             size_t E = num_vertices(_g) / 2;
-            size_t B = 0;
-            for (auto r : vertices_range(_bg))
-                if (_wr[r] > 0)
-                    B++;
+            size_t B = num_vertices(_bg);
 
             auto vi = std::max_element(vertices(_g).first, vertices(_g).second,
                                        [&](auto u, auto v)
@@ -638,7 +841,7 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _eweight, _overlap_stats,
-                                              _bmap, _vmap);
+                                              _bmap, _vmap, _allow_empty);
 
             for (size_t r = 0; r < num_vertices(_bg); ++r)
                 _partition_stats[rc[r]].get_r(r);
@@ -798,6 +1001,8 @@ public:
     bg_t& _bg;
 
     typename mrs_t::checked_t _c_mrs;
+    typename brec_t::checked_t _c_brec;
+    typename bdrec_t::checked_t _c_bdrec;
 
     typedef typename std::conditional<use_hash_t::value,
                                       EHash<g_t, bg_t>,
@@ -812,7 +1017,8 @@ public:
     std::vector<size_t> _bmap;
     std::vector<size_t> _vmap;
 
-    SingleEntrySet<g_t> _m_entries;
+    typedef SingleEntrySet<g_t, bg_t, int, double, double> m_entries_t;
+    m_entries_t _m_entries;
 
     UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
     UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;

@@ -31,7 +31,7 @@ using namespace graph_tool;
 GEN_DISPATCH(overlap_block_state, OverlapBlockState, OVERLAP_BLOCK_STATE_params)
 
 template<class State>
-using OverlapMCMC = MCMC<State, SingleEntrySet>;
+using OverlapMCMC = MCMC<State>;
 
 template <class State>
 GEN_DISPATCH(mcmc_overlap_block_state,

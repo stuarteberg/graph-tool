@@ -35,30 +35,58 @@ typedef eprop_map_t<int32_t>::type emap_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
-typedef mpl::vector2<emap_t, ecmap_t> eweight_tr;
-typedef mpl::vector2<vmap_t, vcmap_t> vweight_tr;
-typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
+template <class CMap>
+CMap& uncheck(boost::any& amap, CMap*) { return any_cast<CMap&>(amap); }
+vmap_t::unchecked_t uncheck(boost::any& amap, vmap_t::unchecked_t*);
+emap_t::unchecked_t uncheck(boost::any& amap, emap_t::unchecked_t*);
+
+typedef mpl::vector2<std::true_type, std::false_type> bool_tr;
 typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
+typedef mpl::vector2<vcmap_t, vmap_t> vweight_tr;
+typedef mpl::vector2<ecmap_t, emap_t> eweight_tr;
+
+enum weight_type
+{
+    NONE,
+    POSITIVE,
+    SIGNED,
+    DELTA_T
+};
+
 
 #define BLOCK_STATE_params                                                     \
     ((g, &, all_graph_views, 1))                                               \
     ((degs,, degs_tr, 1))                                                      \
-    ((eweight,, eweight_tr, 1))                                                \
-    ((vweight,, vweight_tr, 1))                                                \
-    ((use_hash,, use_hash_tr, 1))                                              \
+    ((is_weighted,, bool_tr, 1))                                               \
+    ((use_hash,, bool_tr, 1))                                                  \
     ((_abg, &, boost::any&, 0))                                                \
+    ((_aeweight, &, boost::any&, 0))                                           \
+    ((_avweight, &, boost::any&, 0))                                           \
     ((mrs,, emap_t, 0))                                                        \
     ((mrp,, vmap_t, 0))                                                        \
     ((mrm,, vmap_t, 0))                                                        \
     ((wr,, vmap_t, 0))                                                         \
     ((b,, vmap_t, 0))                                                          \
+    ((empty_blocks, & ,std::vector<size_t>&, 0))                               \
+    ((empty_pos,, vmap_t, 0))                                                  \
+    ((candidate_blocks, &, std::vector<size_t>&, 0))                           \
+    ((candidate_pos,, vmap_t, 0))                                              \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
-    ((ecov_type,, int, 0))                                                     \
-    ((ecov,, eprop_map_t<double>::type, 0))                                    \
-    ((bcovsum,, vprop_map_t<double>::type, 0))                                 \
+    ((rec_type,, int, 0))                                                      \
+    ((rec,, eprop_map_t<double>::type, 0))                                     \
+    ((drec,, eprop_map_t<double>::type, 0))                                    \
+    ((brec,, eprop_map_t<double>::type, 0))                                    \
+    ((bdrec,, eprop_map_t<double>::type, 0))                                   \
+    ((brecsum,, vprop_map_t<double>::type, 0))                                 \
+    ((m0,, double, 0))                                                         \
+    ((k0,, double, 0))                                                         \
+    ((v0,, double, 0))                                                         \
+    ((nu0,, double, 0))                                                        \
+    ((alpha,, double, 0))                                                      \
+    ((beta,, double, 0))                                                       \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
     ((allow_empty,, bool, 0))
 
@@ -78,77 +106,122 @@ public:
         : BlockStateBase<Ts...>(std::forward<ATs>(args)...),
           _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
+          _c_brec(_brec.get_checked()),
+          _c_bdrec(_bdrec.get_checked()),
+          _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
+          _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(_g, _b, _bg, rng),
           _neighbour_sampler(get(vertex_index_t(), _g), num_vertices(_g)),
-          _m_entries(num_vertices(_bg))
+          _m_entries(num_vertices(_bg)),
+          _coupled_state(nullptr)
     {
         init_neighbour_sampler(_g, _eweight, _neighbour_sampler);
+
+        _empty_blocks.clear();
+        _candidate_blocks.clear();
+        for (auto r : vertices_range(_bg))
+        {
+            if (_wr[r] == 0)
+                add_element(_empty_blocks, _empty_pos, r);
+            else
+                add_element(_candidate_blocks, _candidate_pos, r);
+        }
+        if (!_empty_blocks.empty())
+            add_element(_candidate_blocks, _candidate_pos,
+                        _empty_blocks.back());
     }
 
     BlockState(const BlockState& other)
         : BlockStateBase<Ts...>(static_cast<const BlockStateBase<Ts...>&>(other)),
           _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
+          _c_brec(_brec.get_checked()),
+          _c_bdrec(_bdrec.get_checked()),
+          _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
+          _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(other._emat),
           _neighbour_sampler(other._neighbour_sampler),
-          _m_entries(num_vertices(_bg))
+          _m_entries(num_vertices(_bg)),
+          _coupled_state(nullptr)
     {
         if (other.is_partition_stats_enabled())
             enable_partition_stats();
     }
 
-    // remove a vertex from its current block
-    template <class EFilt, class EOP>
-    void remove_vertex(size_t v,
-                       EFilt&& efilt = [](auto&){ return false; },
-                       EOP&& eop = [](auto&, auto&){})
+
+    template <bool Add, class BEdge, class EFilt, class EOP>
+    void modify_vertex(size_t v, size_t r, BEdge&& bedge, EFilt&& efilt,
+                       EOP&& eop)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
 
-        vertex_t r = _b[v];
-
-        int self_weight = 0;
         for (auto e : out_edges_range(v, _g))
         {
-            if (efilt(e))
+            if (efilt(e) || _eweight[e] == 0)
                 continue;
 
             vertex_t u = target(e, _g);
             vertex_t s = _b[u];
 
-            auto& me = _emat.get_bedge(e);
+            auto& me = bedge[e];
+
+            if (Add)
+            {
+                if (me != _emat.get_null_edge())
+                {
+                    assert(u == v);
+                    continue;
+                }
+
+                if (u == v)
+                    s = r;
+
+                me = _emat.get_me(r, s);
+                if (me == _emat.get_null_edge())
+                {
+                    me = add_edge(r, s, _bg).first;
+                    _emat.put_me(r, s, me);
+                    _c_mrs[me] = 0;
+                    _c_brec[me] = 0;
+                    _c_bdrec[me] = 0;
+                }
+
+                assert(_emat.get_bedge(e) != _emat.get_null_edge());
+            }
+            else
+            {
+                if (me == _emat.get_null_edge())
+                {
+                    assert(u == v);
+                    continue;
+                }
+            }
+
+            assert(me != _emat.get_null_edge());
+            assert(me == _emat.get_me(r, s));
+            assert(std::min(source(me, _bg), target(me, _bg)) == std::min(r, s));
+            assert(std::max(source(me, _bg), target(me, _bg)) == std::max(r, s));
 
             auto ew = _eweight[e];
-            if (u == v && !is_directed::apply<g_t>::type::value)
+
+            if (Add)
             {
-                self_weight += ew;
+                _mrs[me] += ew;
+                _mrp[r] += ew;
+                _mrm[s] += ew;
+                eop(e, me);
             }
             else
             {
                 _mrs[me] -= ew;
-
-                assert(_mrs[me] >= 0);
-
                 _mrp[r] -= ew;
                 _mrm[s] -= ew;
-
+                eop(e, me);
+                assert(_mrs[me] >= 0);
                 if (_mrs[me] == 0)
                     _emat.remove_me(r, s, me, _bg);
+                me = _emat.get_null_edge();
             }
-
-            eop(e, me);
-        }
-
-        if (self_weight > 0)
-        {
-            assert(self_weight % 2 == 0);
-            const auto& me = _emat.get_me(r, r);
-            _mrs[me] -= self_weight / 2;
-            _mrp[r] -= self_weight / 2;
-            _mrm[r] -= self_weight / 2;
-            assert(_mrs[me] >= 0);
-            if (_mrs[me] == 0)
-                 _emat.remove_me(r, r, me, _bg);
         }
 
         for (auto e : in_edges_range(v, _g))
@@ -163,49 +236,139 @@ public:
 
             auto& me = _emat.get_bedge(e);
 
+            if (Add)
+            {
+                me = _emat.get_me(s, r);
+                if (me == _emat.get_null_edge())
+                {
+                    me = add_edge(s, r, _bg).first;
+                    _emat.put_me(s, r, me);
+                    _c_mrs[me] = 0;
+                    _c_brec[me] = 0;
+                    _c_bdrec[me] = 0;
+                }
+                assert(_emat.get_bedge(e) != _emat.get_null_edge());
+            }
+
+            assert(me != _emat.get_null_edge());
+            assert(me == _emat.get_me(s, r));
+            assert(std::min(source(me, _bg), target(me, _bg)) == std::min(r, s));
+            assert(std::max(source(me, _bg), target(me, _bg)) == std::max(r, s));
+
             auto ew = _eweight[e];
-            _mrs[me] -= ew;
 
-            _mrp[s] -= ew;
-            _mrm[r] -= ew;
-
-            if (_mrs[me] == 0)
-                _emat.remove_me(s, r, me, _bg);
-
-            eop(e, me);
+            if (Add)
+            {
+                _mrs[me] += ew;
+                _mrp[s] += ew;
+                _mrm[r] += ew;
+                eop(e, me);
+            }
+            else
+            {
+                _mrs[me] -= ew;
+                _mrp[s] -= ew;
+                _mrm[r] -= ew;
+                eop(e, me);
+                if (_mrs[me] == 0)
+                    _emat.remove_me(s, r, me, _bg);
+                me = _emat.get_null_edge();
+            }
         }
 
+        if (Add)
+            add_partition_node(v, r);
+        else
+            remove_partition_node(v, r);
+    }
+
+    void remove_partition_node(size_t v, size_t r)
+    {
         _wr[r] -= _vweight[v];
 
         if (!_egroups.empty())
             _egroups.remove_vertex(v, r, _g);
 
         if (is_partition_stats_enabled())
-            get_partition_stats(v).remove_vertex(v, r, _deg_corr, _g, _vweight,
-                                                 _eweight, _degs);
+            get_partition_stats(v).remove_vertex(v, r, _deg_corr, _g,
+                                                 _vweight, _eweight, _degs);
 
-        if (_ecov_type == 3) // waiting times
+        if (_vweight[v] > 0 && _wr[r] == 0)
         {
+            if (!_empty_blocks.empty())
+                remove_element(_candidate_blocks, _candidate_pos, r);
+            add_element(_empty_blocks, _empty_pos, r);
+        }
+    }
+
+    void add_partition_node(size_t v, size_t r)
+    {
+        _b[v] = r;
+        _wr[r] += _vweight[v];
+
+        if (!_egroups.empty())
+            _egroups.add_vertex(v, r, _eweight, _g);
+
+        if (is_partition_stats_enabled())
+            get_partition_stats(v).add_vertex(v, r, _deg_corr, _g, _vweight,
+                                              _eweight, _degs);
+
+        if (_vweight[v] > 0 && _wr[r] == _vweight[v])
+        {
+            remove_element(_empty_blocks, _empty_pos, r);
+
+            if (!_empty_blocks.empty())
+                add_element(_candidate_blocks, _candidate_pos,
+                            _empty_blocks.back());
+        }
+    }
+
+    template <class BEdge, class EFilt>
+    void remove_vertex(size_t v, BEdge&& bedge, EFilt&& efilt)
+    {
+        size_t r = _b[v];
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            modify_vertex<false>(v, r, bedge, efilt,
+                                 [&](auto& e, auto& me)
+                                 {
+                                     this->_brec[me] -=  this->_rec[e];
+                                 });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            modify_vertex<false>(v, r, bedge, efilt,
+                                 [&](auto& e, auto& me)
+                                 {
+                                     this->_brec[me] -= this->_rec[e];
+                                     this->_bdrec[me] -= this->_drec[e];
+                                 });
+            break;
+        case weight_type::DELTA_T: // waiting times
             if (_ignore_degrees[v] > 0)
             {
-                double dt = out_degreeS()(v, _g, _ecov);
-                _bcovsum[r] -= dt;
+                double dt = out_degreeS()(v, _g, _rec);
+                auto r = _b[v];
+                _brecsum[r] -= dt;
             }
+        case weight_type::NONE: // no weights
+            modify_vertex<false>(v, r, bedge, efilt, [](auto&, auto&){});
         }
     }
 
     void remove_vertex(size_t v)
     {
-        remove_vertex(v, [](auto&){ return false; }, [](auto&, auto&){});
+        remove_vertex(v, _emat.get_bedge_map(),
+                      [](auto&){ return false; });
     }
 
-    template <class Vlist>
-    void remove_vertices(Vlist& vs)
+    template <class Vlist, class EOP>
+    void remove_vertices(Vlist& vs, EOP&& eop)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
+        typedef typename graph_traits<g_t>::edge_descriptor edges_t;
 
         gt_hash_set<vertex_t> vset(vs.begin(), vs.end());
-        typedef typename graph_traits<g_t>::edge_descriptor edges_t;
 
         gt_hash_set<edges_t> eset;
         for (auto v : vset)
@@ -218,9 +381,10 @@ public:
             }
         }
 
+        auto& bedge = _emat.get_bedge_map();
         for (auto v : vset)
-            remove_vertex(v, [&](auto& e) { return eset.find(e) != eset.end(); },
-                          [](auto&, auto&){});
+            remove_vertex(v, bedge,
+                          [&](auto& e) { return eset.find(e) != eset.end(); });
 
         for (auto& e : eset)
         {
@@ -239,6 +403,8 @@ public:
             _mrp[r] -= ew;
             _mrm[s] -= ew;
 
+            eop(e, me);
+
             if (_mrs[me] == 0)
                 _emat.remove_me(r, s, me, _bg);
         }
@@ -247,139 +413,74 @@ public:
     void remove_vertices(python::object ovs)
     {
         multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
-        remove_vertices(vs);
+
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            remove_vertices(vs, [&](auto& e, auto& me)
+                                { this->_brec[me] -=  this->_rec[e]; });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            remove_vertices(vs, [&](auto& e, auto& me)
+                                { this->_brec[me] -= this->_rec[e];
+                                  this->_bdrec[me] -= this->_drec[e];});
+            break;
+        case weight_type::DELTA_T: // waiting times
+            for (auto v : vs)
+            {
+                if (_ignore_degrees[v] > 0)
+                {
+                    double dt = out_degreeS()(v, _g, _rec);
+                    auto r = _b[v];
+                    _brecsum[r] -= dt;
+                }
+            }
+        case weight_type::NONE: // no weights
+            remove_vertices(vs, [&](auto&, auto&) {});
+        }
     }
 
-    // add a vertex to block r
-    template <class BEdge, class Efilt, class EOP>
-    void add_vertex(size_t v, size_t r, BEdge&& bedge,
-                    Efilt&& efilt = [](auto&){ return false; },
-                    EOP&& eop = [](auto&, auto&){})
+    template <class BEdge, class Efilt>
+    void add_vertex(size_t v, size_t r, BEdge&& bedge, Efilt&& efilt)
     {
-        typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
-
-        int self_weight = 0;
-        for (auto e : out_edges_range(v, _g))
+        switch (_rec_type)
         {
-            if (efilt(e))
-                continue;
-            vertex_t u = target(e, _g);
-            vertex_t s;
-
-            if (u != v)
-                s = _b[u];
-            else
-                s = r;
-
-            auto me = _emat.get_me(r, s);
-
-            if (me == bedge_t())
-            {
-                me = add_edge(r, s, _bg).first;
-                _emat.put_me(r, s, me);
-                _c_mrs[me] = 0;
-            }
-
-            bedge[e] = me;
-
-            assert(_emat.get_bedge(e) != bedge_t());
-            assert(me == _emat.get_me(r, s));
-
-            size_t ew = _eweight[e];
-
-            if (u == v && !is_directed::apply<g_t>::type::value)
-            {
-                self_weight += ew;
-            }
-            else
-            {
-                _mrs[me] += ew;
-                _mrp[r] += ew;
-                _mrm[s] += ew;
-            }
-
-            eop(e, me);
-        }
-
-        if (self_weight > 0)
-        {
-            assert(self_weight % 2 == 0);
-            const auto& me = _emat.get_me(r, r);
-            _mrs[me] += self_weight / 2;
-            _mrp[r] += self_weight / 2;
-            _mrm[r] += self_weight / 2;
-            assert(_mrs[me] >= 0);
-        }
-
-        for (auto e : in_edges_range(v, _g))
-        {
-            if (efilt(e))
-                continue;
-
-            vertex_t u = source(e, _g);
-            if (u == v)
-                continue;
-
-            vertex_t s = _b[u];
-
-            auto me = _emat.get_me(s, r);
-
-            if (me == bedge_t())
-            {
-                me = add_edge(s, r, _bg).first;
-                _emat.put_me(s, r, me);
-                _c_mrs[me] = 0;
-            }
-
-            bedge[e] = me;
-
-            assert(_emat.get_bedge(e) != bedge_t());
-            assert(me == _emat.get_me(s, r));
-
-            size_t ew = _eweight[e];
-
-            _mrs[me] += ew;
-
-            _mrp[s] += ew;
-            _mrm[r] += ew;
-
-            eop(e, me);
-        }
-
-        _wr[r] += _vweight[v];
-        _b[v] = r;
-
-        if (!_egroups.empty())
-            _egroups.add_vertex(v, r, _eweight, _g);
-
-        if (is_partition_stats_enabled())
-            get_partition_stats(v).add_vertex(v, r, _deg_corr, _g, _vweight,
-                                              _eweight, _degs);
-
-        if (_ecov_type == 3) // waiting times
-        {
+        case weight_type::POSITIVE: // positive weights
+            modify_vertex<true>(v, r, bedge, efilt,
+                                [&](auto& e, auto& me)
+                                {
+                                    this->_brec[me] +=  this->_rec[e];
+                                });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            modify_vertex<true>(v, r, bedge, efilt,
+                                [&](auto& e, auto& me)
+                                {
+                                    this->_brec[me] += this->_rec[e];
+                                    this->_bdrec[me] += this->_drec[e];
+                                });
+            break;
+        case weight_type::DELTA_T: // waiting times
             if (_ignore_degrees[v] > 0)
             {
-                double dt = out_degreeS()(v, _g, _ecov);
-                _bcovsum[r] += dt;
+                double dt = out_degreeS()(v, _g, _rec);
+                _brecsum[r] += dt;
             }
+        case weight_type::NONE: // no weights
+            modify_vertex<true>(v, r, bedge, efilt, [](auto&, auto&){});
         }
-
     }
 
     void add_vertex(size_t v, size_t r)
     {
         add_vertex(v, r, _emat.get_bedge_map(),
-                   [](auto&){ return false; },
-                   [](auto&, auto&){});
+                   [](auto&){ return false; });
     }
 
-    template <class Vlist, class Blist>
-    void add_vertices(Vlist& vs, Blist& rs)
+    template <class Vlist, class Blist, class EOP>
+    void add_vertices(Vlist& vs, Blist& rs, EOP&& eop)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        typedef typename graph_traits<bg_t>::edge_descriptor bedge_t;
 
         gt_hash_map<vertex_t, size_t> vset;
         for (size_t i = 0; i < vs.size(); ++i)
@@ -403,8 +504,7 @@ public:
 
         for (auto vr : vset)
             add_vertex(vr.first, vr.second, bedge,
-                       [&](auto& e){ return eset.find(e) != eset.end(); },
-                       [](auto&, auto&){});
+                       [&](auto& e){ return eset.find(e) != eset.end(); });
 
         for (auto e : eset)
         {
@@ -415,16 +515,18 @@ public:
 
             auto me = _emat.get_me(r, s);
 
-            if (me == bedge_t())
+            if (me == _emat.get_null_edge())
             {
                 me = add_edge(r, s, _bg).first;
                 _emat.put_me(r, s, me);
                 _c_mrs[me] = 0;
+                _c_brec[me] = 0;
+                _c_bdrec[me] = 0;
             }
 
             bedge[e] = me;
 
-            assert(_emat.get_bedge(e) != bedge_t());
+            assert(_emat.get_bedge(e) != _emat.get_null_edge());
             assert(me == _emat.get_me(r, s));
 
             auto ew = _eweight[e];
@@ -432,6 +534,8 @@ public:
             _mrs[me] += ew;
             _mrp[r] += ew;
             _mrm[s] += ew;
+
+            eop(e, me);
         }
     }
 
@@ -441,19 +545,83 @@ public:
         multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
         if (vs.size() != rs.size())
             throw ValueException("vertex and group lists do not have the same size");
-        add_vertices(vs, rs);
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            add_vertices(vs, rs, [&](auto& e, auto& me)
+                                 { this->_brec[me] +=  this->_rec[e]; });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            add_vertices(vs, rs, [&](auto& e, auto& me)
+                                 { this->_brec[me] += this->_rec[e];
+                                   this->_bdrec[me] += this->_drec[e];});
+            break;
+        case weight_type::DELTA_T: // waiting times
+            for (size_t i = 0; i < rs.size(); ++i)
+            {
+                auto v = vs[i];
+                if (_ignore_degrees[v] > 0)
+                {
+                    double dt = out_degreeS()(v, _g, _rec);
+                    auto r = rs[i];
+                    _brecsum[r] += dt;
+                }
+            }
+        case weight_type::NONE: // no weights
+            add_vertices(vs, rs, [&](auto&, auto&) {});
+        }
+    }
+
+    bool allow_move(size_t r, size_t nr)
+    {
+        return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
     }
 
     // move a vertex from its current block to block nr
     void move_vertex(size_t v, size_t nr)
     {
         size_t r = _b[v];
+
         if (r == nr)
             return;
-        if (_bclabel[r] != _bclabel[nr])
+
+        if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
+
         remove_vertex(v);
         add_vertex(v, nr);
+
+        if (_coupled_state != nullptr && _vweight[v] > 0)
+        {
+            if (_wr[r] == 0)
+            {
+                _coupled_state->remove_partition_node(r, _bclabel[r]);
+                _coupled_state->set_vertex_weight(r, 0);
+            }
+
+            if (_wr[nr] == _vweight[v])
+            {
+                _coupled_state->set_vertex_weight(nr, 1);
+                _coupled_state->add_partition_node(nr, _bclabel[r]);
+                _bclabel[nr] = _bclabel[r];
+            }
+        }
+    }
+
+    void set_vertex_weight(size_t v, int w)
+    {
+        set_vertex_weight(v, w, _vweight);
+    }
+
+    void set_vertex_weight(size_t, int, vcmap_t&)
+    {
+        throw ValueException("Cannot set the weight of an unweighted state");
+    }
+
+    template <class VMap>
+    void set_vertex_weight(size_t v, int w, VMap&& vweight)
+    {
+        vweight[v] = w;
     }
 
     template <class Vec>
@@ -503,23 +671,22 @@ public:
     {
         if (u == v)
             return;
-        merge_vertices(u, v, ec,
-                       typename is_constant_property<vweight_t>::type(),
-                       typename is_constant_property<eweight_t>::type());
+        merge_vertices(u, v, ec, _is_weighted);
     }
 
-    template <class T1, class T2, class Emap>
-    void merge_vertices(size_t, size_t, Emap&, T1, T2)
+    template <class Emap>
+    void merge_vertices(size_t, size_t, Emap&, std::false_type)
     {
         throw ValueException("cannot merge vertices of unweighted graph");
     }
 
     template <class Emap>
-    void merge_vertices(size_t u, size_t v, Emap& ec, std::false_type,
-                        std::false_type)
+    void merge_vertices(size_t u, size_t v, Emap& ec, std::true_type)
     {
         auto eweight_c = _eweight.get_checked();
         auto bedge_c = _emat.get_bedge_map().get_checked();
+        auto rec_c = _rec.get_checked();
+        auto drec_c = _drec.get_checked();
 
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
         typedef typename graph_traits<g_t>::edge_descriptor edge_t;
@@ -537,8 +704,13 @@ public:
             auto& es = kv.second;
 
             size_t w = 0;
+            double ecc = 0, decc = 0;
             for (auto& e : es)
+            {
                 w += _eweight[e];
+                ecc += _rec[e];
+                decc += _drec[e];
+            }
 
             if (t == u)
             {
@@ -547,6 +719,8 @@ public:
                 {
                     assert(w % 2 == 0);
                     w /= 2;
+                    ecc /= 2;
+                    decc /= 2;
                 }
             }
 
@@ -555,12 +729,16 @@ public:
             {
                 auto& e = iter->second.front();
                 _eweight[e] += w;
+                _rec[e] += ecc;
+                _drec[e] += decc;
             }
             else
             {
                 auto e = add_edge(v, t, _g).first;
                 ns_v[std::make_tuple(t, l)].push_back(e);
                 eweight_c[e] = w;
+                rec_c[e] = ecc;
+                drec_c[e] = decc;
                 bedge_c[e] = bedge_c[es.front()];
                 set_prop(ec, e, l);
             }
@@ -586,20 +764,29 @@ public:
                     continue;
 
                 size_t w = 0;
+                double ecc = 0, decc = 0;
                 for (auto& e : es)
+                {
                     w += _eweight[e];
+                    ecc += _rec[e];
+                    decc += _drec[e];
+                }
 
                 auto iter = ns_v.find(std::make_tuple(s, l));
                 if (iter != ns_v.end())
                 {
                     auto& e = iter->second.front();
                     _eweight[e] += w;
+                    _rec[e] += ecc;
+                    _drec[e] += decc;
                 }
                 else
                 {
                     auto e = add_edge(s, v, _g).first;
                     ns_v[std::make_tuple(s, l)].push_back(e);
                     eweight_c[e] = w;
+                    rec_c[e] = ecc;
+                    drec_c[e] = decc;
                     bedge_c[e] = bedge_c[es.front()];
                     set_prop(ec, e, l);
                 }
@@ -609,7 +796,11 @@ public:
         _vweight[v] +=_vweight[u];
         _vweight[u] = 0;
         for (auto e : all_edges_range(u, _g))
+        {
             _eweight[e] = 0;
+            _rec[e] = 0;
+            _drec[e] = 0;
+        }
         clear_vertex(u, _g);
         _merge_map[u] = v;
         merge_degs(u, v, _degs);
@@ -642,60 +833,98 @@ public:
             d.emplace_back(get<0>(kn.first), get<1>(kn.first), kn.second);
     }
 
-    // compute the entropy difference of a virtual move of vertex from block r to nr
     template <class MEntries>
-    double virtual_move_sparse(size_t v, size_t nr, MEntries& m_entries)
+    void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries)
     {
-        size_t r = _b[v];
+        auto mv_entries = [&](auto&&... args)
+            {
+                move_entries(v, r, nr, _b, _emat.get_bedge_map(), _g, _bg,
+                             m_entries, is_loop_nop(), _eweight, args...);
+            };
 
+        switch (_rec_type)
+        {
+        case weight_type::POSITIVE: // positive weights
+            mv_entries(_rec);
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            mv_entries(_rec, _drec);
+            break;
+        default: // no weights
+            mv_entries();
+        }
+    }
+
+    // compute the entropy difference of a virtual move of vertex from block r
+    // to nr
+    template <bool exact, class MEntries>
+    double virtual_move_sparse(size_t v, size_t r, size_t nr,
+                               MEntries& m_entries)
+    {
         if (r == nr)
             return 0.;
 
         m_entries.clear();
-        move_entries(v, nr, _b, _eweight, _mrs, _emat.get_bedge_map(), _g, _bg,
-                     m_entries);
+        get_move_entries(v, r, nr, m_entries);
+        double dS = entries_dS<exact>(m_entries, _mrs, _emat, _bg);
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
         if (is_directed::apply<g_t>::type::value)
             kin = in_degreeS()(v, _g, _eweight);
 
-        double dS = entries_dS(m_entries, _mrs, _emat, _bg);
-
         int dwr = _vweight[v];
         int dwnr = dwr;
 
-        dS += vterm(_mrp[r]  - kout, _mrm[r]  - kin, _wr[r]  - dwr , _deg_corr, _bg);
-        dS += vterm(_mrp[nr] + kout, _mrm[nr] + kin, _wr[nr] + dwnr, _deg_corr, _bg);
-        dS -= vterm(_mrp[r]        , _mrm[r]       , _wr[r]        , _deg_corr, _bg);
-        dS -= vterm(_mrp[nr]       , _mrm[nr]      , _wr[nr]       , _deg_corr, _bg);
+        if (r == null_group && dwnr == 0)
+            dwnr = 1;
+
+        auto vt = [&](auto mrp, auto mrm, auto nr)
+            {
+                if (exact)
+                    return vterm_exact(mrp, mrm, nr, _deg_corr, _bg);
+                else
+                    return vterm(mrp, mrm, nr, _deg_corr, _bg);
+            };
+
+        if (r != null_group)
+        {
+            dS += vt(_mrp[r]  - kout, _mrm[r]  - kin, _wr[r]  - dwr );
+            dS -= vt(_mrp[r]        , _mrm[r]       , _wr[r]        );
+        }
+
+        if (nr != null_group)
+        {
+            dS += vt(_mrp[nr] + kout, _mrm[nr] + kin, _wr[nr] + dwnr);
+            dS -= vt(_mrp[nr]       , _mrm[nr]      , _wr[nr]       );
+        }
 
         return dS;
     }
 
-    double virtual_move_sparse(size_t v, size_t nr)
+    template <bool exact>
+    double virtual_move_sparse(size_t v, size_t r, size_t nr)
     {
-        return virtual_move_sparse(v, nr, _m_entries);
+        return virtual_move_sparse<exact>(v, r, nr, _m_entries);
     }
 
     template <class MEntries>
-    double virtual_move_dense(size_t v, size_t nr, bool multigraph,
+    double virtual_move_dense(size_t v, size_t r, size_t nr, bool multigraph,
                               MEntries& m_entries)
     {
         if (_deg_corr)
             throw GraphException("Dense entropy for degree corrected model not implemented!");
 
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        vertex_t r = _b[v];
 
         if (r == nr)
             return 0;
 
         // m_entries is not used in the computation below, but it is expected afterwards
         m_entries.clear();
+        get_move_entries(v, r, nr, m_entries);
+
         int kin = 0, kout = 0;
-        move_entries(v, nr, _b, _eweight, _mrs, _emat.get_bedge_map(), _g, _bg,
-                     m_entries);
         kout += out_degreeS()(v, _g, _eweight);
         if (is_directed::apply<g_t>::type::value)
             kin += in_degreeS()(v, _g, _eweight);
@@ -728,20 +957,37 @@ public:
         int dwr = _vweight[v];
         int dwnr = dwr;
 
+        if (r == null_group && dwnr == 0)
+            dwnr = 1;
+
+        if (nr == null_group)
+        {
+            std::fill(deltap.begin(), deltap.end(), 0);
+            std::fill(deltam.begin(), deltam.end(), 0);
+            deltal = 0;
+        }
+
         double Si = 0, Sf = 0;
         for (vertex_t s = 0; s < num_vertices(_bg); ++s)
         {
-            int ers = get_mrs(r, s, _mrs, _emat);
-            int enrs = get_mrs(nr, s, _mrs, _emat);
+            int ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
+            int enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
 
             if (!is_directed::apply<g_t>::type::value)
             {
                 if (s != nr && s != r)
                 {
-                    Si += eterm_dense(r,  s, ers,              _wr[r],         _wr[s], multigraph, _bg);
-                    Sf += eterm_dense(r,  s, ers - deltap[s],  _wr[r] - dwr,   _wr[s], multigraph, _bg);
-                    Si += eterm_dense(nr, s, enrs,             _wr[nr],        _wr[s], multigraph, _bg);
-                    Sf += eterm_dense(nr, s, enrs + deltap[s], _wr[nr] + dwnr, _wr[s], multigraph, _bg);
+                    if (r != null_group)
+                    {
+                        Si += eterm_dense(r,  s, ers,              _wr[r],         _wr[s], multigraph, _bg);
+                        Sf += eterm_dense(r,  s, ers - deltap[s],  _wr[r] - dwr,   _wr[s], multigraph, _bg);
+                    }
+
+                    if (nr != null_group)
+                    {
+                        Si += eterm_dense(nr, s, enrs,             _wr[nr],        _wr[s], multigraph, _bg);
+                        Sf += eterm_dense(nr, s, enrs + deltap[s], _wr[nr] + dwnr, _wr[s], multigraph, _bg);
+                    }
                 }
 
                 if (s == r)
@@ -755,26 +1001,35 @@ public:
                     Si += eterm_dense(nr, nr, enrs,                       _wr[nr],        _wr[nr],        multigraph, _bg);
                     Sf += eterm_dense(nr, nr, enrs + deltap[nr] + deltal, _wr[nr] + dwnr, _wr[nr] + dwnr, multigraph, _bg);
 
-                    Si += eterm_dense(r, nr, ers,                          _wr[r],       _wr[nr],        multigraph, _bg);
-                    Sf += eterm_dense(r, nr, ers - deltap[nr] + deltap[r], _wr[r] - dwr, _wr[nr] + dwnr, multigraph, _bg);
+                    if (r != null_group)
+                    {
+                        Si += eterm_dense(r, nr, ers,                          _wr[r],       _wr[nr],        multigraph, _bg);
+                        Sf += eterm_dense(r, nr, ers - deltap[nr] + deltap[r], _wr[r] - dwr, _wr[nr] + dwnr, multigraph, _bg);
+                    }
                 }
             }
             else
             {
-                int esr = get_mrs(s, r, _mrs, _emat);
-                int esnr = get_mrs(s, nr, _mrs, _emat);
+                int esr = (r != null_group) ? get_beprop(s, r, _mrs, _emat) : 0;
+                int esnr  = (nr != null_group) ? get_beprop(s, nr, _mrs, _emat) : 0;
 
                 if (s != nr && s != r)
                 {
-                    Si += eterm_dense(r, s, ers            , _wr[r]      , _wr[s]      , multigraph, _bg);
-                    Sf += eterm_dense(r, s, ers - deltap[s], _wr[r] - dwr, _wr[s]      , multigraph, _bg);
-                    Si += eterm_dense(s, r, esr            , _wr[s]      , _wr[r]      , multigraph, _bg);
-                    Sf += eterm_dense(s, r, esr - deltam[s], _wr[s]      , _wr[r] - dwr, multigraph, _bg);
+                    if (r != null_group)
+                    {
+                        Si += eterm_dense(r, s, ers            , _wr[r]      , _wr[s]      , multigraph, _bg);
+                        Sf += eterm_dense(r, s, ers - deltap[s], _wr[r] - dwr, _wr[s]      , multigraph, _bg);
+                        Si += eterm_dense(s, r, esr            , _wr[s]      , _wr[r]      , multigraph, _bg);
+                        Sf += eterm_dense(s, r, esr - deltam[s], _wr[s]      , _wr[r] - dwr, multigraph, _bg);
+                    }
 
-                    Si += eterm_dense(nr, s, enrs            , _wr[nr]       , _wr[s]        , multigraph, _bg);
-                    Sf += eterm_dense(nr, s, enrs + deltap[s], _wr[nr] + dwnr, _wr[s]        , multigraph, _bg);
-                    Si += eterm_dense(s, nr, esnr            , _wr[s]        , _wr[nr]       , multigraph, _bg);
-                    Sf += eterm_dense(s, nr, esnr + deltam[s], _wr[s]        , _wr[nr] + dwnr, multigraph, _bg);
+                    if (nr != null_group)
+                    {
+                        Si += eterm_dense(nr, s, enrs            , _wr[nr]       , _wr[s]        , multigraph, _bg);
+                        Sf += eterm_dense(nr, s, enrs + deltap[s], _wr[nr] + dwnr, _wr[s]        , multigraph, _bg);
+                        Si += eterm_dense(s, nr, esnr            , _wr[s]        , _wr[nr]       , multigraph, _bg);
+                        Sf += eterm_dense(s, nr, esnr + deltam[s], _wr[s]        , _wr[nr] + dwnr, multigraph, _bg);
+                    }
                 }
 
                 if(s == r)
@@ -782,8 +1037,11 @@ public:
                     Si += eterm_dense(r, r, ers                                  , _wr[r]      , _wr[r]      , multigraph, _bg);
                     Sf += eterm_dense(r, r, ers - deltap[r]  - deltam[r] - deltal, _wr[r] - dwr, _wr[r] - dwr, multigraph, _bg);
 
-                    Si += eterm_dense(r, nr, esnr                         , _wr[r]      , _wr[nr]       , multigraph, _bg);
-                    Sf += eterm_dense(r, nr, esnr - deltap[nr] + deltam[r], _wr[r] - dwr, _wr[nr] + dwnr, multigraph, _bg);
+                    if (nr != null_group)
+                    {
+                        Si += eterm_dense(r, nr, esnr                         , _wr[r]      , _wr[nr]       , multigraph, _bg);
+                        Sf += eterm_dense(r, nr, esnr - deltap[nr] + deltam[r], _wr[r] - dwr, _wr[nr] + dwnr, multigraph, _bg);
+                    }
                 }
 
                 if(s == nr)
@@ -791,8 +1049,11 @@ public:
                     Si += eterm_dense(nr, nr, esnr                                   , _wr[nr]       , _wr[nr]       , multigraph, _bg);
                     Sf += eterm_dense(nr, nr, esnr + deltap[nr] + deltam[nr] + deltal, _wr[nr] + dwnr, _wr[nr] + dwnr, multigraph, _bg);
 
-                    Si += eterm_dense(nr, r, esr                         , _wr[nr]       , _wr[r]      , multigraph, _bg);
-                    Sf += eterm_dense(nr, r, esr + deltap[r] - deltam[nr], _wr[nr] + dwnr, _wr[r] - dwr, multigraph, _bg);
+                    if (r != null_group)
+                    {
+                        Si += eterm_dense(nr, r, esr                         , _wr[nr]       , _wr[r]      , multigraph, _bg);
+                        Sf += eterm_dense(nr, r, esr + deltap[r] - deltam[nr], _wr[nr] + dwnr, _wr[r] - dwr, multigraph, _bg);
+                    }
                 }
             }
         }
@@ -806,77 +1067,169 @@ public:
     }
 
     template <class MEntries>
-    double virtual_move(size_t v, size_t nr, bool dense, bool multigraph,
-                        bool partition_dl, bool deg_dl, bool edges_dl,
+    double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea,
                         MEntries& m_entries)
     {
-        size_t r = _b[v];
+        if (r == nr)
+            return 0;
 
-        if (_bclabel[r] != _bclabel[nr])
+        if (r != null_group && nr != null_group && !allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
-        double dS;
-        if (dense)
-            dS = virtual_move_dense(v, nr, multigraph, m_entries);
+        double dS = 0;
+        if (ea.adjacency)
+        {
+            if (ea.dense)
+            {
+                dS = virtual_move_dense(v, r, nr, ea.multigraph, m_entries);
+            }
+            else
+            {
+                if (ea.exact)
+                    dS = virtual_move_sparse<true>(v, r, nr, m_entries);
+                else
+                    dS = virtual_move_sparse<false>(v, r, nr, m_entries);
+            }
+        }
         else
-            dS = virtual_move_sparse(v, nr, m_entries);
+        {
+            m_entries.clear();
+            get_move_entries(v, r, nr, m_entries);
+        }
 
-        if (partition_dl || deg_dl || edges_dl)
+        if (ea.partition_dl || ea.degree_dl || ea.edges_dl)
         {
             enable_partition_stats();
             auto& ps = get_partition_stats(v);
-            if (partition_dl)
-                dS += ps.get_delta_dl(v, r, nr, _vweight);
-            if (_deg_corr && deg_dl)
+            if (ea.partition_dl)
+                dS += ps.get_delta_partition_dl(v, r, nr, _vweight);
+            if (_deg_corr && ea.degree_dl)
                 dS += ps.get_delta_deg_dl(v, r, nr, _vweight, _eweight,
-                                          _degs, _g);
-            if (edges_dl)
+                                          _degs, _g, ea.degree_dl_kind);
+            if (ea.edges_dl)
                 dS += ps.get_delta_edges_dl(v, r, nr, _vweight, _g);
         }
 
-        if (_ecov_type == 3) // waiting times
+        switch (_rec_type)
         {
+        case weight_type::POSITIVE: // positive weights
+            entries_op(m_entries,
+                       [&](auto, auto, auto& me, auto& delta)
+                       {
+                           size_t ers = 0;
+                           double xrs = 0;
+                           if (me != m_entries.get_null_edge())
+                           {
+                               ers = this->_mrs[me];
+                               xrs = this->_brec[me];
+                           }
+                           auto d = get<0>(delta);
+                           auto dx = get<1>(delta);
+                           dS -= -positive_w_log_P(ers, xrs,
+                                                   this->_alpha, this->_beta);
+                           dS += -positive_w_log_P(ers + d, xrs + dx,
+                                                   this->_alpha, this->_beta);
+                       });
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            entries_op(m_entries,
+                       [&](auto, auto, auto& me, auto& delta)
+                       {
+                           size_t ers = 0;
+                           double xrs = 0, x2rs = 0;
+                           if (me != m_entries.get_null_edge())
+                           {
+                               ers = this->_mrs[me];
+                               xrs = this->_brec[me];
+                               x2rs = this->_bdrec[me];
+                           }
+                           auto d = get<0>(delta);
+                           auto dx = get<1>(delta);
+                           auto dx2 = get<2>(delta);
+                           auto sigma1 = x2rs - xrs * (xrs / ers);
+                           auto sigma2 = x2rs + dx2 - (xrs + dx) * ((xrs + dx) / (ers + d));
+                           dS -= -signed_w_log_P(ers, xrs, sigma1,
+                                                 this->_m0,
+                                                 this->_k0,
+                                                 this->_v0,
+                                                 this->_nu0);
+                           dS += -signed_w_log_P(ers + d, xrs + dx,
+                                                 sigma2,
+                                                 this->_m0,
+                                                 this->_k0,
+                                                 this->_v0,
+                                                 this->_nu0);
+                       });
+            break;
+        case weight_type::DELTA_T: // waiting times
             if ((r != nr) && _ignore_degrees[v] > 0)
             {
-                double dt = out_degreeS()(v, _g, _ecov);
+                double dt = out_degreeS()(v, _g, _rec);
                 int k = out_degreeS()(v, _g, _eweight);
-                if (_mrp[r] > 0)
-                    dS -= _mrp[r] * log(_bcovsum[r]) - lgamma_fast(_mrp[r]);
-                if (_mrp[nr] > 0)
-                    dS -= _mrp[nr] * log(_bcovsum[nr]) - lgamma_fast(_mrp[nr]);
-                if (_mrp[r] > k)
-                    dS += (_mrp[r] - k) * log(_bcovsum[r] - dt)
-                        - lgamma_fast(_mrp[r] - k);
-                if (_mrp[nr] + k > 0)
-                    dS += (_mrp[nr] + k) * log(_bcovsum[nr] + dt)
-                        - lgamma_fast(_mrp[nr] + k);
+                if (r != null_group)
+                {
+                    dS -= -positive_w_log_P(_mrp[r], _brecsum[r],
+                                            _alpha, _beta);
+                    dS += -positive_w_log_P(_mrp[r] - k, _brecsum[r] - dt,
+                                            _alpha, _beta);
+                }
+                if (nr != null_group)
+                {
+                    dS -= -positive_w_log_P(_mrp[nr], _brecsum[nr],
+                                            _alpha, _beta);
+                    dS += -positive_w_log_P(_mrp[nr] + k, _brecsum[nr] + dt,
+                                            _alpha, _beta);
+                }
             }
+            break;
         }
 
+        if (_coupled_state != nullptr && _vweight[v] > 0)
+        {
+            assert(r == null_group || nr == null_group || allow_move(r, nr));
+            bool r_vacate = (r != null_group) && (_wr[r] == _vweight[v]);
+            bool nr_occupy = (nr != null_group) && (_wr[nr] == 0);
+            if (r_vacate != nr_occupy)
+            {
+                if (r_vacate)
+                {
+                    dS += _coupled_state->virtual_move(r,
+                                                       _bclabel[r],
+                                                       null_group,
+                                                       _coupled_entropy_args);
+                }
+
+                if (nr_occupy)
+                {
+                    assert(_coupled_state->_vweight[nr] == 0);
+                    dS += _coupled_state->virtual_move(nr,
+                                                       null_group,
+                                                       _bclabel[r],
+                                                       _coupled_entropy_args);
+                }
+            }
+        }
         return dS;
     }
 
-    double virtual_move(size_t v, size_t nr, bool dense, bool multigraph,
-                        bool partition_dl, bool deg_dl, bool edges_dl)
+    double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)
     {
-        return virtual_move(v, nr, dense, multigraph, partition_dl, deg_dl,
-                            edges_dl, _m_entries);
+        return virtual_move(v, r, nr, ea, _m_entries);
     }
 
-    double get_delta_dl(size_t v, size_t nr)
+    double get_delta_partition_dl(size_t v, size_t r, size_t nr)
     {
         enable_partition_stats();
         auto& ps = get_partition_stats(v);
-        return ps.get_delta_dl(v, _b[v], nr, _vweight);
+        return ps.get_delta_partition_dl(v, r, nr, _vweight);
     }
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, vector<size_t>& block_list,
-                        RNG& rng)
+    size_t sample_block(size_t v, double c, RNG& rng)
     {
         // attempt random block
-        size_t s = uniform_sample(block_list, rng);
+        size_t s = uniform_sample(_candidate_blocks, rng);
 
         if (!std::isinf(c) && total_degreeS()(v, _g) > 0)
         {
@@ -885,7 +1238,7 @@ public:
             double p_rand = 0;
             if (c > 0)
             {
-                size_t B = num_vertices(_bg);
+                size_t B = _candidate_blocks.size();
                 if (is_directed::apply<g_t>::type::value)
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
@@ -907,10 +1260,9 @@ public:
         return s;
     }
 
-    size_t sample_block(size_t v, double c, vector<size_t>& block_list,
-                        rng_t& rng)
+    size_t sample_block(size_t v, double c, rng_t& rng)
     {
-        return sample_block<rng_t>(v, c, block_list, rng);
+        return sample_block<rng_t>(v, c, rng);
     }
 
 
@@ -928,7 +1280,7 @@ public:
                          MEntries& m_entries)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        size_t B = num_vertices(_bg);
+        size_t B = _candidate_blocks.size();
         double p = 0;
         size_t w = 0;
 
@@ -937,62 +1289,66 @@ public:
         if (is_directed::apply<g_t>::type::value)
             kin = in_degreeS()(v, _g, _eweight);
 
-        for (auto e : all_edges_range(v, _g))
-        {
-            vertex_t u = target(e, _g);
-            if (is_directed::apply<g_t>::type::value && u == v)
-                u = source(e, _g);
-            vertex_t t = _b[u];
-            if (u == v)
-                t = r;
-            size_t ew = _eweight[e];
-            w += ew;
-
-            int mts = get_mrs(t, s, _mrs, _emat);
-            int mtp = _mrp[t];
-            int mst = mts;
-            int mtm = mtp;
-
-            if (is_directed::apply<g_t>::type::value)
+        auto sum_prob = [&](auto& e, auto u)
             {
-                mst = get_mrs(s, t, _mrs, _emat);
-                mtm = _mrm[t];
-            }
+                vertex_t t = _b[u];
+                if (u == v)
+                    t = r;
+                size_t ew = _eweight[e];
+                w += ew;
 
-            if (reverse)
-            {
-                int dts = m_entries.get_delta(t, s);
-                int dst = dts;
+                int mts = get_beprop(t, s, _mrs, _emat);
+                int mtp = _mrp[t];
+                int mst = mts;
+                int mtm = mtp;
+
                 if (is_directed::apply<g_t>::type::value)
-                    dst = m_entries.get_delta(s, t);
-
-                mts += dts;
-                mst += dst;
-
-                if (t == s)
                 {
-                    mtp -= kout;
-                    mtm -= kin;
+                    mst = get_beprop(s, t, _mrs, _emat);
+                    mtm = _mrm[t];
                 }
 
-                if (t == r)
+                if (reverse)
                 {
-                    mtp += kout;
-                    mtm += kin;
-                }
-            }
+                    int dts = get<0>(m_entries.get_delta(t, s));
+                    int dst = dts;
+                    if (is_directed::apply<g_t>::type::value)
+                        dst = get<0>(m_entries.get_delta(s, t));
 
-            if (is_directed::apply<g_t>::type::value)
-            {
-                p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
-            }
-            else
-            {
-                if (t == s)
-                    mts *= 2;
-                p += ew * (mts + c) / (mtp + c * B);
-            }
-        }
+                    mts += dts;
+                    mst += dst;
+
+                    if (t == s)
+                    {
+                        mtp -= kout;
+                        mtm -= kin;
+                    }
+
+                    if (t == r)
+                    {
+                        mtp += kout;
+                        mtm += kin;
+                    }
+                }
+
+                if (is_directed::apply<g_t>::type::value)
+                {
+                    p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
+                }
+                else
+                {
+                    if (t == s)
+                        mts *= 2;
+                    p += ew * (mts + c) / (mtp + c * B);
+                }
+            };
+
+        for (auto e : out_edges_range(v, _g))
+            sum_prob(e, target(e, _g));
+
+        for (auto e : in_edges_range(v, _g))
+            sum_prob(e, source(e, _g));
+
         if (w > 0)
             return p / w;
         else
@@ -1002,8 +1358,7 @@ public:
     double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse)
     {
         _m_entries.clear();
-        move_entries(v, (reverse) ? r : s, _b, _eweight, _mrs,
-                     _emat.get_bedge_map(), _g, _bg, _m_entries);
+        get_move_entries(v, _b[v], (reverse) ? r : s, _m_entries);
         return get_move_prob(v, r, s, c, reverse, _m_entries);
     }
 
@@ -1046,13 +1401,24 @@ public:
         return S;
     }
 
-    double sparse_entropy(bool multigraph, bool deg_entropy)
+    double sparse_entropy(bool multigraph, bool deg_entropy, bool exact)
     {
         double S = 0;
-        for (auto e : edges_range(_bg))
-            S += eterm(source(e, _bg), target(e, _bg), _mrs[e], _bg);
-        for (auto v : vertices_range(_bg))
-            S += vterm(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+
+        if (exact)
+        {
+            for (auto e : edges_range(_bg))
+                S += eterm_exact(source(e, _bg), target(e, _bg), _mrs[e], _bg);
+            for (auto v : vertices_range(_bg))
+                S += vterm_exact(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+        }
+        else
+        {
+            for (auto e : edges_range(_bg))
+                S += eterm(source(e, _bg), target(e, _bg), _mrs[e], _bg);
+            for (auto v : vertices_range(_bg))
+                S += vterm(_mrp[v], _mrm[v], _wr[v], _deg_corr, _bg);
+        }
 
         if (_deg_corr && deg_entropy)
         {
@@ -1082,7 +1448,7 @@ public:
                         if (u == v && !is_directed::apply<g_t>::type::value)
                         {
                             assert(m % 2 == 0);
-                            S += lgamma_fast(m/2 + 1);
+                            S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
                         }
                         else
                         {
@@ -1109,19 +1475,38 @@ public:
         return S;
     }
 
-    double entropy(bool dense, bool multigraph, bool deg_entropy)
+    double entropy(bool dense, bool multigraph, bool deg_entropy, bool exact)
     {
         double S = 0;
-        if (dense)
-            S = dense_entropy(multigraph);
+        if (!dense)
+            S = sparse_entropy(multigraph, deg_entropy, exact);
         else
-            S = sparse_entropy(multigraph, deg_entropy);
+            S = dense_entropy(multigraph);
 
-        if (_ecov_type == 3) // waiting times
+        switch (_rec_type)
         {
+        case weight_type::POSITIVE: // positive weights
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                S += -positive_w_log_P(ers, xrs, _alpha, _beta);
+            }
+            break;
+        case weight_type::SIGNED: // positive and negative weights
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                auto x2rs = _bdrec[me];
+                auto sigma = x2rs - xrs * (xrs / ers);
+                S += -signed_w_log_P(ers, xrs, sigma, _m0, _k0, _v0, _nu0);
+            }
+            break;
+        case weight_type::DELTA_T: // waiting times
             for (auto r : vertices_range(_bg))
-                if (_bcovsum[r] > 0)
-                    S += _mrp[r] * log(_bcovsum[r]) - lgamma_fast(_mrp[r]);
+                S += -positive_w_log_P(_mrp[r], _brecsum[r], _alpha, _beta);
+            break;
         }
         return S;
     }
@@ -1135,12 +1520,12 @@ public:
         return S;
     }
 
-    double get_deg_dl(bool ent, bool dl_alt, bool xi_fast)
+    double get_deg_dl(int kind)
     {
         enable_partition_stats();
         double S = 0;
         for (auto& ps : _partition_stats)
-            S += ps.get_deg_dl(ent, dl_alt, xi_fast);
+            S += ps.get_deg_dl(kind);
         return S;
     }
 
@@ -1193,10 +1578,7 @@ public:
             size_t E = 0;
             for (auto e : edges_range(_g))
                 E += _eweight[e];
-            size_t B = 0;
-            for (auto r : vertices_range(_bg))
-                if (_wr[r] > 0)
-                    B++;
+            size_t B = num_vertices(_bg);
 
             auto vi = std::max_element(vertices(_g).first, vertices(_g).second,
                                        [&](auto u, auto v)
@@ -1256,6 +1638,26 @@ public:
             disable_partition_stats();
     }
 
+    void couple_state(BlockState& s, entropy_args_t ea)
+    {
+        _coupled_state = &s;
+        _coupled_entropy_args = ea;
+    }
+
+    void decouple_state()
+    {
+        _coupled_state = nullptr;
+    }
+
+    void clear_egroups()
+    {
+        _egroups.clear();
+    }
+
+    void sync_emat()
+    {
+        _emat.sync(_g, _b, _bg);
+    }
 
 //private:
     typedef typename
@@ -1266,6 +1668,16 @@ public:
     bg_t& _bg;
 
     typename mrs_t::checked_t _c_mrs;
+    typename brec_t::checked_t _c_brec;
+    typename bdrec_t::checked_t _c_bdrec;
+
+    typedef typename std::conditional<is_weighted_t::value,
+                                      vmap_t::unchecked_t, vcmap_t>::type vweight_t;
+    vweight_t _vweight;
+
+    typedef typename std::conditional<is_weighted_t::value,
+                                      emap_t::unchecked_t, ecmap_t>::type eweight_t;
+    eweight_t _eweight;
 
     typedef typename std::conditional<use_hash_t::value,
                                       EHash<g_t, bg_t>,
@@ -1273,10 +1685,9 @@ public:
         emat_t;
     emat_t _emat;
 
-    typedef typename is_constant_property<eweight_t>::type is_weighted;
-    EGroups<g_t, is_weighted> _egroups;
+    EGroups<g_t, is_weighted_t> _egroups;
 
-    typedef typename std::conditional<is_weighted::value,
+    typedef typename std::conditional<is_weighted_t::value,
                                       typename property_map_type::apply<Sampler<size_t, mpl::false_>,
                                                                         typename property_map<g_t, vertex_index_t>::type>::type,
                                       typename property_map_type::apply<vector<size_t>,
@@ -1287,7 +1698,11 @@ public:
     std::vector<partition_stats_t> _partition_stats;
     std::vector<size_t> _bmap;
 
-    EntrySet<g_t> _m_entries;
+    typedef EntrySet<g_t, bg_t, int, double, double> m_entries_t;
+    m_entries_t _m_entries;
+
+    BlockState* _coupled_state;
+    entropy_args_t _coupled_entropy_args;
 };
 
 } // graph_tool namespace

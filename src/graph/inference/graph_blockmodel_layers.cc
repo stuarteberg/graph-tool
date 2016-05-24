@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#define BOOST_PYTHON_MAX_ARITY 40
+#include <boost/python.hpp>
+
 #include "graph_tool.hh"
 #include "random.hh"
-
-#include <boost/python.hpp>
 
 #include "graph_blockmodel_util.hh"
 #include "graph_blockmodel.hh"
@@ -85,20 +86,24 @@ vector<std::reference_wrapper<Type>> from_any_list(boost::python::object list)
 };
 
 void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
-                  boost::any& aeweight, boost::any& avweight,
-                  boost::any& avc, boost::any& avmap, boost::any& alweight,
-                  boost::python::object& ous, boost::python::object& oub,
+                  boost::any& arec, boost::any& adrec, boost::any& aeweight,
+                  boost::any& avweight, boost::any& avc, boost::any& avmap,
+                  boost::any& alweight, boost::python::object& ous,
+                  boost::python::object& oub, boost::python::object& ourec,
+                  boost::python::object& oudrec,
                   boost::python::object& oueweight,
                   boost::python::object& ouvweight, vbmap_t& block_map,
-                  boost::python::object& obrmap,
-                  boost::python::object& ouvmap)
+                  boost::python::object& obrmap, boost::python::object& ouvmap)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
     typedef eprop_map_t<int32_t>::type emap_t;
+    typedef eprop_map_t<double>::type remap_t;
 
     emap_t& ec = any_cast<emap_t&>(aec);
     vmap_t& b = any_cast<vmap_t&>(ab);
+    remap_t& rec = any_cast<remap_t&>(arec);
+    remap_t& drec = any_cast<remap_t&>(adrec);
     vmap_t& vweight = any_cast<vmap_t&>(avweight);
     emap_t& eweight = any_cast<emap_t&>(aeweight);
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
@@ -107,6 +112,8 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
 
     auto us = from_rlist<GraphInterface>(ous);
     auto ub = from_any_list<vmap_t>(oub);
+    auto urec = from_any_list<remap_t>(ourec);
+    auto udrec = from_any_list<remap_t>(oudrec);
     auto uvweight = from_any_list<vmap_t>(ouvweight);
     auto ueweight = from_any_list<emap_t>(oueweight);
 
@@ -183,6 +190,8 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                            auto u_t = get_v(t, l);
                            auto ne = add_edge(u_s, u_t, us[l].get().get_graph()).first;
                            ueweight[l].get()[ne] = eweight[e];
+                           urec[l].get()[ne] = rec[e];
+                           udrec[l].get()[ne] = drec[e];
                        }
                    })();
 }
@@ -441,11 +450,9 @@ void export_layered_blockmodel_state()
                   {
                       typedef typename std::remove_reference<decltype(*s)>::type state_t;
 
-                      double (state_t::*virtual_move)(size_t, size_t, bool, bool, bool,
-                                                      bool, bool) =
+                      double (state_t::*virtual_move)(size_t, size_t, size_t, entropy_args_t) =
                           &state_t::virtual_move;
-                      size_t (state_t::*sample_block)(size_t, double, vector<size_t>&,
-                                                      rng_t&)
+                      size_t (state_t::*sample_block)(size_t, double, rng_t&)
                           = &state_t::sample_block;
                       double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                                        bool)

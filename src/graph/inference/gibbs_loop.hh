@@ -90,8 +90,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                  if (state.node_weight(v) == 0)
                      return;
 
-                 vector<size_t>& moves = state.get_moves(v);
-                 auto& weights = state.get_weights(v);
+                 auto& moves = state.get_moves(v);
 
                  probs.resize(moves.size());
                  deltas.resize(moves.size());
@@ -114,13 +113,13 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                          if (std::isinf(deltas[j]))
                              probs[j] = 0;
                          else
-                             probs[j] = exp((-deltas[j] + dS_min) * beta) * weights[j];
+                             probs[j] = exp((-deltas[j] + dS_min) * beta);
                      }
                  }
                  else
                  {
                      for (size_t j = 0; j < moves.size(); ++j)
-                         probs[j] = (deltas[j] == dS_min) ? weights[j] : 0;
+                         probs[j] = (deltas[j] == dS_min) ? 1 : 0;
                  }
 
                  Sampler<size_t> sampler(idx, probs);

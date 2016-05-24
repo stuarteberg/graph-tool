@@ -31,7 +31,7 @@ using namespace graph_tool;
 GEN_DISPATCH(overlap_block_state, OverlapBlockState, OVERLAP_BLOCK_STATE_params)
 
 template<class State>
-using OverlapGibbs = Gibbs<State, SingleEntrySet>;
+using OverlapGibbs = Gibbs<State>;
 
 template <class State>
 GEN_DISPATCH(overlap_gibbs_block_state,

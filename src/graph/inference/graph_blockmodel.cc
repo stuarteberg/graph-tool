@@ -27,17 +27,22 @@
 using namespace boost;
 using namespace graph_tool;
 
+namespace graph_tool
+{
+vmap_t::unchecked_t uncheck(boost::any& amap, vmap_t::unchecked_t*)
+{
+    return any_cast<vmap_t&>(amap).get_unchecked();
+}
+emap_t::unchecked_t uncheck(boost::any& amap, emap_t::unchecked_t*)
+{
+    return any_cast<emap_t&>(amap).get_unchecked();
+}
+}
+
 GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 python::object make_block_state(boost::python::object ostate,
-                                rng_t& rng)
-{
-    python::object state;
-    block_state::make_dispatch(ostate,
-                               [&](auto& s){state = python::object(s);},
-                               rng);
-    return state;
-}
+                                rng_t& rng);
 
 degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
 {
@@ -209,7 +214,6 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
     return boost::python::make_tuple(H, sH, Hmf, sHmf);
 }
 
-
 void export_blockmodel_state()
 {
     using namespace boost::python;
@@ -228,11 +232,10 @@ void export_blockmodel_state()
                  &state_t::add_vertices;
              void (state_t::*move_vertices)(python::object, python::object) =
                  &state_t::move_vertices;
-             double (state_t::*virtual_move)(size_t, size_t, bool, bool, bool,
-                                             bool, bool) =
+             double (state_t::*virtual_move)(size_t, size_t, size_t,
+                                             entropy_args_t) =
                  &state_t::virtual_move;
-             size_t (state_t::*sample_block)(size_t, double, vector<size_t>&,
-                                             rng_t&) =
+             size_t (state_t::*sample_block)(size_t, double, rng_t&) =
                  &state_t::sample_block;
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
                                               bool) =
@@ -263,16 +266,42 @@ void export_blockmodel_state()
                  .def("disable_partition_stats",
                       &state_t::disable_partition_stats)
                  .def("is_partition_stats_enabled",
-                      &state_t::is_partition_stats_enabled);
+                      &state_t::is_partition_stats_enabled)
+                 .def("couple_state",
+                      &state_t::couple_state)
+                 .def("decouple_state",
+                      &state_t::decouple_state)
+                 .def("clear_egroups",
+                      &state_t::clear_egroups)
+                 .def("sync_emat",
+                      &state_t::sync_emat);
          });
 
     class_<vcmap_t>("unity_vprop_t").def("_get_any", &get_any<vcmap_t>);
     class_<ecmap_t>("unity_eprop_t").def("_get_any", &get_any<ecmap_t>);
 
-    def("make_block_state", &make_block_state);
+    class_<entropy_args_t>("entropy_args")
+        .def_readwrite("exact", &entropy_args_t::exact)
+        .def_readwrite("dense", &entropy_args_t::dense)
+        .def_readwrite("multigraph", &entropy_args_t::multigraph)
+        .def_readwrite("adjacency", &entropy_args_t::adjacency)
+        .def_readwrite("partition_dl", &entropy_args_t::partition_dl)
+        .def_readwrite("degree_dl", &entropy_args_t::degree_dl)
+        .def_readwrite("degree_dl_kind", &entropy_args_t::degree_dl_kind)
+        .def_readwrite("edges_dl", &entropy_args_t::edges_dl);
 
-    class_<std::true_type>("true_type");
-    class_<std::false_type>("false_type");
+    enum_<deg_dl_kind>("deg_dl_kind")
+        .value("ent", deg_dl_kind::ENT)
+        .value("uniform", deg_dl_kind::UNIFORM)
+        .value("dist", deg_dl_kind::DIST);
+
+    enum_<weight_type>("rec_type")
+        .value("none", weight_type::NONE)
+        .value("positive", weight_type::POSITIVE)
+        .value("signed", weight_type::SIGNED)
+        .value("delta_t", weight_type::DELTA_T);
+
+    def("make_block_state", &make_block_state);
 
     def("get_block_degs", &get_block_degs);
     def("get_weighted_block_degs", &get_weighted_block_degs);
@@ -283,4 +312,12 @@ void export_blockmodel_state()
         .def("copy", &copy_simple_degs);
 
     def("bethe_entropy", &bethe_entropy);
+
+    def("init_q_cache", init_q_cache);
+    def("log_q", log_q<size_t>);
+    def("q_rec", q_rec);
+    def("q_rec_memo", q_rec_memo);
+    def("log_q_approx", log_q_approx);
+    def("log_q_approx_big", log_q_approx_big);
+    def("log_q_approx_small", log_q_approx_small);
 }

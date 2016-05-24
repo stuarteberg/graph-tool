@@ -40,12 +40,21 @@ from . blockmodel import *
 from . blockmodel import _bm_test
 
 class OverlapBlockState(BlockState):
-    r"""The stochastic block model state of a given graph.
+    r"""The overlapping stochastic block model state of a given graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
+    rec : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Real-valued edge covariates.
+    rec_type : `"positive"`, `"signed"` or `None` (optional, default: ``None``)
+        Type of edge covariates. If not specified, it will be guessed from
+        ``rec``.
+    rec_params : ``dict`` (optional, default: ``{}``)
+        Model hyperparameters for real-valued covariates. This should be a
+        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type ==
+        positive`` or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == signed``.
     b : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
         Initial block labels on the vertices or half-edges. If not supplied, it
         will be randomly sampled.
@@ -65,14 +74,18 @@ class OverlapBlockState(BlockState):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
+    allow_empty : ``bool`` (optional, default: ``True``)
+        If ``True``, partition description length computed will allow for empty
+        groups.
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this number, a sparse representation of
         the block graph is used, which is slightly less efficient, but uses less
         memory,
     """
 
-    def __init__(self, g, b=None, B=None, clabel=None, pclabel=None,
-                 deg_corr=True, max_BE=1000, **kwargs):
+    def __init__(self, g, rec=None, rec_type=None, rec_params={}, b=None,
+                 B=None, clabel=None, pclabel=None, deg_corr=True,
+                 allow_empty=True, max_BE=1000, **kwargs):
 
         kwargs = kwargs.copy()
 
@@ -95,7 +108,8 @@ class OverlapBlockState(BlockState):
             self.base_g = g
 
             # substitute provided graph by its half-edge graph
-            g, b, node_index, half_edges, eindex = half_edge_graph(g, b, B)
+            g, b, node_index, half_edges, eindex, rec = \
+                                                half_edge_graph(g, b, B, rec)
 
         # create half edges set if absent
         if half_edges is None:
@@ -112,9 +126,6 @@ class OverlapBlockState(BlockState):
         # configure the main graph and block model parameters
         self.g = g
 
-        self.E = self.g.num_edges()
-        self.N = self.base_g.num_vertices()
-
         self.deg_corr = deg_corr
 
         self.is_edge_weighted = False
@@ -123,8 +134,6 @@ class OverlapBlockState(BlockState):
 
         if b is None:
             # create a random partition into B blocks.
-            if B is None:
-                B = get_max_B(self.N, self.E, directed=g.is_directed())
             B = min(B, self.g.num_vertices())
             ba = random.randint(0, B, self.g.num_vertices())
             ba[:B] = arange(B)        # avoid empty blocks
@@ -151,8 +160,19 @@ class OverlapBlockState(BlockState):
         if self.b.fa.max() >= B:
             raise ValueError("Maximum value of b is larger or equal to B!")
 
+        if rec is None:
+            self.rec = self.g.new_ep("double")
+        else:
+            self.rec = rec.copy("double")
+        self.drec = extract_arg(kwargs, "drec", None)
+        if self.drec is None:
+            self.drec = self.rec.copy()
+            self.drec.fa **= 2
+        else:
+            self.drec = self.drec.copy()
+
         # Construct block-graph
-        self.bg = get_block_graph(g, B, self.b)
+        self.bg = get_block_graph(g, B, self.b, rec=self.rec, drec=self.drec)
         self.bg.set_fast_edge_removal()
 
         self.mrs = self.bg.ep["count"]
@@ -170,8 +190,8 @@ class OverlapBlockState(BlockState):
 
         self.B = B
 
-        self.block_list = Vector_size_t()
-        self.block_list.extend(arange(self.B, dtype="int"))
+        self.candidate_blocks = Vector_size_t()
+        self.candidate_blocks.extend(arange(self.B, dtype="int"))
 
         if pclabel is not None:
             if isinstance(pclabel, PropertyMap):
@@ -195,15 +215,60 @@ class OverlapBlockState(BlockState):
 
         self.bclabel = self.get_bclabel()
 
+        if rec is None:
+            self.rec_type = libinference.rec_type.none
+        elif rec_type is None:
+            if self.rec.fa.min() > 0:
+                self.rec_type = libinference.rec_type.positive
+            else:
+                self.rec_type = libinference.rec_type.signed
+        elif rec_type == "positive":
+            self.rec_type = libinference.rec_type.positive
+        elif rec_type == "signed":
+            self.rec_type = libinference.rec_type.signed
+        elif rec_type == "delta_t":
+            self.rec_type = libinference.rec_type.delta_t
+        else:
+            self.rec_type = rec_type
+
+        if self.rec_type == libinference.rec_type.delta_t: # waiting times
+            self.brecsum = self.bg.degree_property_map("out", self.bg.ep.rec)
+            tokens = self.ignore_degrees.fa == 0
+            token_groups = bincount(self.b.fa[tokens]) > 0
+            token_groups.resize(self.bg.num_vertices())
+            self.brecsum.a[token_groups] = 0
+        else:
+            self.brecsum = self.bg.new_vp("double")
+
+        self.brec = self.bg.ep.rec
+        self.bdrec = self.bg.ep.drec
+
+        self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
+                               v0=self.rec.fa.std() ** 2, nu0=3)
+        if self.is_edge_weighted:
+            idx = self.eweight.fa > 0
+            self.rec_params.update(dict(alpha=1, beta=self.rec.fa[idx].mean()))
+        else:
+            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean()))
+        self.rec_params.update(rec_params)
+        self.__dict__.update(self.rec_params)
+
         self.max_BE = max_BE
 
-        if self.B > self.max_BE:
-            self.use_hash = libinference.true_type()
-        else:
-            self.use_hash = libinference.false_type()
+        self.use_hash = self.B > self.max_BE
+
+        self.allow_empty = allow_empty
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_overlap_block_state(self, _get_rng())
+
+        if deg_corr:
+            init_q_cache(max(self.get_E(), self.get_N()) + 1)
+
+        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
+                                  degree_dl=True, degree_dl_kind="distributed",
+                                  edges_dl=True, dense=False, multigraph=True,
+                                  exact=True)
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
@@ -226,14 +291,18 @@ class OverlapBlockState(BlockState):
         return self.copy(g=g, node_index=node_index, eindex=eindex,
                          half_edges=half_edges, base_g=base_g)
 
-    def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
-             deg_corr=None, clabel=None, pclabel=None, **kwargs):
+    def copy(self, g=None, rec=None, rec_type=None, rec_params=None, b=None,
+             B=None, deg_corr=None, clabel=None, pclabel=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor. If ``overlap=False`` an
          instance of :class:`~graph_tool.community.BlockState` is returned. This
          is by default a shallow copy."""
 
         state = OverlapBlockState(self.g if g is None else g,
+                                  rec=self.rec if rec is None else rec,
+                                  drec=kwargs.get("drec", self.drec),
+                                  rec_type=self.rec_type if rec_type is None else rec_type,
+                                  rec_params=self.rec_params if rec_params is None else rec_params,
                                   b=self.b if b is None else b,
                                   B=(self.B if b is None else None) if B is None else B,
                                   clabel=self.clabel.fa if clabel is None else clabel,
@@ -245,12 +314,16 @@ class OverlapBlockState(BlockState):
                                   max_BE=kwargs.get("max_BE", self.max_BE),
                                   base_g=kwargs.get("base_g", self.base_g),
                                   **dmask(kwargs, ["half_edges", "node_index",
-                                                   "eindex", "base_g",
+                                                   "eindex", "base_g", "drec",
                                                    "max_BE"]))
         return state
 
     def __getstate__(self):
         state = dict(g=self.g,
+                     rec=self.rec if self.rec_type != libinference.rec_type.none else None,
+                     drec=self.drec if self.rec_type == libinference.rec_type.signed else None,
+                     rec_type=int(self.rec_type),
+                     rec_params=self.rec_params,
                      b=self.b,
                      B=self.B,
                      clabel=array(self.clabel.fa),
@@ -266,41 +339,44 @@ class OverlapBlockState(BlockState):
         conv_pickle_state(state)
         self.__init__(**state)
 
-    def get_block_state(self, b=None, vweight=False, overlap=False,
-                        deg_corr=False, **kwargs):
-        r"""Returns a :class:`~graph_tool.community.BlockState` (or
-        :class:`~graph_tool.community.OverlapBlockState` if ``overlap == True``)
-        corresponding to the block graph. The parameters have the same meaning
-        as the in the constructor."""
+    def get_block_state(self, b=None, vweight=False, deg_corr=False, **kwargs):
+        r"""Returns a :class:`~graph_tool.community.BlockState` corresponding to the
+        block graph. The parameters have the same meaning as the in the
+        constructor."""
 
-        if not overlap:
-            bg = self.bg.copy()
-            mrs = bg.own_property(self.mrs.copy())
-            wr = bg.own_property(self.wr.copy())
-            state = BlockState(bg, eweight=mrs,
-                               vweight=wr if vweight else None,
-                               b=bg.vertex_index.copy("int") if b is None else b,
-                               deg_corr=deg_corr,
-                               max_BE=self.max_BE, **kwargs)
-        else:
-            ## FIXME: Move this to C++
-            bg = Graph(directed=self.g.is_directed())
-            bg.add_vertex(self.B)
-            for e in self.g.edges():
-                r, s = tuple(e)
-                r = self.b[r]
-                s = self.b[s]
-                bg.add_edge(bg.vertex(r), bg.vertex(s))
-
-            state = OverlapBlockState(self.g,
-                                      b=self.b.a if b is None else b.copy(),
-                                      deg_corr=deg_corr,
-                                      base_g=bg,
-                                      node_index=self.b,
-                                      eindex=self.eindex,
-                                      max_BE=self.max_BE,
-                                      **kwargs)
+        bg = self.bg.copy()
+        mrs = bg.own_property(self.mrs.copy())
+        wr = bg.own_property(self.wr.copy())
+        state = BlockState(bg, eweight=mrs,
+                           vweight=wr if vweight else None,
+                           b=bg.vertex_index.copy("int") if b is None else b,
+                           deg_corr=deg_corr,
+                           rec_type=kwargs.get("rec_type", self.rec_type if vweight else None),
+                           rec=kwargs.get("rec", bg.ep.rec if vweight else None),
+                           drec=kwargs.get("drec", bg.ep.drec if vweight else None),
+                           rec_params=kwargs.get("rec_params", self.rec_params),
+                           allow_empty=kwargs.get("allow_empty",
+                                                  self.allow_empty),
+                           max_BE=self.max_BE,
+                           **dmask(kwargs, ["allow_empty", "rec_type",
+                                            "rec_params", "rec", "drec"]))
         return state
+
+    def get_E(self):
+        r"Returns the total number of edges."
+        return self.g.num_edges()
+
+    def get_N(self):
+        r"Returns the total number of nodes."
+        return self.base_g.num_vertices()
+
+    def get_B(self):
+        r"Returns the total number of blocks."
+        return self.bg.num_vertices()
+
+    def get_nonempty_B(self):
+        r"Returns the total number of nonempty blocks."
+        return int((self.wr.a > 0).sum())
 
     def get_edge_blocks(self):
         r"""Returns an edge property map which contains the block labels pairs for each
@@ -364,136 +440,146 @@ class OverlapBlockState(BlockState):
                                      _prop("v", self.base_g, b))
         return b
 
-    def entropy(self, dl=True, partition_dl=True, degree_dl=True,
-                edges_dl=True, dense=False, multigraph=True, dl_ent=False,
-                deg_entropy=True, **kwargs):
+    def entropy(self, adjacency=True, dl=True, partition_dl=True,
+                degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
+                dense=False, multigraph=True, deg_entropy=True, exact=True,
+                **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
         ----------
-        dl : ``bool`` (optional, default: ``False``)
-            If ``True``, the full description length will be returned.
+        adjacency : ``bool`` (optional, default: ``True``)
+            If ``True``, the adjacency term of the description length will be
+            included.
+        dl : ``bool`` (optional, default: ``True``)
+            If ``True``, the description length for the parameters will be
+            included.
         partition_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the partition description length
-            will be considered.
+            will be included.
         degree_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the degree sequence description
-            length will be considered.
+            length will be included (for degree-corrected models).
+        degree_dl_kind : ``str`` (optional, default: ``"distributed"``)
+            This specifies the prior used for the degree sequence. It must be
+            one of: ``"uniform"``, ``"distributed"`` (default) or ``"entropy"``.
         edges_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge matrix description length
-            will be considered.
+            will be included.
         dense : ``bool`` (optional, default: ``False``)
             If ``True``, the "dense" variant of the entropy will be computed.
-        multigraph : ``bool`` (optional, default: ``False``)
+        multigraph : ``bool`` (optional, default: ``True``)
             If ``True``, the multigraph entropy will be used.
-        dl_ent : ``bool`` (optional, default: ``False``)
-            If ``True``, the description length of the degree sequence will be
-            approximated by its entropy.
         deg_entropy : ``bool`` (optional, default: ``True``)
             If ``True``, the degree entropy term that is independent of the
-            network partition will be returned.
+            network partition will be included (for degree-corrected models).
+        exact : ``bool`` (optional, default: ``True``)
+            If ``True``, the exact expressions will be used. Otherwise,
+            Stirling's factorial approximation will be used for some terms.
 
         Notes
         -----
-        For the traditional blockmodel (``deg_corr == False``), the entropy is
-        given by
+
+        The "entropy" of the state is minus the log-likelihood of the
+        microcanonical SBM, that includes the generated graph
+        :math:`\boldsymbol{A}` and the model parameters :math:`\boldsymbol{\theta}`,
 
         .. math::
 
-          \mathcal{S}_t &\cong E - \frac{1}{2} \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{n_rn_s}\right), \\
-          \mathcal{S}^d_t &\cong E - \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{n_rn_s}\right),
+           \mathcal{S} &= - \ln P(\boldsymbol{A},\boldsymbol{\theta}) \\
+                       &= - \ln P(\boldsymbol{A}|\boldsymbol{\theta}) - \ln P(\boldsymbol{\theta}).
 
-        for undirected and directed graphs, respectively, where :math:`e_{rs}`
-        is the number of edges from block :math:`r` to :math:`s` (or the number
-        of half-edges for the undirected case when :math:`r=s`), and :math:`n_r
-        = \sum_ib_i^r` is the number of vertices in block :math:`r`, with
-        :math:`\vec{b}_i` being a binary vector with :math:`B` entries
-        describing the mixed membership of node :math:`i`. Note that because of
-        the possible overlaps, we have :math:`\sum_rn_r \ge N`.
+        This value is also called the `description length
+        <https://en.wikipedia.org/wiki/Minimum_description_length>`_ of the data,
+        and it corresponds to the amount of information required to describe it
+        (in `nats <https://en.wikipedia.org/wiki/Nat_(unit)>`_).
 
-        For the degree-corrected variant with "hard" degree constraints the
-        equivalent expressions are
+        For the traditional blockmodel (``deg_corr == False``), the model
+        parameters are :math:`\boldsymbol{\theta} = \{\boldsymbol{e},
+        \boldsymbol{b}\}`, where :math:`\boldsymbol{e}` is the matrix of edge
+        counts between blocks, and :math:`\boldsymbol{b}` is the `overlapping`
+        partition of the nodes into blocks. For the degree-corrected blockmodel
+        (``deg_corr == True``), we have an additional set of parameters, namely
+        the `labelled` degree sequence :math:`\boldsymbol{k}`.
 
-        .. math::
+        The model likelihood :math:`P(\boldsymbol{A}|\theta)` is given
+        analogously to the non-overlapping case, as described in
+        :meth:`graph_tool.inference.BlockState.entropy`.
 
-            \mathcal{S}_c &\cong -E -\sum_{ir}\ln k_i^r! - \frac{1}{2} \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{e_re_s}\right), \\
-            \mathcal{S}^d_c &\cong -E -\sum_{ir}\left(\ln {k^+}_i^r! + \ln {k^-}_i^r! \right) - \sum_{rs}e_{rs}\ln\left(\frac{e_{rs}}{e^+_re^-_s}\right),
-
-        where :math:`e_r = \sum_se_{rs}` is the number of half-edges incident on
-        block :math:`r`, :math:`e^+_r = \sum_se_{rs}` and :math:`e^-_r =
-        \sum_se_{sr}` are the numbers of out- and in-edges adjacent to block
-        :math:`r`, respectively, and :math:`k_i^r` is the degree of node
-        :math:`i` of type :math:`r`, whereas :math:`{k^+}_i^r` and
-        :math:`{k^-}_i^r` are the labeled out- and in-degrees, respectively.
-
-        If ``multigraph == True``, the entropy used will be of the "Poisson"
-        model, with the additional term:
+        If ``dl == True``, the description length :math:`\mathcal{L} = -\ln
+        P(\boldsymbol{\theta})` of the model will be returned as well. The
+        edge-count prior :math:`P(\boldsymbol{e})` is described in described in
+        :func:`model_entropy`. For the overlapping partition
+        :math:`P(\boldsymbol{b})`, we have
 
         .. math::
 
-            {\mathcal{S}_{cm}^{(d)}} = \mathcal{S}_c^{(d)} + \sum_{i>j}\sum_{rs} \ln A^{rs}_{ij}! + \sum_i\sum_{rs} \ln A^{rs}_{ii}!!
-
-
-        If ``dl == True``, the description length :math:`\mathcal{L}_t` of the
-        model will be returned as well:
-
-        .. math::
-
-           \mathcal{L}_t = \ln\Omega_m + \ln\left(\!\!{D \choose N}\!\!\right) + \sum_d \ln {\left(\!\!{{B\choose d}\choose n_d}\!\!\right)} + \ln N! - \sum_{\vec{b}}\ln n_{\vec{b}}!,
+           -\ln P(\boldsymbol{b}) = \ln\left(\!\!{D \choose N}\!\!\right) + \sum_d \ln {\left(\!\!{{B\choose d}\choose n_d}\!\!\right)} + \ln N! - \sum_{\vec{b}}\ln n_{\vec{b}}!,
 
         where :math:`d \equiv |\vec{b}|_1 = \sum_rb_r` is the mixture
         size, :math:`n_d` is the number of nodes in a mixture of size :math:`d`,
         :math:`D` is the maximum value of :math:`d`, :math:`n_{\vec{b}}` is the
-        number of nodes in mixture :math:`\vec{b}`, and
+        number of nodes in mixture :math:`\vec{b}`.
+
+
+        For the degree-corrected model we need to specify the prior
+        :math:`P(\boldsymbol{k})` for the `labelled` degree sequence as well:
 
         .. math::
 
-            \Omega_m = \left(\!\!{\left(\!{B \choose 2}\!\right) \choose E}\!\!\right)
+            -\ln P(\boldsymbol{k}) = \sum_r\ln\left(\!\!{m_r \choose e_r}\!\!\right) - \sum_{\vec{b}}\ln P(\boldsymbol{k}|{\vec{b}}),
 
-        is the number of different :math:`e_{rs}` matrices for undirected
-        graphs, whereas for directed graphs we have
+        where :math:`m_r` is the number of non-empty mixtures which contain type
+        :math:`r`, and :math:`P(\boldsymbol{k}|{\vec{b}})` is the likelihood of
+        the labelled degree sequence inside mixture :math:`\vec{b}`. For this
+        term we have three options:
 
-        .. math::
+        1. ``degree_dl_kind == "uniform"``
 
-            \Omega_m = \left(\!\!{B^2 \choose E}\!\!\right).
+            .. math::
+
+                P(\boldsymbol{k}|\vec{b}) = \prod_r\left(\!\!{n_{\vec{b}}\choose e^r_{\vec{b}}}\!\!\right)^{-1}.
+
+        2. ``degree_dl_kind == "distributed"``
+
+            .. math::
+
+                P(\boldsymbol{k}|\vec{b}) = \prod_{\vec{b}}\frac{\prod_{\vec{k}}\eta_{\vec{k}}^{\vec{b}}!}{n_{\vec{b}}!} \prod_r q(e_{\vec{b}}^r, n_{\vec{b}})
+
+            where :math:`n^{\vec{b}}_{\vec{k}}` is the number of nodes in
+            mixture :math:`\vec{b}` with labelled degree :math:`\vec{k}`, and
+            :math:`q(n,m)` is the number of `partitions
+            <https://en.wikipedia.org/wiki/Partition_(number_theory)>`_ of
+            integer :math:`n` into at most :math:`m` parts.
+
+        3. ``degree_dl_kind == "entropy"``
+
+            .. math::
+
+                P(\boldsymbol{k}|\vec{b}) = \prod_{\vec{b}}\exp\left(-n_{\vec{b}}H(\boldsymbol{k}_{\vec{b}})\right)
+
+            where :math:`H(\boldsymbol{k}_{\vec{b}}) =
+            -\sum_{\vec{k}}p_{\vec{b}}(\vec{k})\ln p_{\vec{b}}(\vec{k})` is the
+            entropy of the labelled degree distribution inside mixture
+            :math:`\vec{b}`.
+
+            Note that, differently from the other two choices, this represents
+            only an approximation of the description length. It is meant to be
+            used only for comparison purposes, and should be avoided in practice.
 
 
-        Note that for the degree-corrected version the description length is
-
-        .. math::
-
-            \mathcal{L}_c = \mathcal{L}_t + \sum_r\ln\left(\!\!{m_r \choose e_r}\!\!\right) + \sum_{\vec{b}}\min\left(\mathcal{L}^{(1)}_{\vec{b}}, \mathcal{L}^{(2)}_{\vec{b}}\right),
-
-        where :math:`m_r` is the number of non-empty mixtures which contain type :math:`r`, and
-
-        .. math::
-
-            \mathcal{L}^{(1)}_{\vec{b}} &= \sum_r\ln{\left(\!\!{n_{\vec{b}}\choose e^r_{\vec{b}}}\!\!\right)}, \\
-            \mathcal{L}^{(2)}_{\vec{b}} &= \sum_rb_r\ln\Xi_{\vec{b}}^r + \ln n_{\vec{b}}! - \sum_{\vec{k}} \ln n^{\vec{b}}_{\vec{k}}!,
-
-        and :math:`\ln\Xi_{\vec{b}}^r \simeq 2\sqrt{\zeta(2)e_{\vec{b}}^r}`,
-        where :math:`\zeta(x)` is the `Riemann zeta function
-        <https://en.wikipedia.org/wiki/Riemann_zeta_function>`_, and
-        :math:`n^{\vec{b}}_{\vec{k}}` is the number of nodes in mixture
-        :math:`\vec{b}` with labelled degree :math:`\vec{k}`. For directed
-        graphs we have instead :math:`\vec{k} \to (\vec{k}^-, \vec{k}^+)`, and
-        :math:`\ln\Xi_{\vec{b}}^r \to \ln{\Xi^+}_{\vec{b}}^r +
-        \ln{\Xi^-}_{\vec{b}}^r`.
-
-        If ``dl_ent=True`` is passed, this will be approximated instead by
-
-        .. math::
-
-            \mathcal{L}_c \simeq \mathcal{L}_t - \sum_{\vec{b}}n_{\vec{b}}\sum_{\vec{k}}p^{\vec{b}}_{\vec{k}}\ln p^{\vec{b}}_{\vec{k}},
-
-        where :math:`p^{\vec{b}}_{\vec{k}} = n^{\vec{b}}_{\vec{k}} / n_{\vec{b}}`.
+        For the directed case, the above expressions are duplicated for the in-
+        and out-degrees.
 
         """
 
-        return BlockState.entropy(self, dl=dl, partition_dl=partition_dl,
-                                  degree_dl=degree_dl, edges_dl=edges_dl,
-                                  dense=dense, multigraph=multigraph,
-                                  dl_ent=dl_ent, deg_entropy=deg_entropy,
+        return BlockState.entropy(self, adjacency=adjacency, dl=dl,
+                                  partition_dl=partition_dl,
+                                  degree_dl=degree_dl,
+                                  degree_dl_kind=degree_dl_kind,
+                                  edges_dl=edges_dl, dense=dense,
+                                  multigraph=multigraph,
+                                  deg_entropy=deg_entropy, exact=exact,
                                   **kwargs)
 
 
@@ -502,7 +588,7 @@ class OverlapBlockState(BlockState):
                                                      _get_rng())
         if self.__bundled:
             ret = libinference.overlap_mcmc_bundled_sweep(mcmc_state,
-                                                           self._state,
+                                                          self._state,
                                                           _get_rng())
             dS += ret[0]
             nmoves += ret[1]
@@ -555,15 +641,31 @@ class OverlapBlockState(BlockState):
         copy with the new partition.
         """
 
-        bstate = self.copy()
-        while (bstate.wr.a > 0).sum() > B:
-            bstate.merge_sweep((bstate.wr.a > 0).sum() - B, **kwargs)
+        b = self.b.copy()
+        continuous_map(b)
+        bstate = self.copy(b=b)
+
+        assert self.get_nonempty_B() == bstate.get_nonempty_B(), \
+            "Error: inconsistent number of groups after copying (%d, %d)" % \
+            (self.get_nonempty_B(), bstate.get_nonempty_B())
+
+        if bstate.get_nonempty_B() < B:
+            raise ValueError("cannot shrink state to a smaller number" +
+                             " of groups: %d -> %d (total: %d)" %
+                             (bstate.get_nonempty_B(), B, self.B))
+
+        while bstate.get_nonempty_B() > B:
+            bstate.merge_sweep(bstate.get_nonempty_B() - B, **kwargs)
+
         continuous_map(bstate.b)
         bstate = self.copy(b=bstate.b.a)
+
         if _bm_test():
-            assert bstate.B == B, \
-                "wrong number of groups after shrink: %d, %d" % (bstate.B, B)
+            assert bstate.get_nonempty_B() == B, \
+                "wrong number of groups after shrink: %d, %d" % \
+                (bstate.get_nonempty_B(), B)
             assert bstate.wr.a.min() > 0, "empty group after shrink!"
+
         return bstate
 
     def draw(self, **kwargs):
@@ -595,7 +697,7 @@ class OverlapBlockState(BlockState):
                                            "edge_gradient"]))
 
 
-def half_edge_graph(g, b=None, B=None):
+def half_edge_graph(g, b=None, B=None, rec=None):
     r"""Generate a half-edge graph, where each half-edge is represented by a node,
     and an edge connects the half-edges like in the original graph."""
 
@@ -645,6 +747,12 @@ def half_edge_graph(g, b=None, B=None):
     half_edges = g.new_vertex_property("vector<int64_t>")
     be = eg.new_vertex_property("int")
     eindex = eg.new_edge_property("int64_t")
+    erec = eg.new_edge_property("double")
+
+    if rec is None:
+        rec_ = g.new_edge_property("double")
+    else:
+        rec_ = rec
 
     # create half-edge graph
     libinference.get_eg_overlap(g._Graph__graph,
@@ -653,12 +761,17 @@ def half_edge_graph(g, b=None, B=None):
                                 _prop("v", eg, be),
                                 _prop("v", eg, node_index),
                                 _prop("v", g, half_edges),
-                                _prop("e", eg, eindex))
+                                _prop("e", eg, eindex),
+                                _prop("e", g, rec_),
+                                _prop("e", eg, erec))
 
     if b_array is not None:
         be.a = b_array
 
-    return eg, be, node_index, half_edges, eindex
+    if rec is None:
+        erec = None
+
+    return eg, be, node_index, half_edges, eindex, erec
 
 def augmented_graph(g, b, node_index, eweight=None):
     r"""Generates an augmented graph from the half-edge graph ``g`` partitioned
