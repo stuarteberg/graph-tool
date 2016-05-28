@@ -62,6 +62,8 @@ def load_koblenz_dir(dirname):
                 if "asym" not in line:
                     g.set_directed(False)
                 edges[:,:2] -= 1  # we need zero-based indexing
+                if "bip" in line: # bipartite graphs have non-unique indexing
+                    edges[:,1] += edges[:,0].max() + 1
                 g.add_edge_list(edges[:,:2])
                 if edges.shape[1] > 2:
                     g.ep.weight = g.new_edge_property("int")
