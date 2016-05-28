@@ -66,7 +66,7 @@ def load_koblenz_dir(dirname):
                     edges[:,1] += edges[:,0].max() + 1
                 g.add_edge_list(edges[:,:2])
                 if edges.shape[1] > 2:
-                    g.ep.weight = g.new_edge_property("int")
+                    g.ep.weight = g.new_edge_property("double")
                     g.ep.weight.a = edges[:,2]
                 if edges.shape[1] > 3:
                     g.ep.time = g.new_edge_property("int")
