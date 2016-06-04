@@ -35,6 +35,7 @@ Summary
    PropertyMap
    PropertyArray
    load_graph
+   load_graph_from_csv
    group_vector_property
    ungroup_vector_property
    map_property_values
@@ -111,11 +112,18 @@ import sys
 import os
 import re
 import gzip
+import bz2
+try:
+    import lzma
+except ImportError:
+    pass
 import weakref
 import copy
 import textwrap
 import io
 import collections
+import itertools
+import csv
 
 if sys.version_info < (3,):
     import StringIO
@@ -126,8 +134,8 @@ from inspect import ismethod
 __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
            "Vector_double", "Vector_long_double", "Vector_string",
-           "Vector_size_t", "value_types", "load_graph", "PropertyMap",
-           "group_vector_property", "ungroup_vector_property",
+           "Vector_size_t", "value_types", "load_graph", "load_graph_from_csv",
+           "PropertyMap", "group_vector_property", "ungroup_vector_property",
            "map_property_values", "infect_vertex_property",
            "edge_endpoint_property", "incident_edges_op", "perfect_prop_hash",
            "seed_rng", "show_config", "PropertyArray", "openmp_enabled",
@@ -1290,7 +1298,7 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
     Returns
     -------
     vprop : :class:`~graph_tool.PropertyMap`
-        Summed vertex property.
+        Resulting vertex property.
 
     Examples
     --------
@@ -2371,10 +2379,9 @@ class Graph(object):
             fmt = "gt"
         if isinstance(file_name, (str, unicode)) and file_name.endswith(".xz"):
             try:
-                import lzma
                 file_name = lzma.open(file_name, mode="rb")
-            except ImportError:
-                raise ValueError("lzma compression is only available in Python >= 3.3")
+            except NameError:
+                raise NotImplementedError("lzma compression is only available in Python >= 3.3")
         if fmt == "graphml":
             fmt = "xml"
         if ignore_vp is None:
@@ -2452,10 +2459,9 @@ class Graph(object):
 
         if isinstance(file_name, (str, unicode)) and file_name.endswith(".xz"):
             try:
-                import lzma
                 file_name = lzma.open(file_name, mode="wb")
-            except ImportError:
-                raise ValueError("lzma compression is only available in Python >= 3.3")
+            except NameError:
+                raise NotImplementedError("lzma compression is only available in Python >= 3.3")
 
         props = [(_c_str(name[1]), prop._PropertyMap__map) for name, prop in \
                  u.__properties.items()]
@@ -2761,6 +2767,98 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
     """
     g = Graph()
     g.load(file_name, fmt, ignore_vp, ignore_ep, ignore_gp)
+    return g
+
+def load_graph_from_csv(file_name, directed=True, eprop_types=None,
+                        string_vals=True, hashed=False, skip_first=False,
+                        ecols=(0,1), csv_options={"delimiter": ",",
+                                                  "quotechar": "#"}):
+    """Load a graph from a :mod:`csv` file containing a list of edges and edge
+    properties.
+
+    Parameters
+    ----------
+    file_name : ``str`` or file-like object
+        File in :mod:``csv`` format, with edges given in each row.
+    directed : ``bool`` (optional, default: ``False``)
+        Whether or not the graph is directed.
+    eprop_types : list of ``str`` (optional, default: ``None``)
+        List of edge property types to be read from remaining columns (if this
+        is ``None``, all properties will be of type ``string``.
+    string_vals : ``bool`` (optional, default: ``False``)
+        If ``True``, the vertex values are assumed to be arbitrary strings,
+        otherwise they will be assumed to correspond to integers.
+    hashed : ``bool`` (optional, default: ``False``)
+        If ``True`` and ``string_vals == False``, the vertex values in the edge
+        list are not assumed to correspond to vertex indices directly. In this
+        case they will be mapped to vertex indices according to the order in
+        which they are encountered, and a vertex property map with the vertex
+        values is returned. If ``string_vals == True``, this automatically means
+        ``hashed = True``.
+    skip_first : ``bool`` (optional, default: ``False``)
+        If ``True`` the first line of the file will be skipped.
+    ecols : pair of ``int`` (optional, default: ``(0,1)``)
+        Line columns used as source and target for the edges.
+    csv_options : ``dict`` (optional, default: ``{"delimiter": ",", "quotechar": "#"}``)
+        Options to be passed to the :func:`csv.reader` parser.
+
+    Returns
+    -------
+    g : :class:`~graph_tool.Graph`
+        The loaded graph. It will contain additional columns in the file as
+        internal edge property maps. If ``hashed == True``, it will also contain
+        an internal vertex property map with the vertex names.
+
+    """
+    if isinstance(file_name, (str, unicode)):
+        if file_name.endswith(".xz"):
+            try:
+                file_name = lzma.open(file_name, mode="r")
+            except ImportError:
+                raise NotImplementedError("lzma compression is only available in Python >= 3.3")
+        elif file_name.endswith(".gz"):
+            file_name = gzip.open(file_name, mode="r")
+        elif file_name.endswith(".bz2"):
+            file_name = bz2.open(file_name, mode="r")
+        else:
+            file_name = open(file_name, "r")
+    _csv_options = {"delimiter": ",", "quotechar": "#"}
+    _csv_options.update(csv_options)
+    r = csv.reader(file_name, **_csv_options)
+    if skip_first:
+        next(r)
+    if ecols != (0, 1):
+        def reorder(rows):
+            for row in rows:
+                row = list(row)
+                s = row[ecols[0]]
+                t = row[ecols[1]]
+                del row[min(ecols)]
+                del row[max(ecols)-1]
+                yield [s, t] + row
+        r = reorder(r)
+    if not string_vals:
+        def conv(rows):
+            for row in rows:
+                row = list(row)
+                row[0] = int(row[0])
+                row[1] = int(row[1])
+                yield row
+        r = conv(r)
+    line = next(r)
+    g = Graph(directed=directed)
+    if eprop_types is None:
+        eprops = [g.new_ep("string") for x in line[2:]]
+    else:
+        eprops = [g.new_ep(t) for t in eprop_types]
+    name = g.add_edge_list(itertools.chain([line], r),
+                           string_vals=string_vals,
+                           hashed=hashed or string_vals,
+                           eprops=eprops)
+    for i, p in enumerate(eprops):
+        g.ep["c%d" % i] = p
+    if name is not None:
+        g.vp.name = name
     return g
 
 

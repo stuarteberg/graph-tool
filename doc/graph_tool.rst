@@ -187,6 +187,7 @@
        :no-members:
        :members: prop_map
    .. autofunction:: load_graph
+   .. autofunction:: load_graph_from_csv
    .. autofunction:: group_vector_property
    .. autofunction:: ungroup_vector_property
    .. autofunction:: map_property_values
