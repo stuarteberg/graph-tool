@@ -2772,7 +2772,7 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
 def load_graph_from_csv(file_name, directed=True, eprop_types=None,
                         string_vals=True, hashed=False, skip_first=False,
                         ecols=(0,1), csv_options={"delimiter": ",",
-                                                  "quotechar": "#"}):
+                                                  "quotechar": '"'}):
     """Load a graph from a :mod:`csv` file containing a list of edges and edge
     properties.
 
@@ -2799,7 +2799,7 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
         If ``True`` the first line of the file will be skipped.
     ecols : pair of ``int`` (optional, default: ``(0,1)``)
         Line columns used as source and target for the edges.
-    csv_options : ``dict`` (optional, default: ``{"delimiter": ",", "quotechar": "#"}``)
+    csv_options : ``dict`` (optional, default: ``{"delimiter": ",", "quotechar": '"'}``)
         Options to be passed to the :func:`csv.reader` parser.
 
     Returns
@@ -2822,7 +2822,7 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
             file_name = bz2.open(file_name, mode="r")
         else:
             file_name = open(file_name, "r")
-    _csv_options = {"delimiter": ",", "quotechar": "#"}
+    _csv_options = {"delimiter": ",", "quotechar": '"'}
     _csv_options.update(csv_options)
     r = csv.reader(file_name, **_csv_options)
     if skip_first:
