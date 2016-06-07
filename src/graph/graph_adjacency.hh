@@ -839,6 +839,12 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
         rename_v(g._in_edges, g._out_edges,
                  [&](size_t idx) -> auto {return g._epos[idx].first;});
     }
+    else
+    {
+        clear_vertex(v, g);
+        g._out_edges.pop_back();
+        g._in_edges.pop_back();
+    }
 }
 
 template <class Vertex>
