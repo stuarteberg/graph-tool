@@ -193,7 +193,7 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
 
     vector<size_t> shape(dim);
     for (size_t i = 0; i < dim; ++i)
-        shape[i] =  PyArray_DIMS(pa)[i];
+        shape[i] = PyArray_DIMS(pa)[i];
 
     vector<size_t> stride(dim);
     for (size_t i = 0; i < dim; ++i)

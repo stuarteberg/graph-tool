@@ -135,11 +135,11 @@ __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
            "Vector_double", "Vector_long_double", "Vector_string",
            "Vector_size_t", "value_types", "load_graph", "load_graph_from_csv",
-           "PropertyMap", "group_vector_property", "ungroup_vector_property",
-           "map_property_values", "infect_vertex_property",
-           "edge_endpoint_property", "incident_edges_op", "perfect_prop_hash",
-           "seed_rng", "show_config", "PropertyArray", "openmp_enabled",
-           "openmp_get_num_threads", "openmp_set_num_threads",
+           "PropertyMap", "PropertyArray", "group_vector_property",
+           "ungroup_vector_property", "map_property_values",
+           "infect_vertex_property", "edge_endpoint_property",
+           "incident_edges_op", "perfect_prop_hash", "seed_rng", "show_config",
+           "openmp_enabled", "openmp_get_num_threads", "openmp_set_num_threads",
            "openmp_get_schedule", "openmp_set_schedule", "__author__",
            "__copyright__", "__URL__", "__version__"]
 
@@ -331,110 +331,6 @@ def conv_pickle_state(state):
 ################################################################################
 # Property Maps
 ################################################################################
-
-
-class PropertyArray(numpy.ndarray):
-    """This is a :class:`~numpy.ndarray` subclass which keeps a reference of its
-    :class:`~graph_tool.PropertyMap` owner, and detects if the underlying data
-    has been invalidated.
-    """
-
-    __array_priority__ = -10
-
-    def _get_pmap(self):
-        return self._prop_map
-
-    def _set_pmap(self, value):
-        self._prop_map = value
-
-    prop_map = property(_get_pmap, _set_pmap,
-                        doc=":class:`~graph_tool.PropertyMap` owner instance.")
-
-    def __new__(cls, input_array, prop_map):
-        obj = numpy.asarray(input_array).view(cls)
-        obj.prop_map = prop_map
-
-        # check if data really belongs to property map
-        if (prop_map._get_data().__array_interface__['data'][0] !=
-            obj._get_base_data()):
-            obj.prop_map = None
-            # do a copy
-            obj = numpy.asarray(obj)
-
-        return obj
-
-    def _get_base(self):
-        base = self
-        while base.base is not None:
-            base = base.base
-        return base
-
-    def _get_base_data(self):
-        return self._get_base().__array_interface__['data'][0]
-
-    def _check_data(self):
-        if not hasattr(self, "_prop_map") or self.prop_map is None:
-            return
-
-        data = self.prop_map._get_data()
-
-        if (data is None or
-            data.__array_interface__['data'][0] != self._get_base_data()):
-            raise ValueError(("The graph correspondig to the underlying" +
-                              " property map %s has changed. The" +
-                              " PropertyArray at 0x%x is no longer valid!") %
-                             (repr(self.prop_map), id(self)))
-
-    def __array_finalize__(self, obj):
-        if type(obj) is PropertyArray:
-            obj._check_data()
-
-        if obj is not None:
-            # inherit prop_map only if the data is the same
-            if (type(obj) is PropertyArray and
-                self._get_base_data() == obj._get_base_data()):
-                self.prop_map = getattr(obj, 'prop_map', None)
-            else:
-                self.prop_map = None
-        self._check_data()
-
-    def __array_prepare__(self, out_arr, context=None):
-        self._check_data()
-        return numpy.ndarray.__array_prepare__(self, out_arr, context)
-
-    def __array_wrap__(self, out_arr, context=None):
-        #demote to ndarray
-        obj = numpy.ndarray.__array_wrap__(self, out_arr, context)
-        return numpy.asarray(obj)
-
-    # Overload members and operators to add data checking
-
-    def _wrap_method(method):
-        method = getattr(numpy.ndarray, method)
-
-        def checked_method(self, *args, **kwargs):
-            self._check_data()
-            return method(self, *args, **kwargs)
-
-        if ismethod(method):
-            checked_method = _wraps(method)(checked_method)
-        checked_method.__doc__ = getattr(method, "__doc__", None)
-        return checked_method
-
-    for method in ['all', 'any', 'argmax', 'argmin', 'argsort', 'astype',
-                   'byteswap', 'choose', 'clip', 'compress', 'conj',
-                   'conjugate', 'copy', 'cumprod', 'cumsum', 'diagonal', 'dot',
-                   'dump', 'dumps', 'fill', 'flat', 'flatten', 'getfield',
-                   'imag', 'item', 'itemset', 'itemsize', 'max', 'mean', 'min',
-                   'newbyteorder', 'nonzero', 'prod', 'ptp', 'put', 'ravel',
-                   'real', 'repeat', 'reshape', 'resize', 'round',
-                   'searchsorted', 'setfield', 'setflags', 'sort', 'squeeze',
-                   'std', 'sum', 'swapaxes', 'take', 'tofile', 'tolist',
-                   'tostring', 'trace', 'transpose', 'var', 'view',
-                   '__getitem__']:
-        if hasattr(numpy.ndarray, method):
-            locals()[method] = _wrap_method(method)
-
 
 class PropertyMap(object):
     """This class provides a mapping from vertices, edges or whole graphs to
@@ -649,7 +545,8 @@ class PropertyMap(object):
         return _python_type(self.__map.value_type())
 
     def get_array(self):
-        """Get a :class:`~graph_tool.PropertyArray` with the property values.
+        """Get a :class:`numpy.ndarray` subclass (:class:`~graph_tool.PropertyArray`)
+        with the property values.
 
         .. note::
 
@@ -663,14 +560,11 @@ class PropertyMap(object):
 
            The returned array does not own the data, which belongs to the
            property map. Therefore, if the graph changes, the array may become
-           *invalid* and any operation on it will fail with a
-           :class:`ValueError` exception. Do **not** store the array if
-           the graph is to be modified; store a **copy** instead.
+           *invalid*. Do **not** store the array if the graph is to be modified;
+           store a **copy** instead.
+
         """
-        a = self._get_data()
-        if a is None:
-            raise ValueError("Cannot get array for value type: " + self.value_type())
-        return PropertyArray(a, prop_map=self)
+        return self._get_data()
 
     def _get_data(self):
         g = self.get_graph()
@@ -683,10 +577,15 @@ class PropertyMap(object):
         else:
             n = 1
         a = self.__map.get_array(n)
-        return a
+        if a is None:
+            return a
+        return PropertyArray(a, self)
 
     def __set_array(self, v):
         a = self.get_array()
+        if a is None:
+            raise TypeError("cannot set property map values from array for" +
+                            " property map of type: " + self.value_type())
         a[:] = v
 
     a = property(get_array, __set_array,
@@ -731,7 +630,8 @@ class PropertyMap(object):
             return a[filt[0].a == (not filt[1])][:N]
         else:
             if a is None:
-                return
+                raise TypeError("cannot set property map values from array for" +
+                                " property map of type: " + self.value_type())
             if filt[0] is None:
                 try:
                     a[:] = v
@@ -790,8 +690,8 @@ class PropertyMap(object):
                   instead a :class:`~numpy.ma.MaskedArray` object is returned,
                   which contains only entries for vertices/edges which are not
                   filtered out. If there are no filters in place, a regular
-                  :class:`~graph_tool.PropertyArray` is returned, which is
-                  identical to the :attr:`~PropertyMap.a` attribute.""")
+                  :class:`:class:`~graph_tool.PropertyArray`` is returned, which
+                  is identical to the :attr:`~PropertyMap.a` attribute.""")
 
     def get_2d_array(self, pos):
         r"""Return a two-dimensional array with a copy of the entries of the
@@ -837,11 +737,11 @@ class PropertyMap(object):
                 a = a[filt[0].a[:a.shape[0]] == (not filt[1])]
             return a
 
-        try:
-            return numpy.array(self.fa)
-        except ValueError:
+        a = self.fa
+        if a is None:
             p = ungroup_vector_property(self, pos)
-            return numpy.array([x.fa for x in p])
+            a = numpy.array([x.fa for x in p])
+        return a
 
     def set_2d_array(self, a, pos=None):
         r"""Set the entries of the vector-valued property map from a
@@ -973,6 +873,26 @@ class PropertyMap(object):
         self.__convert = _converter(self.value_type())
         self.__register_map()
 
+class PropertyArray(numpy.ndarray):
+    """This is a :class:`~numpy.ndarray` subclass which keeps a reference of its
+    :class:`~graph_tool.PropertyMap` owner.
+    """
+
+    __array_priority__ = -10
+
+    def _get_pmap(self):
+        return self._prop_map
+
+    def _set_pmap(self, value):
+        self._prop_map = value
+
+    prop_map = property(_get_pmap, _set_pmap,
+                        doc=":class:`~graph_tool.PropertyMap` owner instance.")
+
+    def __new__(cls, input_array, prop_map):
+        obj = numpy.asarray(input_array).view(cls)
+        obj.prop_map = prop_map
+        return obj
 
 def _check_prop_writable(prop, name=None):
     if not prop.is_writable():
@@ -2205,7 +2125,7 @@ class Graph(object):
         if vals is not None:
             try:
                 prop.fa = vals
-            except ValueError:
+            except (IndexError, ValueError, TypeError):
                 for v, x in zip(self.vertices(), vals):
                     prop[v] = x
         elif val is not None:
@@ -2226,8 +2146,8 @@ class Graph(object):
                            self, "e")
         if vals is not None:
             try:
-                prop.a = vals
-            except ValueError:
+                prop.fa = vals
+            except (IndexError, ValueError, TypeError):
                 for e, x in zip(self.edges(), vals):
                     prop[e] = x
         elif val is not None:
