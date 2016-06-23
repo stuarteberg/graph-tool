@@ -71,6 +71,7 @@ class NestedBlockState(object):
         self.g = g
         self.kwargs = kwargs.copy()
         self.hstate_args = overlay(dict(deg_corr=False), **hstate_args)
+        self.sampling = sampling
         if sampling:
             self.hstate_args = overlay(self.hstate_args, vweight="nonempty",
                                        copy_bg=False, B=g.num_vertices())
@@ -83,11 +84,14 @@ class NestedBlockState(object):
                 nbs.append(nb)
             bs = nbs
         self.hentropy_args = overlay(dict(adjacency=True,
-                                          dl=True, partition_dl=True,
+                                          dense=True,
+                                          multigraph=True,
+                                          dl=True,
+                                          partition_dl=True,
                                           degree_dl=True,
                                           degree_dl_kind="distributed",
-                                          edges_dl=True, dense=True,
-                                          multigraph=True, exact=True),
+                                          edges_dl=True,
+                                          exact=True),
                                      **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.kwargs)]
         for b in bs[1:]:
@@ -129,7 +133,10 @@ class NestedBlockState(object):
                                 **overlay(self.kwargs, **kwargs))
 
     def __getstate__(self):
-        state = dict(g=self.g, bs=self.get_bs(), kwargs=self.kwargs)
+        state = dict(g=self.g, bs=self.get_bs(), base_type=type(self.levels[0]),
+                     hstate_args=self.hstate_args,
+                     hentropy_args=self.hstate_args, sampling=self.sampling,
+                     kwargs=self.kwargs)
         return state
 
     def __setstate__(self, state):
@@ -425,10 +432,7 @@ class NestedBlockState(object):
 
         for l in range(len(self.levels) - 1):
             eargs = overlay(self.hentropy_args,
-                            **overlay(entropy_args,
-                                      adjacency=True,
-                                      dense=True,
-                                      edges_dl=(l + 1 == len(self.levels) - 1)))
+                            edges_dl=(l + 1 == len(self.levels) - 1))
             self.levels[l]._couple_state(self.levels[l + 1],
                                          get_entropy_args(eargs))
             self.levels[l + 1]._state.clear_egroups()
@@ -455,10 +459,7 @@ class NestedBlockState(object):
                 def callback(s):
                     s = self.levels[l + 1]
                     S = s.entropy(**overlay(self.hentropy_args,
-                                            **overlay(entropy_args,
-                                                      adjacency=True,
-                                                      dense=True,
-                                                      edges_dl=(l + 1 == len(self.levels) - 1))))
+                                            edges_dl=(l + 1 == len(self.levels) - 1)))
                     return S
                 eargs = overlay(eargs, callback=callback)
 
