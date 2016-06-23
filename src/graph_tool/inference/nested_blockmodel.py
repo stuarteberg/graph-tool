@@ -296,7 +296,7 @@ class NestedBlockState(object):
         """
         L = 0
         for l, state in enumerate(self.levels):
-            eargs = overlay(entropy_args, dl=True,
+            eargs = overlay(entropy_args,
                             edges_dl=(l == (len(self.levels) - 1)))
             if l > 0:
                 eargs = overlay(eargs, **self.hentropy_args)
@@ -500,6 +500,27 @@ class NestedBlockState(object):
         :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
         """
         return self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
+
+    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
+        """Compute the log-probability of the missing (or spurious if ``missing=False``)
+        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
+        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
+        passed to :meth:`graph_tool.NestedBlockState.entropy()` to calculate the
+        log-probability.
+        """
+        S = 0
+        for l, lstate in enumerate(self.levels):
+            if l > 0:
+                eargs = overlay(self.hentropy_args,
+                                edges_dl=(l == len(self.levels) - 1))
+            else:
+                eargs = entropy_args
+            S += lstate.get_edges_prob(edge_list, missing, entropy_args=eargs)
+            if isinstance(self.levels[0], LayeredBlockState):
+                edge_list = [(lstate.b[u], lstate.b[v], l) for u, v, l in edge_list]
+            else:
+                edge_list = [(lstate.b[u], lstate.b[v]) for u, v in edge_list]
+        return S
 
     def draw(self, **kwargs):
         r"""Convenience wrapper to :func:`~graph_tool.draw.draw_hierarchy` that

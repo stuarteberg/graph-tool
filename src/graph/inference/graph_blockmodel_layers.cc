@@ -463,12 +463,18 @@ void export_layered_blockmodel_state()
                           = &state_t::set_partition;
                       void (state_t::*move_vertices)(python::object, python::object) =
                           &state_t::move_vertices;
+                      void (state_t::*remove_vertices)(python::object) =
+                          &state_t::remove_vertices;
+                      void (state_t::*add_vertices)(python::object, python::object) =
+                          &state_t::add_vertices;
 
                       class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
                                         no_init);
                       c.def("remove_vertex", &state_t::remove_vertex)
                           .def("add_vertex", &state_t::add_vertex)
                           .def("move_vertex", &state_t::move_vertex)
+                          .def("add_vertices", add_vertices)
+                          .def("remove_vertices", remove_vertices)
                           .def("move_vertices", move_vertices)
                           .def("set_partition", set_partition)
                           .def("virtual_move", virtual_move)
