@@ -115,7 +115,11 @@ inline double eterm_exact(size_t r, size_t s, size_t mrs, const Graph&)
     }
     else
     {
+#ifndef __clang__
         constexpr double log_2 = log(2);
+#else
+        const double log_2 = log(2);
+#endif
         return -val - mrs * log_2;
     }
 }
