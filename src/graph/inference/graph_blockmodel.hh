@@ -410,10 +410,9 @@ public:
         }
     }
 
-    void remove_vertices(python::object ovs)
+    template <class Vec>
+    void remove_vertices(Vec& vs)
     {
-        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
-
         switch (_rec_type)
         {
         case weight_type::POSITIVE: // positive weights
@@ -438,6 +437,12 @@ public:
         case weight_type::NONE: // no weights
             remove_vertices(vs, [&](auto&, auto&) {});
         }
+    }
+
+    void remove_vertices(python::object ovs)
+    {
+        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
+        remove_vertices(vs);
     }
 
     template <class BEdge, class Efilt>
@@ -539,10 +544,9 @@ public:
         }
     }
 
-    void add_vertices(python::object ovs, python::object ors)
+    template <class Vs, class Rs>
+    void add_vertices(Vs& vs, Rs& rs)
     {
-        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
-        multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
         if (vs.size() != rs.size())
             throw ValueException("vertex and group lists do not have the same size");
         switch (_rec_type)
@@ -572,9 +576,19 @@ public:
         }
     }
 
-    bool allow_move(size_t r, size_t nr)
+    void add_vertices(python::object ovs, python::object ors)
     {
-        return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
+        multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
+        multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
+        add_vertices(vs, rs);
+    }
+
+    bool allow_move(size_t r, size_t nr, bool allow_empty = true)
+    {
+        if (allow_empty)
+            return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
+        else
+            return ((_bclabel[r] == _bclabel[nr]));
     }
 
     // move a vertex from its current block to block nr

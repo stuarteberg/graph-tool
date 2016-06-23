@@ -100,18 +100,19 @@ struct Merge
         template <class RNG>
         size_t move_proposal(size_t v, bool random, RNG& rng)
         {
+            size_t r = _state._b[v];
             size_t s;
             if (!random)
             {
-                size_t r = _state.random_neighbour(v, rng);
-                s = _state.random_neighbour(r, rng);
+                size_t t = _state.random_neighbour(v, rng);
+                s = _state.random_neighbour(t, rng);
             }
             else
             {
                 s = uniform_sample(_available, rng);
             }
 
-            if (s == v || !_state.allow_move(v, s))
+            if (s == v || !_state.allow_move(r, s, false))
                 return _null_move;
 
             return s;
