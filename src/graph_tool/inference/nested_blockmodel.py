@@ -135,7 +135,7 @@ class NestedBlockState(object):
     def __getstate__(self):
         state = dict(g=self.g, bs=self.get_bs(), base_type=type(self.levels[0]),
                      hstate_args=self.hstate_args,
-                     hentropy_args=self.hstate_args, sampling=self.sampling,
+                     hentropy_args=self.hentropy_args, sampling=self.sampling,
                      kwargs=self.kwargs)
         return state
 

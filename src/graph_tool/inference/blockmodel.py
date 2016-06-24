@@ -95,9 +95,11 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
     cg.add_vertex(B - cg.num_vertices())
     return cg
 
-def get_entropy_args(args):
-    args = DictState(args)
+def get_entropy_args(kargs):
+    kargs = kargs.copy()
+    args = DictState(kargs)
     deg_dl_kind = args.degree_dl_kind
+    del kargs["degree_dl_kind"]
     if deg_dl_kind == "entropy":
         kind = libinference.deg_dl_kind.ent
     elif deg_dl_kind == "uniform":
@@ -109,6 +111,10 @@ def get_entropy_args(args):
     ea.dense = args.dense
     ea.multigraph = args.multigraph
     ea.adjacency = args.adjacency
+    del kargs["exact"]
+    del kargs["dense"]
+    del kargs["multigraph"]
+    del kargs["adjacency"]
     if args.dl:
         ea.partition_dl = args.partition_dl
         ea.degree_dl = args.degree_dl
@@ -118,6 +124,14 @@ def get_entropy_args(args):
         ea.degree_dl = False
         ea.edges_dl = False
     ea.degree_dl_kind = kind
+    del kargs["dl"]
+    del kargs["partition_dl"]
+    del kargs["degree_dl"]
+    del kargs["edges_dl"]
+    extract_arg(kargs, "callback", None)
+    if len(kargs) > 0:
+        raise ValueError("unrecognized entropy arguments: " +
+                         str(list(kargs.keys())))
     return ea
 
 _q_cache_max_n = 10000
