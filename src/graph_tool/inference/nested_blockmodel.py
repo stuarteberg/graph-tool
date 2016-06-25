@@ -443,6 +443,10 @@ class NestedBlockState(object):
         dS = 0
         nmoves = 0
 
+        c = kwargs.get("c", None)
+        if c is not None and not isinstance(c, collections.Iterable):
+            c = [c] * len(self.levels)
+
         for l in range(len(self.levels)):
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
@@ -468,7 +472,13 @@ class NestedBlockState(object):
             if l < len(self.levels) - 1:
                 self.levels[l + 1]._state.sync_emat()
 
-            ret = algo(self.levels[l], **overlay(kwargs, entropy_args=eargs))
+            if c is None:
+                args = overlay(kwargs, entropy_args=eargs)
+            else:
+                args = overlay(kwargs, entropy_args=eargs, c=c[l])
+
+            ret = algo(self.levels[l], **args)
+
             dS += ret[0]
             nmoves += ret[1]
 
