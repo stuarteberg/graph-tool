@@ -47,6 +47,7 @@ State classes
    OverlapBlockState
    LayeredBlockState
    NestedBlockState
+   TemperingState
 
 Sampling and minimization
 =========================
@@ -114,6 +115,7 @@ __all__ = ["minimize_blockmodel_dl",
            "mcmc_equilibrate",
            "mcmc_anneal",
            "mcmc_multilevel",
+           "TemperingState",
            "multicanonical_equilibrate",
            "MulticanonicalState",
            "bisection_minimize",

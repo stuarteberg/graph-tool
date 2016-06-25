@@ -593,3 +593,104 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         count += 1
 
     return count
+
+
+class TemperingState(object):
+    """This class aggregates several state classes and corresponding
+    inverse-temperature values to implement `parallel tempering MCMC
+    <https://en.wikipedia.org/wiki/Parallel_tempering>`_.
+
+    This is meant to be used with :func:`~graph-tool.inference.mcmc_equilibrate`.
+
+    Parameters
+    ----------
+    states : list of state objects (e.g. :class:`~graph_tool.inference.BlockState`)
+        Initial parallel states.
+    betas : list of floats
+        Inverse temperature values.
+    """
+
+    def __init__(self, states, betas):
+        if len(states) != len(betas):
+            raise ValueError("states and betas must be of the same size")
+        self.states = states
+        self.betas = betas
+
+    def entropy(self, **kwargs):
+        """Returns the weighted sum of the entropy of the parallel states. All keyword
+        arguments are propagated to the individual states' `entropy()`
+        method.
+        """
+        return sum(beta * s.entropy(**kwargs) for s, beta in zip(self.states,
+                                                                 self.betas))
+
+    def states_swap(self, **kwargs):
+        """Perform a full sweep of the parallel states, where swaps are attempted. All
+        relevant keyword arguments are propagated to the individual states'
+        `entropy()` method."""
+
+        verbose = kwargs.get("verbose", False)
+        eargs = kwargs.get("entropy_args", {})
+
+        idx = numpy.arange(len(self.states) - 1)
+        numpy.random.shuffle(idx)
+        nswaps = 0
+        dS = 0
+        for i in idx:
+            s1 = self.states[i]
+            s2 = self.states[i + 1]
+            b1 = self.betas[i]
+            b2 = self.betas[i + 1]
+
+            S1 = s1.entropy(**eargs)
+            S2 = s2.entropy(**eargs)
+
+            ddS = -(b1 - b2) * (S1 - S2)
+
+            a = exp(-ddS)
+            if numpy.random.random() < a:
+                self.states[i + 1], self.states[i] = \
+                            self.states[i], self.states[i + 1]
+                nswaps += 1
+                dS += ddS
+                if check_verbose(verbose):
+                    print(verbose_pad(verbose)
+                          + u"swapped states: %d (β = %g) <-> %d (β = %g), a:" % \
+                          (i, b1, i + 1, b2, a))
+        return dS, nswaps
+
+    def states_move(self, gibbs=False, **kwargs):
+        """Perform a full sweep of the parallel states, where state moves are
+        attempted. All keyword arguments are propagated to the individual
+        states' `mcmc_sweep()` method. If the option `gibbs=True` is passed,
+        `gibbs_sweep` is used instead()."""
+
+        dS = 0
+        nmoves = 0
+        for state, beta in zip(self.states, self.betas):
+            if gibbs:
+                ret = state.gibbs_sweep(beta=beta, **kwargs)
+            else:
+                ret = state.mcmc_sweep(beta=beta, **kwargs)
+            dS += ret[0] * beta
+            nmoves += ret[1]
+        return dS, nmoves
+
+    def mcmc_sweep(self, **kwargs):
+        """Perform a full mcmc sweep of the parallel states, where swap or moves are
+        chosen randomly. All keyword arguments are propagated to the individual
+        states' `mcmc_sweep()` method."""
+        if numpy.random.random() < .5:
+            return self.states_move(**kwargs)
+        else:
+            return self.states_swap(**kwargs)
+
+    def gibbs_sweep(self, **kwargs):
+        """Perform a full Gibbs mcmc sweep of the parallel states, where swap or moves
+        are chosen randomly. All keyword arguments are propagated to the
+        individual states' `gibbs_sweep()` method.
+        """
+        if numpy.random.random() < .5:
+            return self.states_move(**kwargs, gibbs=True)
+        else:
+            return self.states_swap(**kwargs)
