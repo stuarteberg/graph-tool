@@ -110,20 +110,21 @@ for directed in [True, False]:
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=100, allow_vacate=True)
+            mcmc_args=dict(beta=1, c=c, niter=200, allow_vacate=True)
         else:
-            mcmc_args=dict(beta=1, niter=100, allow_vacate=True)
+            mcmc_args=dict(beta=1, niter=200, allow_vacate=True)
         if i == 0:
             mcmc_equilibrate(state,
                              mcmc_args=mcmc_args,
                              gibbs=c=="gibbs",
-                             wait=100,
+                             nbreaks=25,
+                             wait=1000,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
                                     wait=2000,
-                                    nbreaks=12,
+                                    nbreaks=25,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
@@ -155,16 +156,20 @@ for directed in [True, False]:
             hist = hists[c]
             if cum:
                 h = histogram(list(zip(*hist))[0], 1000000, density=True)
-                plot(h[-1][:-1], numpy.cumsum(h[0]), "-", label="c=%s" % str(c))
+                y = numpy.cumsum(h[0])
+                y /= y[-1]
+                plot(h[-1][:-1], y, "-", label="c=%s" % str(c))
 
                 if c != numpy.inf:
                     hist = hists[numpy.inf]
                     h2 = histogram(list(zip(*hist))[0], bins=h[-1], density=True)
-                    res = abs(numpy.cumsum(h2[0]) - numpy.cumsum(h[0]))
+                    y2 = numpy.cumsum(h2[0])
+                    y2 /= y2[-1]
+                    res = abs(y - y2)
                     i = res.argmax()
                     axvline(h[-1][i], color="grey")
             else:
-                h = histogram(list(zip(*hist))[0], 40)
+                h = histogram(list(zip(*hist))[0], 40, density=True)
                 plot(h[-1][:-1], h[0], "s-", label="c=%s" % str(c))
                 gca().set_yscale("log")
 

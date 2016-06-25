@@ -75,6 +75,9 @@ for pvals in iter_ranges(pranges):
     if not deg_corr and degree_dl_kind != "uniform":
         continue
 
+    if overlap and degree_dl_kind != "distributed":
+        continue
+
     if (rec is not None or layered != False) and not exact:
         continue
 
@@ -195,6 +198,9 @@ for pvals in iter_ranges(pranges):
     locals().update(params)
 
     if not deg_corr and degree_dl_kind != "uniform":
+        continue
+
+    if overlap and degree_dl_kind != "distributed":
         continue
 
     print(params, file=out)
