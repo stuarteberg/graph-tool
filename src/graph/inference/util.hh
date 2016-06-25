@@ -87,9 +87,9 @@ void add_element(Vec& vec, PosMap& pos, Val& val)
 }
 
 template <class Vec, class PosMap, class Val>
-void has_element(Vec& vec, PosMap& pos, Val& val)
+bool has_element(Vec& vec, PosMap& pos, Val& val)
 {
-    auto i = pos[val];
+    size_t i = pos[val];
     return (i < vec.size() && vec[i] == val);
 }
 

@@ -295,7 +295,10 @@ public:
 
         if (_vweight[v] > 0 && _wr[r] == 0)
         {
-            if (!_empty_blocks.empty())
+            // Group became empty: Remove from candidate list, unless it is the
+            // only empty group remaining.
+            if (!_empty_blocks.empty() &&
+                has_element(_candidate_blocks, _candidate_pos, r))
                 remove_element(_candidate_blocks, _candidate_pos, r);
             add_element(_empty_blocks, _empty_pos, r);
         }
@@ -315,11 +318,25 @@ public:
 
         if (_vweight[v] > 0 && _wr[r] == _vweight[v])
         {
+            // Previously empty group became occupied: Remove from empty list
+            // and add a new empty group to the candidate list (if available).
             remove_element(_empty_blocks, _empty_pos, r);
 
-            if (!_empty_blocks.empty())
-                add_element(_candidate_blocks, _candidate_pos,
-                            _empty_blocks.back());
+            if (has_element(_candidate_blocks, _candidate_pos, r))
+            {
+                if (!_empty_blocks.empty())
+                {
+                    auto s = _empty_blocks.back();
+                    if (!has_element(_candidate_blocks, _candidate_pos, s))
+                        add_element(_candidate_blocks, _candidate_pos, s);
+                }
+            }
+            else
+            {
+                // if r is not a candidate in the first place (i.e. the move as
+                // done by hand by the user), we need just to add it to the list
+                add_element(_candidate_blocks, _candidate_pos, r);
+            }
         }
     }
 
