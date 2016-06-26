@@ -691,6 +691,6 @@ class TemperingState(object):
         individual states' `gibbs_sweep()` method.
         """
         if numpy.random.random() < .5:
-            return self.states_move(**kwargs, gibbs=True)
+            return self.states_move(gibbs=True, **kwargs)
         else:
             return self.states_swap(**kwargs)
