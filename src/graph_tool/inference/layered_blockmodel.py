@@ -657,7 +657,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             try:
                 u, v = e
                 l = self.ec[e]
-            except ValueError:
+            except (TypeError, ValueError):
                 u, v, l = e
 
             pos[u] = self.b[u]

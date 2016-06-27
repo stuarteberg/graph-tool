@@ -302,7 +302,7 @@ class NestedBlockState(object):
                 eargs = overlay(eargs, **self.hentropy_args)
             L += state.get_edges_prob(edge_list, missing=missing,
                                       entropy_args=eargs)
-            edge_list = [(state.b[u], state.b[v]) for u, v in edge_list]
+            edge_list = [(state.b[e[0]], state.b[e[1]]) for e in (tuple(e_) for e_ in edge_list)]
         return L
 
     def get_bstack(self):
