@@ -336,7 +336,7 @@ class NestedBlockState(object):
         """Project the partition at level ``l`` onto the lowest level, and return the
         corresponding state."""
         b = self.project_partition(l, 0)
-        return self.levels[0].copy(b)
+        return self.levels[0].copy(b=b)
 
     def print_summary(self):
         """Print a hierarchy summary."""
