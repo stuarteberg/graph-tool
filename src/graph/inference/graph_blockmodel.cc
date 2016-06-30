@@ -141,6 +141,32 @@ simple_degs_t copy_simple_degs(simple_degs_t& degs)
     return degs;
 }
 
+double mf_entropy(GraphInterface& gi, boost::any opv)
+{
+    double H=0;
+    run_action<>()
+        (gi,
+         [&](auto& g, auto pv)
+         {
+             for (auto v : vertices_range(g))
+             {
+                 double sum = 0;
+                 for (auto p : pv[v])
+                     sum += p;
+                 for (double p : pv[v])
+                 {
+                     if (p == 0)
+                         continue;
+                     p /= sum;
+                     H -= p * log(p);
+                 }
+             }
+         },
+         vertex_scalar_vector_properties())(opv);
+
+    return H;
+}
+
 boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
                                    boost::any opv)
 {
@@ -158,8 +184,6 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
                  for (size_t i = 0; i < B; ++i)
                      pv[v][i] = 0;
              }
-
-             H = Hmf = sH = sHmf =  0;
 
              for (auto e : edges_range(g))
              {
@@ -311,6 +335,7 @@ void export_blockmodel_state()
     class_<simple_degs_t>("simple_degs_t")
         .def("copy", &copy_simple_degs);
 
+    def("mf_entropy", &mf_entropy);
     def("bethe_entropy", &bethe_entropy);
 
     def("init_q_cache", init_q_cache);

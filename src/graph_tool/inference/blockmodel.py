@@ -1878,14 +1878,8 @@ def mf_entropy(g, p):
        Physics, and Computation", Oxford Univ Press, 2009.
        :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
     """
-    H = 0
-    for v in g.vertices():
-        N = p[v].a.sum()
-        if N == 0:
-            continue
-        pvi = asarray(p[v].a, dtype="float") /  N
-        pvi = pvi[pvi > 0]
-        H -= (pvi * log(pvi)).sum()
-    return H
+
+    return libinference.mf_entropy(g._Graph__graph,
+                                   _prop("v", g, p))
 
 from . overlap_blockmodel import *
