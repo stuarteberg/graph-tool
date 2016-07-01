@@ -25,64 +25,6 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
-                              boost::any op, double update)
-{
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    auto b = any_cast<vmap_t>(ob).get_unchecked();
-
-    run_action<>()
-        (gi, [&](auto& g, auto p)
-         {
-             typename property_traits<decltype(p)>::value_type::value_type
-                 up = update;
-             parallel_vertex_loop
-                 (g,
-                  [&](auto v)
-                  {
-                      auto r = b[v];
-                      auto& pv = p[v];
-                      if (pv.size() <= size_t(r))
-                          pv.resize(r + 1);
-                      pv[r] += up;
-                  });
-         },
-         vertex_scalar_vector_properties())(op);
-}
-
-void collect_edge_marginals(GraphInterface& gi, size_t B, boost::any ob,
-                            boost::any op, double update)
-{
-    typedef vprop_map_t<int32_t>::type vmap_t;
-    auto b = any_cast<vmap_t>(ob).get_unchecked();
-
-    run_action<>()
-        (gi,
-         [&](auto& g, auto p)
-         {
-             typename property_traits<decltype(p)>::value_type::value_type
-                 up = update;
-             parallel_edge_loop
-                 (g,
-                  [&](const auto& e)
-                  {
-                      auto u = min(source(e, g), target(e, g));
-                      auto v = max(source(e, g), target(e, g));
-
-                      auto r = b[u];
-                      auto s = b[v];
-
-                      auto& pv = p[e];
-                      if (pv.size() < B * B)
-                          pv.resize(B * B);
-                      size_t j = r + B * s;
-                      pv[j] += up;
-                  });
-         },
-         edge_scalar_vector_properties())(op);
-}
-
-
 template <class Value>
 void vector_map(boost::python::object ovals, boost::python::object omap)
 {
@@ -157,6 +99,7 @@ extern void export_blockmodel_exhaustive();
 extern void export_overlap_blockmodel_exhaustive();
 extern void export_layered_blockmodel_exhaustive();
 extern void export_layered_overlap_blockmodel_exhaustive();
+extern void export_marginals();
 
 BOOST_PYTHON_MODULE(libgraph_tool_inference)
 {
@@ -189,9 +132,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_overlap_blockmodel_exhaustive();
     export_layered_blockmodel_exhaustive();
     export_layered_overlap_blockmodel_exhaustive();
-
-    def("vertex_marginals", collect_vertex_marginals);
-    def("edge_marginals", collect_edge_marginals);
+    export_marginals();
 
     def("vector_map", vector_map<int32_t>);
     def("vector_map64", vector_map<int64_t>);

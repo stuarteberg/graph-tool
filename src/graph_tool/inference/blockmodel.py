@@ -1572,21 +1572,16 @@ class BlockState(object):
         Parameters
         ----------
         p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-            Edge property map with vector-type values, storing the previous block
-            membership counts.  Each vector entry corresponds to ``b[i] + B *
-            b[j]``, where ``b`` is the block membership and ``i = min(source(e),
-            target(e))`` and ``j = max(source(e), target(e))``. If not provided, an
-            empty histogram will be created
+            Edge property map with edge marginals to be updated.  If not
+            provided, an empty histogram will be created.
         update : float (optional, default: ``1.``)
             Each call increases the current count by the amount given by this
             parameter.
 
         Returns
         -------
-        p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-            Vertex property map with vector-type values, storing the accumulated
-            block membership counts.
-
+        p : :class:`~graph_tool.libcore.any`
+            Edge property map with updated edge marginals.
 
         Examples
         --------
@@ -1605,15 +1600,16 @@ class BlockState(object):
            >>> for i in range(1000):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
-           >>> gt.bethe_entropy(g, state.B, pe)[0]
+           >>> gt.bethe_entropy(g, pe)[0]
            6.65429696440...
         """
 
         if p is None:
-            p = self.g.new_ep("vector<double>")
+            p = self.g.new_ep("python::object",
+                              vals=[libinference.BlockPairHist()
+                                    for i in range(self.g.num_edges())])
 
         libinference.edge_marginals(self.g._Graph__graph,
-                                    self.B,
                                     _prop("v", self.g, self.b),
                                     _prop("e", self.g, p),
                                     update)
@@ -1787,20 +1783,15 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
         L = lbinom(x + E - 1, E) + partition_entropy(B, N, nr, allow_empty)
     return L
 
-def bethe_entropy(g, B, p):
+def bethe_entropy(g, p):
     r"""Compute the Bethe entropy given the edge block membership marginals.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         The graph.
-    B : int
-        The number of blocks.
     p : :class:`~graph_tool.PropertyMap`
-        Edge property map with vector-type values, storing the previous block
-        membership counts.  Each vector entry corresponds to ``b[i] + B *
-        b[j]``, where ``b`` is the block membership and ``i = min(source(e),
-        target(e))`` and ``j = max(source(e), target(e))``.
+       Edge property map with edge marginals.
 
     Returns
     -------
@@ -1838,9 +1829,9 @@ def bethe_entropy(g, B, p):
     H = 0
     pv =  g.new_vertex_property("vector<double>")
 
-    H, sH, Hmf, sHmf  = libinference.bethe_entropy(g._Graph__graph, B,
-                                                   _prop("e", g, p),
-                                                   _prop("v", g, pv))
+    H, Hmf  = libinference.bethe_entropy(g._Graph__graph,
+                                         _prop("e", g, p),
+                                         _prop("v", g, pv))
     return H, Hmf, pv
 
 

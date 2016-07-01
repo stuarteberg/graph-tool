@@ -141,103 +141,6 @@ simple_degs_t copy_simple_degs(simple_degs_t& degs)
     return degs;
 }
 
-double mf_entropy(GraphInterface& gi, boost::any opv)
-{
-    double H=0;
-    run_action<>()
-        (gi,
-         [&](auto& g, auto pv)
-         {
-             for (auto v : vertices_range(g))
-             {
-                 double sum = 0;
-                 for (auto p : pv[v])
-                     sum += p;
-                 for (double p : pv[v])
-                 {
-                     if (p == 0)
-                         continue;
-                     p /= sum;
-                     H -= p * log(p);
-                 }
-             }
-         },
-         vertex_scalar_vector_properties())(opv);
-
-    return H;
-}
-
-boost::python::tuple bethe_entropy(GraphInterface& gi, size_t B, boost::any op,
-                                   boost::any opv)
-{
-    typedef vprop_map_t<vector<double>>::type vmap_t;
-    vmap_t pv = any_cast<vmap_t>(opv);
-
-    double H=0, sH=0, Hmf=0, sHmf=0;
-    run_action<>()
-        (gi,
-         [&](auto& g, auto p)
-         {
-             for (auto v : vertices_range(g))
-             {
-                 pv[v].resize(B);
-                 for (size_t i = 0; i < B; ++i)
-                     pv[v][i] = 0;
-             }
-
-             for (auto e : edges_range(g))
-             {
-                 auto u = min(source(e, g), target(e, g));
-                 auto v = max(source(e, g), target(e, g));
-
-                 double sum = 0;
-                 for (size_t r = 0; r < B; ++r)
-                     for (size_t s = 0; s < B; ++s)
-                     {
-                         size_t i = r + B * s;
-                         pv[u][r] += p[e][i];
-                         pv[v][s] += p[e][i];
-                         sum += p[e][i];
-                     }
-
-                 for (size_t i = 0; i < B * B; ++i)
-                 {
-                     if (p[e][i] == 0)
-                         continue;
-                     double pi = double(p[e][i]) / sum;
-                     H -= pi * log(pi);
-                     sH += pow((log(pi) + 1) * sqrt(pi / sum), 2);
-                 }
-             }
-
-             for (auto v : vertices_range(g))
-             {
-                 double sum = 0;
-                 for (size_t i = 0; i < B; ++i)
-                     sum += pv[v][i];
-                 for (size_t i = 0; i < B; ++i)
-                 {
-                     if (pv[v][i] == 0)
-                         continue;
-                     pv[v][i] /= sum;
-                     double pi = pv[v][i];
-                     double kt = (1 - double(in_degreeS()(v, g)) - double(out_degree(v, g)));
-                     if (kt != 0)
-                     {
-                         H -= kt * (pi * log(pi));
-                         sH += pow(kt * (log(pi) + 1) * sqrt(pi / sum), 2);
-                     }
-
-                     Hmf -= pi * log(pi);
-                     sHmf += pow((log(pi) + 1) * sqrt(pi / sum), 2);
-                 }
-             }
-         },
-         edge_scalar_vector_properties())(op);
-
-    return boost::python::make_tuple(H, sH, Hmf, sHmf);
-}
-
 void export_blockmodel_state()
 {
     using namespace boost::python;
@@ -334,9 +237,6 @@ void export_blockmodel_state()
         .def("copy", &copy_degs);
     class_<simple_degs_t>("simple_degs_t")
         .def("copy", &copy_simple_degs);
-
-    def("mf_entropy", &mf_entropy);
-    def("bethe_entropy", &bethe_entropy);
 
     def("init_q_cache", init_q_cache);
     def("log_q", log_q<size_t>);

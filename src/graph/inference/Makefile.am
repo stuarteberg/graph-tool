@@ -34,6 +34,7 @@ libgraph_tool_inference_la_SOURCES = \
     graph_blockmodel_layers_overlap_gibbs.cc \
     graph_blockmodel_layers_overlap_multicanonical.cc \
     graph_blockmodel_layers_overlap_vacate.cc \
+    graph_blockmodel_marginals.cc \
     graph_blockmodel_mcmc.cc \
     graph_blockmodel_multicanonical.cc \
     graph_blockmodel_merge.cc \
