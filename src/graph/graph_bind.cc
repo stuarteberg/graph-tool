@@ -117,6 +117,21 @@ bool vector_nequal_compare(const vector<ValueType>& v1,
     return !vector_equal_compare(v1,v2);
 }
 
+template <class T>
+python::object get_vector_state(std::vector<T>& v)
+{
+    return wrap_vector_owned(v);
+}
+
+template <class T>
+void set_vector_state(std::vector<T>& v, python::object state)
+{
+    auto a = get_array<T,1>(state);
+    v.clear();
+    v.reserve(a.size());
+    v.insert(v.end(), a.begin(), a.end());
+}
+
 struct export_vector_types
 {
     template <class ValueType>
@@ -152,7 +167,10 @@ struct export_vector_types
     template <class ValueType>
     void wrap_array(class_<vector<ValueType> >& vc, boost::mpl::true_) const
     {
-        vc.def("get_array", &wrap_vector_not_owned<ValueType>);
+        vc.def("get_array", &wrap_vector_not_owned<ValueType>)
+            .def("__getstate__", &get_vector_state<ValueType>)
+            .def("__setstate__", &set_vector_state<ValueType>)
+            .enable_pickling();
     }
 
     template <class ValueType>
