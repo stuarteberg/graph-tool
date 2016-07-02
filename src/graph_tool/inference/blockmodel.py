@@ -39,6 +39,8 @@ from . util import *
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 
+from . libgraph_tool_inference import PartitionHist, BlockPairHist
+
 __test__ = False
 
 def set_test(test):
@@ -1562,7 +1564,7 @@ class BlockState(object):
             assert nB == B, "wrong number of blocks after shrink: %d (should be %d)" % (nB, B)
         return state
 
-    def collect_edge_marginals(self, p=None, update=1.):
+    def collect_edge_marginals(self, p=None, update=1):
         r"""Collect the edge marginal histogram, which counts the number of times
         the endpoints of each node have been assigned to a given block pair.
 
@@ -1574,7 +1576,7 @@ class BlockState(object):
         p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
             Edge property map with edge marginals to be updated.  If not
             provided, an empty histogram will be created.
-        update : float (optional, default: ``1.``)
+        update : float (optional, default: ``1``)
             Each call increases the current count by the amount given by this
             parameter.
 
@@ -1615,7 +1617,7 @@ class BlockState(object):
                                     update)
         return p
 
-    def collect_vertex_marginals(self, p=None, update=1.):
+    def collect_vertex_marginals(self, p=None, update=1):
         r"""Collect the vertex marginal histogram, which counts the number of times a
         node was assigned to a given block.
 
@@ -1627,7 +1629,7 @@ class BlockState(object):
         p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
             Vertex property map with vector-type values, storing the previous block
             membership counts. If not provided, an empty histogram will be created.
-        update : float (optional, default: ``1.``)
+        update : int (optional, default: ``1``)
             Each call increases the current count by the amount given by this
             parameter.
 
@@ -1655,7 +1657,7 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           7.165235016952...
+           29.84318996...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.pdf")
            <...>
@@ -1680,6 +1682,52 @@ class BlockState(object):
                                       _prop("v", self.g, p),
                                       update)
         return p
+
+    def collect_partition_histogram(self, h=None, update=1):
+        r"""Collect a histogram of partitions.
+
+        This should be called multiple times, e.g. after repeated runs of the
+        :meth:`graph_tool.inference.BlockState.mcmc_sweep` function.
+
+        Parameters
+        ----------
+        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+            Partition histogram. If not provided, an empty histogram will be created.
+        update : float (optional, default: ``1``)
+            Each call increases the current count by the amount given by this
+            parameter.
+
+        Returns
+        -------
+        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+            Updated Partition histogram.
+
+        Examples
+        --------
+        .. testsetup:: cvm
+
+           gt.seed_rng(42)
+           np.random.seed(42)
+
+        .. doctest:: cvm
+
+           >>> g = gt.collection.data["polbooks"]
+           >>> state = gt.BlockState(g, B=4, deg_corr=True)
+           >>> ph = None
+           >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
+           (...)
+           >>> for i in range(1000):
+           ...     ds, nmoves = state.mcmc_sweep(niter=10)
+           ...     ph = state.collect_partition_histogram(ph)
+           >>> gt.microstate_entropy(ph)
+           5.215767...
+        """
+
+        if h is None:
+            h = PartitionHist()
+        libinference.collect_partitions(_prop("v", self.g, self.b),
+                                        h, update)
+        return h
 
     def draw(self, **kwargs):
         r"""Convenience wrapper to :func:`~graph_tool.draw.graph_draw` that
@@ -1872,5 +1920,38 @@ def mf_entropy(g, p):
 
     return libinference.mf_entropy(g._Graph__graph,
                                    _prop("v", g, p))
+def microstate_entropy(h):
+    r"""Compute microstate entropy given a histogram of partitions.
+
+    Parameters
+    ----------
+    h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        Partition histogram.
+
+    Returns
+    -------
+    H : ``float``
+        The microstate entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`_).
+
+    Notes
+    -----
+
+    The microstate entropy is defined as,
+
+    .. math::
+
+        H = - \sum_{\boldsymbol b}p({\boldsymbol b})\ln p({\boldsymbol b}),
+
+    where :math:`p({\boldsymbol b})` is observed frequency of partition
+    :math:`{\boldsymbol b}`.
+
+    References
+    ----------
+    .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
+       Physics, and Computation", Oxford Univ Press, 2009.
+       :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
+    """
+
+    return libinference.partitions_entropy(h)
 
 from . overlap_blockmodel import *

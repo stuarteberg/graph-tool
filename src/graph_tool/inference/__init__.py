@@ -72,8 +72,18 @@ Auxiliary functions
    model_entropy
    mf_entropy
    bethe_entropy
+   microstate_entropy
    half_edge_graph
    get_block_edge_gradient
+
+Auxiliary classes
+=================
+
+.. autosummary::
+   :nosignatures:
+
+   PartitionHist
+   BlockPairHist
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -125,6 +135,9 @@ __all__ = ["minimize_blockmodel_dl",
            "model_entropy",
            "mf_entropy",
            "bethe_entropy",
+           "microstate_entropy",
+           "PartitionHist",
+           "BlockPairHist",
            "half_edge_graph",
            "get_block_edge_gradient",
            "get_hierarchy_tree"]

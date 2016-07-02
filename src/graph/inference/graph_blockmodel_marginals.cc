@@ -26,7 +26,7 @@ using namespace boost;
 using namespace graph_tool;
 
 void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
-                              boost::any op, double update)
+                              boost::any op, size_t update)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
@@ -51,7 +51,7 @@ void collect_vertex_marginals(GraphInterface& gi, boost::any ob,
 }
 
 class BlockPairHist
-    : public gt_hash_map<std::pair<int32_t,int32_t>,double>
+    : public gt_hash_map<std::pair<int32_t,int32_t>,size_t>
 {
 public:
 
@@ -75,12 +75,12 @@ public:
             auto k = keys[i];
             int32_t r = python::extract<int32_t>(k[0]);
             int32_t s = python::extract<int32_t>(k[1]);
-            double v = python::extract<double>(state[k]);
+            size_t v = python::extract<size_t>(state[k]);
             (*this)[make_pair(r, s)] = v;
         }
     }
 
-    double get_item(boost::python::object k)
+    size_t get_item(boost::python::object k)
     {
         int32_t r = python::extract<int32_t>(k[0]);
         int32_t s = python::extract<int32_t>(k[1]);
@@ -100,7 +100,7 @@ public:
 };
 
 void collect_edge_marginals(GraphInterface& gi, boost::any ob,
-                            boost::any op, double update)
+                            boost::any op, size_t update)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     auto b = any_cast<vmap_t>(ob).get_unchecked();
@@ -222,18 +222,119 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
     return boost::python::make_tuple(H, Hmf);
 }
 
+class PartitionHist
+    : public gt_hash_map<std::vector<int32_t>, size_t>
+{
+public:
+
+    boost::python::dict get_state()
+    {
+        boost::python::dict state;
+        for (auto& kv : *this)
+            state[kv.first] = kv.second;
+        return state;
+    }
+
+    void set_state(boost::python::dict state)
+    {
+        auto keys = state.keys();
+        for (int i = 0; i < python::len(keys); ++i)
+        {
+            auto& k = python::extract<std::vector<int32_t>&>(keys[i])();
+            size_t v = python::extract<size_t>(state[k]);
+            (*this)[k] = v;
+        }
+    }
+
+    size_t get_item(std::vector<int32_t>& k)
+    {
+        auto iter = this->find(k);
+        if (iter == this->end())
+            return 0;
+        return iter->second;
+    }
+
+    void set_item(std::vector<int32_t>& k, double v)
+    {
+        (*this)[k] = v;
+    }
+
+};
+
+void collect_partitions(boost::any ob, PartitionHist& h, size_t update)
+{
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    auto b = any_cast<vmap_t>(ob);
+    auto& v = b.get_storage();
+    h[v] += update;
+}
+
+void collect_hierarchical_partitions(python::object ovb, PartitionHist& h,
+                                     size_t update)
+{
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    vector<int32_t> v;
+    for (int i = 0; i < len(ovb); ++i)
+    {
+        boost::any ob = python::extract<boost::any>(ovb[i])();
+        auto b = any_cast<vmap_t>(ob);
+        auto& vi = b.get_storage();
+        v.reserve(v.size() + vi.size());
+        v.insert(v.end(), vi.begin(), vi.end());
+    }
+    h[v] += update;
+}
+
+double partitions_entropy(PartitionHist& h)
+{
+    double S = 0;
+    size_t N = 0;
+    for (auto& kv : h)
+    {
+        if (kv.second == 0)
+            continue;
+        N += kv.second;
+        S -= kv.second * log(kv.second);
+    }
+    if (N > 0)
+    {
+        S /= N;
+        S += log(N);
+    }
+    return S;
+}
+
 void export_marginals()
 {
     using namespace boost::python;
 
-    class_<BlockPairHist>("BlockPairHist")
+    class_<BlockPairHist>("BlockPairHist",
+                          "Histogram of block pairs, implemented in C++.\n"
+                          "Interface supports querying and setting using pairs "
+                          "of ints as keys, and ints as values.")
         .def("__setitem__", &BlockPairHist::set_item)
         .def("__getitem__", &BlockPairHist::get_item)
         .def("__setstate__", &BlockPairHist::set_state)
-        .def("__getstate__", &BlockPairHist::get_state).enable_pickling();
+        .def("__getstate__", &BlockPairHist::get_state)
+        .def("asdict", &BlockPairHist::get_state,
+             "Return the histogram's contents as a dict.").enable_pickling();
+
+    class_<PartitionHist>("PartitionHist",
+                          "Histogram of partitions, implemented in C++.\n"
+                          "Interface supports querying and setting using Vector_int32_t "
+                          "as keys, and ints as values.")
+        .def("__setitem__", &PartitionHist::set_item)
+        .def("__getitem__", &PartitionHist::get_item)
+        .def("__setstate__", &PartitionHist::set_state)
+        .def("__getstate__", &PartitionHist::get_state)
+        .def("asdict", &PartitionHist::get_state,
+             "Return the histogram's contents as a dict.").enable_pickling();
 
     def("vertex_marginals", &collect_vertex_marginals);
     def("edge_marginals", &collect_edge_marginals);
     def("mf_entropy", &mf_entropy);
     def("bethe_entropy", &bethe_entropy);
+    def("collect_partitions", &collect_partitions);
+    def("collect_hierarchical_partitions", &collect_hierarchical_partitions);
+    def("partitions_entropy", &partitions_entropy);
 }

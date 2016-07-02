@@ -532,6 +532,33 @@ class NestedBlockState(object):
                 edge_list = [(lstate.b[u], lstate.b[v]) for u, v in edge_list]
         return S
 
+    def collect_partition_histogram(self, h=None, update=1):
+        r"""Collect a histogram of partitions.
+
+        This should be called multiple times, e.g. after repeated runs of the
+        :meth:`graph_tool.inference.NestedBlockState.mcmc_sweep` function.
+
+        Parameters
+        ----------
+        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+            Partition histogram. If not provided, an empty histogram will be created.
+        update : float (optional, default: ``1``)
+            Each call increases the current count by the amount given by this
+            parameter.
+
+        Returns
+        -------
+        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+            Updated Partition histogram.
+
+        """
+
+        if h is None:
+            h = PartitionHist()
+        bs = [_prop("v", state.g, state.b) for state in self.levels]
+        libinference.collect_hierarchical_partitions(bs, h, update)
+        return h
+
     def draw(self, **kwargs):
         r"""Convenience wrapper to :func:`~graph_tool.draw.draw_hierarchy` that
         draws the hierarchical state."""
