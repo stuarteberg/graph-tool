@@ -25,6 +25,11 @@
 This module contains algorithms for the identification of large-scale network
 structure via the statistical inference of generative models.
 
+.. note::
+
+   An introduction to the concepts used here, as well as a basic HOWTO is
+   included in the cookbook section: :ref:`inference-howto`.
+
 Nonparametric stochastic block model inference
 ++++++++++++++++++++++++++++++++++++++++++++++
 

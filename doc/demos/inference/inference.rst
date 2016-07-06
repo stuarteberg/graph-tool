@@ -1,3 +1,5 @@
+.. _inference-howto:
+
 Inferring network structure
 ===========================
 
