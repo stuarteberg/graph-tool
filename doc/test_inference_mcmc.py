@@ -123,7 +123,7 @@ for directed in [True, False]:
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    wait=2000,
+                                    wait=4000 if directed else 2000,
                                     nbreaks=25,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
