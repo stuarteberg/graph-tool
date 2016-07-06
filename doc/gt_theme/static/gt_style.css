@@ -48,6 +48,11 @@ table.docutils.citation
     margin-right: 0;
 }
 
+table.docutils.figure
+{
+    margin-left:auto; 
+    margin-right:auto;
+}
 
 /* stupid workaround to hide ugly c++ signature stuff from sphinx*/
 /* dl.function dl.docutils dl.last { */
@@ -97,7 +102,7 @@ table.citation td, table.citation th, table.citation {
 }
 
 table.citation td.label {
-    width: 8em;
+    width: 10em;
 }
 
 .container.sec-title {
@@ -145,4 +150,14 @@ pre {
 
 .viewcode-link {
     font-size: .75em;
+}
+
+.docutils.literal
+{
+    background-color: #EFEFEF;
+}
+
+.xref.docutils.literal
+{
+    background-color: inherit;
 }

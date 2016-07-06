@@ -40,9 +40,15 @@ rcParams["text.latex.preamble"] = [#"\usepackage{times}",
                                    r"\usepackage{amssymb}",
                                    r"\usepackage{amsmath}"]
 
-from numpy import *
 import scipy
 import scipy.stats
-from math import *
 import numpy as np
+from pylab import *
+from numpy import *
 import graph_tool.all as gt
+
+figure()
+
+gt.openmp_set_num_threads(1)
+np.random.seed(42)
+gt.seed_rng(42)
