@@ -49,6 +49,9 @@ import graph_tool.all as gt
 
 figure()
 
-gt.openmp_set_num_threads(1)
+try:
+    gt.openmp_set_num_threads(1)
+except RuntimeError:
+    pass
 np.random.seed(42)
 gt.seed_rng(42)
