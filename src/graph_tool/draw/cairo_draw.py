@@ -30,7 +30,7 @@ import warnings
 import numpy
 
 from .. topology import shortest_distance, is_bipartite
-from .. import _check_prop_scalar
+from .. import _check_prop_scalar, perfect_prop_hash
 
 try:
     import cairo
@@ -403,9 +403,14 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                                       "long double", "unsigned long",
                                       "unsigned int", "bool"]:
                 g = val.get_graph()
+                if val.value_type() in ["int32_t", "int64_t", "unsigned long",
+                                        "unsigned int"]:
+                    nval = perfect_prop_hash([val])[0]
+                else:
+                    nval = val
                 try:
-                    vrange = [val.fa.min(), val.fa.max()]
-                except ValueError:
+                    vrange = [nval.fa.min(), nval.fa.max()]
+                except (AttributeError, ValueError):
                     #vertex index
                     vrange = [int(g.vertex(0, use_index=False)),
                               int(g.vertex(g.num_vertices() - 1,
@@ -417,7 +422,7 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                     prop = g.new_vertex_property("vector<double>")
                 else:
                     prop = g.new_edge_property("vector<double>")
-                map_property_values(val, prop, lambda x: cmap(cnorm(x)))
+                map_property_values(nval, prop, lambda x: cmap(cnorm(x)))
                 new_val = prop
             elif val.value_type() == "string":
                 g = val.get_graph()
@@ -529,6 +534,8 @@ def parse_props(prefix, args):
     props = {}
     others = {}
     for k, v in list(args.items()):
+        if v is None:
+            continue
         if k.startswith(prefix + "_"):
             props[k.replace(prefix + "_", "")] = v
         else:
