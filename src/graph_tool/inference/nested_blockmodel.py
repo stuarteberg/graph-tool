@@ -66,6 +66,7 @@ class NestedBlockState(object):
     **kwargs :  keyword arguments
         Keyword arguments to be passed to base type constructor.
     """
+
     def __init__(self, g, bs, base_type=BlockState, hstate_args={},
                  hentropy_args={}, sampling=False, **kwargs):
         self.g = g
@@ -121,15 +122,16 @@ class NestedBlockState(object):
         g = copy.deepcopy(self.g, memo)
         return self.copy(g=g)
 
-    def get_bs(self):
-        return [s.b.fa for s in self.levels]
-
-    def copy(self, g=None, bs=None, **kwargs):
+    def copy(self, g=None, bs=None, hstate_args=None, hentropy_args=None,
+             sampling=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties,
         and have the same meaning as in the constructor."""
         bs = self.get_bs() if bs is None else bs
         return NestedBlockState(self.g if g is None else g, bs,
                                 base_type=type(self.levels[0]),
+                                hstate_args=self.hstate_args if hstate_args is None else hstate_args,
+                                hentropy_args=self.hentropy_args if hentropy_args is None else hentropy_args,
+                                sampling=self.sampling if sampling is None else sampling,
                                 **overlay(self.kwargs, **kwargs))
 
     def __getstate__(self):
@@ -142,6 +144,17 @@ class NestedBlockState(object):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**overlay(dmask(state, ["kwargs"]), **state["kwargs"]))
+
+    def get_bs(self):
+        """Get hierarchy levels as a list of :class:`numpy.ndarray` objects with the
+        group memberships at each level.
+        """
+        return [s.b.fa for s in self.levels]
+
+    def get_levels(self):
+        """Get hierarchy levels as a list of :class:`~graph_tool.inference.BlockState`
+        instances."""
+        return self.levels
 
     def project_partition(self, j, l):
         """Project partition of level ``j`` onto level ``l``, and return it."""
@@ -233,8 +246,7 @@ class NestedBlockState(object):
             bstate = self.levels[l]
 
         if l > 0:
-            eargs = overlay(self.hentropy_args,
-                            **overlay(kwargs, multigraph=True))
+            eargs = self.hentropy_args
         else:
             eargs = kwargs
 
@@ -295,15 +307,27 @@ class NestedBlockState(object):
         log-probability.
         """
         L = 0
-        for l, state in enumerate(self.levels):
-            eargs = overlay(entropy_args,
-                            edges_dl=(l == (len(self.levels) - 1)))
+        for l, lstate in enumerate(self.levels):
             if l > 0:
-                eargs = overlay(eargs, **self.hentropy_args)
-            L += state.get_edges_prob(edge_list, missing=missing,
-                                      entropy_args=eargs)
-            edge_list = [(state.b[e[0]], state.b[e[1]]) for e in (tuple(e_) for e_ in edge_list)]
+                eargs = self.hentropy_args
+            else:
+                eargs = entropy_args
+
+            eargs = overlay(eargs, dl=True,
+                            edges_dl=(l == (len(self.levels) - 1)))
+
+            if self.sampling:
+                lstate._couple_state(None, None)
+                if l > 0:
+                    lstate._state.sync_emat()
+
+            L += lstate.get_edges_prob(edge_list, missing, entropy_args=eargs)
+            if isinstance(self.levels[0], LayeredBlockState):
+                edge_list = [(lstate.b[u], lstate.b[v], l) for u, v, l in edge_list]
+            else:
+                edge_list = [(lstate.b[u], lstate.b[v]) for u, v in (tuple(e_) for e_ in edge_list)]
         return L
+
 
     def get_bstack(self):
         """Return the nested levels as individual graphs.
@@ -491,6 +515,12 @@ class NestedBlockState(object):
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.mcmc_sweep`.
         """
+
+        c = kwargs.get("c", None)
+        if c is None:
+            c = [1] + [numpy.inf] * (len(self.levels) - 1)
+            kwargs = kwargs.copy()
+            kwargs["c"] = c
         return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), **kwargs)
 
     def gibbs_sweep(self, **kwargs):
@@ -510,27 +540,6 @@ class NestedBlockState(object):
         :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
         """
         return self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
-
-    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
-        """Compute the log-probability of the missing (or spurious if ``missing=False``)
-        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
-        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
-        passed to :meth:`graph_tool.NestedBlockState.entropy()` to calculate the
-        log-probability.
-        """
-        S = 0
-        for l, lstate in enumerate(self.levels):
-            if l > 0:
-                eargs = overlay(self.hentropy_args,
-                                edges_dl=(l == len(self.levels) - 1))
-            else:
-                eargs = entropy_args
-            S += lstate.get_edges_prob(edge_list, missing, entropy_args=eargs)
-            if isinstance(self.levels[0], LayeredBlockState):
-                edge_list = [(lstate.b[u], lstate.b[v], l) for u, v, l in edge_list]
-            else:
-                edge_list = [(lstate.b[u], lstate.b[v]) for u, v in edge_list]
-        return S
 
     def collect_partition_histogram(self, h=None, update=1):
         r"""Collect a histogram of partitions.
@@ -843,7 +852,6 @@ def get_hierarchy_tree(state, empty_branches=True):
         t.set_vertex_filter(t.own_property(filt[0].copy()),
                             filt[1])
     label = t.vertex_index.copy("int")
-    t.vp.mask = t.new_vp("bool", True)
 
     order = t.own_property(g.degree_property_map("total").copy())
     t_vertices = list(t.vertices())
@@ -856,11 +864,6 @@ def get_hierarchy_tree(state, empty_branches=True):
         else:
             t_vertices.append(t.add_vertex(s.num_vertices()))
         label.a[-s.num_vertices():] = arange(s.num_vertices())
-
-        if "count" in s.vp:
-            t.vp.mask.a[-s.num_vertices():] = s.vp.count.fa > 0
-        else:
-            t.vp.mask.a[-s.num_vertices():] = True
 
         # relative ordering based on total degree
         count = s.ep["count"].copy("double")
@@ -879,7 +882,10 @@ def get_hierarchy_tree(state, empty_branches=True):
 
         for vi, v in enumerate(g.vertices()):
             w = t_vertices[vi + last_pos]
-            u = t_vertices[b[v] + pos]
+            if s.num_vertices() == 1:
+                u = t_vertices[pos]
+            else:
+                u = t_vertices[b[v] + pos]
             t.add_edge(u, w)
 
         last_pos = pos
@@ -890,17 +896,17 @@ def get_hierarchy_tree(state, empty_branches=True):
 
     if not empty_branches:
         vmask = t.new_vertex_property("bool", True)
-        for vi in range(state.g.num_vertices(), t.num_vertices()):
-            v = t_vertices[vi]
+        t = GraphView(t, vfilt=vmask)
+        vmask = t.get_vertex_filter()[0]
+
+        for vi in range(state.g.num_vertices(ignore_filter=True),
+                        t.num_vertices()):
+            v = t.vertex(t_vertices[vi])
             if v.out_degree() == 0:
                 vmask[v] = False
-                while v.in_degree() > 0:
-                    v = list(v.in_neighbours())[0]
-                    vmask[v] = False
-                vmask[v] = True
-        t = GraphView(t, vfilt=logical_and(vmask.fa, t.vp.mask.fa))
-        t.vp.label = t.own_property(label)
-        t.vp.order = t.own_property(order)
+
+        t.vp.label = label
+        t.vp.order = order
         t = Graph(t, prune=True)
         label = t.vp.label
         order = t.vp.order

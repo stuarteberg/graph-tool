@@ -277,9 +277,6 @@ class BlockState(object):
         self.mrs = self.bg.ep["count"]
         self.wr = self.bg.vp["count"]
 
-        del self.bg.ep["count"]
-        del self.bg.vp["count"]
-
         self.mrp = self.bg.degree_property_map("out", weight=self.mrs)
 
         if g.is_directed():
@@ -970,11 +967,12 @@ class BlockState(object):
             return self._state.get_move_prob(int(v), s, self.b[v], c, True)
 
     def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
-        """Compute the log-probability of the missing (or spurious if ``missing=False``)
-        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
-        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
-        passed to :meth:`graph_tool.BlockState.entropy()` to calculate the
-        log-probability.
+        """Compute the unnormalized log-probability of the missing (or spurious if
+        ``missing=False``) edges given by ``edge_list`` (a list of ``(source,
+        target)`` tuples, or :meth:`~graph_tool.Edge` instances). The values in
+        ``entropy_args`` are passed to :meth:`graph_tool.BlockState.entropy()`
+        to calculate the log-probability.
+
         """
         pos = {}
         for u, v in edge_list:
@@ -989,9 +987,14 @@ class BlockState(object):
             if missing:
                 new_es = []
                 for u, v in edge_list:
-                    e = self.g.add_edge(u, v)
-                    if self.is_weighted:
-                        self.eweight[e] = 1
+                    if not self.is_weighted:
+                        e = self.g.add_edge(u, v)
+                    else:
+                        e = self.g.edge(u, v)
+                        if e is None:
+                            e = self.g.add_edge(u, v)
+                            self.eweight[e] = 0
+                        self.eweight[e] += 1
                     new_es.append(e)
             else:
                 old_es = []
@@ -1019,8 +1022,14 @@ class BlockState(object):
 
         finally:
             if missing:
-                for e in new_es:
-                    self.g.remove_edge(e)
+                if self.is_weighted:
+                    for e in reversed(new_es):
+                        self.eweight[e] -= 1
+                        if self.eweight[e] == 0:
+                            self.g.remove_edge(e)
+                else:
+                    for e in reversed(new_es):
+                        self.g.remove_edge(e)
             else:
                 for u, v in old_es:
                     if self.is_weighted:
@@ -1031,12 +1040,22 @@ class BlockState(object):
                         self.eweight[e] += 1
                     else:
                         self.g.add_edge(u, v)
+
             self.add_vertex(pos.keys(), pos.values())
 
-        if missing:
-            return Si - Sf
-        else:
-            return Sf - Si
+        L = Si - Sf
+
+        if _bm_test():
+            state = self.copy()
+            set_test(False)
+            L_alt = state.get_edges_prob(edge_list, missing=missing,
+                                         entropy_args=entropy_args)
+            set_test(True)
+            assert abs(L - L_alt) < 1e-6, \
+                "inconsistent missing=%s edge probability (%g, %g): %s, %s" % \
+                (str(missing), L, L_alt,  str(entropy_args), str(edge_list))
+
+        return L
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         return libinference.mcmc_sweep(mcmc_state, self._state,
@@ -1582,7 +1601,7 @@ class BlockState(object):
 
         Returns
         -------
-        p : :class:`~graph_tool.libcore.any`
+        p : :class:`~graph_tool.PropertyMap`
             Edge property map with updated edge marginals.
 
         Examples
@@ -1860,13 +1879,13 @@ def bethe_entropy(g, p):
 
     .. math::
 
-        H = -\sum_{e,(r,s)}\pi_{(r,s)}^e\ln\pi_{(r,s)}^e - \sum_{v,r}(1-k_i)\pi_r^v\ln\pi_r^v,
+        H = -\sum_{ij}A_{ij}\sum_{rs}\pi_{ij}(r,s)\ln\pi_{ij}(r,s) - \sum_i(1-k_i)\sum_r\pi_i(r)\ln\pi_i(r),
 
-    where :math:`\pi_{(r,s)}^e` is the marginal probability that the endpoints
-    of the edge :math:`e` belong to blocks :math:`(r,s)`, and :math:`\pi_r^v` is
-    the marginal probability that vertex :math:`v` belongs to block :math:`r`,
-    and :math:`k_i` is the degree of vertex :math:`v` (or total degree for
-    directed graphs).
+    where :math:`\pi_{ij}(r,s)` is the marginal probability that vertices
+    :math:`i` and :math:`j` belong to blocks :math:`r` and :math:`s`,
+    respectively, and :math:`\pi_i(r)` is the marginal probability that vertex
+    :math:`i` belongs to block :math:`r`, and :math:`k_i` is the degree of
+    vertex :math:`i` (or total degree for directed graphs).
 
     References
     ----------
@@ -1906,9 +1925,9 @@ def mf_entropy(g, p):
 
     .. math::
 
-        H = - \sum_{v,r}\pi_r^v\ln\pi_r^v,
+        H = - \sum_{i,r}\pi_i(r)ln\pi_i(r),
 
-    where :math:`\pi_r^v` is the marginal probability that vertex :math:`v`
+    where :math:`\pi_i(r)` is the marginal probability that vertex :math:`i`
     belongs to block :math:`r`.
 
     References

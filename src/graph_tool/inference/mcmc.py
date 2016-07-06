@@ -28,7 +28,7 @@ from .. import Vector_size_t, Vector_double
 import numpy
 from . util import *
 
-def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
+def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
                      force_niter=None, epsilon=0, gibbs=False,
                      block_moves=False, mcmc_args={}, entropy_args={},
                      history=False, callback=None, verbose=False):
@@ -38,7 +38,7 @@ def mcmc_equilibrate(state, wait=10, nbreaks=2, max_niter=numpy.inf,
     ----------
     state : Any state class (e.g. :class:`~graph_tool.inference.BlockState`)
         Initial state. This state will be modified during the algorithm.
-    wait : ``int`` (optional, default: ``10``)
+    wait : ``int`` (optional, default: ``1000``)
         Number of iterations to wait for a record-breaking event.
     nbreaks : ``int`` (optional, default: ``2``)
         Number of iteration intervals (of size ``wait``) without record-breaking

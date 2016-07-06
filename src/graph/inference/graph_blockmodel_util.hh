@@ -788,6 +788,7 @@ public:
 
         for (auto e : edges_range(bg))
         {
+            assert(get_me(source(e, bg),target(e, bg)) == _null_edge);
             _mat[source(e, bg)][target(e, bg)] = e;
             if (!is_directed::apply<BGraph>::type::value)
                 _mat[target(e, bg)][source(e, bg)] = e;
@@ -895,7 +896,10 @@ public:
         _hash.resize(num_vertices(bg), ehash_t(0, _hash_function));
 
         for (auto e : edges_range(bg))
+        {
+            assert(get_me(source(e, bg), target(e, bg)) == _null_edge);
             put_me(source(e, bg), target(e, bg), e);
+        }
 
         auto bedge_c = _bedge.get_checked();
         for (auto e : edges_range(g))

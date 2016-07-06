@@ -477,7 +477,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         return bg, mrs, ec, rec, drec
 
     def get_block_state(self, b=None, vweight=False, deg_corr=False,
-                        overlap=False, layers=None, **kwargs):
+                        overlap=False, layers=True, **kwargs):
         r"""Returns a :class:`~graph_tool.inference.LayeredBlockState`` corresponding
         to the block graph. The parameters have the same meaning as the in the
         constructor."""
@@ -749,10 +749,19 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                             self.ec[e] = l[0]
             self.add_vertex(pos.keys(), pos.values())
 
-        if missing:
-            return Si - Sf
-        else:
-            return Sf - Si
+        L = Si - Sf
+
+        if _bm_test():
+            state = self.copy()
+            set_test(False)
+            L_alt = state.get_edges_prob(edge_list, missing=missing,
+                                         entropy_args=entropy_args)
+            set_test(True)
+            assert abs(L - L_alt) < 1e-6, \
+                "inconsistent missing=%s edge probability (%g, %g): %s, %s" % \
+                (str(missing), L, L_alt,  str(entropy_args), str(edge_list))
+
+        return L
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         if not self.overlap:
