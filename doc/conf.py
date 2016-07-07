@@ -98,6 +98,7 @@ pygments_style = 'sphinx'
 # doctest
 
 doctest_global_setup = open("pyenv.py").read()
+doctest_global_setup += "os.chdir('%s')\n" % os.getcwd()
 
 # Options for HTML outputs
 # -----------------------

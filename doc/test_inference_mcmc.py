@@ -110,21 +110,21 @@ for directed in [True, False]:
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=200, allow_vacate=True)
+            mcmc_args=dict(beta=1, c=c, niter=2000, allow_vacate=True)
         else:
-            mcmc_args=dict(beta=1, niter=200, allow_vacate=True)
+            mcmc_args=dict(beta=1, niter=2000, allow_vacate=True)
         if i == 0:
             mcmc_equilibrate(state,
                              mcmc_args=mcmc_args,
                              gibbs=c=="gibbs",
-                             nbreaks=25,
-                             wait=1000,
+                             nbreaks=5,
+                             wait=100,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    wait=4000 if directed else 2000,
-                                    nbreaks=25,
+                                    wait=200 if directed else 100,
+                                    nbreaks=5,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 

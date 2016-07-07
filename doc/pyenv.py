@@ -5,6 +5,7 @@ if sys.version_info < (3,):
 else:
     unicode = str
 
+import os
 from matplotlib import rc
 from matplotlib import rcParams
 
