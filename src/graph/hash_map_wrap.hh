@@ -275,7 +275,7 @@ template<class Key,
          class Value,
          class Hash = std::hash<Key>,
          class Pred = std::equal_to<Key>,
-         class Alloc = std::allocator<Key>>
+         class Alloc = std::allocator<std::pair<const Key, Value>>>
 class gt_hash_map:
 #ifdef HAVE_SPARSEHASH
     public google::dense_hash_map<Key, Value, Hash, Pred, Alloc>
