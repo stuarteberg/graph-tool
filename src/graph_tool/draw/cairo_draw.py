@@ -817,7 +817,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         |               | "double_circle", "double_triangle",               |                        |                                  |
         |               | "double_square", "double_pentagon",               |                        |                                  |
         |               | "double_hexagon", "double_heptagon",              |                        |                                  |
-        |               | "double_octagon", "pie".                          |                        |                                  |
+        |               | "double_octagon", "pie", "none".                  |                        |                                  |
         |               | Optionally, this might take a numeric value       |                        |                                  |
         |               | corresponding to position in the list above.      |                        |                                  |
         +---------------+---------------------------------------------------+------------------------+----------------------------------+

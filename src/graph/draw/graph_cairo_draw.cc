@@ -108,7 +108,8 @@ enum vertex_shape_t {
     SHAPE_DOUBLE_HEXAGON,
     SHAPE_DOUBLE_HEPTAGON,
     SHAPE_DOUBLE_OCTAGON,
-    SHAPE_PIE
+    SHAPE_PIE,
+    SHAPE_NONE
 };
 
 enum edge_marker_t {
@@ -701,6 +702,8 @@ public:
         case SHAPE_PIE:
             dr = r;
             break;
+        case SHAPE_NONE:
+            break;
         default:
             throw ValueException("Invalid vertex shape: " +
                                  lexical_cast<string>(int(_attrs.template get<vertex_shape_t>(VERTEX_SHAPE))));
@@ -818,119 +821,120 @@ public:
         }
 
         boost::python::object osrc = _attrs.template get<boost::python::object>(VERTEX_SURFACE);
-        if (osrc == boost::python::object() || outline)
+
+        pw =_attrs.template get<double>(VERTEX_PENWIDTH);
+        pw = get_user_dist(cr, pw);
+        cr.set_line_width(pw);
+
+        if (!outline)
         {
-            pw =_attrs.template get<double>(VERTEX_PENWIDTH);
-            pw = get_user_dist(cr, pw);
-            cr.set_line_width(pw);
-
-            if (!outline)
-            {
-                color = _attrs.template get<color_t>(VERTEX_COLOR);
-                cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
-                                   get<3>(color));
-            }
-
-            size_t nsides = 0;
-            vertex_shape_t shape = _attrs.template get<vertex_shape_t>(VERTEX_SHAPE);
-            switch (shape)
-            {
-            case SHAPE_CIRCLE:
-            case SHAPE_DOUBLE_CIRCLE:
-                if (aspect != 1.)
-                {
-                    cr.save();
-                    cr.scale(aspect, 1.0);
-                }
-                cr.arc(0, 0, size / 2., 0, 2 * M_PI);
-                cr.close_path();
-                if (aspect != 1.)
-                    cr.restore();
-                if (shape == SHAPE_DOUBLE_CIRCLE && !outline)
-                {
-                    cr.stroke();
-                    if (aspect != 1.)
-                    {
-                        cr.save();
-                        cr.scale(aspect, 1.0);
-                    }
-                    cr.arc(0, 0, min(size / 2 - 2 * pw,
-                                     size * 0.8 / 2),
-                           0, 2 * M_PI);
-                    if (aspect != 1.)
-                        cr.restore();
-                }
-                break;
-            case SHAPE_PIE:
-                {
-                    if (!outline)
-                    {
-                        vector<double> f = _attrs.template get<vector<double> >(VERTEX_PIE_FRACTIONS);
-                        vector<color_t> fcolors = _attrs.template get<vector<color_t> >(VERTEX_PIE_COLORS);
-                        draw_pie(size / 2 + pw / 2, f, fcolors, cr);
-                    }
-                    else
-                    {
-                        cr.arc(0, 0, size / 2., 0, 2 * M_PI);
-                        cr.close_path();
-                    }
-                }
-                break;
-            case SHAPE_TRIANGLE:
-            case SHAPE_SQUARE:
-            case SHAPE_PENTAGON:
-            case SHAPE_HEXAGON:
-            case SHAPE_HEPTAGON:
-            case SHAPE_OCTAGON:
-            case SHAPE_DOUBLE_TRIANGLE:
-            case SHAPE_DOUBLE_SQUARE:
-            case SHAPE_DOUBLE_PENTAGON:
-            case SHAPE_DOUBLE_HEXAGON:
-            case SHAPE_DOUBLE_HEPTAGON:
-            case SHAPE_DOUBLE_OCTAGON:
-                nsides = shape - SHAPE_TRIANGLE + 3;
-                if (nsides > 8)
-                    nsides -= 7;
-                if (aspect != 1.)
-                {
-                    cr.save();
-                    cr.scale(aspect, 1.0);
-                }
-                draw_polygon(nsides, size / 2, cr);
-                if (aspect != 1.)
-                    cr.restore();
-                if (shape >= SHAPE_DOUBLE_TRIANGLE && !outline)
-                {
-                    cr.stroke();
-                    if (aspect != 1.)
-                    {
-                        cr.save();
-                        cr.scale(aspect, 1.0);
-                    }
-                    draw_polygon(nsides, min(size / 2 - 2 * pw,
-                                             size * 0.8 / 2), cr);
-                    if (aspect != 1.)
-                        cr.restore();
-                }
-                break;
-            default:
-                throw ValueException("Invalid vertex shape: " +
-                                     lexical_cast<string>(int(_attrs.template get<vertex_shape_t>(VERTEX_SHAPE))));
-            }
-
-            if (!outline && shape != SHAPE_PIE)
-            {
-                fillcolor = _attrs.template get<color_t>(VERTEX_FILL_COLOR);
-                cr.set_source_rgba(get<0>(fillcolor), get<1>(fillcolor),
-                                   get<2>(fillcolor), get<3>(fillcolor));
-                cr.fill_preserve();
-
-                cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
-                                   get<3>(color));
-                cr.stroke();
-            }
+            color = _attrs.template get<color_t>(VERTEX_COLOR);
+            cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
+                               get<3>(color));
         }
-        else
+
+        size_t nsides = 0;
+        vertex_shape_t shape = _attrs.template get<vertex_shape_t>(VERTEX_SHAPE);
+        switch (shape)
+        {
+        case SHAPE_CIRCLE:
+        case SHAPE_DOUBLE_CIRCLE:
+            if (aspect != 1.)
+            {
+                cr.save();
+                cr.scale(aspect, 1.0);
+            }
+            cr.arc(0, 0, size / 2., 0, 2 * M_PI);
+            cr.close_path();
+            if (aspect != 1.)
+                cr.restore();
+            if (shape == SHAPE_DOUBLE_CIRCLE && !outline)
+            {
+                cr.stroke();
+                if (aspect != 1.)
+                {
+                    cr.save();
+                    cr.scale(aspect, 1.0);
+                }
+                cr.arc(0, 0, min(size / 2 - 2 * pw,
+                                 size * 0.8 / 2),
+                       0, 2 * M_PI);
+                if (aspect != 1.)
+                    cr.restore();
+            }
+            break;
+        case SHAPE_PIE:
+            {
+                if (!outline)
+                {
+                    vector<double> f = _attrs.template get<vector<double> >(VERTEX_PIE_FRACTIONS);
+                    vector<color_t> fcolors = _attrs.template get<vector<color_t> >(VERTEX_PIE_COLORS);
+                    draw_pie(size / 2 + pw / 2, f, fcolors, cr);
+                }
+                else
+                {
+                    cr.arc(0, 0, size / 2., 0, 2 * M_PI);
+                    cr.close_path();
+                }
+            }
+            break;
+        case SHAPE_TRIANGLE:
+        case SHAPE_SQUARE:
+        case SHAPE_PENTAGON:
+        case SHAPE_HEXAGON:
+        case SHAPE_HEPTAGON:
+        case SHAPE_OCTAGON:
+        case SHAPE_DOUBLE_TRIANGLE:
+        case SHAPE_DOUBLE_SQUARE:
+        case SHAPE_DOUBLE_PENTAGON:
+        case SHAPE_DOUBLE_HEXAGON:
+        case SHAPE_DOUBLE_HEPTAGON:
+        case SHAPE_DOUBLE_OCTAGON:
+            nsides = shape - SHAPE_TRIANGLE + 3;
+            if (nsides > 8)
+                nsides -= 7;
+            if (aspect != 1.)
+            {
+                cr.save();
+                cr.scale(aspect, 1.0);
+            }
+            draw_polygon(nsides, size / 2, cr);
+            if (aspect != 1.)
+                cr.restore();
+            if (shape >= SHAPE_DOUBLE_TRIANGLE && !outline)
+            {
+                cr.stroke();
+                if (aspect != 1.)
+                {
+                    cr.save();
+                    cr.scale(aspect, 1.0);
+                }
+                draw_polygon(nsides, min(size / 2 - 2 * pw,
+                                         size * 0.8 / 2), cr);
+                if (aspect != 1.)
+                    cr.restore();
+            }
+            break;
+        case SHAPE_NONE:
+            break;
+        default:
+            throw ValueException("Invalid vertex shape: " +
+                                 lexical_cast<string>(int(_attrs.template get<vertex_shape_t>(VERTEX_SHAPE))));
+        }
+
+        if (!outline && shape != SHAPE_PIE)
+        {
+            fillcolor = _attrs.template get<color_t>(VERTEX_FILL_COLOR);
+            cr.set_source_rgba(get<0>(fillcolor), get<1>(fillcolor),
+                               get<2>(fillcolor), get<3>(fillcolor));
+            cr.fill_preserve();
+
+            cr.set_source_rgba(get<0>(color), get<1>(color), get<2>(color),
+                               get<3>(color));
+            cr.stroke();
+        }
+
+        if (osrc != boost::python::object() && !outline)
         {
             double swidth, sheight;
             PycairoSurface* src = (PycairoSurface*) osrc.ptr();
@@ -2239,7 +2243,8 @@ BOOST_PYTHON_MODULE(libgraph_tool_draw)
         .value("double_hexagon", SHAPE_DOUBLE_HEXAGON)
         .value("double_heptagon", SHAPE_DOUBLE_HEPTAGON)
         .value("double_octagon", SHAPE_DOUBLE_OCTAGON)
-        .value("pie", SHAPE_PIE);
+        .value("pie", SHAPE_PIE)
+        .value("none", SHAPE_NONE);
 
     enum_<edge_marker_t>("edge_marker")
         .value("none", MARKER_SHAPE_NONE)
