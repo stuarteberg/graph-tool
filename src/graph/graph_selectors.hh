@@ -73,16 +73,18 @@ struct in_degreeS
 
     in_degreeS() {}
 
-    template <class Graph, class Vertex>
+    template <class Graph>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g) const
     {
         return in_degreeS::operator()(v, g, detail::no_weightS());
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
@@ -90,31 +92,34 @@ struct in_degreeS
         return get_in_degree(v, g, is_directed(), std::forward<Weight>(weight));
     }
 
-    template <class Graph, class Vertex>
+    template <class Graph>
     inline __attribute__((always_inline))
-    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+    auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                       const Graph& g, std::true_type,
                        detail::no_weightS) const
     {
         return in_degree(v, g);
     }
 
-    template <class Graph, class Vertex, class Key, class Value>
-    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+    template <class Graph, class Key, class Value>
+    auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                       const Graph& g, std::true_type,
                        const ConstantPropertyMap<Value, Key>& weight) const
     {
         return in_degree(v, g) * weight.c;
     }
 
-    template <class Graph, class Vertex, class Key, class Value>
-    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
+    template <class Graph, class Key, class Value>
+    auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                       const Graph& g, std::true_type,
                        const UnityPropertyMap<Value, Key>&) const
     {
         return in_degree(v, g);
     }
 
-    template <class Graph, class Vertex, class Weight>
-    auto get_in_degree(Vertex v, const Graph& g, std::true_type,
-                       Weight& weight) const
+    template <class Graph, class Weight>
+    auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                       const Graph& g, std::true_type, Weight& weight) const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
         typename boost::graph_traits<Graph>::in_edge_iterator e, e_end;
@@ -123,10 +128,10 @@ struct in_degreeS
         return d;
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto get_in_degree(const Vertex&, const Graph&, std::false_type,
-                       Weight&&)  const
+    auto get_in_degree(const typename boost::graph_traits<Graph>::vertex_descriptor&,
+                       const Graph&, std::false_type, Weight&&)  const
     {
         return 0;
     }
@@ -138,38 +143,42 @@ struct out_degreeS
 
     out_degreeS() {}
 
-    template <class Graph, class Vertex>
+    template <class Graph>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g) const
     {
         return out_degreeS::operator()(v, g, detail::no_weightS());
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g, Weight&& weight) const
     {
         return get_out_degree(v, g, std::forward<Weight>(weight));
     }
 
-    template <class Graph, class Vertex, class Key, class Value>
-    auto get_out_degree(Vertex v, const Graph& g,
+    template <class Graph, class Key, class Value>
+    auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                        const Graph& g,
                         const ConstantPropertyMap<Value, Key>& weight) const
     {
         return out_degree(v, g) * weight.c;
     }
 
-    template <class Graph, class Vertex, class Key, class Value>
-    auto get_out_degree(Vertex v, const Graph& g,
+    template <class Graph, class Key, class Value>
+    auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                        const Graph& g,
                         const UnityPropertyMap<Value, Key>&) const
     {
         return out_degree(v, g);
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline
-    auto get_out_degree(Vertex v, const Graph& g, const Weight& weight)
-        const
+    auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                        const Graph& g, const Weight& weight) const
     {
         typename boost::property_traits<Weight>::value_type d = 0;
         typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
@@ -178,10 +187,10 @@ struct out_degreeS
         return d;
     }
 
-    template <class Graph, class Vertex>
+    template <class Graph>
     inline __attribute__((always_inline))
-    auto get_out_degree(Vertex v, const Graph& g,
-                        detail::no_weightS) const
+    auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                        const Graph& g, detail::no_weightS) const
     {
         return out_degree(v, g);
     }
@@ -192,16 +201,18 @@ struct total_degreeS
     typedef size_t value_type;
 
     total_degreeS() {}
-    template <class Graph, class Vertex>
+    template <class Graph>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g) const
     {
         return total_degreeS::operator()(v, g, detail::no_weightS());
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto operator()(Vertex v, const Graph& g, Weight&& weight) const
+    auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g, Weight&& weight) const
     {
         typedef typename is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
@@ -210,19 +221,20 @@ struct total_degreeS
                                 std::forward<Weight>(weight));
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto get_total_degree(Vertex v, const Graph& g, std::true_type,
+    auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                          const Graph& g, std::true_type,
                           Weight&& weight) const
     {
         return in_degreeS()(v, g, std::forward<Weight>(weight)) +
             out_degreeS()(v, g, std::forward<Weight>(weight));
     }
 
-    template <class Graph, class Vertex, class Weight>
+    template <class Graph, class Weight>
     inline __attribute__((always_inline))
-    auto get_total_degree(Vertex v, const Graph& g, std::false_type,
-                          Weight&& weight) const
+    auto get_total_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                          const Graph& g, std::false_type, Weight&& weight) const
     {
         return out_degreeS()(v, g, std::forward<Weight>(weight));
     }
