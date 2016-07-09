@@ -1,90 +1,106 @@
-# ===========================================================================
-#            http://autoconf-archive.cryp.to/ax_boost_graph.html
-# ===========================================================================
-#
 # SYNOPSIS
 #
 #   AX_BOOST_GRAPH
 #
 # DESCRIPTION
 #
-#   This macro checks to see if the Boost.Graph library is installed. It
-#   also attempts to guess the currect library name using several attempts.
-#   It tries to build the library name using a user supplied name or suffix
-#   and then just the raw library.
+#   Test for Graph library from the Boost C++ libraries. The macro
+#   requires a preceding call to AX_BOOST_BASE. Further documentation is
+#   available at <http://randspringer.de/boost/index.html>.
 #
-#   If the library is found, HAVE_BOOST_GRAPH is defined and
-#   BOOST_GRAPH_LIB is set to the name of the library.
+#   This macro calls:
 #
-#   This macro calls AC_SUBST(BOOST_GRAPH_LIB).
+#     AC_SUBST(BOOST_GRAPH_LIB)
 #
-#   In order to ensure that the Graph headers are specified on the include
-#   path, this macro requires AX_GRAPH to be called.
+#   And sets:
 #
-# LAST MODIFICATION
+#     HAVE_BOOST_GRAPH
 #
-#   2008-04-12
+# LICENSE
 #
-# COPYLEFT
+#   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
 #
-#   Copyright (c) 2008 Michael Tindal
-#
-#   This program is free software; you can redistribute it and/or modify it
-#   under the terms of the GNU General Public License as published by the
-#   Free Software Foundation; either version 2 of the License, or (at your
-#   option) any later version.
-#
-#   This program is distributed in the hope that it will be useful, but
-#   WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-#   Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-#   As a special exception, the respective Autoconf Macro's copyright owner
-#   gives unlimited permission to copy, distribute and modify the configure
-#   scripts that are the output of Autoconf when processing the Macro. You
-#   need not follow the terms of the GNU General Public License when using
-#   or distributing such scripts, even though portions of the text of the
-#   Macro appear in them. The GNU General Public License (GPL) does govern
-#   all other use of the material that constitutes the Autoconf Macro.
-#
-#   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Macro Archive. When you make and
-#   distribute a modified version of the Autoconf Macro, you may extend this
-#   special exception to the GPL to apply to your modified version as well.
+#   Copying and distribution of this file, with or without modification, are
+#   permitted in any medium without royalty provided the copyright notice
+#   and this notice are preserved. This file is offered as-is, without any
+#   warranty.
+
+#serial 20
 
 AC_DEFUN([AX_BOOST_GRAPH],
-[AC_CACHE_CHECK(whether the Boost::Graph library is available,
-ac_cv_boost_graph,
-[AC_LANG_SAVE
- AC_LANG_CPLUSPLUS
- CPPFLAGS_SAVE=$CPPFLAGS
- if test "x$GRAPH_INCLUDE_DIR" != "x"; then
-   CPPFLAGS="-I$GRAPH_INCLUDE_DIR $CPPFLAGS"
- fi
- AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[
- #include <boost/graph/adjacency_list.hpp>
- using namespace boost;
- adjacency_list<> g;
- ]],
- [[return 0;]]),
- ac_cv_boost_graph=yes, ac_cv_boost_graph=no)
- AC_LANG_RESTORE
- CPPFLAGS="$CPPFLAGS_SAVE"
+[
+    AC_ARG_WITH([boost-graph],
+    AS_HELP_STRING([--with-boost-graph@<:@=special-lib@:>@],
+                   [use the Graph library from boost - it is possible to specify a certain library for the linker
+                        e.g. --with-boost-graph=boost_graph-gcc-mt-d-1_33_1 ]),
+        [
+        if test "$withval" = "no"; then
+            want_boost="no"
+        elif test "$withval" = "yes"; then
+            want_boost="yes"
+            ax_boost_user_graph_lib=""
+        else
+                    want_boost="yes"
+        ax_boost_user_graph_lib="$withval"
+        fi
+        ],
+        [want_boost="yes"]
+    )
+
+    if test "x$want_boost" = "xyes"; then
+        AC_REQUIRE([AC_PROG_CC])
+        CPPFLAGS_SAVED="$CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+        export CPPFLAGS
+
+        LDFLAGS_SAVED="$LDFLAGS"
+        LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
+        export LDFLAGS
+
+        AC_CACHE_CHECK(whether the Boost::Graph library is available,
+                                           ax_cv_boost_graph,
+        [AC_LANG_PUSH([C++])
+                 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[@%:@include <boost/graph/adjacency_list.hpp>]],
+                                  [[using namespace boost; adjacency_list<> g; return 0;]])],
+                             ax_cv_boost_graph=yes, ax_cv_boost_graph=no)
+         AC_LANG_POP([C++])
+        ])
+        if test "x$ax_cv_boost_graph" = "xyes"; then
+            AC_DEFINE(HAVE_BOOST_GRAPH,,[define if the Boost::Graph library is available])
+            BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
+            if test "x$ax_boost_user_graph_lib" = "x"; then
+                for libextension in `ls $BOOSTLIBDIR/libboost_graph*.so* $BOOSTLIBDIR/libboost_iostream*.dylib* $BOOSTLIBDIR/libboost_graph*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_graph.*\)\.so.*$;\1;' -e 's;^lib\(boost_iostream.*\)\.dylib.*$;\1;' -e 's;^lib\(boost_graph.*\)\.a.*$;\1;'` ; do
+                     ax_lib=${libextension}
+                                    AC_CHECK_LIB($ax_lib, exit,
+                                 [BOOST_GRAPH_LIB="-l$ax_lib"; AC_SUBST(BOOST_GRAPH_LIB) link_graph="yes"; break],
+                                 [link_graph="no"])
+                done
+                if test "x$link_graph" != "xyes"; then
+                for libextension in `ls $BOOSTLIBDIR/boost_graph*.dll* $BOOSTLIBDIR/boost_graph*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^\(boost_graph.*\)\.dll.*$;\1;' -e 's;^\(boost_graph.*\)\.a.*$;\1;'` ; do
+                     ax_lib=${libextension}
+                                    AC_CHECK_LIB($ax_lib, exit,
+                                 [BOOST_GRAPH_LIB="-l$ax_lib"; AC_SUBST(BOOST_GRAPH_LIB) link_graph="yes"; break],
+                                 [link_graph="no"])
+                done
+                fi
+
+            else
+               for ax_lib in $ax_boost_user_graph_lib boost_graph-$ax_boost_user_graph_lib; do
+                                      AC_CHECK_LIB($ax_lib, main,
+                                   [BOOST_GRAPH_LIB="-l$ax_lib"; AC_SUBST(BOOST_GRAPH_LIB) link_graph="yes"; break],
+                                   [link_graph="no"])
+                  done
+
+            fi
+            if test "x$ax_lib" = "x"; then
+                AC_MSG_ERROR(Could not find a version of the library!)
+            fi
+            if test "x$link_graph" != "xyes"; then
+                AC_MSG_ERROR(Could not link against $ax_lib !)
+            fi
+        fi
+
+        CPPFLAGS="$CPPFLAGS_SAVED"
+    LDFLAGS="$LDFLAGS_SAVED"
+    fi
 ])
-if test "$ac_cv_boost_graph" = "yes"; then
-  AC_DEFINE(HAVE_BOOST_GRAPH,,[define if the Boost::Graph library is available])
-  ax_graph_lib=boost_graph
-  AC_ARG_WITH([boost-graph],AS_HELP_STRING([--with-boost-graph],[specify the boost graph library or suffix to use]),
-  [if test "x$with_boost_graph" != "xno"; then
-     ax_graph_lib=$with_boost_graph
-     ax_boost_graph_lib=boost_graph-$with_boost_graph
-   fi])
-  for ax_lib in $ax_graph_lib $ax_boost_graph_lib boost_graph boost_graph-mt boost_graph-mt-py2.5; do
-    AC_CHECK_LIB($ax_lib, exit, [BOOST_GRAPH_LIB=$ax_lib break])
-  done
-  AC_SUBST(BOOST_GRAPH_LIB)
-fi
-])dnl
