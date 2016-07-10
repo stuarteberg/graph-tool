@@ -18,6 +18,7 @@
 #include "graph_filtering.hh"
 #include "graph.hh"
 #include "graph_python_interface.hh"
+#include "demangle.hh"
 
 #include <boost/python.hpp>
 #include <boost/lambda/bind.hpp>
@@ -34,8 +35,6 @@ struct export_vertex_property_map
     template <class PropertyMap>
     void operator()(PropertyMap) const
     {
-        using boost::python::detail::gcc_demangle;
-
         typedef PythonPropertyMap<PropertyMap> pmap_t;
 
         string type_name;
@@ -43,7 +42,7 @@ struct export_vertex_property_map
                                                    typename pmap_t::value_type>::type,
                          typename boost::mpl::end<value_types>::type>::value)
             type_name =
-                gcc_demangle(typeid(typename pmap_t::value_type).name());
+                name_demangle(typeid(typename pmap_t::value_type).name());
         else
             type_name =
                 type_names[boost::mpl::find<value_types,typename pmap_t::value_type>
@@ -118,8 +117,6 @@ struct export_edge_property_map
     template <class PropertyMap>
     void operator()(PropertyMap) const
     {
-        using boost::python::detail::gcc_demangle;
-
         typedef PythonPropertyMap<PropertyMap> pmap_t;
 
         string type_name;
@@ -127,7 +124,7 @@ struct export_edge_property_map
                                                    typename pmap_t::value_type>::type,
                          typename boost::mpl::end<value_types>::type>::value)
             type_name =
-                gcc_demangle(typeid(typename pmap_t::value_type).name());
+                name_demangle(typeid(typename pmap_t::value_type).name());
         else
             type_name =
                 type_names[boost::mpl::find<value_types,typename pmap_t::value_type>

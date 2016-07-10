@@ -383,8 +383,7 @@ struct graph_type_name
     template <class Graph>
     void operator()(const Graph&, string& name) const
     {
-        using boost::python::detail::gcc_demangle;
-        name = string(gcc_demangle(typeid(Graph).name()));
+        name = name_demangle(typeid(Graph).name());
     }
 };
 
@@ -466,7 +465,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     class_<std::type_info, boost::noncopyable>("type_info", no_init)
         .def("name", &std::type_info::name)
         .def("hash_code", &std::type_info::hash_code);
-    def("gcc_demangle", &python::detail::gcc_demangle);
+    def("name_demangle", &name_demangle);
 
     def("graph_filtering_enabled", &graph_filtering_enabled);
     export_openmp();

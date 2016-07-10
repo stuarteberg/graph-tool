@@ -19,6 +19,7 @@ libgraph_tool_core_LTLIBRARIES = libgraph_tool_core.la
 
 libgraph_tool_core_la_SOURCES = \
     base64.cc \
+    demangle.cc \
     graph.cc \
     graph_exceptions.cc \
     graph_bind.cc \
@@ -49,6 +50,7 @@ libgraph_tool_core_la_includedir = $(MOD_DIR)/include
 libgraph_tool_core_la_include_HEADERS = \
     ../../config.h \
     base64.hh \
+    demangle.hh \
     fast_vector_property_map.hh \
     gml.hh \
     graph.hh \

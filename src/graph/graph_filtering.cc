@@ -16,7 +16,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "graph_filtering.hh"
-#include <cxxabi.h>
+#include "demangle.hh"
 
 using namespace graph_tool;
 using namespace graph_tool::detail;
@@ -31,27 +31,11 @@ bool graph_tool::graph_filtering_enabled()
 #endif
 }
 
-namespace graph_tool
-{
-string name_demangle(string name)
-{
-    int status = 0;
-    char *realname = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
-    if (realname == nullptr)
-        return name + " (cannot demangle symbol)";
-    string ret(realname);
-    free(realname);
-    return ret;
-}
-}
-
 // Whenever no implementation is called, the following exception is thrown
 graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
                                            const vector<const type_info*>& args)
     : GraphException(""), _action(action), _args(args)
 {
-    using python::detail::gcc_demangle;
-
     _error =
         "No static implementation was found for the desired routine. "
         "This is a graph_tool bug. :-( Please submit a bug report at "

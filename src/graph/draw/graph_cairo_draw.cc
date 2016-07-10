@@ -32,6 +32,7 @@
 #include <chrono>
 
 #include "hash_map_wrap.hh"
+#include "demangle.hh"
 
 #include <cairommconfig.h>
 #include <cairomm/context.h>
@@ -235,8 +236,8 @@ struct Converter
         }
         catch (bad_lexical_cast&)
         {
-            string name1 = python::detail::gcc_demangle(typeid(Type1).name());
-            string name2 = python::detail::gcc_demangle(typeid(Type2).name());
+            string name1 = name_demangle(typeid(Type1).name());
+            string name2 = name_demangle(typeid(Type2).name());
             string val_name;
             try
             {
@@ -432,10 +433,8 @@ public:
         catch (bad_any_cast&)
         {
             throw ValueException("Error getting attribute " + lexical_cast<string>(k) +
-                                 ", wanted: " +
-                                 boost::python::detail::gcc_demangle(typeid(Value).name()) +
-                                 ", got: " +
-                                 boost::python::detail::gcc_demangle(_defaults[k].type().name()));
+                                 ", wanted: " + name_demangle(typeid(Value).name()) +
+                                 ", got: " + name_demangle(_defaults[k].type().name()));
         }
     }
 

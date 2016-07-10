@@ -44,6 +44,7 @@ namespace std
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_selectors.hh"
+#include "demangle.hh"
 #include "numpy_bind.hh"
 
 #ifdef HAVE_BOOST_COROUTINE
@@ -271,8 +272,7 @@ public:
 
     std::string get_graph_type() const
     {
-        using boost::python::detail::gcc_demangle;
-        return gcc_demangle(typeid(Graph).name());
+        return name_demangle(typeid(Graph).name());
     }
 
     template <class OGraph>
@@ -375,8 +375,7 @@ public:
 
     std::string get_graph_type() const
     {
-        using boost::python::detail::gcc_demangle;
-        return gcc_demangle(typeid(Graph).name());
+        return name_demangle(typeid(Graph).name());
     }
 
     template <class OGraph>
@@ -486,10 +485,9 @@ public:
 
     std::string get_type() const
     {
-        using boost::python::detail::gcc_demangle;
         if (std::is_same<typename boost::mpl::find<value_types,value_type>::type,
                          typename boost::mpl::end<value_types>::type>::value)
-            return gcc_demangle(typeid(value_type).name());
+            return name_demangle(typeid(value_type).name());
         else
             return type_names[boost::mpl::find<value_types,
                                                value_type>::type::pos::value];

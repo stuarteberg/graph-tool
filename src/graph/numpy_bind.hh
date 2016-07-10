@@ -40,6 +40,8 @@
 #include <boost/mpl/pair.hpp>
 #include <boost/mpl/for_each.hpp>
 
+#include "demangle.hh"
+
 using namespace std;
 
 typedef boost::mpl::map<
@@ -180,13 +182,12 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
 
     if (boost::mpl::at<numpy_types,ValueType>::type::value != PyArray_DESCR(pa)->type_num)
     {
-        using boost::python::detail::gcc_demangle;
         boost::python::handle<> x(boost::python::borrowed((PyObject*) PyArray_DESCR(pa)->typeobj));
         boost::python::object dtype(x);
         string type_name = boost::python::extract<string>(boost::python::str(dtype));
         string error = "invalid array value type: " + type_name;
         error += " (id: " + boost::lexical_cast<string>(PyArray_DESCR(pa)->type_num) + ")";
-        error += ", wanted: " + string(gcc_demangle(typeid(ValueType).name()));
+        error += ", wanted: " + name_demangle(typeid(ValueType).name());
         error += " (id: " + boost::lexical_cast<string>(boost::mpl::at<numpy_types,ValueType>::type::value) + ")";
         throw InvalidNumpyConversion(error);
     }

@@ -532,9 +532,6 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
     return *gptr;
 }
 
-// symbol demangling
-string name_demangle(string name);
-
 } //graph_tool namespace
 
 // Overload add_vertex() and add_edge() to filtered graphs, so that the new
