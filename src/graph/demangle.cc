@@ -17,6 +17,7 @@
 
 #include "demangle.hh"
 #include <cxxabi.h>
+#include <cstdlib>
 
 std::string name_demangle(std::string name)
 {
@@ -25,6 +26,6 @@ std::string name_demangle(std::string name)
     if (status != 0)
         return name + " (cannot demangle symbol)";
     std::string ret(realname);
-    free(realname);
+    std::free(realname);
     return ret;
 }
