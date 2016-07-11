@@ -581,7 +581,7 @@ random partition into 20 groups
 
 .. testoutput:: model-averaging
 
-   Change in description length: -374.3292765930462
+   Change in description length: -374.329276...
    Number of accepted vertex moves: 4394
 
 .. note::
@@ -605,7 +605,7 @@ random partition into 20 groups
 
     .. testoutput:: model-averaging
 
-       Change in description length: 22.056557648826185
+       Change in description length: 22.0565576...
        Number of accepted vertex moves: 4490
 
 Although the above is sufficient to implement model averaging, there is a
@@ -820,7 +820,7 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: 15.945014563014706
+   Change in description length: 15.9450145...
    Number of accepted vertex moves: 8767
 
 Similarly to the the non-nested case, we can use
@@ -1096,8 +1096,8 @@ evidence efficiently, as we show below, using
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -640.956071664 (mean field), -726.488710685 (Bethe)
-   Model evidence for deg_corr = False: -616.85388277 (mean field), -690.799585562 (Bethe)
+    Model evidence for deg_corr = True: -640.956071664 (mean field), -726.488710685 (Bethe)
+    Model evidence for deg_corr = False: -612.22656602 (mean field), -674.526935124 (Bethe)
 
 Despite the (expected) discrepancy between both approximations, the
 outcome shows a clear preference for the non-degree-corrected model.
@@ -1161,8 +1161,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-    Model evidence for deg_corr = True: -528.956749801 (mean field), -693.226240584 (Bethe)
-    Model evidence for deg_corr = False: -567.856911437 (mean field), -703.458763172 (Bethe)
+    Model evidence for deg_corr = True: -517.408224149 (mean field), -672.911348985 (Bethe)
+    Model evidence for deg_corr = False: -606.900607981 (mean field), -655.099814808 (Bethe)
 
 The results are interesting: Not only we observe a better evidence for
 the nested models themselves, when comparing to the evidences for the
