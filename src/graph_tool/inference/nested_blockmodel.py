@@ -513,6 +513,11 @@ class NestedBlockState(object):
 
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.mcmc_sweep`.
+
+        If the parameter ``c`` is a scalar, the values used at each level are
+        ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
+        of values may be passed instead, which specifies the value of ``c[l]``
+        to be used at each level.
         """
 
         c = extract_arg(kwargs, "c", 1)
