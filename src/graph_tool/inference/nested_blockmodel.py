@@ -468,8 +468,6 @@ class NestedBlockState(object):
         nmoves = 0
 
         c = kwargs.get("c", None)
-        if c is not None and not isinstance(c, collections.Iterable):
-            c = [c] * len(self.levels)
 
         for l in range(len(self.levels)):
             if check_verbose(verbose):
@@ -493,6 +491,7 @@ class NestedBlockState(object):
 
             if l > 0:
                 self.levels[l]._state.sync_emat()
+                self.levels[l]._state.rebuild_neighbour_sampler()
             if l < len(self.levels) - 1:
                 self.levels[l + 1]._state.sync_emat()
 
@@ -510,22 +509,21 @@ class NestedBlockState(object):
 
     def mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
-        sampling MCMC to sample hierarchical network partitions.
+        MCMC to sample hierarchical network partitions.
 
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.mcmc_sweep`.
         """
 
-        c = kwargs.get("c", None)
-        if c is None:
-            c = [1] + [numpy.inf] * (len(self.levels) - 1)
-            kwargs = kwargs.copy()
-            kwargs["c"] = c
-        return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), **kwargs)
+        c = extract_arg(kwargs, "c", 1)
+        if not isinstance(c, collections.Iterable):
+            c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
+
+        return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c, **kwargs)
 
     def gibbs_sweep(self, **kwargs):
-        r"""Perform ``niter`` sweeps of a rejection-free Gibbs sampling MCMC
-        to sample network partitions.
+        r"""Perform ``niter`` sweeps of a rejection-free Gibbs MCMC to sample network
+        partitions.
 
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.gibbs_sweep`.

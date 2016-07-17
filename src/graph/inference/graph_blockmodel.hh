@@ -115,8 +115,7 @@ public:
           _m_entries(num_vertices(_bg)),
           _coupled_state(nullptr)
     {
-        init_neighbour_sampler(_g, _eweight, _neighbour_sampler);
-
+        rebuild_neighbour_sampler();
         _empty_blocks.clear();
         _candidate_blocks.clear();
         for (auto r : vertices_range(_bg))
@@ -1296,9 +1295,7 @@ public:
         return sample_block<rng_t>(v, c, rng);
     }
 
-
-    template <class RNG>
-    size_t random_neighbour(size_t v, RNG& rng)
+    size_t random_neighbour(size_t v, rng_t& rng)
     {
         if (_neighbour_sampler[v].size() == 0)
             return v;
@@ -1375,10 +1372,18 @@ public:
             };
 
         for (auto e : out_edges_range(v, _g))
+        {
+            if (target(e, _g) == v)
+                continue;
             sum_prob(e, target(e, _g));
+        }
 
         for (auto e : in_edges_range(v, _g))
+        {
+            if (source(e, _g) == v)
+                continue;
             sum_prob(e, source(e, _g));
+        }
 
         if (w > 0)
             return p / w;
@@ -1683,6 +1688,11 @@ public:
     void clear_egroups()
     {
         _egroups.clear();
+    }
+
+    void rebuild_neighbour_sampler()
+    {
+        init_neighbour_sampler(_g, _eweight, _neighbour_sampler);
     }
 
     void sync_emat()

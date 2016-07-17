@@ -1508,7 +1508,7 @@ private:
 
 template <class Vertex, class Graph, class Eprop, class SMap>
 void build_neighbour_sampler(Vertex v, SMap& sampler, Eprop& eweight, Graph& g,
-                             bool self_loops=true)
+                             bool self_loops=false)
 {
     vector<Vertex> neighbours;
     vector<double> probs;
@@ -1539,7 +1539,7 @@ void build_neighbour_sampler(Vertex v, SMap& sampler, Eprop& eweight, Graph& g,
 
 template <class Vertex, class Graph, class Eprop>
 void build_neighbour_sampler(Vertex v, vector<size_t>& sampler, Eprop&, Graph& g,
-                             bool self_loops=true)
+                             bool self_loops=false)
 {
     sampler.clear();
     for (auto e : all_edges_range(v, g))
