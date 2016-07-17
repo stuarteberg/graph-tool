@@ -320,6 +320,7 @@ class NestedBlockState(object):
                 lstate._couple_state(None, None)
                 if l > 0:
                     lstate._state.sync_emat()
+                    lstate._state.clear_egroups()
 
             L += lstate.get_edges_prob(edge_list, missing, entropy_args=eargs)
             if isinstance(self.levels[0], LayeredBlockState):
