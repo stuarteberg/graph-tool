@@ -506,9 +506,9 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:     1725.78502074
-   Degree-corrected DL:         1784.77629595
-   ln Λ:                        -58.9912752096
+   Non-degree-corrected DL:     1738.00660528
+   Degree-corrected DL:         1780.01146484
+   ln Λ:                        -42.0048595573
 
 Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-59} \sim
 10^{-25}` in favor of the non-degree-corrected model, it seems like the
@@ -826,10 +826,9 @@ work, and we can now obtain vertex marginals on all hierarchical levels:
 
    Marginal probabilities of group memberships of the network of
    characters in the novel Les Misérables, according to the nested
-   degree-corrected SBM. The `pie fractions
-   <https://en.wikipedia.org/wiki/Pie_chart>`_ on the nodes correspond
-   to the probability of being in group associated with the respective
-   color.
+   degree-corrected SBM. The `pie fractions <https://en.wikipedia.org/wiki/Pie_chart>`_
+   on the nodes correspond to the probability of being in group
+   associated with the respective color.
 
 We can also obtain a marginal probability of the number of groups
 itself, as follows.
@@ -1068,7 +1067,7 @@ evidence efficiently, as we show below, using
 .. testoutput:: model-evidence
 
    Model evidence for deg_corr = True: -622.794364945 (mean field), -707.484453595 (Bethe)
-   Model evidence for deg_corr = False: -633.276625201 (mean field), -670.113442151 (Bethe)
+   Model evidence for deg_corr = False: -624.357861783 (mean field), -657.164066465 (Bethe)
 
 Despite the (expected) discrepancy between both approximations, the
 outcome shows a clear preference for the non-degree-corrected model.
@@ -1132,8 +1131,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -530.057076507 (mean field), -702.858734133 (Bethe)
-   Model evidence for deg_corr = False: -555.073189798 (mean field), -649.484851667 (Bethe)
+   Model evidence for deg_corr = True: -549.845093934 (mean field), -688.382102062 (Bethe)
+   Model evidence for deg_corr = False: -593.581546241 (mean field), -621.257816805 (Bethe)
 
 The results are interesting: Not only we observe a better evidence for
 the nested models themselves, when comparing to the evidences for the

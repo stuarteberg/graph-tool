@@ -196,11 +196,11 @@ latex_elements = {
     'fontpkg': r"\usepackage{bookman}"}
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'python': ('http://docs.python.org/3', None),
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-                       'matplotlib': ('http://matplotlib.sourceforge.net', None),
-                       'cairo': ('http://www.cairographics.org/documentation/pycairo/3/', None),
+                       'matplotlib': ('http://matplotlib.org', None),
+                       'cairo': ('https://www.cairographics.org/documentation/pycairo/3', None),
                        'ipython': ('http://ipython.org/ipython-doc/stable/', None),
                        'panda': ('http://pandas.pydata.org/pandas-docs/stable/', None)}
 
