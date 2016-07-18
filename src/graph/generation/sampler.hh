@@ -93,6 +93,7 @@ public:
     }
 
     size_t size() const { return _items.size(); }
+    bool empty() const { return _items.empty(); }
 
 private:
 

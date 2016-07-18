@@ -1261,9 +1261,10 @@ public:
         // attempt random block
         size_t s = uniform_sample(_candidate_blocks, rng);
 
-        if (!std::isinf(c) && total_degreeS()(v, _g) > 0)
+        auto& sampler = _neighbour_sampler[v];
+        if (!std::isinf(c) && !sampler.empty())
         {
-            auto u = sample_neighbour(_neighbour_sampler[v], rng);
+            auto u = sample_neighbour(sampler, rng);
             size_t t = _b[u];
             double p_rand = 0;
             if (c > 0)
