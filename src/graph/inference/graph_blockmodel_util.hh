@@ -342,14 +342,9 @@ public:
     {
         double S = 0;
         if (_allow_empty)
-        {
             S += lbinom(_total_B + _N - 1, _N);
-        }
         else
-        {
-            //S += lbinom(std::min(_total_B, _N), _actual_B);
             S += lbinom(_N - 1, _actual_B - 1);
-        }
         S += lgamma_fast(_N + 1);
         for (auto nr : _total)
             S -= lgamma_fast(nr + 1);
@@ -361,12 +356,13 @@ public:
         double S = 0;
         for (size_t r = 0; r < _ep.size(); ++r)
         {
-            auto nr = _total[r];
-            if (nr == 0)
-                continue;
-            S += xlogx(nr);
+            size_t total = 0;
             for (auto& k_c : _hist[r])
+            {
                 S -= xlogx(k_c.second);
+                total += k_c.second;
+            }
+            S += xlogx(total);
         }
         return S;
     }
@@ -390,9 +386,13 @@ public:
             S += log_q(_ep[r], _total[r]);
             S += log_q(_em[r], _total[r]);
 
-            S += lgamma_fast(_total[r] + 1);
+            size_t total = 0;
             for (auto& k_c : _hist[r])
+            {
                 S -= lgamma_fast(k_c.second + 1);
+                total += k_c.second;
+            }
+            S += lgamma_fast(total + 1);
         }
         return S;
     }
