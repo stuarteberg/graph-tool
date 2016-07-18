@@ -2261,7 +2261,7 @@ class Graph(object):
         given by ``deg``, which can be any of ``"in"``, ``"out"``, or ``"total"``.
         If provided, ``weight`` should be an edge :class:`~graph_tool.PropertyMap`
         containing the edge weights which should be summed."""
-        pmap = self.__graph.degree_map(deg, _prop("e", self, weight))
+        pmap = self.__graph.degree_map(_to_str(deg), _prop("e", self, weight))
         return PropertyMap(pmap, self, "v")
 
     # I/O operations

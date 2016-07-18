@@ -14,6 +14,10 @@
 
 import sys, os
 
+if sys.version_info < (3,):
+    reload(sys)
+    sys.setdefaultencoding("Cp1252")
+
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
