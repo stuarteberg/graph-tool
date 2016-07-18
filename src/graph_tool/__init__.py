@@ -127,6 +127,13 @@ import csv
 
 if sys.version_info < (3,):
     import StringIO
+    def _to_str(x):
+        if isinstance(x, unicode):
+            return x.encode("utf8")
+        return x
+else:
+    def _to_str(x):
+        return x
 
 from .decorators import _wraps, _require, _attrs, _limit_args, _copy_func
 from inspect import ismethod
@@ -201,7 +208,7 @@ def _type_alias(type_name):
     if type_name in alias:
         return alias[type_name]
     if type_name in value_types():
-        return type_name
+        return _to_str(type_name)
     ma = re.compile(r"vector<(.*)>").match(type_name)
     if ma:
         t = ma.group(1)
@@ -1308,7 +1315,7 @@ class InternalPropertyDict(dict):
         self.__set_property(t, k, val)
 
     @_limit_args({"t": ["v", "e", "g"]})
-    @_require("key", str)
+    @_require("key", str, unicode)
     def __set_property(self, t, key, v):
         dict.__setitem__(self, (t, key), v)
 
