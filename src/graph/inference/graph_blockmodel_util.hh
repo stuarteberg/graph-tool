@@ -1528,12 +1528,6 @@ void build_neighbour_sampler(Vertex v, SMap& sampler, Eprop& eweight, Graph& g,
                                       // 2 * eweight[e]
     }
 
-    if (probs.empty())
-    {
-        neighbours.push_back(v);
-        probs.push_back(1.);
-    }
-
     sampler = Sampler<Vertex, mpl::false_>(neighbours, probs);
 };
 

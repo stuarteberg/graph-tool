@@ -1298,9 +1298,10 @@ public:
 
     size_t random_neighbour(size_t v, rng_t& rng)
     {
-        if (_neighbour_sampler[v].size() == 0)
+        auto& sampler = _neighbour_sampler[v];
+        if (sampler.empty())
             return v;
-        return sample_neighbour(_neighbour_sampler[v], rng);
+        return sample_neighbour(sampler, rng);
     }
 
     // Computes the move proposal probability
