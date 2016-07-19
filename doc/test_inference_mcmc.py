@@ -95,24 +95,30 @@ for directed in [True, False]:
 
     savefig("test_mcmc_move_prob_directed%s.pdf" % directed)
 
-g = collection.data["lesmis"]
-B = 6
+g = graph_union(complete_graph(4), complete_graph(4))
+g.add_edge(3, 4)
+vs = list(g.add_vertex(8))
+for i in range(3 * 8):
+    s = vs[randint(4)]
+    t = vs[randint(4) + 4]
+    g.add_edge(s, t)
+
 
 for directed in [True, False]:
     g.set_directed(directed)
 
     hists = {}
 
-    state = minimize_blockmodel_dl(g, deg_corr=True, B_min=B, B_max=B)
-    state = state.copy(B=B+1)
+    state = minimize_blockmodel_dl(g, deg_corr=True)
+    state = state.copy(B=g.num_vertices())
 
     cs = list(reversed([numpy.inf, 1, 0.1, 0.01, 0.001, "gibbs"]))
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=2000, allow_vacate=True)
+            mcmc_args=dict(beta=1, c=c, niter=20 if c != numpy.inf else 200)
         else:
-            mcmc_args=dict(beta=1, niter=2000, allow_vacate=True)
+            mcmc_args=dict(beta=1, niter=20)
         if i == 0:
             mcmc_equilibrate(state,
                              mcmc_args=mcmc_args,
@@ -123,8 +129,8 @@ for directed in [True, False]:
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    wait=200 if directed else 100,
-                                    nbreaks=5,
+                                    wait=10000,
+                                    nbreaks=40,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
