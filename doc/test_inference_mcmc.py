@@ -116,7 +116,7 @@ for directed in [True, False]:
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=20 if c != numpy.inf else 200)
+            mcmc_args=dict(beta=1, c=c, niter=20)
         else:
             mcmc_args=dict(beta=1, niter=20)
         if i == 0:
@@ -129,8 +129,8 @@ for directed in [True, False]:
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
-                                    wait=10000,
-                                    nbreaks=40,
+                                    wait=4000,
+                                    nbreaks=5,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,
                                     history=True)
 
@@ -143,14 +143,15 @@ for directed in [True, False]:
                 pass
             Ss1 = array(list(zip(*hists[c1]))[0])
             Ss2 = array(list(zip(*hists[c2]))[0])
-            # add very small normal noise, to solve discreetness issue
+            # add very small normal noise, to solve discreteness issue
             Ss1 += numpy.random.normal(0, 1e-6, len(Ss1))
             Ss2 += numpy.random.normal(0, 1e-6, len(Ss2))
             D, p = scipy.stats.ks_2samp(Ss1, Ss2)
+            D_c = 1.63 * sqrt((len(Ss1) + len(Ss2)) / (len(Ss1) * len(Ss2)))
             if verbose:
                 print("directed:", directed, "c1:", c1, "c2:", c2,
-                      "D", D, "p-value:", p)
-            if p < .001:
+                      "D:", D, "D_c:", D_c,  "p-value:", p)
+            if p < .01:
                 print(("Warning, distributions for directed=%s (c1, c2) = " +
                        "(%s, %s) are not the same, with a p-value: %g (D=%g)") %
                       (str(directed), str(c1), str(c2), p, D))
