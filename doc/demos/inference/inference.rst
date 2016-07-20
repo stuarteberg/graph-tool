@@ -399,7 +399,7 @@ which shows the number of nodes and groups in all levels:
    l: 3, N: 3, B: 1
 
 The hierarchical levels themselves are represented by individual
-:meth:`~graph_tool.inference.BlockState` instances via the
+:meth:`~graph_tool.inference.BlockState` instances obtained via the
 :meth:`~graph_tool.inference.NestedBlockState.get_levels()` method:
 
 .. testcode:: celegans
