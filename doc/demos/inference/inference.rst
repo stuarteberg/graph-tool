@@ -73,7 +73,7 @@ We note that Eq. :eq:`model-posterior` can be written as
 
 .. math::
 
-   P(\boldsymbol b | G) = \frac{e^{-\Sigma}}{P(G)}
+   P(\boldsymbol b | G) = \frac{\exp(-\Sigma)}{P(G)}
 
 where
 
@@ -506,9 +506,9 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:     1738.00660528
-   Degree-corrected DL:         1780.01146484
-   ln Λ:                        -42.0048595573
+   Non-degree-corrected DL:     1725.78502074
+   Degree-corrected DL:         1784.77629595
+   ln Λ:                        -58.9912752096
 
 Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-59} \sim
 10^{-25}` in favor of the non-degree-corrected model, it seems like the
@@ -792,7 +792,7 @@ network as above.
 .. testoutput:: nested-model-averaging
 
    Change in description length: 6.368298...
-   Number of accepted vertex moves: 3765
+   Number of accepted vertex moves: 5316
 
 Similarly to the the non-nested case, we can use
 :func:`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
@@ -826,9 +826,9 @@ work, and we can now obtain vertex marginals on all hierarchical levels:
 
    Marginal probabilities of group memberships of the network of
    characters in the novel Les Misérables, according to the nested
-   degree-corrected SBM. The `pie fractions <https://en.wikipedia.org/wiki/Pie_chart>`_
-   on the nodes correspond to the probability of being in group
-   associated with the respective color.
+   degree-corrected SBM. The pie fractions on the nodes correspond to
+   the probability of being in group associated with the respective
+   color.
 
 We can also obtain a marginal probability of the number of groups
 itself, as follows.
@@ -983,7 +983,7 @@ This approximation should be seen as an upper bound, since any existing
 correlation between the nodes (which are ignored here) will yield
 smaller entropy values.
 
-A more elaborate assumption is called the `Bethe approximation`
+A more accurate assumption is called the `Bethe approximation`
 [mezard-information-2009]_, and takes into account the correlation
 between adjacent nodes in the network,
 
@@ -1053,8 +1053,8 @@ evidence efficiently, as we show below, using
            em = s.collect_edge_marginals(em)
            dls.append(s.entropy())
 
-       # Now we collect the marginal distributions for exactly 100,000 sweeps
-       gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
+       # Now we collect the marginal distributions for exactly 200,000 sweeps
+       gt.mcmc_equilibrate(state, force_niter=20000, mcmc_args=dict(niter=10),
                            callback=collect_marginals)
 
        S_mf = gt.mf_entropy(g, vm)
@@ -1066,11 +1066,11 @@ evidence efficiently, as we show below, using
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -622.794364945 (mean field), -707.484453595 (Bethe)
-   Model evidence for deg_corr = False: -624.357861783 (mean field), -657.164066465 (Bethe)
+   Model evidence for deg_corr = True: -599.280568166 (mean field), -744.851035413 (Bethe)
+   Model evidence for deg_corr = False: -637.320504421 (mean field), -669.533693635 (Bethe)
 
-Despite the (expected) discrepancy between both approximations, the
-outcome shows a clear preference for the non-degree-corrected model.
+If we consider the more accurate approximation, the outcome shows a
+preference for the non-degree-corrected model.
 
 When using the nested model, the approach is entirely analogous. The
 only difference now is that we have a hierarchical partition
@@ -1117,8 +1117,8 @@ approach for the same network, using the nested model.
            em = levels[0].collect_edge_marginals(em)
            dls.append(s.entropy())
 
-       # Now we collect the marginal distributions for exactly 100,000 sweeps
-       gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
+       # Now we collect the marginal distributions for exactly 200,000 sweeps
+       gt.mcmc_equilibrate(state, force_niter=20000, mcmc_args=dict(niter=10),
                            callback=collect_marginals)
 
        S_mf = [gt.mf_entropy(sl.g, vm[l]) for l, sl in enumerate(state.get_levels())]
@@ -1131,17 +1131,15 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -549.845093934 (mean field), -688.382102062 (Bethe)
-   Model evidence for deg_corr = False: -593.581546241 (mean field), -621.257816805 (Bethe)
+   Model evidence for deg_corr = True: -508.072303996 (mean field), -703.774572649 (Bethe)
+   Model evidence for deg_corr = False: -565.034423817 (mean field), -662.335604507 (Bethe)
 
-The results are interesting: Not only we observe a better evidence for
-the nested models themselves, when comparing to the evidences for the
-non-nested model --- which is not quite surprising, since the non-nested
-model is a special case of the nested one --- but also we find that the
-degree-corrected model yields the larger evidence. This is different
-from the outcome using the non-nested model, but it is not a
-contradiction, since these models are indeed different.
-
+The results are similar: If we consider the most accurate approximation,
+the non-degree-corrected model possesses the largest evidence. Note also
+that we observe a better evidence for the nested models themselves, when
+comparing to the evidences for the non-nested model --- which is not
+quite surprising, since the non-nested model is a special case of the
+nested one.
 
 Edge layers and covariates
 --------------------------
@@ -1364,8 +1362,8 @@ above).
 
 .. testoutput:: missing-edges
 
-   likelihood-ratio for (101, 102): 0.357594
-   likelihood-ratio for (17, 56): 0.642406
+   likelihood-ratio for (101, 102): 0.350445
+   likelihood-ratio for (17, 56): 0.649555
 
 From which we can conclude that edge :math:`(17, 56)` is around twice as
 likely as :math:`(101, 102)` to be a missing edge.
