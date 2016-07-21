@@ -2697,7 +2697,7 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
     return g
 
 def load_graph_from_csv(file_name, directed=True, eprop_types=None,
-                        eprop_titles=None, string_vals=True, hashed=False,
+                        eprop_names=None, string_vals=True, hashed=False,
                         skip_first=False, ecols=(0,1),
                         csv_options={"delimiter": ",","quotechar": '"'}):
     """Load a graph from a :mod:`csv` file containing a list of edges and edge
@@ -2712,7 +2712,7 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
     eprop_types : list of ``str`` (optional, default: ``None``)
         List of edge property types to be read from remaining columns (if this
         is ``None``, all properties will be of type ``string``.
-    eprop_titles : list of ``str`` (optional, default: ``None``)
+    eprop_names : list of ``str`` (optional, default: ``None``)
         List of edge property names to be used for the remaining columns (if this
         is ``None``, the properties will be called "c1, c2, ...").
     string_vals : ``bool`` (optional, default: ``False``)
@@ -2777,21 +2777,24 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
         r = conv(r)
     line = next(r)
     g = Graph(directed=directed)
+
     if eprop_types is None:
         eprops = [g.new_ep("string") for x in line[2:]]
     else:
         eprops = [g.new_ep(t) for t in eprop_types]
+
     name = g.add_edge_list(itertools.chain([line], r),
                            string_vals=string_vals,
                            hashed=hashed or string_vals,
                            eprops=eprops)
+
     for i, p in enumerate(eprops):
-        if eprop_titles:
-            etitle = eprop_titles[i]
+        if eprop_names:
+            ename = eprop_names[i]
         else:
-            etitle = "c%d" % i
-        g.ep[etitle] = p
-        
+            ename = "c%d" % i
+        g.ep[ename] = p
+
     if name is not None:
         g.vp.name = name
     return g
