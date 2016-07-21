@@ -2697,9 +2697,9 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
     return g
 
 def load_graph_from_csv(file_name, directed=True, eprop_types=None,
-                        string_vals=True, hashed=False, skip_first=False,
-                        ecols=(0,1), csv_options={"delimiter": ",",
-                                                  "quotechar": '"'}):
+                        eprop_titles=None, string_vals=True, hashed=False,
+                        skip_first=False, ecols=(0,1),
+                        csv_options={"delimiter": ",","quotechar": '"'}):
     """Load a graph from a :mod:`csv` file containing a list of edges and edge
     properties.
 
@@ -2712,6 +2712,9 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
     eprop_types : list of ``str`` (optional, default: ``None``)
         List of edge property types to be read from remaining columns (if this
         is ``None``, all properties will be of type ``string``.
+    eprop_titles : list of ``str`` (optional, default: ``None``)
+        List of edge property names to be used for the remaining columns (if this
+        is ``None``, the properties will be called "c1, c2, ...").
     string_vals : ``bool`` (optional, default: ``False``)
         If ``True``, the vertex values are assumed to be arbitrary strings,
         otherwise they will be assumed to correspond to integers.
@@ -2783,7 +2786,12 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
                            hashed=hashed or string_vals,
                            eprops=eprops)
     for i, p in enumerate(eprops):
-        g.ep["c%d" % i] = p
+        if eprop_titles:
+            etitle = eprop_titles[i]
+        else:
+            etitle = "c%d" % i
+        g.ep[etitle] = p
+        
     if name is not None:
         g.vp.name = name
     return g
