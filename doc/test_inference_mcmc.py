@@ -112,7 +112,7 @@ for directed in [True, False]:
     state = minimize_blockmodel_dl(g, deg_corr=True)
     state = state.copy(B=g.num_vertices())
 
-    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, 0.001, "gibbs"]))
+    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, "gibbs"]))
 
     for i, c in enumerate(cs):
         if c != "gibbs":
@@ -124,7 +124,7 @@ for directed in [True, False]:
                              mcmc_args=mcmc_args,
                              gibbs=c=="gibbs",
                              nbreaks=5,
-                             wait=100,
+                             wait=5000,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
@@ -144,17 +144,17 @@ for directed in [True, False]:
             Ss1 = array(list(zip(*hists[c1]))[0])
             Ss2 = array(list(zip(*hists[c2]))[0])
             # add very small normal noise, to solve discreteness issue
-            Ss1 += numpy.random.normal(0, 1e-6, len(Ss1))
-            Ss2 += numpy.random.normal(0, 1e-6, len(Ss2))
+            Ss1 += numpy.random.normal(0, 1e-2, len(Ss1))
+            Ss2 += numpy.random.normal(0, 1e-2, len(Ss2))
             D, p = scipy.stats.ks_2samp(Ss1, Ss2)
             D_c = 1.63 * sqrt((len(Ss1) + len(Ss2)) / (len(Ss1) * len(Ss2)))
             if verbose:
                 print("directed:", directed, "c1:", c1, "c2:", c2,
                       "D:", D, "D_c:", D_c,  "p-value:", p)
-            if p < .01:
+            if p < .001:
                 print(("Warning, distributions for directed=%s (c1, c2) = " +
-                       "(%s, %s) are not the same, with a p-value: %g (D=%g)") %
-                      (str(directed), str(c1), str(c2), p, D))
+                       "(%s, %s) are not the same, with a p-value: %g (D=%g, D_c=%g)") %
+                      (str(directed), str(c1), str(c2), p, D, D_c))
 
     for cum in [True, False]:
         clf()

@@ -47,6 +47,7 @@ import numpy as np
 from pylab import *
 from numpy import *
 import graph_tool.all as gt
+import random as prandom
 
 figure()
 
@@ -54,5 +55,7 @@ try:
     gt.openmp_set_num_threads(1)
 except RuntimeError:
     pass
+
+prandom.seed(42)
 np.random.seed(42)
 gt.seed_rng(42)
