@@ -1202,7 +1202,7 @@ def edge_endpoint_property(g, prop, endpoint, eprop=None):
         raise ValueError("'eprop' must be of the same value type as 'prop': " +
                          val_t)
     libcore.edge_endpoint(g._Graph__graph, _prop("v", g, prop),
-                          _prop("e", g, eprop), endpoint)
+                          _prop("e", g, eprop), _to_str(endpoint))
     return eprop
 
 @_limit_args({"direction": ["in", "out"], "op": ["sum", "prod", "min", "max"]})
