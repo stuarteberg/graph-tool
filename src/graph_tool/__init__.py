@@ -1255,7 +1255,7 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
     if direction == "in":
         g = GraphView(g, reversed=True, skip_properties=True)
     libcore.out_edges_op(g._Graph__graph, _prop("e", g, eprop),
-                          _prop("v", g, vprop), op)
+                          _prop("v", g, vprop), _to_str(op))
     if vprop is not orig_vprop:
         g.copy_property(vprop, orig_vprop)
     return orig_vprop
