@@ -51,40 +51,22 @@ AC_MSG_CHECKING(whether to enable debug info)
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug],[compile debug information [default=disabled] ])],
         if test $enableval = yes; then
            [AC_DEFINE([DEBUG], 1, [compile debug info])]
-           [CXXFLAGS="${CXXFLAGS} -ggdb3"]
+           [CXXFLAGS="-ggdb3 ${CXXFLAGS}"]
            [AC_MSG_RESULT(yes)] 
         else
-           [CXXFLAGS="${CXXFLAGS} -DNDEBUG"]
+           [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
            [AC_MSG_RESULT(no)]
         fi
         ,
-        [CXXFLAGS="${CXXFLAGS} -DNDEBUG"]
+        [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
         [AC_MSG_RESULT(no)]
         )
 
 dnl set template depth
-[CXXFLAGS="${CXXFLAGS} -ftemplate-depth-250"]
+[CXXFLAGS="-ftemplate-depth-250 ${CXXFLAGS}"]
 
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
-[CXXFLAGS="${CXXFLAGS} -Wno-deprecated -Wno-unknown-pragmas"]
-
-AC_MSG_CHECKING(whether to enable function inlining...)
-
-[NO_INLINE=no]
-AC_ARG_ENABLE([inline], [AS_HELP_STRING([--disable-inline],[disable inline functions [default=enabled] ])],
-        if test $enableval = no; then
-           [AC_DEFINE([NO_INLINE], 1, [disable function inlining])]
-           [CXXFLAGS="${CXXFLAGS} -fno-inline -fno-default-inline"]
-           [NO_INLINE=yes]
-           [AC_MSG_RESULT(no)]
-        else
-           [AC_MSG_RESULT(yes)]
-        fi
-        ,
-        [AC_MSG_RESULT(yes)]
-        )
-
-AM_CONDITIONAL(NO_INLINE, test $NO_INLINE = yes)
+[CXXFLAGS="-Wno-deprecated -Wno-unknown-pragmas ${CXXFLAGS}"]
 
 AC_MSG_CHECKING(whether to enable optimizations)
 
@@ -92,11 +74,11 @@ AC_ARG_ENABLE([optimization], [AS_HELP_STRING([--disable-optimization],[disable 
         if test $enableval = no; then
            [AC_MSG_RESULT(no)]
         else
-           [CXXFLAGS="${CXXFLAGS} -O3"]
+           [CXXFLAGS="-O3 ${CXXFLAGS}"]
            [AC_MSG_RESULT(yes)]
         fi
         ,
-        [CXXFLAGS="${CXXFLAGS} -O3"]
+        [CXXFLAGS="-O3 ${CXXFLAGS}"]
         [AC_MSG_RESULT(yes)]
         )
 
@@ -104,13 +86,13 @@ AC_MSG_CHECKING(whether to enable symbol visibility manipulation)
 
 AC_ARG_ENABLE([visibility], [AS_HELP_STRING([--disable-visibility],[disable symbol visibility manipulation [default=enabled] ])],
         if test $enableval = yes; then
-           [CXXFLAGS="${CXXFLAGS} -fvisibility=default -fvisibility-inlines-hidden"]
+           [CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
            [AC_MSG_RESULT(yes)]
         else
            [AC_MSG_RESULT(no)]
         fi
         ,
-        [CXXFLAGS="${CXXFLAGS} -fvisibility=default -fvisibility-inlines-hidden"]
+        [CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
         [AC_MSG_RESULT(yes)]
         )
 
@@ -137,8 +119,8 @@ AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--enable-openmp],[enable openmp [defaul
         if test $enableval = yes; then
            [AC_MSG_RESULT(yes)]
            [AC_DEFINE([USING_OPENMP], 1, [using openmp])]
-           [CXXFLAGS="${CXXFLAGS} -fopenmp"]
-           [OPENMP_LDFLAGS=" -lgomp "]
+           [CXXFLAGS="-fopenmp ${CXXFLAGS}"]
+           [OPENMP_LDFLAGS="-lgomp"]
         else
            [USING_OPENMP=no]
            [CXXFLAGS="${CXXFLAGS} -Wno-unknown-pragmas"]
@@ -191,8 +173,8 @@ PYTHON_FULL_VERSION=[`${PYTHON} -c "import sys; print(sys.version.split()[0])"`]
 AC_SUBST(PYTHON_FULL_VERSION)
 [TEMP_CPPFLAGS="${CPPFLAGS}"]
 AC_PYTHON_DEVEL([== '${PYTHON_FULL_VERSION}'])
-[CPPFLAGS="${CPPFLAGS} ${PYTHON_CPPFLAGS}"]
-[LDFLAGS="${LDFLAGS} ${PYTHON_LDFLAGS}"]
+[CPPFLAGS="${PYTHON_CPPFLAGS} ${CPPFLAGS}"]
+[LDFLAGS="${PYTHON_LDFLAGS} ${LDFLAGS}"]
 
 # default directory for submodules
 [MOD_DIR="${PYTHON_SITE_PKG}"]
@@ -234,7 +216,7 @@ if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
 fi
 
-[CPPFLAGS="${CPPFLAGS} ${BOOST_CPPFLAGS}"]
+[CPPFLAGS="${BOOST_CPPFLAGS} ${CPPFLAGS}"]
 
 dnl CGAL
 AC_CHECK_LIB(CGAL,main)
@@ -264,7 +246,7 @@ AC_ARG_WITH([numpy], [AS_HELP_STRING([--with-numpy=DIR],[directory where numpy i
                       [default=auto-detected] ])],
             NUMPY_DIR=$withval)
 AC_CHECK_HEADER([${NUMPY_DIR}/numpy/arrayobject.h],
-                [CPPFLAGS="${CPPFLAGS} -I${NUMPY_DIR}"],
+                [CPPFLAGS="-I${NUMPY_DIR} ${CPPFLAGS}"],
                 [AC_MSG_ERROR([Numpy extension header not found])],
                 [#include "Python.h"])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h" #include "${NUMPY_DIR}/numpy/arrayobject.h" #if NPY_API_VERSION < 0x00000007 #error #endif]])],
@@ -299,8 +281,8 @@ if test "$USING_CAIRO" = "yes"; then
    AX_PYTHON_MODULE(cairo)
    [OLD_CXXFLAGS="${CXXFLAGS}"]
    [OLD_CPPFLAGS="${CPPFLAGS}"]
-   [CXXFLAGS="${CXXFLAGS} ${CAIROMM_CFLAGS}"]
-   [CPPFLAGS="${CPPFLAGS} ${CAIROMM_CFLAGS}"]
+   [CXXFLAGS="${CAIROMM_CFLAGS} ${CXXFLAGS}"]
+   [CPPFLAGS="${CAIROMM_CFLAGS} ${CPPFLAGS}"]
    PYTHON_VERSION_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
    if test "$PYTHON_VERSION_MAJOR" = "3"; then
       [PYCAIRO_HEADER=pycairo/py3cairo.h]
@@ -317,8 +299,8 @@ fi
 dnl sparsehash
 [SPARSEHASH_PREFIX=sparsehash]
 AC_ARG_WITH([sparsehash-prefix], [AS_HELP_STRING([--with-sparsehash-prefix=prefix],
-                    [include directory prefix for sparsehash
-                                [default=sparsehash] ])],
+                                                 [include directory prefix for sparsehash
+                                                  [default=sparsehash] ])],
             [SPARSEHASH_PREFIX=$withval])
 
 [USING_SPARSEHASH=yes]
