@@ -153,12 +153,15 @@ struct export_vector_types
             [] (vector<ValueType>& v) { v.shrink_to_fit(); };
         std::function<bool(vector<ValueType>&)> empty =
             [] (vector<ValueType>& v) -> bool { return v.empty(); };
+        std::function<void(vector<ValueType>&)> clear =
+            [] (vector<ValueType>& v) { v.clear(); };
         vc.def(vector_indexing_suite<vector<ValueType> >())
             .def("__eq__", &vector_equal_compare<ValueType>)
             .def("__ne__", &vector_nequal_compare<ValueType>)
             .def("__hash__", hasher)
             .def("resize", resize)
             .def("shrink_to_fit", shrink_to_fit)
+            .def("clear", clear)
             .def("empty", empty);
         wrap_array(vc, typename boost::mpl::has_key<numpy_types,ValueType>::type());
         vector_from_list<ValueType>();
