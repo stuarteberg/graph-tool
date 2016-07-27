@@ -118,6 +118,7 @@ public:
         rebuild_neighbour_sampler();
         _empty_blocks.clear();
         _candidate_blocks.clear();
+        _candidate_blocks.push_back(null_group);
         for (auto r : vertices_range(_bg))
         {
             if (_wr[r] == 0)
@@ -125,9 +126,6 @@ public:
             else
                 add_element(_candidate_blocks, _candidate_pos, r);
         }
-        if (!_empty_blocks.empty())
-            add_element(_candidate_blocks, _candidate_pos,
-                        _empty_blocks.back());
     }
 
     BlockState(const BlockState& other)
@@ -294,11 +292,7 @@ public:
 
         if (_vweight[v] > 0 && _wr[r] == 0)
         {
-            // Group became empty: Remove from candidate list, unless it is the
-            // only empty group remaining.
-            if (!_empty_blocks.empty() &&
-                has_element(_candidate_blocks, _candidate_pos, r))
-                remove_element(_candidate_blocks, _candidate_pos, r);
+            remove_element(_candidate_blocks, _candidate_pos, r);
             add_element(_empty_blocks, _empty_pos, r);
         }
     }
@@ -317,25 +311,8 @@ public:
 
         if (_vweight[v] > 0 && _wr[r] == _vweight[v])
         {
-            // Previously empty group became occupied: Remove from empty list
-            // and add a new empty group to the candidate list (if available).
             remove_element(_empty_blocks, _empty_pos, r);
-
-            if (has_element(_candidate_blocks, _candidate_pos, r))
-            {
-                if (!_empty_blocks.empty())
-                {
-                    auto s = _empty_blocks.back();
-                    if (!has_element(_candidate_blocks, _candidate_pos, s))
-                        add_element(_candidate_blocks, _candidate_pos, s);
-                }
-            }
-            else
-            {
-                // if r is not a candidate in the first place (i.e. the move as
-                // done by hand by the user), we need just to add it to the list
-                add_element(_candidate_blocks, _candidate_pos, r);
-            }
+            add_element(_candidate_blocks, _candidate_pos, r);
         }
     }
 
@@ -1259,7 +1236,19 @@ public:
     size_t sample_block(size_t v, double c, RNG& rng)
     {
         // attempt random block
-        size_t s = uniform_sample(_candidate_blocks, rng);
+        size_t s;
+        if (_empty_blocks.empty())
+        {
+            s = uniform_sample(_candidate_blocks.begin() + 1,
+                               _candidate_blocks.end(),
+                               rng);
+        }
+        else
+        {
+            s = uniform_sample(_candidate_blocks, rng);
+            if (s == null_group)
+                s = uniform_sample(_empty_blocks, rng);
+        }
 
         auto& sampler = _neighbour_sampler[v];
         if (!std::isinf(c) && !sampler.empty())
@@ -1269,7 +1258,8 @@ public:
             double p_rand = 0;
             if (c > 0)
             {
-                size_t B = _candidate_blocks.size();
+                size_t B = (_empty_blocks.empty()) ?
+                    _candidate_blocks.size() - 1 : _candidate_blocks.size();
                 if (is_directed::apply<g_t>::type::value)
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
@@ -1310,7 +1300,8 @@ public:
                          MEntries& m_entries)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        size_t B = _candidate_blocks.size();
+        size_t B = (_empty_blocks.empty()) ?
+            _candidate_blocks.size() - 1 : _candidate_blocks.size();
         double p = 0;
         size_t w = 0;
 

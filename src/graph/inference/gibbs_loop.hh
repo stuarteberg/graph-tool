@@ -136,7 +136,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
 
                  if (!state._parallel)
                  {
-                     state.perform_move(v, s);
+                     state.perform_move(v, s, rng);
                      nmoves += state.node_weight(v);
                      S += deltas[j];
                  }
@@ -160,7 +160,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                     if (dS > 0 && std::isinf(beta))
                         continue;
 
-                    state.perform_move(v, s);
+                    state.perform_move(v, s, get_rng(rngs, rng_));
                     nmoves++;
                     S += dS;
                 }

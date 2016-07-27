@@ -1022,6 +1022,9 @@ public:
 
     UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
     UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
+
+    std::array<size_t, 0> _empty_blocks;
+
 };
 
 } // namespace graph_tool

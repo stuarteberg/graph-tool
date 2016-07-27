@@ -69,7 +69,7 @@ inline double lbinom_careful(double N, double k)
 }
 
 template <class Vec, class PosMap, class Val>
-void remove_element(Vec& vec, PosMap& pos, Val& val)
+void remove_element(Vec& vec, PosMap& pos, Val val)
 {
     auto& back = vec.back();
     auto& j = pos[back];
@@ -80,14 +80,14 @@ void remove_element(Vec& vec, PosMap& pos, Val& val)
 }
 
 template <class Vec, class PosMap, class Val>
-void add_element(Vec& vec, PosMap& pos, Val& val)
+void add_element(Vec& vec, PosMap& pos, Val val)
 {
     pos[val] = vec.size();
     vec.push_back(val);
 }
 
 template <class Vec, class PosMap, class Val>
-bool has_element(Vec& vec, PosMap& pos, Val& val)
+bool has_element(Vec& vec, PosMap& pos, Val val)
 {
     size_t i = pos[val];
     return (i < vec.size() && vec[i] == val);

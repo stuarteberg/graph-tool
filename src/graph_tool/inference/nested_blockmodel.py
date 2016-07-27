@@ -501,6 +501,16 @@ class NestedBlockState(object):
             else:
                 args = overlay(kwargs, entropy_args=eargs, c=c[l])
 
+            if l > 0:
+                N_ = self.levels[l].get_N()
+                idx_ = self.levels[l].wr.a == 0
+                rs = arange(len(idx_), dtype="int")
+                rs = rs[idx_]
+                rs = rs[:N_]
+                self.levels[l].empty_blocks.resize(len(rs))
+                self.levels[l].empty_blocks.a = rs
+                reverse_map(rs, self.levels[l].empty_pos)
+
             ret = algo(self.levels[l], **args)
 
             dS += ret[0]

@@ -111,13 +111,20 @@ private:
 
 // uniform sampling from containers
 
+template <class Iter, class RNG>
+auto& uniform_sample(Iter begin, const Iter& end, RNG& rng)
+{
+    auto N = end - begin;
+    std::uniform_int_distribution<size_t> i_rand(0, N - 1);
+    std::advance(begin, i_rand(rng));
+    return *begin;
+}
+
 template <class Container, class RNG>
 auto& uniform_sample(Container& v, RNG& rng)
 {
-    std::uniform_int_distribution<size_t> i_rand(0, v.size() - 1);
-    return v[i_rand(rng)];
+    return uniform_sample(v.begin(), v.end(), rng);
 }
-
 
 } // namespace graph_tool
 
