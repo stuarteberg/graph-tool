@@ -1209,7 +1209,7 @@ covariates.
 
 In the case of the nested model, we still should use the
 :class:`~graph_tool.inference.NestedBlockState` class, but it must be
-initialized with the parameter `base_type = LayeredBlockState`. But if
+initialized with the parameter ``base_type = LayeredBlockState``. But if
 we use :func:`~graph_tool.inference.minimize_nested_blockmodel_dl`, it
 works identically to the above:
 
