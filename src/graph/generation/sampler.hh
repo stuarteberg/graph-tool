@@ -44,37 +44,38 @@ public:
         for (size_t i = 0; i < _probs.size(); ++i)
             S += _probs[i];
 
+        vector<size_t> small;
+        vector<size_t> large;
+
         for (size_t i = 0; i < _probs.size(); ++i)
         {
             _probs[i] *= _probs.size() / S;
             if (_probs[i] < 1)
-                _small.push_back(i);
+                small.push_back(i);
             else
-                _large.push_back(i);
+                large.push_back(i);
         }
 
-        while (!(_small.empty() || _large.empty()))
+        while (!(small.empty() || large.empty()))
         {
-            size_t l = _small.back();
-            size_t g = _large.back();
-            _small.pop_back();
-            _large.pop_back();
+            size_t l = small.back();
+            size_t g = large.back();
+            small.pop_back();
+            large.pop_back();
 
             _alias[l] = g;
             _probs[g] = (_probs[l] + _probs[g]) - 1;
             if (_probs[g] < 1)
-                _small.push_back(g);
+                small.push_back(g);
             else
-                _large.push_back(g);
+                large.push_back(g);
         }
 
         // fix numerical instability
-        for (size_t i = 0; i < _large.size(); ++i)
-            _probs[_large[i]] = 1;
-        for (size_t i = 0; i < _small.size(); ++i)
-            _probs[_small[i]] = 1;
-        _large.clear();
-        _small.clear();
+        for (size_t i = 0; i < large.size(); ++i)
+            _probs[large[i]] = 1;
+        for (size_t i = 0; i < small.size(); ++i)
+            _probs[small[i]] = 1;
 
         _sample = uniform_int_distribution<size_t>(0, _probs.size() - 1);
     }
@@ -103,8 +104,6 @@ private:
     items_t _items;
     vector<double> _probs;
     vector<size_t> _alias;
-    vector<size_t> _small;
-    vector<size_t> _large;
     uniform_int_distribution<size_t> _sample;
 
 };
