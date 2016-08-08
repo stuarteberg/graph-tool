@@ -2571,6 +2571,8 @@ class Graph(object):
                     self.properties[(pmaps[-1].key_type(), pname)] = pmaps[-1]
 
             new_g = Graph(self, prune=(True, False, False))
+            if hasattr(self, "_GraphView__base"):
+                self._GraphView__base = new_g
             self.__graph = new_g.__graph
             self.set_vertex_filter(None)
 
