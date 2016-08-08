@@ -132,13 +132,13 @@ def random_layout(g, shape=None, pos=None, dim=2):
 
     """
 
-    if pos == None:
+    if pos is None:
         pos = g.new_vertex_property("vector<double>")
     _check_prop_vector(pos, name="pos")
 
     pos = ungroup_vector_property(pos, list(range(0, dim)))
 
-    if shape == None:
+    if shape is None:
         shape = [sqrt(g.num_vertices())] * dim
 
     for i in range(dim):
@@ -295,7 +295,7 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
        (Wiley) 21 (11): 1129-1164. (1991) :doi:`10.1002/spe.4380211102`
     """
 
-    if pos == None:
+    if pos is None:
         pos = random_layout(g, dim=2)
     _check_prop_vector(pos, name="pos", floating=True)
 
@@ -686,6 +686,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
         pos = random_layout(g, dim=2)
     _check_prop_vector(pos, name="pos", floating=True)
 
+    g_ = g
     g = GraphView(g, directed=False)
 
     if pin is not None:
@@ -724,7 +725,6 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                 print("Positioning level:", count, u.num_vertices(), end=' ')
                 print("with K =", K, "...")
                 count += 1
-            #graph_draw(u, pos)
             pos = sfdp_layout(u, pos=pos,
                               vweight=vcount if weighted_coarse else None,
                               eweight=ecount if weighted_coarse else None,
@@ -739,7 +739,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                               #               _avg_edge_distance(u, pos)),
                               multilevel=False,
                               verbose=False)
-            #graph_draw(u, pos)
+        pos = g_.own_property(pos)
         return pos
 
     if g.num_vertices() <= 1:
@@ -764,6 +764,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
                                      theta, init_step, cooling_step, max_level,
                                      epsilon, max_iter, not adaptive_cooling,
                                      verbose, _get_rng())
+    pos = g_.own_property(pos)
     return pos
 
 def radial_tree_layout(g, root, rel_order=None, weighted=False,
