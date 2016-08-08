@@ -86,7 +86,7 @@ public:
           _c_mrs(_mrs.get_checked()),
           _c_brec(_brec.get_checked()),
           _c_bdrec(_bdrec.get_checked()),
-          _emat(_g, _b, _bg, rng),
+          _emat(_bg, rng),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg))
     {
         for (auto r : vertices_range(_bg))
@@ -117,12 +117,13 @@ public:
         {
             size_t s = _b[u];
 
-            auto e = *out_edges(v, _g).first;
-            auto& me = _emat.get_bedge(e);
+            auto& me = _emat.get_me(r, s);
 
             _mrs[me] -= 1;
             _mrp[r] -= 1;
             _mrm[s] -= 1;
+
+            auto e = *out_edges(v, _g).first;
             eop(e, me);
 
             assert(_mrs[me] >= 0);
@@ -135,12 +136,13 @@ public:
         {
             size_t s = _b[u];
 
-            auto e = *in_edge_iteratorS<g_t>().get_edges(v, _g).first;
-            auto& me = _emat.get_bedge(e);
+            auto& me = _emat.get_me(s, r);
 
             _mrs[me] -= 1;
             _mrp[s] -= 1;
             _mrm[r] -= 1;
+
+            auto e = *in_edge_iteratorS<g_t>().get_edges(v, _g).first;
             eop(e, me);
 
             if (_mrs[me] == 0)
@@ -199,14 +201,13 @@ public:
                 _c_bdrec[me] = 0;
             }
 
-            auto e = *out_edges(v, _g).first;
-            _emat.get_bedge(e) = me;
-
             assert(me == _emat.get_me(r, s));
 
             _mrs[me] += 1;
             _mrp[r] += 1;
             _mrm[s] += 1;
+
+            auto e = *out_edges(v, _g).first;
             eop(e, me);
         }
 
@@ -226,14 +227,12 @@ public:
                 _c_bdrec[me] = 0;
             }
 
-            auto e = *in_edge_iteratorS<g_t>().get_edges(v, _g).first;
-            _emat.get_bedge(e) = me;
-
             assert(me == _emat.get_me(s, r));
 
             _mrs[me] += 1;
             _mrp[s] += 1;
             _mrm[r] += 1;
+            auto e = *in_edge_iteratorS<g_t>().get_edges(v, _g).first;
             eop(e, me);
         }
 
@@ -331,9 +330,10 @@ public:
     {
         auto mv_entries = [&](auto&&... args)
             {
-                move_entries(v, r, nr, _b, _emat.get_bedge_map(), _g, _bg,
-                             m_entries, is_loop_overlap(_overlap_stats),
-                             _eweight, args...);
+                move_entries(v, r, nr, [&](auto u) { return this->_b[u]; },
+                             _g, _eweight, m_entries,
+                             [](auto) { return false; },
+                             is_loop_overlap(_overlap_stats), args...);
             };
 
         switch (_rec_type)
@@ -358,9 +358,6 @@ public:
 
         if (r == nr)
             return 0.;
-
-        m_entries.clear();
-        get_move_entries(v, r, nr, m_entries);
 
         size_t kout = out_degreeS()(v, _g);
         size_t kin = 0;
@@ -424,6 +421,9 @@ public:
         if (!allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
+        m_entries.clear();
+        get_move_entries(v, r, nr, m_entries);
+
         double dS = 0;
         if (ea.adjacency)
         {
@@ -431,11 +431,6 @@ public:
                 dS = virtual_move_sparse<true>(v, nr, ea.multigraph, m_entries);
             else
                 dS = virtual_move_sparse<false>(v, nr, ea.multigraph, m_entries);
-        }
-        else
-        {
-            m_entries.clear();
-            get_move_entries(v, r, nr, m_entries);
         }
 
         if (ea.partition_dl || ea.degree_dl || ea.edges_dl)
@@ -453,7 +448,7 @@ public:
         switch (_rec_type)
         {
         case weight_type::POSITIVE: // positive weights
-            entries_op(m_entries,
+            entries_op(m_entries, _emat,
                        [&](auto, auto, auto& me, auto& delta)
                        {
                            size_t ers = 0;
@@ -472,7 +467,7 @@ public:
                        });
             break;
         case weight_type::SIGNED: // positive and negative weights
-            entries_op(m_entries,
+            entries_op(m_entries, _emat,
                        [&](auto, auto, auto& me, auto& delta)
                        {
                            size_t ers = 0;
@@ -613,18 +608,20 @@ public:
                 size_t ew = _eweight[e];
                 w += ew;
 
-                int mts;
-                if (t == r && s == size_t(_b[u]))
-                    mts = _mrs[_emat.get_bedge(e)];
-                else
-                    mts = get_beprop(t, s, _mrs, _emat);
+                int mts = 0;
+                const auto& me = m_entries.get_me(t, s, _emat);
+                if (me != _emat.get_null_edge())
+                    mts = _mrs[me];
                 int mtp = _mrp[t];
                 int mst = mts;
                 int mtm = mtp;
 
                 if (is_directed::apply<g_t>::type::value)
                 {
-                    mst = get_beprop(s, t, _mrs, _emat);
+                    mst = 0;
+                    const auto& me = m_entries.get_me(s, t, _emat);
+                    if (me != _emat.get_null_edge())
+                        mst = _mrs[me];
                     mtm = _mrm[t];
                 }
 
@@ -1005,8 +1002,8 @@ public:
     typename bdrec_t::checked_t _c_bdrec;
 
     typedef typename std::conditional<use_hash_t::value,
-                                      EHash<g_t, bg_t>,
-                                      EMat<g_t, bg_t>>::type
+                                      EHash<bg_t>,
+                                      EMat<bg_t>>::type
         emat_t;
     emat_t _emat;
 

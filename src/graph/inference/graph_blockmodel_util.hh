@@ -768,19 +768,17 @@ private:
 // we're using an adjacency list to store the block structure (it is simply an
 // adjacency matrix)
 
-template <class Graph, class BGraph>
+template <class BGraph>
 class EMat
 {
 public:
-    template <class Vprop, class RNG>
-    EMat(Graph& g, Vprop b, BGraph& bg, RNG&)
-        : _bedge(get(edge_index_t(), g), 0)
+    template <class RNG>
+    EMat(BGraph& bg, RNG&)
     {
-        sync(g, b, bg);
+        sync(bg);
     }
 
-    template <class Vprop>
-    void sync(Graph& g, Vprop b, BGraph& bg)
+    void sync(BGraph& bg)
     {
         size_t B = num_vertices(bg);
         _mat.resize(boost::extents[B][B]);
@@ -792,15 +790,6 @@ public:
             _mat[source(e, bg)][target(e, bg)] = e;
             if (!is_directed::apply<BGraph>::type::value)
                 _mat[target(e, bg)][source(e, bg)] = e;
-        }
-
-        auto bedge_c = _bedge.get_checked();
-        for (auto e : edges_range(g))
-        {
-            auto r = b[source(e, g)];
-            auto s = b[target(e, g)];
-            bedge_c[e] = _mat[r][s];
-            assert(bedge_c[e] != _null_edge);
         }
     }
 
@@ -825,30 +814,21 @@ public:
         if (delete_edge)
         {
             _mat[r][s] = _null_edge;
-            if (!is_directed::apply<Graph>::type::value)
+            if (!is_directed::apply<BGraph>::type::value)
                 _mat[s][r] = _null_edge;
             remove_edge(me, bg);
         }
     }
 
-    template <class Edge>
-    auto& get_bedge(const Edge& e) { return _bedge[e]; }
-    auto& get_bedge_map() { return _bedge; }
-    const auto& get_bedge_map() const { return _bedge; }
     const auto& get_null_edge() const { return _null_edge; }
 
 private:
     multi_array<edge_t, 2> _mat;
-    typedef typename property_map_type::apply
-        <edge_t,
-         typename property_map<Graph,
-                               edge_index_t>::type>::type bedge_t;
-    typename bedge_t::unchecked_t _bedge;
     static const edge_t _null_edge;
 };
 
-template <class Graph, class BGraph>
-const typename EMat<Graph, BGraph>::edge_t EMat<Graph, BGraph>::_null_edge;
+template <class BGraph>
+const typename EMat<BGraph>::edge_t EMat<BGraph>::_null_edge;
 
 
 template <class Key>
@@ -875,22 +855,20 @@ private:
 // we're using an adjacency list to store the block structure (this is like
 // EMat above, but takes less space and is slower)
 
-template <class Graph, class BGraph>
+template <class BGraph>
 class EHash
 {
 public:
 
-    template <class Vprop, class RNG>
-    EHash(Graph& g, Vprop b, BGraph& bg, RNG& rng)
+    template <class RNG>
+    EHash(BGraph& bg, RNG& rng)
         : _hash_function(num_vertices(bg), rng),
-          _hash(num_vertices(bg), ehash_t(0, _hash_function)),
-          _bedge(get(edge_index_t(), g), 0)
+          _hash(num_vertices(bg), ehash_t(0, _hash_function))
     {
-        sync(g, b, bg);
+        sync(bg);
     }
 
-    template <class Vprop>
-    void sync(Graph& g, Vprop b, BGraph& bg)
+    void sync(BGraph& bg)
     {
         _hash.clear();
         _hash.resize(num_vertices(bg), ehash_t(0, _hash_function));
@@ -900,15 +878,6 @@ public:
             assert(get_me(source(e, bg), target(e, bg)) == _null_edge);
             put_me(source(e, bg), target(e, bg), e);
         }
-
-        auto bedge_c = _bedge.get_checked();
-        for (auto e : edges_range(g))
-        {
-            auto r = b[source(e, g)];
-            auto s = b[target(e, g)];
-            bedge_c[e] = get_me(r, s);
-            assert(bedge_c[e] != _null_edge);
-        }
     }
 
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
@@ -916,6 +885,8 @@ public:
 
     const auto& get_me(vertex_t r, vertex_t s) const
     {
+        if (!is_directed::apply<BGraph>::type::value && r > s)
+            std::swap(r, s);
         auto& map = _hash[r];
         const auto& iter = map.find(s);
         if (iter == map.end())
@@ -925,10 +896,10 @@ public:
 
     void put_me(vertex_t r, vertex_t s, const edge_t& e)
     {
+        if (!is_directed::apply<BGraph>::type::value && r > s)
+            std::swap(r, s);
         assert(r < _hash.size());
         _hash[r][s] = e;
-        if (!is_directed::apply<Graph>::type::value)
-            _hash[s][r] = e;
     }
 
     void remove_me(vertex_t r, vertex_t s, const edge_t& me, BGraph& bg,
@@ -936,34 +907,25 @@ public:
     {
         if (delete_edge)
         {
+            if (!is_directed::apply<BGraph>::type::value && r > s)
+                std::swap(r, s);
             assert(r < _hash.size());
             _hash[r].erase(s);
-            if (!is_directed::apply<Graph>::type::value)
-                _hash[s].erase(r);
             remove_edge(me, bg);
         }
     }
 
-    template <class Edge>
-    auto& get_bedge(const Edge& e) { return _bedge[e]; }
-    auto& get_bedge_map() { return _bedge; }
-    const auto& get_bedge_map() const { return _bedge; }
     const auto& get_null_edge() const { return _null_edge; }
 
 private:
     perfect_hash_t<vertex_t> _hash_function;
     typedef gt_hash_map<vertex_t, edge_t, perfect_hash_t<vertex_t>> ehash_t;
     std::vector<ehash_t> _hash;
-    typedef typename property_map_type::apply
-        <edge_t,
-         typename property_map<Graph,
-                               edge_index_t>::type>::type bedge_t;
-    typename bedge_t::unchecked_t _bedge;
     static const edge_t _null_edge;
 };
 
-template <class Graph, class BGraph>
-const typename EHash<Graph, BGraph>::edge_t EHash<Graph, BGraph>::_null_edge;
+template <class BGraph>
+const typename EHash<BGraph>::edge_t EHash<BGraph>::_null_edge;
 
 template <class Vertex, class Eprop, class Emat, class BEdge>
 inline auto get_beprop(Vertex r, Vertex s, const Eprop& eprop, const Emat& emat,
@@ -1012,15 +974,14 @@ public:
     }
 
     template <class... DVals>
-    void insert_delta(size_t t, size_t s, const bedge_t& me, DVals... delta)
+    void insert_delta(size_t t, size_t s, DVals... delta)
     {
-        insert_delta_imp(t, s, me, typename is_directed::apply<Graph>::type(),
+        insert_delta_imp(t, s, typename is_directed::apply<Graph>::type(),
                          delta...);
     }
 
     template <class... DVals>
-    void insert_delta_imp(size_t t, size_t s, const bedge_t& me, std::true_type,
-                          DVals... delta)
+    void insert_delta_imp(size_t t, size_t s, std::true_type, DVals... delta)
     {
         bool src = false;
         if (t != _rnr.first && t != _rnr.second)
@@ -1043,14 +1004,12 @@ public:
             else
                 _entries.emplace_back(t, s);
             _delta.emplace_back();
-            _mes.push_back(me);
         }
         add_to_tuple(_delta[field[s]], delta...);
     }
 
     template <class... DVals>
-    void insert_delta_imp(size_t t, size_t s, const bedge_t& me, std::false_type,
-                          DVals... delta)
+    void insert_delta_imp(size_t t, size_t s, std::false_type, DVals... delta)
     {
         if (t > s)
             std::swap(t, s);
@@ -1068,49 +1027,47 @@ public:
             field[s] = _entries.size();
             _entries.emplace_back(t, s);
             _delta.emplace_back();
-            _mes.push_back(me);
         }
         add_to_tuple(_delta[field[s]], delta...);
     }
 
-    const auto& get_delta(size_t t, size_t s)
+    size_t get_field(size_t r, size_t s)
     {
         if (is_directed::apply<Graph>::type::value)
         {
-            if (t == _rnr.first || t == _rnr.second)
-                return get_delta_target(t, s);
+            if (r == _rnr.first || r == _rnr.second)
+            {
+                vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
+                return field[s];
+            }
             if (s == _rnr.first || s == _rnr.second)
-                return get_delta_source(t, s);
-            return _null_delta;
+            {
+                vector<size_t>& field = (_rnr.first == s) ? _r_field_s : _nr_field_s;
+                return field[r];
+            }
+            return _null;
         }
         else
         {
-            if (t > s)
-                std::swap(t, s);
-            if (t != _rnr.first && t != _rnr.second)
-                std::swap(t, s);
-            if (t == _rnr.first || t == _rnr.second)
-                return get_delta_target(t, s);
-            return _null_delta;
+            if (r > s)
+                std::swap(r, s);
+            if (r != _rnr.first && r != _rnr.second)
+                std::swap(r, s);
+            if (r == _rnr.first || r == _rnr.second)
+            {
+                vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
+                return field[s];
+            }
+            return _null;
         }
     }
 
-    const auto& get_delta_target(size_t r, size_t s)
+    const auto& get_delta(size_t r, size_t s)
     {
-        vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
-        if (field[s] == _null)
+        size_t field = get_field(r, s);
+        if (field == _null)
             return _null_delta;
-        else
-            return _delta[field[s]];
-    }
-
-    const auto& get_delta_source(size_t s, size_t r)
-    {
-        vector<size_t>& field = (_rnr.first == r) ? _r_field_s : _nr_field_s;
-        if (field[s] == _null)
-            return _null_delta;
-        else
-            return _delta[field[s]];
+        return _delta[field];
     }
 
     void clear()
@@ -1134,14 +1091,31 @@ public:
 
     const vector<pair<size_t, size_t> >& get_entries() { return _entries; }
     const vector<std::tuple<EVals...>>& get_delta() { return _delta; }
-    vector<bedge_t>& get_mes() { return _mes; }
 
-    const auto& get_null_edge() const { return _null_edge; }
+    template <class Emat>
+    vector<bedge_t>& get_mes(Emat& emat)
+    {
+        _mes.reserve(_entries.size());
+        for (size_t i = _mes.size(); i < _entries.size(); ++i)
+        {
+            auto& rs = _entries[i];
+            _mes.push_back(emat.get_me(rs.first, rs.second));
+        }
+        return _mes;
+    }
+
+    template <class Emat>
+    const bedge_t& get_me(size_t r, size_t s, Emat& emat)
+    {
+        size_t field = get_field(r, s);
+        if (field >= _mes.size())
+            return emat.get_me(r, s);
+        return _mes[field];
+    }
 
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
     static const std::tuple<EVals...> _null_delta;
-    static const bedge_t _null_edge;
 
     pair<size_t, size_t> _rnr;
     vector<size_t> _r_field_t;
@@ -1159,44 +1133,36 @@ constexpr size_t EntrySet<Graph, BGraph, EVals...>::_null;
 template <class Graph, class BGraph, class... EVals>
 const std::tuple<EVals...> EntrySet<Graph, BGraph, EVals...>::_null_delta;
 
-template <class Graph, class BGraph, class... EVals>
-const typename graph_traits<BGraph>::edge_descriptor
-EntrySet<Graph, BGraph, EVals...>::_null_edge;
-
 struct is_loop_nop
 {
     bool operator()(size_t) const { return false; }
 };
 
-template <bool Add, class Graph, class BGraph, class Vertex, class Vprop,
-          class Eprop, class EBedge, class MEntries, class IL,
-          class... Eprops>
-void modify_entries(Vertex v, Vertex r, Vprop& b, EBedge& bedge, Graph& g,
-                    BGraph&, MEntries& m_entries, const IL& is_loop,
-                    Eprop& eweights, Eprops&... eprops)
+template <bool Add, class Vertex, class Graph, class GetB,
+          class Eprop, class MEntries, class Efilt, class IL, class... Eprops>
+void modify_entries(Vertex v, Vertex r, GetB&& get_b, Graph& g,
+                    Eprop& eweights, MEntries& m_entries, Efilt&& efilt,
+                    IL&& is_loop, Eprops&... eprops)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     std::tuple<int, typename property_traits<Eprops>::value_type...>
         self_weight;
     for (auto e : out_edges_range(v, g))
     {
+        if (efilt(e))
+            continue;
         vertex_t u = target(e, g);
-        vertex_t s = b[u];
+        vertex_t s = get_b(u);
         int ew = eweights[e];
         //assert(ew > 0);
 
+        if (Add && u == v)
+            s = r;
+
         if (Add)
-        {
-            if (u == v)
-                s = r;
-            m_entries.insert_delta(r, s, m_entries.get_null_edge(),
-                                   ew, eprops[e]...);
-        }
+            m_entries.insert_delta(r, s, ew, eprops[e]...);
         else
-        {
-            const auto& me = bedge[e];
-            m_entries.insert_delta(r, s, me, -ew, -eprops[e]...);
-        }
+            m_entries.insert_delta(r, s, -ew, -eprops[e]...);
 
         if ((u == v || is_loop(v)) && !is_directed::apply<Graph>::type::value)
             add_to_tuple(self_weight, ew, eprops[e]...);
@@ -1208,69 +1174,62 @@ void modify_entries(Vertex v, Vertex r, Vprop& b, EBedge& bedge, Graph& g,
                     {
                         if (Add)
                             m_entries.insert_delta(r, r,
-                                                   m_entries.get_null_edge(),
                                                    (-vals / 2)...);
                         else
                             m_entries.insert_delta(r, r,
-                                                   m_entries.get_null_edge(),
                                                    (vals / 2)...);
                     }, self_weight);
 
     for (auto e : in_edges_range(v, g))
     {
+        if (efilt(e))
+            continue;
         vertex_t u = source(e, g);
         if (u == v)
             continue;
-        vertex_t s = b[u];
+        vertex_t s = get_b(u);
         int ew = eweights[e];
 
         if (Add)
-        {
-            m_entries.insert_delta(s, r, m_entries.get_null_edge(),
-                                   ew, eprops[e]...);
-        }
+            m_entries.insert_delta(s, r, ew, eprops[e]...);
         else
-        {
-            const auto& me = bedge[e];
-            m_entries.insert_delta(s, r, me, -ew, -eprops[e]...);
-        }
+            m_entries.insert_delta(s, r, -ew, -eprops[e]...);
     }
 }
 
 // obtain the necessary entries in the e_rs matrix which need to be modified
 // after the move
-template <class Graph, class BGraph, class Vertex, class Vprop, class Eprop,
-          class EBedge, class MEntries, class IL, class... Eprops>
-void move_entries(Vertex v, size_t r, size_t nr, Vprop& b, EBedge& bedge,
-                  Graph& g, BGraph& bg, MEntries& m_entries, const IL& is_loop,
-                  Eprop& eweights, Eprops&... eprops)
+template <class Graph, class Vertex, class GetB, class Eprop,
+          class MEntries, class EFilt, class IL, class... Eprops>
+void move_entries(Vertex v, size_t r, size_t nr, GetB&& get_b, Graph& g,
+                  Eprop& eweights, MEntries& m_entries, EFilt&& efilt,
+                  IL&& is_loop, Eprops&... eprops)
 {
     m_entries.set_move(r, nr);
 
     if (r != null_group)
-        modify_entries<false>(v, r, b, bedge, g, bg, m_entries, is_loop,
-                              eweights, eprops...);
+        modify_entries<false>(v, r, get_b, g, eweights, m_entries, efilt,
+                              is_loop, eprops...);
     if (nr != null_group)
-        modify_entries<true>(v, nr, b, bedge, g, bg, m_entries, is_loop,
-                             eweights, eprops...);
+        modify_entries<true>(v, nr, get_b, g, eweights, m_entries, efilt,
+                             is_loop, eprops...);
 }
 
 
 // operation on a set of entries
-template <class MEntries,  class OP>
-void entries_op(MEntries& m_entries, OP&& op)
+template <class MEntries, class EMat, class OP>
+void entries_op(MEntries& m_entries, EMat& emat, OP&& op)
 {
     const auto& entries = m_entries.get_entries();
     const auto& delta = m_entries.get_delta();
-    auto& mes = m_entries.get_mes();
+    auto& mes = m_entries.get_mes(emat);
 
     for (size_t i = 0; i < entries.size(); ++i)
     {
         auto& entry = entries[i];
         auto er = entry.first;
         auto es = entry.second;
-        auto& me = mes[i];
-        op(er, es, me, delta[i]);
+        op(er, es, mes[i], delta[i]);
     }
 }
 
@@ -1279,13 +1238,11 @@ template <bool exact, class MEntries, class Eprop, class EMat, class BGraph>
 double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
 {
     double dS = 0;
-    entries_op(m_entries,
+    entries_op(m_entries, emat,
                [&](auto r, auto s, auto& me, auto& delta)
                {
-                   size_t ers;
-                   if (me == m_entries.get_null_edge())
-                       ers = get_beprop(r, s, mrs, emat, me); // slower
-                   else
+                   size_t ers = 0;
+                   if (me != emat.get_null_edge())
                        ers = mrs[me];
                    int d = get<0>(delta);
                    assert(int(ers) + d >= 0);

@@ -1236,19 +1236,18 @@ class SingleEntrySet
 public:
     typedef typename graph_traits<BGraph>::edge_descriptor bedge_t;
 
-    SingleEntrySet() : _pos(0) {}
+    SingleEntrySet() : _pos(0), _mes_pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
     void set_move(size_t, size_t) {}
 
     template <class... DVals>
-    void insert_delta(size_t t, size_t s, const bedge_t& me, DVals... delta)
+    void insert_delta(size_t t, size_t s, DVals... delta)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
         add_to_tuple(_delta[_pos], delta...);
-        _mes[_pos] = me;
         ++_pos;
     }
 
@@ -1270,18 +1269,51 @@ public:
         for (auto& d : _delta)
             d = std::tuple<EVals...>();
         _pos = 0;
+        _mes_pos = 0;
     }
 
     const std::array<pair<size_t, size_t>,2>& get_entries() const { return _entries; }
     const std::array<std::tuple<EVals...>, 2>& get_delta() const { return _delta; }
-    std::array<bedge_t, 2>& get_mes() { return _mes; }
     const bedge_t& get_null_edge() const { return _null_edge; }
+
+    template <class Emat>
+    std::array<bedge_t, 2>& get_mes(Emat& emat)
+    {
+        for (; _mes_pos < 2; ++_mes_pos)
+        {
+            auto& entry = _entries[_mes_pos];
+            _mes[_mes_pos] = emat.get_me(entry.first, entry.second);
+        }
+        return _mes;
+    }
+
+    template <class Emat>
+    const bedge_t& get_me(size_t t, size_t s, Emat& emat)
+    {
+        if (!is_directed::apply<Graph>::type::value && (t > s))
+            std::swap(t, s);
+        for (size_t i = 0; i < 2; ++i)
+        {
+            auto& entry = _entries[i];
+            if (entry.first == t && entry.second == s)
+            {
+                if (i >= _mes_pos)
+                {
+                    _mes[i] = emat.get_me(t, s);
+                    _mes_pos++;
+                }
+                return _mes[i];
+            }
+        }
+        return emat.get_me(t, s);
+    }
 
 private:
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
     std::array<std::tuple<EVals...>, 2> _delta;
     std::array<bedge_t, 2> _mes;
+    size_t _mes_pos;
 
     static const std::tuple<EVals...> _null_delta;
     static const bedge_t _null_edge;

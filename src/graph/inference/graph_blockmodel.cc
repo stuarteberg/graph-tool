@@ -153,6 +153,8 @@ void export_blockmodel_state()
                  &state_t::remove_vertex;
              void (state_t::*add_vertex)(size_t, size_t) =
                  &state_t::add_vertex;
+             void (state_t::*move_vertex)(size_t, size_t) =
+                 &state_t::move_vertex;
              void (state_t::*remove_vertices)(python::object) =
                  &state_t::remove_vertices;
              void (state_t::*add_vertices)(python::object, python::object) =
@@ -180,7 +182,7 @@ void export_blockmodel_state()
                  .def("add_vertex", add_vertex)
                  .def("remove_vertices", remove_vertices)
                  .def("add_vertices", add_vertices)
-                 .def("move_vertex", &state_t::move_vertex)
+                 .def("move_vertex", move_vertex)
                  .def("move_vertices", move_vertices)
                  .def("set_partition", set_partition)
                  .def("virtual_move", virtual_move)
