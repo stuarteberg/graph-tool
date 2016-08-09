@@ -511,6 +511,8 @@ class BlockState(object):
         else:
             bg = self.bg
             eweight = self.mrs
+            if self.g.get_vertex_filter()[0] is not None:
+                bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
         if vweight == "nonempty":
             vweight = bg.new_vp("int", self.wr.a > 0)
         elif vweight == "unity":
