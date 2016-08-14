@@ -181,7 +181,7 @@ public:
     {
         get_move_entries(v, r, nr, m_entries,
                          [](auto) { return false; },
-                         [&](auto u) -> auto& { return this->_b[u]; });
+                         [&](auto u) -> size_t { return this->_b[u]; });
     }
 
 
@@ -234,7 +234,7 @@ public:
 
         if (Add)
         {
-            auto& b_v = get_b(v);
+            auto&& b_v = get_b(v);
             b_v = r;
             add_partition_node(v, r);
         }
@@ -286,7 +286,7 @@ public:
     }
 
     template <class EFilt, class GetB>
-    void remove_vertex(size_t v, size_t r, EFilt && efilt, GetB && get_b)
+    void remove_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b)
     {
         modify_vertex<false>(v, r, efilt, get_b);
     }
@@ -372,6 +372,7 @@ public:
     void add_vertex(size_t v, size_t r, Efilt&& efilt, GetB&& get_b)
     {
         modify_vertex<true>(v, r, efilt, get_b);
+        assert(size_t(get_b(v)) == r);
     }
 
     template <class Efilt>
@@ -494,9 +495,11 @@ public:
             {
                 _coupled_state->set_vertex_weight(nr, 1);
                 _coupled_state->add_partition_node(nr, _bclabel[r]);
+                _coupled_state->_b[nr] = _bclabel[r];
                 _bclabel[nr] = _bclabel[r];
             }
         }
+        assert(size_t(get_b(v)) == nr);
     }
 
     void move_vertex(size_t v, size_t nr)
@@ -1084,7 +1087,7 @@ public:
                         MEntries& m_entries)
     {
         return virtual_move(v, r, nr, ea, m_entries,
-                            [&](auto u) -> auto& { return this->_b[u]; });
+                            [&](auto u) -> size_t { return this->_b[u]; });
     }
 
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)

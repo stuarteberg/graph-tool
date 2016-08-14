@@ -1479,10 +1479,10 @@ void build_neighbour_sampler(Vertex v, SMap& sampler, Eprop& eweight, Graph& g,
             u = source(e, g);
         if (!self_loops && u == v)
             continue;
-        neighbours.push_back(u);
         auto w = eweight[e];
         if (w == 0)
             continue;
+        neighbours.push_back(u);
         probs.push_back(w);  // Self-loops will be added twice, and hence will
                              // be sampled with probability 2 * eweight[e]
     }
