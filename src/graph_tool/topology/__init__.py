@@ -1258,12 +1258,6 @@ def kcore_decomposition(g, deg="out", vprop=None):
     if deg not in ["in", "out", "total"]:
         raise ValueError("invalid degree: " + str(deg))
 
-    if g.is_directed():
-        if deg == "out":
-            g = GraphView(g, reversed=True)
-        if deg == "total":
-            g = GraphView(g, directed=False)
-
     libgraph_tool_topology.\
                kcore_decomposition(g._Graph__graph, _prop("v", g, vprop),
                                    _degree(g, deg))
