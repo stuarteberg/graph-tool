@@ -1324,6 +1324,10 @@ def shortest_distance(g, source=None, target=None, weights=None,
     Johnson's algorithm [johnson-apsp]_. If dense=True, the Floyd-Warshall
     algorithm [floyd-warshall-apsp]_ is used instead.
 
+    If there is not path between two vertices, the computed distance will
+    correspond to the maximum value allowed by the value type of ``dist_map``,
+    or ``inf`` in case of floating point types.
+
     If source is specified, the algorithm runs in :math:`O(V + E)` time, or
     :math:`O(V \log V)` if weights are given. If ``negative_weights == True``,
     the complexity is :math:`O(VE)`. If source is not specified, it runs in
@@ -1397,6 +1401,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
     .. [johnson-apsp] http://www.boost.org/libs/graph/doc/johnson_all_pairs_shortest.html
     .. [floyd-warshall-apsp] http://www.boost.org/libs/graph/doc/floyd_warshall_shortest.html
     .. [bellman-ford] http://www.boost.org/libs/graph/doc/bellman_ford_shortest.html
+
     """
 
     if isinstance(target, collections.Iterable):
