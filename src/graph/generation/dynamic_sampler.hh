@@ -120,7 +120,7 @@ public:
         _free.push_back(pos);
     }
 
-    void reset()
+    void clear()
     {
         _items.clear();
         _tree.clear();
@@ -142,7 +142,7 @@ public:
             probs.push_back(_tree[i]);
         }
 
-        reset();
+        clear();
 
         for (size_t i = 0; i < items.size(); ++i)
             insert(items[i], probs[i]);
@@ -153,9 +153,19 @@ public:
         return _items[i];
     }
 
+    const auto& items() const
+    {
+        return _items;
+    }
+
     size_t size() const
     {
         return _items.size();
+    }
+
+    bool empty() const
+    {
+        return _items.empty();
     }
 
 private:

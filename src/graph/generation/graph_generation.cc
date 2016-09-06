@@ -147,6 +147,6 @@ BOOST_PYTHON_MODULE(libgraph_tool_generation)
              return_value_policy<copy_const_reference>())
         .def("insert", &DynamicSampler<int>::insert)
         .def("remove", &DynamicSampler<int>::remove)
-        .def("reset", &DynamicSampler<int>::reset)
+        .def("clear", &DynamicSampler<int>::clear)
         .def("rebuild", &DynamicSampler<int>::rebuild);
 }

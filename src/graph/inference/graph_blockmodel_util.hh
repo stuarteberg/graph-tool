@@ -26,6 +26,7 @@
 
 #include "../generation/sampler.hh"
 #include "../generation/dynamic_sampler.hh"
+#include "graph_neighbour_sampler.hh"
 
 #include "util.hh"
 #include "int_part.hh"
@@ -1458,73 +1459,6 @@ private:
     typedef typename eprop_map_t<pair<size_t, size_t>>::type epos_t;
     epos_t _epos;
 };
-
-
-// Sample neighbours efficiently
-// =============================
-
-template <class Vertex, class Graph, class Eprop, class SMap>
-void build_neighbour_sampler(Vertex v, SMap& sampler, Eprop& eweight, Graph& g,
-                             bool self_loops=false)
-{
-    vector<Vertex> neighbours;
-    vector<double> probs;
-    neighbours.reserve(total_degreeS()(v, g));
-    probs.reserve(total_degreeS()(v, g));
-
-    for (auto e : all_edges_range(v, g))
-    {
-        Vertex u = target(e, g);
-        if (is_directed::apply<Graph>::type::value && u == v)
-            u = source(e, g);
-        if (!self_loops && u == v)
-            continue;
-        auto w = eweight[e];
-        if (w == 0)
-            continue;
-        neighbours.push_back(u);
-        probs.push_back(w);  // Self-loops will be added twice, and hence will
-                             // be sampled with probability 2 * eweight[e]
-    }
-
-    sampler = Sampler<Vertex, mpl::false_>(neighbours, probs);
-};
-
-template <class Vertex, class Graph, class Eprop>
-void build_neighbour_sampler(Vertex v, vector<size_t>& sampler, Eprop&, Graph& g,
-                             bool self_loops=false)
-{
-    sampler.clear();
-    for (auto e : all_edges_range(v, g))
-    {
-        Vertex u = target(e, g);
-        if (is_directed::apply<Graph>::type::value && u == v)
-            u = source(e, g);
-        if (!self_loops && u == v)
-            continue;
-        sampler.push_back(u); // Self-loops will be added twice
-    }
-};
-
-template <class Graph, class Eprop, class Sampler>
-void init_neighbour_sampler(Graph& g, Eprop eweight, Sampler& sampler)
-{
-    for (auto v : vertices_range(g))
-        build_neighbour_sampler(v, sampler[v], eweight, g);
-}
-
-template <class Sampler, class RNG>
-auto sample_neighbour(Sampler& sampler, RNG& rng)
-{
-    return sampler.sample(rng);
-}
-
-template <class Vertex, class RNG>
-auto sample_neighbour(vector<Vertex>& sampler, RNG& rng)
-{
-    return uniform_sample(sampler, rng);
-}
-
 
 // Sampling marginal probabilities on the edges
 template <class Graph, class Vprop, class MEprop>

@@ -111,12 +111,11 @@ public:
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(_bg, rng),
-          _neighbour_sampler(get(vertex_index_t(), _g), num_vertices(_g)),
+          _neighbour_sampler(_g, _eweight),
           _m_entries(num_vertices(_bg)),
           _coupled_state(nullptr),
           _gstate(this)
     {
-        rebuild_neighbour_sampler();
         _empty_blocks.clear();
         _candidate_blocks.clear();
         _candidate_blocks.push_back(null_group);
@@ -1125,10 +1124,9 @@ public:
                 s = uniform_sample(_empty_blocks, rng);
         }
 
-        auto& sampler = _neighbour_sampler[v];
-        if (!std::isinf(c) && !sampler.empty())
+        if (!std::isinf(c) && !_neighbour_sampler.empty(v))
         {
-            auto u = sample_neighbour(sampler, rng);
+            auto u = _neighbour_sampler.sample(v, rng);
             size_t t = _b[u];
             double p_rand = 0;
             if (c > 0)
@@ -1163,10 +1161,9 @@ public:
 
     size_t random_neighbour(size_t v, rng_t& rng)
     {
-        auto& sampler = _neighbour_sampler[v];
-        if (sampler.empty())
+        if (_neighbour_sampler.empty(v))
             return v;
-        return sample_neighbour(sampler, rng);
+        return _neighbour_sampler.sample(v, rng);
     }
 
     // Computes the move proposal probability
@@ -1571,7 +1568,7 @@ public:
 
     void rebuild_neighbour_sampler()
     {
-        init_neighbour_sampler(_g, _eweight, _neighbour_sampler);
+        _neighbour_sampler = neighbour_sampler_t(_g, _eweight);
     }
 
     void sync_emat()
@@ -1608,13 +1605,11 @@ public:
     EGroups<g_t, is_weighted_t> _egroups;
 
     typedef typename std::conditional<is_weighted_t::value,
-                                      typename property_map_type::apply<Sampler<size_t, mpl::false_>,
-                                                                        typename property_map<g_t, vertex_index_t>::type>::type,
-                                      typename property_map_type::apply<vector<size_t>,
-                                                                        typename property_map<g_t, vertex_index_t>::type>::type>::type::unchecked_t
-        sampler_map_t;
+                                      WeightedNeighbourSampler<g_t, DynamicSampler>,
+                                      UnweightedNeighbourSampler<g_t>>::type
+        neighbour_sampler_t;
 
-    sampler_map_t _neighbour_sampler;
+    neighbour_sampler_t _neighbour_sampler;
     std::vector<partition_stats_t> _partition_stats;
     std::vector<size_t> _bmap;
 

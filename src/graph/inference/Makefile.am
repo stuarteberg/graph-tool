@@ -68,6 +68,7 @@ libgraph_tool_inference_la_include_HEADERS = \
     graph_blockmodel_overlap_util.hh \
     graph_blockmodel_overlap_vacate.hh \
     graph_blockmodel_util.hh \
+    graph_neighbour_sampler.hh \
     graph_state.hh \
     mcmc_loop.hh \
     merge_loop.hh \
