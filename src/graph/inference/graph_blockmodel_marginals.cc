@@ -205,7 +205,7 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
 
              for (auto v : vertices_range(g))
              {
-                 double sum = std::accumulate(pv[v].begin(), pv[v].end(), 0);
+                 double sum = std::accumulate(pv[v].begin(), pv[v].end(), 0.);
                  for (double pi : pv[v])
                  {
                      if (pi == 0)
