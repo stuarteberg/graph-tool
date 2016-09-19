@@ -141,7 +141,7 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
     nonoverlap_init : ``bool`` (optional, default: ``True``)
         If ``True``, and ``overlap == True`` a non-overlapping initial state
         will be used.
-    layers : ``bool`` (optional, default: ``True``)
+    layers : ``bool`` (optional, default: ``False``)
         If ``True``, the layered version of the model will be used.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to appropriate state constructor (e.g.
@@ -345,7 +345,7 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
     nonoverlap_init : ``bool`` (optional, default: ``True``)
         If ``True``, and ``overlap == True`` a non-overlapping initial state
         will be used.
-    layers : ``bool`` (optional, default: ``True``)
+    layers : ``bool`` (optional, default: ``False``)
         If ``True``, the layered version of the model will be used.
     hierarchy_minimize_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :func:`~graph_tool.inference.hierarchy_minimize`.
