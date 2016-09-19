@@ -349,6 +349,7 @@ public:
         S += lgamma_fast(_N + 1);
         for (auto nr : _total)
             S -= lgamma_fast(nr + 1);
+        S += safelog(_N);
         return S;
     }
 
@@ -465,10 +466,14 @@ public:
 
         if ((dN != 0 || dB != 0) && !_allow_empty)
         {
-            //S_b += lbinom_fast(std::min(_total_B, _N), _actual_B);
             S_b += lbinom_fast(_N - 1, _actual_B - 1);
-            //S_a += lbinom_fast(std::min(_total_B, _N + dN), _actual_B + dB);
             S_a += lbinom_fast(_N - 1 + dN, _actual_B + dB - 1);
+        }
+
+        if (dN != 0)
+        {
+            S_b += safelog(_N);
+            S_a += safelog(_N + dN);
         }
 
         return S_a - S_b;
@@ -629,7 +634,6 @@ public:
         return S_a - S_b;
     }
 
-
     template <class Ks>
     double get_delta_deg_dl_dist_change(size_t v, size_t r, Ks& ks, int diff)
     {
@@ -745,6 +749,11 @@ public:
             _em[r] += diff * deg.first * vweight;
             _ep[r] += diff * deg.second * vweight;
         }
+    }
+
+    size_t get_N()
+    {
+        return _N;
     }
 
 private:

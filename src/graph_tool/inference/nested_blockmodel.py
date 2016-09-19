@@ -63,21 +63,24 @@ class NestedBlockState(object):
     sampling : ``bool`` (optional, default: ``False``)
         If ``True``, the state will be properly prepared for MCMC sampling (as
         opposed to minimization).
-    **kwargs :  keyword arguments
+    state_args : ``dict`` (optional, default: ``{}``)
         Keyword arguments to be passed to base type constructor.
+    **kwargs :  keyword arguments
+        Keyword arguments to be passed to base type constructor. The
+        ``state_args`` parameter overrides this.
     """
 
-    def __init__(self, g, bs, base_type=BlockState, hstate_args={},
-                 hentropy_args={}, sampling=False, **kwargs):
+    def __init__(self, g, bs, base_type=BlockState, state_args={},
+                 hstate_args={}, hentropy_args={}, sampling=False, **kwargs):
         self.g = g
-        self.kwargs = kwargs.copy()
+        self.state_args = overlay(kwargs, **state_args)
         self.hstate_args = overlay(dict(deg_corr=False), **hstate_args)
         self.sampling = sampling
         if sampling:
             self.hstate_args = overlay(self.hstate_args, vweight="nonempty",
                                        copy_bg=False, B=g.num_vertices())
-            self.kwargs = overlay(self.kwargs, vweight="unity", eweight="unity",
-                                  B=g.num_vertices())
+            self.state_args = overlay(self.state_args, vweight="unity", eweight="unity",
+                                      B=g.num_vertices())
             nbs = []
             for b in bs:
                 nb = numpy.zeros(g.num_vertices(), dtype="int")
@@ -94,7 +97,7 @@ class NestedBlockState(object):
                                           edges_dl=True,
                                           exact=True),
                                      **hentropy_args)
-        self.levels = [base_type(g, b=bs[0], **self.kwargs)]
+        self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for b in bs[1:]:
             state = self.levels[-1]
             bstate = state.get_block_state(b=b, **self.hstate_args)
@@ -122,28 +125,32 @@ class NestedBlockState(object):
         g = copy.deepcopy(self.g, memo)
         return self.copy(g=g)
 
-    def copy(self, g=None, bs=None, hstate_args=None, hentropy_args=None,
-             sampling=None, **kwargs):
+    def copy(self, g=None, bs=None, state_args=None, hstate_args=None,
+             hentropy_args=None, sampling=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties,
         and have the same meaning as in the constructor."""
         bs = self.get_bs() if bs is None else bs
         return NestedBlockState(self.g if g is None else g, bs,
                                 base_type=type(self.levels[0]),
+                                state_args=self.state_args if state_args is None else state_args,
                                 hstate_args=self.hstate_args if hstate_args is None else hstate_args,
                                 hentropy_args=self.hentropy_args if hentropy_args is None else hentropy_args,
                                 sampling=self.sampling if sampling is None else sampling,
-                                **overlay(self.kwargs, **kwargs))
+                                **kwargs)
 
     def __getstate__(self):
         state = dict(g=self.g, bs=self.get_bs(), base_type=type(self.levels[0]),
                      hstate_args=self.hstate_args,
                      hentropy_args=self.hentropy_args, sampling=self.sampling,
-                     kwargs=self.kwargs)
+                     state_args=self.state_args)
         return state
 
     def __setstate__(self, state):
         conv_pickle_state(state)
-        self.__init__(**overlay(dmask(state, ["kwargs"]), **state["kwargs"]))
+        if "kwargs" in state: # backwards compatibility
+            state["state_args"] = state["kwargs"]
+            del  state["kwargs"]
+        self.__init__(**state)
 
     def get_bs(self):
         """Get hierarchy levels as a list of :class:`numpy.ndarray` objects with the
