@@ -154,15 +154,16 @@ public:
     // State modification
     // =========================================================================
 
-    template <class MEntries, class Efilt, class GetB>
+    template <class MEntries, class EFilt, class GetB>
     void get_move_entries(size_t v, size_t r, size_t nr, MEntries& m_entries,
-                          Efilt&& efilt, GetB&& get_b)
+                          EFilt&& efilt, GetB&& get_b)
     {
         auto& gs = *_gstate;
         auto mv_entries = [&](auto&&... args)
             {
-                move_entries(v, r, nr, get_b, gs._g, gs._eweight, m_entries,
-                             efilt, is_loop_nop(),
+                move_entries(v, r, nr, std::forward<GetB>(get_b), gs._g,
+                             gs._eweight, m_entries,
+                             std::forward<EFilt>(efilt), is_loop_nop(),
                              std::forward<decltype(args)>(args)...);
             };
 
@@ -197,9 +198,13 @@ public:
     {
         _m_entries.clear();
         if (Add)
-            get_move_entries(v, null_group, r, _m_entries, efilt, get_b);
+            get_move_entries(v, null_group, r, _m_entries,
+                             std::forward<EFilt>(efilt),
+                             std::forward<GetB>(get_b));
         else
-            get_move_entries(v, r, null_group, _m_entries, efilt, get_b);
+            get_move_entries(v, r, null_group, _m_entries,
+                             std::forward<EFilt>(efilt),
+                             std::forward<GetB>(get_b));
 
         entries_op(_m_entries, _emat,
                    [&](auto r, auto s, auto& me, auto& delta)
@@ -219,7 +224,9 @@ public:
                        this->_mrp[r] += get<0>(delta);
                        this->_mrm[s] += get<0>(delta);
 
-                       beop(true, me);
+                       assert(this->_mrs[me] >= 0);
+                       assert(this->_mrp[r] >= 0);
+                       assert(this->_mrm[s] >= 0);
 
                        switch (this->_rec_type)
                        {
@@ -231,6 +238,8 @@ public:
                        case weight_type::DELTA_T:
                            this->_brec[me] += get<1>(delta);
                        }
+
+                       beop(true, me);
                    });
 
         if (_rec_type == weight_type::DELTA_T) // waiting times
@@ -303,13 +312,14 @@ public:
     void remove_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b,
                        BEop&& beop)
     {
-        modify_vertex<false>(v, r, efilt, get_b, beop);
+        modify_vertex<false>(v, r, std::forward<EFilt>(efilt),
+                             std::forward<GetB>(get_b), beop);
     }
 
     template <class EFilt>
     void remove_vertex(size_t v, size_t r, EFilt&& efilt)
     {
-        remove_vertex(v, r, efilt,
+        remove_vertex(v, r, std::forward<EFilt>(efilt),
                       [&](auto u) -> auto& { return this->_b[u]; },
                       [](bool, const auto &){});
     }
@@ -386,18 +396,19 @@ public:
         remove_vertices(vs);
     }
 
-    template <class Efilt, class GetB, class BEop>
-    void add_vertex(size_t v, size_t r, Efilt&& efilt, GetB&& get_b,
+    template <class EFilt, class GetB, class BEop>
+    void add_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b,
                     BEop&& beop)
     {
-        modify_vertex<true>(v, r, efilt, get_b, beop);
-        assert(size_t(get_b(v)) == r);
+        modify_vertex<true>(v, r, std::forward<EFilt>(efilt),
+                            std::forward<GetB>(get_b), std::forward<BEop>(beop));
+        //assert(size_t(get_b(v)) == r);
     }
 
-    template <class Efilt>
-    void add_vertex(size_t v, size_t r, Efilt&& efilt)
+    template <class EFilt>
+    void add_vertex(size_t v, size_t r, EFilt&& efilt)
     {
-        add_vertex(v, r, efilt,
+        add_vertex(v, r, std::forward<EFilt>(efilt),
                    [&](auto u) -> auto& { return this->_b[u]; },
                    [](bool, const auto&){});
     }
@@ -500,8 +511,10 @@ public:
         if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
-        remove_vertex(v, r, [](auto&) {return false;}, get_b, beop);
-        add_vertex(v, nr, [](auto&) {return false;}, get_b, beop);
+        remove_vertex(v, r, [](auto&) {return false;}, std::forward<GetB>(get_b),
+                      std::forward<BEop>(beop));
+        add_vertex(v, nr, [](auto&) {return false;}, std::forward<GetB>(get_b),
+                   std::forward<BEop>(beop));
 
         if (_coupled_state != nullptr && _vweight[v] > 0)
         {
@@ -519,14 +532,15 @@ public:
                 _bclabel[nr] = _bclabel[r];
             }
         }
-        assert(size_t(get_b(v)) == nr);
+        //assert(size_t(get_b(v)) == nr);
     }
 
     template <class GetB, class BEop>
     void move_vertex(size_t v, size_t nr, GetB&& get_b, BEop&& beop)
     {
         size_t r = get_b(v);
-        move_vertex(v, r, nr, get_b, beop);
+        move_vertex(v, r, nr, std::forward<GetB>(get_b),
+                    std::forward<BEop>(beop));
     }
 
     void move_vertex(size_t v, size_t nr)
@@ -550,6 +564,25 @@ public:
     void set_vertex_weight(size_t v, int w, VMap&& vweight)
     {
         vweight[v] = w;
+    }
+
+    template <class Edge>
+    void set_edge_weight(Edge&& e, int w)
+    {
+        set_edge_weight(e, w, _eweight);
+    }
+
+    template <class Edge>
+    void set_edge_weight(Edge&&, int, ecmap_t&)
+    {
+        throw ValueException("Cannot set the weight of an unweighted state");
+    }
+
+    template <class Edge, class EMap>
+    void set_edge_weight(Edge&& e, int w, EMap&& eweight)
+    {
+        auto ew_c = eweight.get_checked();
+        ew_c[e] = w;
     }
 
     template <class Vec>
@@ -979,14 +1012,15 @@ public:
 
         m_entries.clear();
         get_move_entries(v, r, nr, m_entries, [](auto) { return false; },
-                         get_b);
+                         std::forward<GetB>(get_b));
 
         double dS = 0;
         if (ea.adjacency)
         {
             if (ea.dense)
             {
-                dS = virtual_move_dense(v, r, nr, ea.multigraph, get_b);
+                dS = virtual_move_dense(v, r, nr, ea.multigraph,
+                                        std::forward<GetB>(get_b));
             }
             else
             {

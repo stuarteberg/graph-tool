@@ -1248,11 +1248,13 @@ void move_entries(Vertex v, size_t r, size_t nr, GetB&& get_b, Graph& g,
     m_entries.set_move(r, nr);
 
     if (r != null_group)
-        modify_entries<false>(v, r, get_b, g, eweights, m_entries, efilt,
-                              is_loop, eprops...);
+        modify_entries<false>(v, r, std::forward<GetB>(get_b), g, eweights,
+                              m_entries, std::forward<EFilt>(efilt),
+                              std::forward<IL>(is_loop), eprops...);
     if (nr != null_group)
-        modify_entries<true>(v, nr, get_b, g, eweights, m_entries, efilt,
-                             is_loop, eprops...);
+        modify_entries<true>(v, nr, std::forward<GetB>(get_b), g, eweights,
+                             m_entries, std::forward<EFilt>(efilt),
+                             std::forward<IL>(is_loop), eprops...);
 }
 
 
