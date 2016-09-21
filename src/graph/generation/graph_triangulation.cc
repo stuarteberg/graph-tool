@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-//  As a special exception, you have permission to link this program
-//  with the CGAL library and distribute executables, as long as you
-//  follow the requirements of the GNU GPL in regard to all of the
-//  software in the executable aside from CGAL.
+// As a special exception, you have permission to link this program
+// with the CGAL library and distribute executables, as long as you
+// follow the requirements of the GNU GPL in regard to all of the
+// software in the executable aside from CGAL.
 
 #include "graph.hh"
 #include "graph_util.hh"
@@ -52,11 +52,12 @@ bool operator==(const SimpleTriangulation::Vertex& a,
 
 // periodic triangulation is only available in more recent versions of CGAL
 #if (CGAL_VERSION_NR >= 1030500000)
-#include <CGAL/Periodic_3_triangulation_traits_3.h>
+#include <CGAL/Periodic_3_Delaunay_triangulation_traits_3.h>
 #include <CGAL/Periodic_3_Delaunay_triangulation_3.h>
-typedef CGAL::Periodic_3_triangulation_traits_3<Kernel> GT;
+typedef CGAL::Periodic_3_Delaunay_triangulation_traits_3<Kernel> GT;
 typedef CGAL::Periodic_3_Delaunay_triangulation_3<GT>
     PeriodicDelaunayTriangulation;
+
 namespace CGAL
 {
 bool operator==(const PeriodicDelaunayTriangulation::Vertex& a,
@@ -85,7 +86,8 @@ void triangulation(GraphInterface& gi, boost::python::object points,
 
     if (type == "simple")
     {
-        get_triangulation<SimpleTriangulation, std::false_type>()(g, points_array, pos_map);
+        get_triangulation<SimpleTriangulation, std::false_type>()
+            (g, points_array, pos_map);
     }
     else if (type == "delaunay")
     {
