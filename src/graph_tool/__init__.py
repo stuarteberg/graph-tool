@@ -2430,12 +2430,15 @@ class Graph(object):
     # =========
 
     def set_filters(self, eprop, vprop, inverted_edges=False, inverted_vertices=False):
-        """Set the boolean properties for edge and vertex filters, respectively.
-        Only the vertices and edges with value different than ``True`` are kept in
-        the filtered graph. If either the ``inverted_edges`` or ``inverted_vertex``
-        options are supplied with the value ``True``, only the edges or vertices
-        with value ``False`` are kept. If any of the supplied property is ``None``,
-        an empty filter is constructed which allows all edges or vertices."""
+        """Set the boolean properties for edge and vertex filters, respectively.  Only
+        the vertices and edges with value different than ``False`` are kept in
+        the filtered graph. If either the ``inverted_edges`` or
+        ``inverted_vertex`` options are supplied with the value ``True``, only
+        the edges or vertices with value ``False`` are kept. If any of the
+        supplied property is ``None``, an empty filter is constructed which
+        allows all edges or vertices.
+
+        """
 
         if eprop is None and vprop is None:
             return
