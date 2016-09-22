@@ -380,7 +380,23 @@ def random_graph(N, deg_sampler, directed=True,
     else:
         sampler = lambda i: deg_sampler()
 
-    libgraph_tool_generation.gen_graph(g._Graph__graph, N, sampler,
+    if not directed:
+        def sampler_wrap(*args):
+            k = sampler(*args)
+            try:
+                return int(k)
+            except:
+                raise ValueError("degree value not understood: " + str(k))
+    else:
+        def sampler_wrap(*args):
+            k = sampler(*args)
+            try:
+                return int(k[0]), int(k[1])
+            except:
+                raise ValueError("(in,out)-degree value pair not understood: " +
+                                 str(k))
+
+    libgraph_tool_generation.gen_graph(g._Graph__graph, N, sampler_wrap,
                                        not parallel_edges,
                                        not self_loops, not directed,
                                        _get_rng(), verbose, True)
