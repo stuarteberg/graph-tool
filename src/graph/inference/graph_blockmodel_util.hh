@@ -216,6 +216,7 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
 
 // Weighted entropy terms
 
+// exponential
 template <class DT>
 double positive_w_log_P(DT N, double x, double alpha, double beta)
 {
@@ -225,6 +226,7 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
         + alpha * log(beta) - (alpha + N) * log(beta + x);
 }
 
+// normal
 template <class DT>
 double signed_w_log_P(DT N, double x, double v, double m0, double k0, double v0,
                       double nu0)
@@ -239,6 +241,28 @@ double signed_w_log_P(DT N, double x, double v, double m0, double k0, double v0,
         - (nu_n / 2.) * log(nu_n * v_n) - (N/2.) * log(M_PI);
 }
 
+// discrete: geometric
+template <class DT>
+double geometric_w_log_P(DT N, double x, double alpha, double beta)
+{
+    if (N == 0)
+        return 0.;
+    return boost::math::lgamma(alpha + beta)
+        + boost::math::lgamma(alpha + 1) + boost::math::lgamma(beta + 1)
+        - boost::math::lgamma(alpha) - boost::math::lgamma(beta)
+        - boost::math::lgamma(x + alpha + beta + 1);
+}
+
+// discrete: Poisson
+template <class DT>
+double poisson_w_log_P(DT N, double x, double alpha, double beta)
+{
+    if (N == 0)
+        return 0.;
+    return boost::math::lgamma(x + alpha)
+        - boost::math::lgamma(x + 1) - boost::math::lgamma(alpha)
+        + alpha * log(beta) - (x + alpha) * log(beta + 1);
+}
 
 // ===============
 // Partition stats

@@ -155,13 +155,14 @@ class BlockState(object):
         Vertex multiplicities (for block graphs).
     rec : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Real-valued edge covariates.
-    rec_type : `"positive"`, `"signed"` or `None` (optional, default: ``None``)
+    rec_type : `"positive"`, `"signed"`, `"discrete_geometric"`, `"discrete_poisson"` or `None` (optional, default: ``None``)
         Type of edge covariates. If not specified, it will be guessed from
         ``rec``.
     rec_params : ``dict`` (optional, default: ``{}``)
         Model hyperparameters for real-valued covariates. This should be a
-        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type ==
-        positive`` or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == signed``.
+        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type`` is
+        one of ``"positive"``, ``"discrete-geometric"``, ``"discrete-poisson"``
+        or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == "signed"``.
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial block labels on the vertices. If not supplied, it will be
         randomly sampled.
@@ -184,6 +185,7 @@ class BlockState(object):
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this value, a sparse matrix is used for
         the block graph. Otherwise a dense matrix will be used.
+
     """
 
     def __init__(self, g, eweight=None, vweight=None, rec=None, rec_type=None,
@@ -340,6 +342,10 @@ class BlockState(object):
             self.rec_type = libinference.rec_type.positive
         elif rec_type == "signed":
             self.rec_type = libinference.rec_type.signed
+        elif rec_type == "discrete-geometric":
+            self.rec_type = libinference.rec_type.discrete_geometric
+        elif rec_type == "discrete-poisson":
+            self.rec_type = libinference.rec_type.discrete_poisson
         elif rec_type == "delta_t":
             self.rec_type = libinference.rec_type.delta_t
         else:
@@ -359,11 +365,14 @@ class BlockState(object):
 
         self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
                                v0=self.rec.fa.std() ** 2, nu0=3)
-        if self.is_weighted:
-            idx = self.eweight.fa > 0
-            self.rec_params.update(dict(alpha=1, beta=self.rec.fa[idx].mean()))
+
+        if self.rec_type == libinference.rec_type.discrete_geometric:
+            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean() - 1))
+        elif self.rec_type == libinference.rec_type.discrete_poisson:
+            self.rec_params.update(dict(alpha=1, beta=1./self.rec.fa.mean()))
         else:
             self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean()))
+
         self.rec_params.update(rec_params)
         self.__dict__.update(self.rec_params)
 

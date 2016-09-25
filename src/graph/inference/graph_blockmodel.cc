@@ -233,6 +233,8 @@ void export_blockmodel_state()
         .value("none", weight_type::NONE)
         .value("positive", weight_type::POSITIVE)
         .value("signed", weight_type::SIGNED)
+        .value("discrete_geometric", weight_type::DISCRETE_GEOMETRIC)
+        .value("discrete_poisson", weight_type::DISCRETE_POISSON)
         .value("delta_t", weight_type::DELTA_T);
 
     def("make_block_state", &make_block_state);

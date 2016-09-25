@@ -50,6 +50,8 @@ enum weight_type
     NONE,
     POSITIVE,
     SIGNED,
+    DISCRETE_GEOMETRIC,
+    DISCRETE_POISSON,
     DELTA_T
 };
 
@@ -165,6 +167,8 @@ public:
         switch (_rec_type)
         {
         case weight_type::POSITIVE: // positive weights
+        case weight_type::DISCRETE_GEOMETRIC:
+        case weight_type::DISCRETE_POISSON:
             mv_entries(gs._rec);
             break;
         case weight_type::SIGNED: // positive and negative weights
@@ -214,6 +218,8 @@ public:
                        case weight_type::SIGNED: // signed weights
                            this->_bdrec[me] += get<2>(delta);
                        case weight_type::POSITIVE: // positive weights
+                       case weight_type::DISCRETE_GEOMETRIC:
+                       case weight_type::DISCRETE_POISSON:
                            this->_brec[me] += get<1>(delta);
                        }
                    });
@@ -353,6 +359,8 @@ public:
             case weight_type::SIGNED: // signed weights
                 _bdrec[me] -= _drec[e];
             case weight_type::POSITIVE: // positive weights
+            case weight_type::DISCRETE_GEOMETRIC:
+            case weight_type::DISCRETE_POISSON:
                 _brec[me] -= _rec[e];
             }
 
@@ -447,6 +455,8 @@ public:
             case weight_type::SIGNED: // signed weights
                 _bdrec[me] += _drec[e];
             case weight_type::POSITIVE: // positive weights
+            case weight_type::DISCRETE_GEOMETRIC:
+            case weight_type::DISCRETE_POISSON:
                 _brec[me] += _rec[e];
             }
         }
@@ -978,26 +988,44 @@ public:
                 dS += ps.get_delta_edges_dl(v, r, nr, gs._vweight, gs._g);
         }
 
+        auto positive_entries_op = [&](auto&& w_log_P)
+            {
+                entries_op(m_entries, this->_emat,
+                           [&](auto, auto, auto& me, auto& delta)
+                           {
+                               size_t ers = 0;
+                               double xrs = 0;
+                               if (me != _emat.get_null_edge())
+                               {
+                                   ers = this->_mrs[me];
+                                   xrs = this->_brec[me];
+                               }
+                               auto d = get<0>(delta);
+                               auto dx = get<1>(delta);
+                               dS -= -w_log_P(ers, xrs);
+                               dS += -w_log_P(ers + d, xrs + dx);
+                           });
+            };
+
         switch (_rec_type)
         {
         case weight_type::POSITIVE: // positive weights
-            entries_op(m_entries, _emat,
-                       [&](auto, auto, auto& me, auto& delta)
-                       {
-                           size_t ers = 0;
-                           double xrs = 0;
-                           if (me != _emat.get_null_edge())
-                           {
-                               ers = this->_mrs[me];
-                               xrs = this->_brec[me];
-                           }
-                           auto d = get<0>(delta);
-                           auto dx = get<1>(delta);
-                           dS -= -positive_w_log_P(ers, xrs,
-                                                   this->_alpha, this->_beta);
-                           dS += -positive_w_log_P(ers + d, xrs + dx,
-                                                   this->_alpha, this->_beta);
-                       });
+            positive_entries_op([&](auto N, auto x)
+                                { return positive_w_log_P(N, x,
+                                                          this->_alpha,
+                                                          this->_beta); });
+            break;
+        case weight_type::DISCRETE_GEOMETRIC:
+            positive_entries_op([&](auto N, auto x)
+                                { return geometric_w_log_P(N, x,
+                                                           this->_alpha,
+                                                           this->_beta); });
+            break;
+        case weight_type::DISCRETE_POISSON:
+            positive_entries_op([&](auto N, auto x)
+                                { return poisson_w_log_P(N, x,
+                                                         this->_alpha,
+                                                         this->_beta); });
             break;
         case weight_type::SIGNED: // positive and negative weights
             entries_op(m_entries, _emat,
@@ -1403,6 +1431,22 @@ public:
                 auto ers = _mrs[me];
                 auto xrs = _brec[me];
                 S += -positive_w_log_P(ers, xrs, _alpha, _beta);
+            }
+            break;
+        case weight_type::DISCRETE_GEOMETRIC:
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                S += -geometric_w_log_P(ers, xrs, _alpha, _beta);
+            }
+            break;
+        case weight_type::DISCRETE_POISSON:
+            for (auto me : edges_range(_bg))
+            {
+                auto ers = _mrs[me];
+                auto xrs = _brec[me];
+                S += -poisson_w_log_P(ers, xrs, _alpha, _beta);
             }
             break;
         case weight_type::SIGNED: // positive and negative weights
