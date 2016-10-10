@@ -2,24 +2,25 @@
     :no-undoc-members:
     :show-inheritance:
 
-.. testcode:: inference_detailed
-   :hide:
+..
+   .. testcode:: inference_detailed
+      :hide:
 
-   import test_inference
+      import test_inference
 
-.. testoutput:: inference_detailed
-   :hide:
-   :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
+   .. testoutput:: inference_detailed
+      :hide:
+      :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
 
-   OK
+      OK
 
-.. testcode:: inference_mcmc_detailed
-   :hide:
+   .. testcode:: inference_mcmc_detailed
+      :hide:
 
-   import test_inference_mcmc
+      import test_inference_mcmc
 
-.. testoutput:: inference_mcmc_detailed
-   :hide:
-   :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
+   .. testoutput:: inference_mcmc_detailed
+      :hide:
+      :options: -ELLIPSIS, +NORMALIZE_WHITESPACE
 
-   OK
+      OK
