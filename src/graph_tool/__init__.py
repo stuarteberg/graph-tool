@@ -1853,15 +1853,15 @@ class Graph(object):
                 vs = numpy.asarray((vertex,), dtype="int64")
             vfilt = self.get_vertex_filter()[0]
             if vfilt is not None:
-                vfiltptr = vfilt._get_data_ptr()
+                vfiltptr = vfilt.data_ptr()
             else:
-                vfiltprt = None
+                vfiltptr = None
             for pmap_ in self.__known_properties.values():
                 pmap = pmap_()
                 if (pmap is not None and
                     pmap.key_type() == "v" and
                     pmap.is_writable() and
-                    pmap._get_data_ptr() != vfiltptr):
+                    pmap.data_ptr() != vfiltptr):
                     if fast:
                         self.__graph.move_vertex_property(_prop("v", self, pmap), vs)
                     else:
@@ -2216,55 +2216,39 @@ class Graph(object):
 
         if g is None:
             g = self
+        sf = self
 
-        is_directed = g.is_directed()
-        efilt = g.get_edge_filter()
-        vfilt = g.get_vertex_filter()
-        if g is not self:
-            self_is_directed = self.is_directed()
-            self_efilt = self.get_edge_filter()
-            self_vfilt = self.get_vertex_filter()
-        try:
-            if full:
-                g.set_directed(True)
-                g.clear_filters()
-                if g is not self:
-                    self.set_directed(True)
-                    self.clear_filters()
-            if src.key_type() == "v":
-                if g.num_vertices() > self.num_vertices():
-                    raise ValueError("graphs with incompatible sizes (%d, %d)" %
-                                     (g.num_vertices(), self.num_vertices()))
-                try:
-                    self.__graph.copy_vertex_property(g.__graph,
-                                                      _prop("v", g, src),
-                                                      _prop("v", self, tgt))
-                except ValueError:
-                    raise ValueError("property maps with the following types are"
-                                     " not convertible: %s, %s" %
-                                     (src.value_type(), tgt.value_type()))
-            elif src.key_type() == "e":
-                if g.num_edges() > self.num_edges():
-                    raise ValueError("graphs with incompatible sizes (%d, %d)" %
-                                     (g.num_edges(), self.num_edges()))
-                try:
-                    self.__graph.copy_edge_property(g.__graph,
-                                                    _prop("e", g, src),
-                                                    _prop("e", self, tgt))
-                except ValueError:
-                    raise ValueError("property maps with the following types are"
-                                     " not convertible: %s, %s" %
-                                     (src.value_type(), tgt.value_type()))
-            else:
-                tgt[self] = src[g]
-        finally:
-            g.set_directed(is_directed)
-            g.set_edge_filter(efilt[0], efilt[1])
-            g.set_vertex_filter(vfilt[0], vfilt[1])
-            if g is not self:
-                self.set_directed(self_is_directed)
-                self.set_edge_filter(self_efilt[0], self_efilt[1])
-                self.set_vertex_filter(self_vfilt[0], self_vfilt[1])
+        if full:
+            g = GraphView(g, skip_properties=True, skip_efilt=True,
+                          skip_vfilt=True, directed=True)
+            sf = GraphView(sf, skip_properties=True, skip_efilt=True,
+                          skip_vfilt=True, directed=True)
+        if src.key_type() == "v":
+            if g.num_vertices() > sf.num_vertices():
+                raise ValueError("graphs with incompatible sizes (%d, %d)" %
+                                 (g.num_vertices(), sf.num_vertices()))
+            try:
+                sf.__graph.copy_vertex_property(g.__graph,
+                                                _prop("v", g, src),
+                                                _prop("v", sf, tgt))
+            except ValueError:
+                raise ValueError("property maps with the following types are"
+                                 " not convertible: %s, %s" %
+                                 (src.value_type(), tgt.value_type()))
+        elif src.key_type() == "e":
+            if g.num_edges() > sf.num_edges():
+                raise ValueError("graphs with incompatible sizes (%d, %d)" %
+                                 (g.num_edges(), sf.num_edges()))
+            try:
+                sf.__graph.copy_edge_property(g.__graph,
+                                              _prop("e", g, src),
+                                              _prop("e", sf, tgt))
+            except ValueError:
+                raise ValueError("property maps with the following types are"
+                                 " not convertible: %s, %s" %
+                                 (src.value_type(), tgt.value_type()))
+        else:
+            tgt[sf] = src[g]
         return ret
 
     # degree property map
