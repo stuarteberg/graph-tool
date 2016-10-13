@@ -593,6 +593,26 @@ public:
     {
     }
 
+    size_t data_ptr()
+    {
+        typename boost::mpl::or_<
+            std::is_same<PropertyMap,
+                         GraphInterface::vertex_index_map_t>,
+            std::is_same<PropertyMap,
+                         GraphInterface::edge_index_map_t> >::type is_index;
+        return data_ptr_dispatch(is_index);
+    }
+
+    size_t data_ptr_dispatch(boost::mpl::bool_<true>)
+    {
+        return 0;
+    }
+
+    size_t data_ptr_dispatch(boost::mpl::bool_<false>)
+    {
+        return size_t(_pmap.get_storage().data());
+    }
+
 private:
     PropertyMap _pmap; // hold an internal copy, since it's cheap
 };

@@ -103,6 +103,9 @@ Vertex add_vertex(adj_list<Vertex>& g);
 template <class Vertex>
 void clear_vertex(Vertex v, adj_list<Vertex>& g);
 
+template <class Vertex, class Pred>
+void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred);
+
 template <class Vertex>
 void remove_vertex(Vertex v, adj_list<Vertex>& g);
 
@@ -451,7 +454,8 @@ private:
 
     friend Vertex add_vertex<>(adj_list<Vertex>& g);
 
-    friend void clear_vertex<>(Vertex v, adj_list<Vertex>& g);
+    template <class V, class Pred>
+    friend void clear_vertex(V v, adj_list<V>& g, Pred&& pred);
 
     friend void remove_vertex<>(Vertex v, adj_list<Vertex>& g);
 
@@ -704,22 +708,27 @@ Vertex add_vertex(adj_list<Vertex>& g)
     return g._out_edges.size() - 1;
 }
 
-template <class Vertex>
-inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
+template <class Vertex, class Pred>
+inline void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
 {
     if (!g._keep_epos)
     {
-        auto remove_es = [&] (auto& out_edges, auto& in_edges)
+        auto remove_es = [&] (auto& out_edges, auto& in_edges,
+                              auto&& mk_out_edge, auto&& mk_in_edge)
             {
                 auto& oes = out_edges[v];
                 for (const auto& oe : oes)
                 {
+                    if (!pred(mk_out_edge.def(v, oe)))
+                        continue;
                     Vertex t = oe.first;
                     auto& ies = in_edges[t];
                     auto iter =
                         std::remove_if(ies.begin(), ies.end(),
                                        [&](const auto& ei) -> bool
                                        {
+                                           if (!pred(mk_in_edge.def(t, ei)))
+                                               return false;
                                            if (ei.first == v)
                                            {
                                                g._free_indexes.push_back(ei.second);
@@ -729,20 +738,34 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
                                        });
                     ies.erase(iter, ies.end());
                 }
-                g._n_edges -= oes.size();
-                oes.clear();
+                size_t noes = oes.size();
+                auto iter =
+                    std::remove_if(oes.begin(), oes.end(),
+                                   [&](auto& oe)
+                                   {
+                                       return pred(mk_out_edge.def(v, oe));
+                                   });
+                oes.erase(iter, oes.end());
+                g._n_edges -= noes - oes.size();
             };
-        remove_es(g._out_edges, g._in_edges);
-        remove_es(g._in_edges, g._out_edges);
+        remove_es(g._out_edges, g._in_edges,
+                  typename adj_list<Vertex>::make_out_edge(),
+                  typename adj_list<Vertex>::make_in_edge());
+        remove_es(g._in_edges, g._out_edges,
+                  typename adj_list<Vertex>::make_in_edge(),
+                  typename adj_list<Vertex>::make_out_edge());
     }
     else
     {
         auto remove_es = [&] (auto& out_edges, auto& in_edges,
-                              const auto& get_pos)
+                              auto&& get_pos, auto&& mk_out_edge)
         {
             auto& oes = out_edges[v];
             for (const auto& ei : oes)
             {
+                if (!pred(mk_out_edge.def(v, ei)))
+                    continue;
+
                 Vertex t = ei.first;
                 size_t idx = ei.second;
                 auto& ies = in_edges[t];
@@ -754,15 +777,32 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
                 ies.pop_back();
                 g._free_indexes.push_back(idx);
             }
-            g._n_edges -= oes.size();
-            oes.clear();
+
+            size_t noes = oes.size();
+            auto iter =
+                std::remove_if(oes.begin(), oes.end(),
+                               [&](auto& oe)
+                               {
+                                   return pred(mk_out_edge.def(v, oe));
+                               });
+            oes.erase(iter, oes.end());
+            g._n_edges -= noes - oes.size();
         };
         remove_es(g._out_edges, g._in_edges,
-                  [&](size_t idx) -> auto& {return g._epos[idx].second;});
+                  [&](size_t idx) -> auto& {return g._epos[idx].second;},
+                  typename adj_list<Vertex>::make_out_edge());
         remove_es(g._in_edges, g._out_edges,
-                  [&](size_t idx) -> auto& {return g._epos[idx].first;});
+                  [&](size_t idx) -> auto& {return g._epos[idx].first;},
+                  typename adj_list<Vertex>::make_in_edge());
     }
 }
+
+template <class Vertex>
+inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
+{
+    clear_vertex(v, g, [](auto&&){ return true; });
+}
+
 
 // O(V + E)
 template <class Vertex>

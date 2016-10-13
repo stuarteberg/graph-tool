@@ -304,7 +304,10 @@ add_edge(typename boost::graph_traits
                               VertexPredicate>>::vertex_descriptor v,
          filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
 {
-    return add_edge(u,v, const_cast<Graph&>(g.m_g));
+    auto ret = add_edge(u, v, const_cast<Graph&>(g.m_g));
+    auto filt = g.m_edge_pred.get_filter().get_checked();
+    filt[ret.first] = !g.m_edge_pred.is_inverted();
+    return ret;
 }
 
 //==============================================================================
@@ -316,12 +319,10 @@ clear_vertex(typename boost::graph_traits
              <filtered_graph<Graph,EdgePredicate,VertexPredicate>>::vertex_descriptor v,
              filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
 {
-    typedef typename boost::graph_traits<filtered_graph<Graph,EdgePredicate,VertexPredicate>>::edge_descriptor e_t;
-    std::vector<e_t> e_list;
-    for (auto e : graph_tool::all_edges_range(v, g))
-        e_list.push_back(e);
-    for (auto& e : e_list)
-        remove_edge(e, g);
+    clear_vertex(v, const_cast<Graph&>(g.m_g),
+                 [&](auto&& e){ return (g.m_edge_pred(e) &&
+                                        g.m_vertex_pred(source(e, g.m_g)) &&
+                                        g.m_vertex_pred(target(e, g.m_g))); });
 }
 
 //==============================================================================
@@ -376,6 +377,9 @@ void remove_vertex(typename boost::graph_traits
                                      VertexPredicate>>::vertex_descriptor v,
                  filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
 {
+    auto& filt = g.m_vertex_pred.get_filter();
+    for (size_t i = v; i < num_vertices(g) - 1; ++i)
+        filt[i] = filt[i + 1];
     return remove_vertex(v,const_cast<Graph&>(g.m_g));
 }
 
@@ -389,6 +393,9 @@ void remove_vertex_fast(typename boost::graph_traits
                                         VertexPredicate>>::vertex_descriptor v,
                         filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
 {
+    size_t back = num_vertices(g) - 1;
+    auto& filt = g.m_vertex_pred.get_filter();
+    filt[v] = filt[back];
     return remove_vertex_fast(v,const_cast<Graph&>(g.m_g));
 }
 
@@ -445,7 +452,10 @@ typename boost::graph_traits
     <filtered_graph<Graph,EdgePredicate,VertexPredicate>>::vertex_descriptor
 add_vertex(filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
 {
-    return add_vertex(const_cast<Graph&>(g.m_g));
+    auto filt = g.m_vertex_pred.get_filter().get_checked();
+    auto v = add_vertex(const_cast<Graph&>(g.m_g));
+    filt[v] = !g.m_vertex_pred.is_inverted();
+    return v;
 }
 
 //==============================================================================

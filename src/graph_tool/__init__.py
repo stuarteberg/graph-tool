@@ -827,6 +827,10 @@ class PropertyMap(object):
         self.__map.resize(size)
         self.__map.shrink_to_fit()
 
+    def data_ptr(self):
+        """Return the pointer to memory where the data resides."""
+        return self.__map.data_ptr()
+
     def __getstate__(self):
         g = self.get_graph()
         if g is None:
@@ -1847,12 +1851,21 @@ class Graph(object):
         if vmax != back:
             if not is_iter:
                 vs = numpy.asarray((vertex,), dtype="int64")
-            for pmap in self.__known_properties.values():
-                if pmap() is not None and pmap().key_type() == "v" and pmap().is_writable():
+            vfilt = self.get_vertex_filter()[0]
+            if vfilt is not None:
+                vfiltptr = vfilt._get_data_ptr()
+            else:
+                vfiltprt = None
+            for pmap_ in self.__known_properties.values():
+                pmap = pmap_()
+                if (pmap is not None and
+                    pmap.key_type() == "v" and
+                    pmap.is_writable() and
+                    pmap._get_data_ptr() != vfiltptr):
                     if fast:
-                        self.__graph.move_vertex_property(_prop("v", self, pmap()), vs)
+                        self.__graph.move_vertex_property(_prop("v", self, pmap), vs)
                     else:
-                        self.__graph.shift_vertex_property(_prop("v", self, pmap()), vs)
+                        self.__graph.shift_vertex_property(_prop("v", self, pmap), vs)
 
         if is_iter:
             libcore.remove_vertex_array(self.__graph, vs, fast)
