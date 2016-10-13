@@ -33,6 +33,7 @@ from numpy import *
 import numpy
 import copy
 import collections
+import itertools
 
 from . util import *
 
@@ -977,84 +978,91 @@ class BlockState(object):
         else:
             return self._state.get_move_prob(int(v), s, self.b[v], c, True)
 
-    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
-        """Compute the unnormalized log-probability of the missing (or spurious if
-        ``missing=False``) edges given by ``edge_list`` (a list of ``(source,
-        target)`` tuples, or :meth:`~graph_tool.Edge` instances). The values in
-        ``entropy_args`` are passed to :meth:`graph_tool.BlockState.entropy()`
-        to calculate the log-probability.
+    def get_edges_prob(self, missing, spurious=[], entropy_args={}):
+        """Compute the joint log-probability of the missing and spurious edges given by
+        ``missing`` and ``spurious`` (a list of ``(source, target)``
+        tuples, or :meth:`~graph_tool.Edge` instances), together with the
+        observed edges.
 
+        More precisely, the log-likelihood returned is
+
+        .. math::
+
+            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+
+        where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
+        (with missing edges added and spurious edges deleted).
+
+        The values in ``entropy_args`` are passed to
+        :meth:`graph_tool.BlockState.entropy()` to calculate the
+        log-probability.
         """
         pos = {}
-        for u, v in edge_list:
+        for u, v in itertools.chain(missing, spurious):
             pos[u] = self.b[u]
             pos[v] = self.b[v]
-
-        Si = self.entropy(**entropy_args)
 
         self.remove_vertex(pos.keys())
 
         try:
-            if missing:
-                new_es = []
-                for u, v in edge_list:
-                    if not self.is_weighted:
+            new_es = []
+            for u, v in missing:
+                if not self.is_weighted:
+                    e = self.g.add_edge(u, v)
+                else:
+                    e = self.g.edge(u, v)
+                    if e is None:
                         e = self.g.add_edge(u, v)
-                    else:
-                        e = self.g.edge(u, v)
-                        if e is None:
-                            e = self.g.add_edge(u, v)
-                            self.eweight[e] = 0
-                        self.eweight[e] += 1
-                    new_es.append(e)
-            else:
-                old_es = []
-                for e in edge_list:
-                    u, v = e
-                    if isinstance(e, tuple):
-                        e = self.g.edge(u, v)
-                        if e is None:
-                            raise ValueError("edge not found: (%d, %d)" % (int(u),
-                                                                           int(v)))
+                        self.eweight[e] = 0
+                    self.eweight[e] += 1
+                new_es.append(e)
 
-                    if self.is_weighted:
-                        self.eweight[e] -= 1
-                        if self.eweight[e] == 0:
-                            self.g.remove_edge(e)
-                    else:
+            old_es = []
+            for e in spurious:
+                u, v = e
+                if isinstance(e, tuple):
+                    e = self.g.edge(u, v)
+                    if e is None:
+                        raise ValueError("edge not found: (%d, %d)" % (int(u),
+                                                                       int(v)))
+
+                if self.is_weighted:
+                    self.eweight[e] -= 1
+                    if self.eweight[e] == 0:
                         self.g.remove_edge(e)
-                    old_es.append((u, v))
+                else:
+                    self.g.remove_edge(e)
+                old_es.append((u, v))
 
             self.add_vertex(pos.keys(), pos.values())
 
-            Sf = self.entropy(**entropy_args)
+            Sf = self.entropy(**overlay(dict(partition_dl=False),
+                                        **entropy_args))
 
             self.remove_vertex(pos.keys())
 
         finally:
-            if missing:
-                if self.is_weighted:
-                    for e in reversed(new_es):
-                        self.eweight[e] -= 1
-                        if self.eweight[e] == 0:
-                            self.g.remove_edge(e)
-                else:
-                    for e in reversed(new_es):
+            if self.is_weighted:
+                for e in reversed(new_es):
+                    self.eweight[e] -= 1
+                    if self.eweight[e] == 0:
                         self.g.remove_edge(e)
             else:
-                for u, v in old_es:
-                    if self.is_weighted:
-                        e = self.g.edge(u, v)
-                        if e is None:
-                            e = self.g.add_edge(u, v)
-                            self.eweight[e] = 0
-                        self.eweight[e] += 1
-                    else:
-                        self.g.add_edge(u, v)
+                for e in reversed(new_es):
+                    self.g.remove_edge(e)
+            for u, v in old_es:
+                if self.is_weighted:
+                    e = self.g.edge(u, v)
+                    if e is None:
+                        e = self.g.add_edge(u, v)
+                        self.eweight[e] = 0
+                    self.eweight[e] += 1
+                else:
+                    self.g.add_edge(u, v)
 
             self.add_vertex(pos.keys(), pos.values())
 
-        L = Si - Sf
+        L = -Sf
 
         if _bm_test():
             state = self.copy()

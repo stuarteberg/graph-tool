@@ -644,16 +644,28 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         u = self.vmap[v][i]
         return u
 
-    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
-        """Compute the log-probability of the missing (or spurious if ``missing=False``)
-        edges given by ``edge_list`` (a list of ``(source, target, ec)`` tuples, or
-        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
-        passed to :meth:`graph_tool.LayeredBlockState.entropy()` to calculate the
+    def get_edges_prob(self, missing, spurious=[], entropy_args={}):
+        """Compute the joint log-probability of the missing and spurious edges given by
+        ``missing`` and ``spurious`` (a list of ``(source, target, layer)``
+        tuples, or :meth:`~graph_tool.Edge` instances), together with the
+        observed edges.
+
+        More precisely, the log-likelihood returned is
+
+        .. math::
+
+            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+
+        where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
+        (with missing edges added and spurious edges deleted).
+
+        The values in ``entropy_args`` are passed to
+        :meth:`graph_tool.BlockState.entropy()` to calculate the
         log-probability.
         """
         pos = {}
         nes = []
-        for e in edge_list:
+        for e in itertools.chain(missing, spurious):
             try:
                 u, v = e
                 l = self.ec[e]
@@ -669,87 +681,83 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         edge_list = nes
 
-        Si = self.entropy(**entropy_args)
-
         self.remove_vertex(pos.keys())
 
         agg_state = self.agg_state
 
         try:
-            if missing:
-                new_es = []
-                for u, v, l in edge_list:
-                    if not l[1]:
-                        state = self.agg_state
-                    else:
-                        state = self.layer_states[l[0]]
-                    e = state.g.add_edge(u, v)
-                    if not l[1]:
-                        self.ec[e] = l[0]
-                    if state.is_weighted:
-                        state.eweight[e] = 1
-                    new_es.append((e, l))
-            else:
-                old_es = []
-                for u, v, l in edge_list:
-                    if not l[1]:
-                        state = self.agg_state
-                        es = state.g.edge(u, v, all_edges=True)
-                        es = [e for e in es if self.ec[e] == l[0]]
-                        if len(es) > 0:
-                            e = es[0]
-                        else:
-                            e = None
-                    else:
-                        state = self.layer_states[l[0]]
-                        e = state.g.edge(u, v)
-                    if e is None:
-                        raise ValueError("edge not found: (%d, %d, %d)" % \
-                                         (int(u), int(v), l[0]))
+            new_es = []
+            for u, v, l in missing:
+                if not l[1]:
+                    state = self.agg_state
+                else:
+                    state = self.layer_states[l[0]]
+                e = state.g.add_edge(u, v)
+                if not l[1]:
+                    self.ec[e] = l[0]
+                if state.is_weighted:
+                    state.eweight[e] = 1
+                new_es.append((e, l))
 
-                    if state.is_weighted:
-                        staete.eweight[e] -= 1
-                        if state.eweight[e] == 0:
-                            state.g.remove_edge(e)
+            old_es = []
+            for u, v, l in spurious:
+                if not l[1]:
+                    state = self.agg_state
+                    es = state.g.edge(u, v, all_edges=True)
+                    es = [e for e in es if self.ec[e] == l[0]]
+                    if len(es) > 0:
+                        e = es[0]
                     else:
+                        e = None
+                else:
+                    state = self.layer_states[l[0]]
+                    e = state.g.edge(u, v)
+                if e is None:
+                    raise ValueError("edge not found: (%d, %d, %d)" % \
+                                     (int(u), int(v), l[0]))
+
+                if state.is_weighted:
+                    staete.eweight[e] -= 1
+                    if state.eweight[e] == 0:
                         state.g.remove_edge(e)
-                    old_es.append((u, v, l))
+                else:
+                    state.g.remove_edge(e)
+                old_es.append((u, v, l))
 
             self.add_vertex(pos.keys(), pos.values())
 
-            Sf = self.entropy(**entropy_args)
+            Sf = self.entropy(**overlay(dict(partition_dl=False),
+                                        **entropy_args))
 
             self.remove_vertex(pos.keys())
 
         finally:
-            if missing:
-                for e, l in new_es:
-                    if not l[1]:
-                        state = self.agg_state
-                    else:
-                        state = self.layer_states[l[0]]
-                    state.g.remove_edge(e)
-            else:
-                for u, v, l in old_es:
-                    if not l[1]:
-                        state = self.agg_state
-                    else:
-                        state = self.layer_states[l[0]]
-                    if state.is_weighted:
-                        e = state.g.edge(u, v)
-                        if e is None:
-                            e = state.g.add_edge(u, v)
-                            state.eweight[e] = 0
-                            if not l[1]:
-                                self.ec[e] = l[0]
-                        state.eweight[e] += 1
-                    else:
+            for e, l in new_es:
+                if not l[1]:
+                    state = self.agg_state
+                else:
+                    state = self.layer_states[l[0]]
+                state.g.remove_edge(e)
+            for u, v, l in old_es:
+                if not l[1]:
+                    state = self.agg_state
+                else:
+                    state = self.layer_states[l[0]]
+                if state.is_weighted:
+                    e = state.g.edge(u, v)
+                    if e is None:
                         e = state.g.add_edge(u, v)
+                        state.eweight[e] = 0
                         if not l[1]:
                             self.ec[e] = l[0]
+                    state.eweight[e] += 1
+                else:
+                    e = state.g.add_edge(u, v)
+                    if not l[1]:
+                        self.ec[e] = l[0]
             self.add_vertex(pos.keys(), pos.values())
 
-        L = Si - Sf
+        L = -Sf
 
         if _bm_test():
             state = self.copy()

@@ -306,13 +306,26 @@ class NestedBlockState(object):
         self.levels[0].add_vertex(v, r)
         self._regen_levels()
 
-    def get_edges_prob(self, edge_list, missing=True, entropy_args={}):
-        """Compute the log-probability of the missing (or spurious if ``missing=False``)
-        edges given by ``edge_list`` (a list of ``(source, target)`` tuples, or
-        :meth:`~graph_tool.Edge` instances). The values in ``entropy_args`` are
-        passed to :meth:`graph_tool.NestedBlockState.entropy()` to calculate the
+    def get_edges_prob(self, missing, spurious=[], entropy_args={}):
+        """Compute the joint log-probability of the missing and spurious edges given by
+        ``missing`` and ``spurious`` (a list of ``(source, target)``
+        tuples, or :meth:`~graph_tool.Edge` instances), together with the
+        observed edges.
+
+        More precisely, the log-likelihood returned is
+
+        .. math::
+
+            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+
+        where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
+        (with missing edges added and spurious edges deleted).
+
+        The values in ``entropy_args`` are passed to
+        :meth:`graph_tool.BlockState.entropy()` to calculate the
         log-probability.
         """
+
         L = 0
         for l, lstate in enumerate(self.levels):
             if l > 0:
@@ -329,11 +342,14 @@ class NestedBlockState(object):
                     lstate._state.sync_emat()
                     lstate._state.clear_egroups()
 
-            L += lstate.get_edges_prob(edge_list, missing, entropy_args=eargs)
+            L += lstate.get_edges_prob(missing, spurious, entropy_args=eargs)
             if isinstance(self.levels[0], LayeredBlockState):
-                edge_list = [(lstate.b[u], lstate.b[v], l) for u, v, l in edge_list]
+                missing = [(lstate.b[u], lstate.b[v], l_) for u, v, l_ in missing]
+                spurious = [(lstate.b[u], lstate.b[v], l_) for u, v, l_ in spurious]
             else:
-                edge_list = [(lstate.b[u], lstate.b[v]) for u, v in (tuple(e_) for e_ in edge_list)]
+                missing = [(lstate.b[u], lstate.b[v]) for u, v in missing]
+                spurious = [(lstate.b[u], lstate.b[v]) for u, v in spurious]
+
         return L
 
 
