@@ -722,7 +722,7 @@ filter parameters. For example, to create a directed view of the graph
 Graph views also provide a much more direct and convenient approach to
 vertex/edge filtering: To construct a filtered minimum spanning tree
 like in the example above, one must only pass the filter property as the
-"efilter" parameter:
+"efilt" parameter:
 
 .. doctest::
 
@@ -764,7 +764,7 @@ Like above, the result should be the isolated minimum spanning tree:
    its parent :class:`~graph_tool.Graph` class. Therefore, if the
    original :class:`~graph_tool.Graph` object is modified, this
    modification will be reflected immediately in the
-   :class:`~graph_tool.GraphView` object, and vice-versa.
+   :class:`~graph_tool.GraphView` object, and vice versa.
 
 For even more convenience, one can supply a function as filter
 parameter, which takes a vertex or an edge as single parameter, and

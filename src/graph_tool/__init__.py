@@ -2222,7 +2222,7 @@ class Graph(object):
             g = GraphView(g, skip_properties=True, skip_efilt=True,
                           skip_vfilt=True, directed=True)
             sf = GraphView(sf, skip_properties=True, skip_efilt=True,
-                          skip_vfilt=True, directed=True)
+                           skip_vfilt=True, directed=True)
         if src.key_type() == "v":
             if g.num_vertices() > sf.num_vertices():
                 raise ValueError("graphs with incompatible sizes (%d, %d)" %
@@ -2443,10 +2443,14 @@ class Graph(object):
         if eprop is None:
             eprop = self.new_edge_property("bool")
             eprop.a = not inverted_edges
+        else:
+            eprop = self.own_property(eprop)
 
         if vprop is None:
             vprop = self.new_vertex_property("bool")
             vprop.a = not inverted_vertices
+        else:
+            vprop = self.own_property(vprop)
 
         self.__graph.set_vertex_filter_property(_prop("v", self, vprop),
                                                 inverted_vertices)
@@ -2860,13 +2864,13 @@ class GraphView(Graph):
         if not skip_efilt:
             ef = list(g.get_edge_filter())
             if ef[0] is not None:
-                ef[0] = ef[0].copy()
+                ef[0] = self.own_property(ef[0].copy())
         else:
             ef = [None, False]
         if not skip_vfilt:
             vf = list(g.get_vertex_filter())
             if vf[0] is not None:
-                vf[0] = vf[0].copy()
+                vf[0] = self.own_property(vf[0].copy())
         else:
             vf = [None, False]
 
