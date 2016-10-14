@@ -223,7 +223,7 @@ boost::python::tuple bethe_entropy(GraphInterface& gi, boost::any op,
 }
 
 class PartitionHist
-    : public gt_hash_map<std::vector<int32_t>, size_t>
+    : public gt_hash_map<std::vector<int32_t>, double>
 {
 public:
 
@@ -241,7 +241,7 @@ public:
         for (int i = 0; i < python::len(keys); ++i)
         {
             auto& k = python::extract<std::vector<int32_t>&>(keys[i])();
-            size_t v = python::extract<size_t>(state[k]);
+            double v = python::extract<double>(state[k]);
             (*this)[k] = v;
         }
     }
@@ -261,40 +261,88 @@ public:
 
 };
 
-void collect_partitions(boost::any ob, PartitionHist& h, size_t update)
+double log_n_permutations(const vector<int32_t>& b)
+{
+    std::vector<int32_t> count(b.size());
+    for (auto bi : b)
+        count[bi]++;
+    double n = boost::lgamma(b.size() + 1);
+    for (auto nr : count)
+        n -= boost::lgamma(nr + 1);
+    return n;
+}
+
+vector<int32_t> unlabel_partition(vector<int32_t> b)
+{
+    std::vector<int32_t> map(b.size(), -1);
+    size_t pos = 0;
+    for (auto& bi : b)
+    {
+        auto& x = map[bi];
+        if (x == -1)
+        {
+            x = pos;
+            ++pos;
+        }
+        bi = x;
+    }
+    return b;
+}
+
+void collect_partitions(boost::any& ob, PartitionHist& h, double update,
+                        bool unlabel)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
-    auto b = any_cast<vmap_t>(ob);
+    auto& b = any_cast<vmap_t&>(ob);
     auto& v = b.get_storage();
-    h[v] += update;
+    if (unlabel)
+    {
+        auto vc = unlabel_partition(v);
+        h[vc] += update;
+    }
+    else
+    {
+        h[v] += update;
+    }
 }
 
 void collect_hierarchical_partitions(python::object ovb, PartitionHist& h,
-                                     size_t update)
+                                     size_t update, bool unlabel)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
     vector<int32_t> v;
     for (int i = 0; i < len(ovb); ++i)
     {
-        boost::any ob = python::extract<boost::any>(ovb[i])();
-        auto b = any_cast<vmap_t>(ob);
+        boost::any& ob = python::extract<boost::any&>(ovb[i])();
+        auto& b = any_cast<vmap_t&>(ob);
         auto& vi = b.get_storage();
         v.reserve(v.size() + vi.size());
-        v.insert(v.end(), vi.begin(), vi.end());
+        if (unlabel)
+        {
+            auto vc = unlabel_partition(v);
+            v.insert(v.end(), vc.begin(), vc.end());
+        }
+        else
+        {
+            v.insert(v.end(), vi.begin(), vi.end());
+        }
+        v.push_back(-1);
     }
     h[v] += update;
 }
 
-double partitions_entropy(PartitionHist& h)
+double partitions_entropy(PartitionHist& h, bool unlabeled)
 {
     double S = 0;
     size_t N = 0;
-    for (auto& kv : h)
+    for (auto kv : h)
     {
         if (kv.second == 0)
             continue;
         N += kv.second;
         S -= kv.second * log(kv.second);
+        if (unlabeled)
+            S += kv.second * log_n_permutations(kv.first);
     }
     if (N > 0)
     {

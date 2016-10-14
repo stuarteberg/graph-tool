@@ -1721,7 +1721,7 @@ class BlockState(object):
                                       update)
         return p
 
-    def collect_partition_histogram(self, h=None, update=1):
+    def collect_partition_histogram(self, h=None, update=1, unlabel=True):
         r"""Collect a histogram of partitions.
 
         This should be called multiple times, e.g. after repeated runs of the
@@ -1734,6 +1734,9 @@ class BlockState(object):
         update : float (optional, default: ``1``)
             Each call increases the current count by the amount given by this
             parameter.
+        unlabel : bool (optional, default: ``True``)
+            If ``True``, the partition will be relabeled so that only one entry
+            for all its label permutations will be considered in the histogram.
 
         Returns
         -------
@@ -1758,13 +1761,14 @@ class BlockState(object):
            ...     ds, nmoves = state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
-           5.215767...
+           124.092176...
+
         """
 
         if h is None:
             h = PartitionHist()
         libinference.collect_partitions(_prop("v", self.g, self.b),
-                                        h, update)
+                                        h, update, unlabel)
         return h
 
     def draw(self, **kwargs):
@@ -1877,7 +1881,7 @@ def bethe_entropy(g, p):
     g : :class:`~graph_tool.Graph`
         The graph.
     p : :class:`~graph_tool.PropertyMap`
-       Edge property map with edge marginals.
+        Edge property map with edge marginals.
 
     Returns
     -------
@@ -1958,13 +1962,19 @@ def mf_entropy(g, p):
 
     return libinference.mf_entropy(g._Graph__graph,
                                    _prop("v", g, p))
-def microstate_entropy(h):
+def microstate_entropy(h, unlabel=True):
     r"""Compute microstate entropy given a histogram of partitions.
 
     Parameters
     ----------
     h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
         Partition histogram.
+    unlabel : bool (optional, default: ``True``)
+        If ``True``, it is assumed that partition were relabeled so that only
+        one entry for all its label permutations were considered in the
+        histogram. The entropy computed will correspond to the full distribution
+        over labelled partitions, where all permutations are assumed to be
+        equally likely.
 
     Returns
     -------
@@ -1980,7 +1990,7 @@ def microstate_entropy(h):
 
         H = - \sum_{\boldsymbol b}p({\boldsymbol b})\ln p({\boldsymbol b}),
 
-    where :math:`p({\boldsymbol b})` is observed frequency of partition
+    where :math:`p({\boldsymbol b})` is observed frequency of labelled partition
     :math:`{\boldsymbol b}`.
 
     References
@@ -1988,8 +1998,9 @@ def microstate_entropy(h):
     .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
        Physics, and Computation", Oxford Univ Press, 2009.
        :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
+
     """
 
-    return libinference.partitions_entropy(h)
+    return libinference.partitions_entropy(h, unlabel)
 
 from . overlap_blockmodel import *
