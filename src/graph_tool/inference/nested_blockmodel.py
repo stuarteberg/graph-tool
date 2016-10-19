@@ -257,8 +257,8 @@ class NestedBlockState(object):
         else:
             eargs = kwargs
 
-        S = bstate.entropy(**overlay(eargs, dl=True,
-                                     edges_dl=(l == (len(self.levels) - 1))))
+        S = bstate.entropy(**dict(eargs, dl=True,
+                                  edges_dl=(l == (len(self.levels) - 1))))
         return S
 
     def entropy(self, **kwargs):
@@ -333,8 +333,8 @@ class NestedBlockState(object):
             else:
                 eargs = entropy_args
 
-            eargs = overlay(eargs, dl=True,
-                            edges_dl=(l == (len(self.levels) - 1)))
+            eargs = dict(eargs, dl=True,
+                         edges_dl=(l == (len(self.levels) - 1)))
 
             if self.sampling:
                 lstate._couple_state(None, None)
@@ -408,31 +408,31 @@ class NestedBlockState(object):
         mcmc_equilibrate_args = mcmc_multilevel_args.get("mcmc_equilibrate_args", {})
         mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
         entropy_args = mcmc_args.get("entropy_args", {})
-        entropy_args = overlay(entropy_args, dl=True,
-                               edges_dl=l==len(self.levels) - 1)
+        entropy_args = dict(entropy_args, dl=True,
+                            edges_dl=l==len(self.levels) - 1)
         extra_entropy_args = bisection_args.get("extra_entropy_args", {})
         if l > 0 and self.hentropy_args.get("dense"):
-            entropy_args = overlay(entropy_args,
-                                   dense=self.levels[l].get_N() < sparse_thres)
+            entropy_args = dict(entropy_args,
+                                dense=self.levels[l].get_N() < sparse_thres)
             if self.levels[l].get_N() >= sparse_thres:
-                extra_entropy_args = overlay(extra_entropy_args, dense=True)
+                extra_entropy_args = dict(extra_entropy_args, dense=True)
         if l < len(self.levels) - 1:
-            entropy_args = overlay(entropy_args,
-                                   callback=lambda s: get_edges_dl(s,
-                                                                   self.hstate_args,
-                                                                   self.hentropy_args))
-        mcmc_args = overlay(mcmc_args, entropy_args=entropy_args,
-                            disable_callback_test=isinstance(self.levels[0],
-                                                             LayeredBlockState))
+            entropy_args = dict(entropy_args,
+                                callback=lambda s: get_edges_dl(s,
+                                                                self.hstate_args,
+                                                                self.hentropy_args))
+        mcmc_args = dict(mcmc_args, entropy_args=entropy_args,
+                         disable_callback_test=isinstance(self.levels[0],
+                                                          LayeredBlockState))
         if l > 0:
             mcmc_args = dmask(mcmc_args, ["bundled"])
-        mcmc_equilibrate_args = overlay(mcmc_equilibrate_args,
-                                        mcmc_args=mcmc_args)
-        mcmc_multilevel_args = overlay(mcmc_multilevel_args,
-                                       mcmc_equilibrate_args=mcmc_equilibrate_args)
-        bisection_args = overlay(bisection_args,
-                                 mcmc_multilevel_args=mcmc_multilevel_args,
-                                 extra_entropy_args=extra_entropy_args)
+        mcmc_equilibrate_args = dict(mcmc_equilibrate_args,
+                                     mcmc_args=mcmc_args)
+        mcmc_multilevel_args = dict(mcmc_multilevel_args,
+                                    mcmc_equilibrate_args=mcmc_equilibrate_args)
+        bisection_args = dict(bisection_args,
+                              mcmc_multilevel_args=mcmc_multilevel_args,
+                              extra_entropy_args=extra_entropy_args)
 
         # construct boundary states and constraints
         clabel = self.get_clabel(l)
@@ -481,8 +481,8 @@ class NestedBlockState(object):
         entropy_args = kwargs.get("entropy_args", {})
 
         for l in range(len(self.levels) - 1):
-            eargs = overlay(self.hentropy_args,
-                            edges_dl=(l + 1 == len(self.levels) - 1))
+            eargs = dict(self.hentropy_args,
+                         edges_dl=(l + 1 == len(self.levels) - 1))
             self.levels[l]._couple_state(self.levels[l + 1],
                                          get_entropy_args(eargs))
             self.levels[l + 1]._state.clear_egroups()
@@ -499,21 +499,21 @@ class NestedBlockState(object):
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
             if l > 0:
-                eargs = overlay(self.hentropy_args,
-                                **overlay(entropy_args, multigraph=True))
+                eargs = dict(self.hentropy_args,
+                             **dict(entropy_args, multigraph=True))
             else:
                 eargs = entropy_args
 
-            eargs = overlay(eargs, dl=True,
-                            edges_dl=(l == len(self.levels) - 1))
+            eargs = dict(eargs, dl=True,
+                         edges_dl=(l == len(self.levels) - 1))
 
             if l < len(self.levels) - 1:
                 def callback(s):
                     s = self.levels[l + 1]
-                    S = s.entropy(**overlay(self.hentropy_args,
-                                            edges_dl=(l + 1 == len(self.levels) - 1)))
+                    S = s.entropy(**dict(self.hentropy_args,
+                                         edges_dl=(l + 1 == len(self.levels) - 1)))
                     return S
-                eargs = overlay(eargs, callback=callback)
+                eargs = dict(eargs, callback=callback)
 
             if l > 0:
                 self.levels[l]._state.sync_emat()
@@ -522,9 +522,9 @@ class NestedBlockState(object):
                 self.levels[l + 1]._state.sync_emat()
 
             if c is None:
-                args = overlay(kwargs, entropy_args=eargs)
+                args = dict(kwargs, entropy_args=eargs)
             else:
-                args = overlay(kwargs, entropy_args=eargs, c=c[l])
+                args = dict(kwargs, entropy_args=eargs, c=c[l])
 
             if l > 0:
                 N_ = self.levels[l].get_N()
@@ -556,7 +556,7 @@ class NestedBlockState(object):
         to be used at each level.
         """
 
-        c = extract_arg(kwargs, "c", 1)
+        c = kwargs.pop("c", 1)
         if not isinstance(c, collections.Iterable):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
@@ -683,8 +683,8 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
     done = []
     while l >= 0:
 
-        bisection_args = overlay(bisection_args,
-                                 verbose=verbose_push(verbose, ("    l=%d  " % l)))
+        bisection_args = dict(bisection_args,
+                              verbose=verbose_push(verbose, ("    l=%d  " % l)))
 
         while len(done) < len(state.levels) + 2:
             done.append(False)

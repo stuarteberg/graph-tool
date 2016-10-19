@@ -67,7 +67,7 @@ def get_ent(state, mcmc_multilevel_args, extra_entropy_args):
     mcmc_equilibrate_args = mcmc_multilevel_args.get("mcmc_equilibrate_args", {})
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     entropy_args = mcmc_args.get("entropy_args", {})
-    S = state.entropy(**overlay(entropy_args, **extra_entropy_args))
+    S = state.entropy(**dict(entropy_args, **extra_entropy_args))
     return S
 
 def get_state_dl(B, b_cache, mcmc_multilevel_args={}, extra_entropy_args={},
@@ -78,11 +78,11 @@ def get_state_dl(B, b_cache, mcmc_multilevel_args={}, extra_entropy_args={},
     B_prev = Bs[bisect.bisect(Bs, B)]
     state = b_cache[B_prev][1]
     state = mcmc_multilevel(state,
-                            **overlay(mcmc_multilevel_args,
-                                      B=B,
-                                      verbose=verbose_push(verbose,
-                                                           ("B: %d <- %d    " %
-                                                            (B, B_prev)))))
+                            **dict(mcmc_multilevel_args,
+                                   B=B,
+                                   verbose=verbose_push(verbose,
+                                                        ("B: %d <- %d    " %
+                                                         (B, B_prev)))))
     dl = get_ent(state, mcmc_multilevel_args, extra_entropy_args)
     b_cache[B] = (dl, state)
     return dl
@@ -146,8 +146,8 @@ def bisection_minimize(init_states, random_bisection=False,
     mid_B = get_mid(min_B, max_B, random=random_bisection)
 
     kwargs = dict(b_cache=b_cache,
-                  mcmc_multilevel_args=overlay(mcmc_multilevel_args,
-                                               b_cache=b_cache),
+                  mcmc_multilevel_args=dict(mcmc_multilevel_args,
+                                            b_cache=b_cache),
                   extra_entropy_args=extra_entropy_args,
                   verbose=verbose_push(verbose, (" " * 4)))
 

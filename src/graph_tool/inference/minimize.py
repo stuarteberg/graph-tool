@@ -34,29 +34,29 @@ from . nested_blockmodel import *
 
 def default_args(mcmc_args={}, anneal_args={}, mcmc_equilibrate_args={},
                  shrink_args={}, mcmc_multilevel_args={}, overlap=False):
-    mcmc_args = overlay(dict(beta=numpy.inf, c=0, niter=5, allow_vacate=False,
-                             entropy_args=dict(dl=True)), **mcmc_args)
+    mcmc_args = dict(dict(beta=numpy.inf, c=0, niter=5, allow_vacate=False,
+                          entropy_args=dict(dl=True)), **mcmc_args)
     if overlap:
-        mcmc_args = overlay(mcmc_args, bundled=True)
-    mcmc_equilibrate_args = overlay(dict(wait=1, nbreaks=1, epsilon=1e-4,
-                                         mcmc_args=mcmc_args),
-                                    **dmask(mcmc_equilibrate_args,
-                                            ["mcmc_args"]))
-    shrink_entropy_args = overlay(overlay(mcmc_args["entropy_args"],
-                                          dl=not overlap),
-                                  **shrink_args.get("entropy_args", {}))
+        mcmc_args = dict(mcmc_args, bundled=True)
+    mcmc_equilibrate_args = dict(dict(wait=1, nbreaks=1, epsilon=1e-4,
+                                      mcmc_args=mcmc_args),
+                                 **dmask(mcmc_equilibrate_args,
+                                         ["mcmc_args"]))
+    shrink_entropy_args = dict(dict(mcmc_args["entropy_args"],
+                                       dl=not overlap),
+                               **shrink_args.get("entropy_args", {}))
     if not shrink_entropy_args.get("dense", False):
          shrink_entropy_args["multigraph"] = False
-    shrink_args = overlay(dict(entropy_args=shrink_entropy_args, niter=10),
-                          **dmask(shrink_args, ["entropy_args"]))
+    shrink_args = dict(dict(entropy_args=shrink_entropy_args, niter=10),
+                       **dmask(shrink_args, ["entropy_args"]))
     mcmc_multilevel_args = \
-            overlay(dict(r=1.5, anneal=False,
-                         shrink_args=shrink_args,
-                         mcmc_equilibrate_args=mcmc_equilibrate_args,
-                         anneal_args=anneal_args),
-                    **dmask(mcmc_multilevel_args,
-                            ["shrink_args", "mcmc_equilibrate_args",
-                             "anneal_args"]))
+            dict(dict(r=1.5, anneal=False,
+                      shrink_args=shrink_args,
+                      mcmc_equilibrate_args=mcmc_equilibrate_args,
+                      anneal_args=anneal_args),
+                 **dmask(mcmc_multilevel_args,
+                         ["shrink_args", "mcmc_equilibrate_args",
+                          "anneal_args"]))
     return mcmc_multilevel_args
 
 
@@ -83,7 +83,7 @@ def get_states(g, B_min=None, B_max=None, b_min=None, b_max=None, deg_corr=True,
 
     if layers:
         State = LayeredBlockState
-        state_args = overlay(state_args, overlap=overlap)
+        state_args = dict(state_args, overlap=overlap)
     elif overlap:
         State = OverlapBlockState
     else:
@@ -277,13 +277,13 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
                      anneal_args=anneal_args,
                      mcmc_equilibrate_args=mcmc_equilibrate_args,
                      shrink_args=shrink_args,
-                     mcmc_multilevel_args=overlay(mcmc_multilevel_args,
-                                                  b_cache=b_cache),
+                     mcmc_multilevel_args=dict(mcmc_multilevel_args,
+                                               b_cache=b_cache),
                      overlap=overlap)
 
-    bisection_args = overlay(dict(mcmc_multilevel_args=mcmc_multilevel_args,
-                                  random_bisection=False),
-                             **bisection_args)
+    bisection_args = dict(dict(mcmc_multilevel_args=mcmc_multilevel_args,
+                               random_bisection=False),
+                          **bisection_args)
 
     clabel = state_args.get("clabel", None)
     if clabel is None:
@@ -497,16 +497,16 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
                 bstate = bstate.get_block_state()
 
     if layers:
-        state_args = overlay(state_args, overlap=overlap)
+        state_args = dict(state_args, overlap=overlap)
 
     state = NestedBlockState(g, bs=bs,
                              base_type=type(min_state),
                              deg_corr=deg_corr,
                              **dmask(state_args, ["deg_corr"]))
 
-    bisection_args = overlay(dict(mcmc_multilevel_args=mcmc_multilevel_args,
-                                  random_bisection=False),
-                             **bisection_args)
+    bisection_args = dict(dict(mcmc_multilevel_args=mcmc_multilevel_args,
+                               random_bisection=False),
+                          **bisection_args)
 
     hierarchy_minimize(state, B_max=B_max, B_min=B_min, b_max=b_max,
                        b_min=b_min, bisection_args=bisection_args,

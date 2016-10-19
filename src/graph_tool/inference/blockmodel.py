@@ -132,7 +132,7 @@ def get_entropy_args(kargs):
     del kargs["partition_dl"]
     del kargs["degree_dl"]
     del kargs["edges_dl"]
-    extract_arg(kargs, "callback", None)
+    kargs.pop("callback", None)
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
                          str(list(kargs.keys())))
@@ -228,7 +228,7 @@ class BlockState(object):
 
         self.deg_corr = deg_corr
         self.overlap = False
-        self.degs = extract_arg(kwargs, "degs", libinference.simple_degs_t())
+        self.degs = kwargs.pop("degs", libinference.simple_degs_t())
         if self.degs is None:
             self.degs = libinference.simple_degs_t()
 
@@ -266,12 +266,12 @@ class BlockState(object):
             self.rec = self.g.new_ep("double")
         else:
             self.rec = rec.copy("double")
-        self.drec = extract_arg(kwargs, "drec", None)
+        self.drec = kwargs.pop("drec", None)
         if self.drec is None:
             self.drec = self.rec.copy()
             self.drec.fa **= 2
         else:
-            self.drec = self.drec.copy()
+            self.drec = self.drec.copy("double")
 
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, self.vweight, self.eweight,
@@ -319,14 +319,14 @@ class BlockState(object):
 
         self.use_hash = self.B > self.max_BE
 
-        self.ignore_degrees = extract_arg(kwargs, "ignore_degrees", None)
+        self.ignore_degrees = kwargs.pop("ignore_degrees", None)
         if self.ignore_degrees is None:
             self.ignore_degrees = g.new_vp("bool", False)
         else:
             self.ignore_degrees = self.ignore_degrees.copy("bool")
 
-        self.merge_map = extract_arg(kwargs, "merge_map",
-                                     self.g.vertex_index.copy("int"))
+        self.merge_map = kwargs.pop("merge_map",
+                                    self.g.vertex_index.copy("int"))
 
         self.candidate_blocks = Vector_size_t()
         self.candidate_pos = self.bg.new_vp("int")
@@ -430,41 +430,36 @@ class BlockState(object):
                                pclabel=self.pclabel if pclabel is None else pclabel,
                                deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                max_BE=self.max_BE if max_BE is None else max_BE,
+                               degs=self.degs.copy(),
+                               merge_map=kwargs.pop("merge_map",
+                                                    self.merge_map.copy()),
+                               rec=kwargs.pop("rec", self.rec),
+                               drec=kwargs.pop("drec", self.drec),
+                               rec_type=kwargs.pop("rec_type", self.rec_type),
+                               rec_params=kwargs.pop("rec_params",
+                                                     self.rec_params),
                                ignore_degrees=kwargs.pop("ignore_degrees",
                                                          self.ignore_degrees),
-                               degs=self.degs.copy(),
-                               merge_map=kwargs.get("merge_map",
-                                                    self.merge_map.copy()),
-                               rec=kwargs.get("rec", self.rec),
-                               drec=kwargs.get("drec", self.drec),
-                               rec_type=kwargs.get("rec_type", self.rec_type),
-                               rec_params=kwargs.get("rec_params",
-                                                     self.rec_params),
-                               allow_empty=kwargs.get("allow_empty",
+                               allow_empty=kwargs.pop("allow_empty",
                                                       self.allow_empty),
-                               **dmask(kwargs,
-                                       ["ignore_degrees", "merge_map", "rec",
-                                        "rec_type", "rec_params", "drec",
-                                        "allow_empty"]))
+                               **kwargs)
         else:
             state = OverlapBlockState(self.g if g is None else g,
                                       b=self.b.copy() if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
-                                      rec=kwargs.get("rec", self.rec),
-                                      drec=kwargs.get("drec", self.drec),
-                                      rec_type=kwargs.get("rec_type",
+                                      rec=kwargs.pop("rec", self.rec),
+                                      drec=kwargs.pop("drec", self.drec),
+                                      rec_type=kwargs.pop("rec_type",
                                                           self.rec_type),
-                                      rec_params=kwargs.get("rec_params",
+                                      rec_params=kwargs.pop("rec_params",
                                                             self.rec_params),
                                       clabel=self.clabel if clabel is None else clabel,
                                       pclabel=self.pclabel if pclabel is None else pclabel,
                                       deg_corr=self.deg_corr if deg_corr is None else deg_corr,
-                                      allow_empty=kwargs.get("allow_empty",
+                                      allow_empty=kwargs.pop("allow_empty",
                                                              self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
-                                      **dmask(kwargs, ["rec", "rec_type",
-                                                       "rec_params", "drec",
-                                                       "allow_empty"]))
+                                      **kwargs)
         return state
 
 
@@ -540,17 +535,19 @@ class BlockState(object):
                            vweight=vweight,
                            b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
-                           allow_empty=kwargs.get("allow_empty",
+                           allow_empty=kwargs.pop("allow_empty",
                                                   self.allow_empty),
                            degs=degs,
-                           rec_type=kwargs.get("rec_type", self.rec_type if vweight else None),
-                           rec=kwargs.get("rec", bg.ep.rec if vweight else None),
-                           drec=kwargs.get("drec", bg.ep.drec if vweight else None),
-                           rec_params=kwargs.get("rec_params", self.rec_params),
+                           rec_type=kwargs.pop("rec_type", self.rec_type if vweight else None),
+                           rec=kwargs.pop("rec", bg.ep.rec if vweight else None),
+                           drec=kwargs.pop("drec", bg.ep.drec if vweight else None),
+                           rec_params=kwargs.pop("rec_params", self.rec_params),
+                           ignore_degrees=kwargs.pop("ignore_degrees",
+                                                     self.get_bclabel(clabel=self.ignore_degrees)),
+                           clabel=kwargs.pop("clabel", self.get_bclabel()),
+                           pclabel=kwargs.pop("pclabel", self.get_bpclabel()),
                            max_BE=self.max_BE,
-                           **dmask(kwargs, ["allow_empty", "rec_type",
-                                            "rec_params", "rec", "drec",
-                                            "deg_corr"]))
+                           **kwargs)
         return state
 
     def get_E(self):
@@ -833,17 +830,18 @@ class BlockState(object):
                     kind = libinference.deg_dl_kind.dist
                 S += self._state.get_deg_dl(kind)
 
-        callback = extract_arg(kwargs, "callback", None)
+        callback = kwargs.pop("callback", None)
         if callback is not None:
             S += callback(self)
 
-        if extract_arg(kwargs, "test", True) and _bm_test():
+        if kwargs.pop("test", True) and _bm_test():
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
             args["test"] = False
             state_copy = self.copy()
             Salt = state_copy.entropy(**args)
+
             assert abs(S - Salt) < 1e-6, \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
@@ -902,8 +900,8 @@ class BlockState(object):
         remaining parameters are the same as in
         :meth:`graph_tool.BlockState.entropy`."""
         return self._state.virtual_move(int(v), self.b[v], s,
-                                        get_entropy_args(overlay(self._entropy_args,
-                                                                 **kwargs)))
+                                        get_entropy_args(dict(self._entropy_args,
+                                                              **kwargs)))
 
     def move_vertex(self, v, s):
         r"""Move vertex ``v`` to block ``s``.
@@ -1043,8 +1041,8 @@ class BlockState(object):
 
             self.add_vertex(pos.keys(), pos.values())
 
-            Sf = self.entropy(**overlay(dict(partition_dl=False),
-                                        **entropy_args))
+            Sf = self.entropy(**dict(dict(partition_dl=False),
+                                     **entropy_args))
 
             self.remove_vertex(pos.keys())
 
@@ -1151,7 +1149,7 @@ class BlockState(object):
         """
 
         mcmc_state = DictState(locals())
-        entropy_args = overlay(self._entropy_args, **entropy_args)
+        entropy_args = dict(self._entropy_args, **entropy_args)
         if (_bm_test() and entropy_args["multigraph"] and
             not entropy_args["dense"] and
             hasattr(self, "degs") and
@@ -1170,7 +1168,7 @@ class BlockState(object):
         mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
-        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
+        disable_callback_test = kwargs.pop("disable_callback_test", False)
         if _bm_test():
             assert self._check_clabel(), "invalid clabel before sweep"
             if disable_callback_test:
@@ -1252,7 +1250,7 @@ class BlockState(object):
         """
 
         gibbs_state = DictState(locals())
-        entropy_args = overlay(self._entropy_args, **entropy_args)
+        entropy_args = dict(self._entropy_args, **entropy_args)
         gibbs_state.entropy_args = get_entropy_args(entropy_args)
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
@@ -1266,7 +1264,7 @@ class BlockState(object):
         gibbs_state.E = self.get_E()
         gibbs_state.state = self._state
 
-        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
+        disable_callback_test = kwargs.pop("disable_callback_test", False)
         if _bm_test():
             assert self._check_clabel(), "invalid clabel before sweep"
             if disable_callback_test:
@@ -1355,7 +1353,7 @@ class BlockState(object):
         niter *= self.g.num_vertices()
         args = dmask(locals(), ["self"])
         multi_state = DictState(args)
-        entropy_args = overlay(self._entropy_args, **entropy_args)
+        entropy_args = dict(self._entropy_args, **entropy_args)
         multi_state.entropy_args = get_entropy_args(entropy_args)
         multi_state.update(entropy_args)
         multi_state.vlist = Vector_size_t()
@@ -1385,7 +1383,7 @@ class BlockState(object):
         m_state._f = f
         m_state._time = time
 
-        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
+        disable_callback_test = kwargs.pop("disable_callback_test", False)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1469,7 +1467,7 @@ class BlockState(object):
         """
 
         exhaustive_state = DictState(dict(max_iter=max_iter if max_iter is not None else 0))
-        entropy_args = overlay(self._entropy_args, **entropy_args)
+        entropy_args = dict(self._entropy_args, **entropy_args)
         exhaustive_state.entropy_args = get_entropy_args(entropy_args)
         exhaustive_state.vlist = Vector_size_t()
         if vertices is None:
@@ -1560,10 +1558,10 @@ class BlockState(object):
         merge_state = DictState(locals())
         merge_state.E = self.get_E()
         merge_state.state = self._state
-        entropy_args = overlay(self._entropy_args, **entropy_args)
+        entropy_args = dict(self._entropy_args, **entropy_args)
         merge_state.entropy_args = get_entropy_args(entropy_args)
 
-        disable_callback_test = extract_arg(kwargs, "disable_callback_test", False)
+        disable_callback_test = kwargs.pop("disable_callback_test", False)
         if _bm_test():
             self._check_clabel()
             if disable_callback_test:

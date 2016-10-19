@@ -90,14 +90,14 @@ class OverlapBlockState(BlockState):
         kwargs = kwargs.copy()
 
         # determine if there is a base graph, and overlapping structure
-        self.base_g = extract_arg(kwargs, "base_g", None)
+        self.base_g = kwargs.pop("base_g", None)
 
         # overlapping information
-        node_index = extract_arg(kwargs, "node_index", None)
-        node_in_degs = extract_arg(kwargs, "node_in_degs", None)
-        node_out_degs = extract_arg(kwargs, "node_out_degs", None)
-        half_edges = extract_arg(kwargs, "half_edges", None)
-        eindex = extract_arg(kwargs, "eindex", None)
+        node_index = kwargs.pop("node_index", None)
+        node_in_degs = kwargs.pop("node_in_degs", None)
+        node_out_degs = kwargs.pop("node_out_degs", None)
+        half_edges = kwargs.pop("half_edges", None)
+        eindex = kwargs.pop("eindex", None)
 
         if node_index is not None and self.base_g is None:
             raise ValueError("Must specify base graph if node_index is specified...")
@@ -164,7 +164,7 @@ class OverlapBlockState(BlockState):
             self.rec = self.g.new_ep("double")
         else:
             self.rec = rec.copy("double")
-        self.drec = extract_arg(kwargs, "drec", None)
+        self.drec = kwargs.pop("drec", None)
         if self.drec is None:
             self.drec = self.rec.copy()
             self.drec.fa **= 2

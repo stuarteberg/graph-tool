@@ -250,13 +250,13 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     while beta < beta_range[1] * speed:
         ret = mcmc_equilibrate(state,
-                               **overlay(mcmc_equilibrate_args,
-                                         mcmc_args=overlay(mcmc_args,
-                                                           beta=beta),
-                                         history=history,
-                                         verbose=verbose_push(verbose,
-                                                              ("β: %#8.6g  " %
-                                                               beta))))
+                               **dict(mcmc_equilibrate_args,
+                                      mcmc_args=dict(mcmc_args,
+                                                     beta=beta),
+                                      history=history,
+                                      verbose=verbose_push(verbose,
+                                                           ("β: %#8.6g  " %
+                                                            beta))))
         if history:
             ret = list(zip(*ret))
             hist[0].extend([beta] * len(ret[0]))
@@ -358,16 +358,16 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
         state = state.shrink(B=B_next, **shrink_args)
         if anneal:
             mcmc_anneal(state,
-                        **overlay(anneal_args,
-                                  mcmc_equilibrate_args=mcmc_equilibrate_args,
-                                  verbose=verbose_push(verbose,
-                                                       "B=%d  " % state.B)))
+                        **dict(anneal_args,
+                               mcmc_equilibrate_args=mcmc_equilibrate_args,
+                               verbose=verbose_push(verbose,
+                                                    "B=%d  " % state.B)))
         else:
             mcmc_equilibrate(state,
-                             **overlay(mcmc_equilibrate_args,
-                                       verbose=verbose_push(verbose,
-                                                            ("B=%d  " %
-                                                             state.B))))
+                             **dict(mcmc_equilibrate_args,
+                                    verbose=verbose_push(verbose,
+                                                         ("B=%d  " %
+                                                          state.B))))
         if b_cache is not None:
             mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
             entropy_args = mcmc_args.get("entropy_args", {})

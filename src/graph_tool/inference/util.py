@@ -40,13 +40,6 @@ class DictState(dict):
     def __setattr__(self, attr, val):
         self[attr] = val
 
-def overlay(d, **kwargs):
-    """Copy dictionary ``d`` and update its values with the provided keyword
-    arguments."""
-    d = d.copy()
-    d.update(dict(**kwargs))
-    return d
-
 def dmask(d, ks):
     """Copy dictionary ``d`` and remove key list ``ks``."""
     d = d.copy()
@@ -54,12 +47,6 @@ def dmask(d, ks):
         if k in d:
             del d[k]
     return d
-
-def extract_arg(kwargs, arg, default=None):
-    val = kwargs.get(arg, default)
-    if arg in kwargs:
-        del kwargs[arg]
-    return val
 
 def check_verbose(verbose):
     if isinstance(verbose, tuple):
