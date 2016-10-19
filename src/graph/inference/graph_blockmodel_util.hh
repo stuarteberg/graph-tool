@@ -503,9 +503,9 @@ public:
         return S_a - S_b;
     }
 
-    template <class Graph, class VProp>
+    template <class VProp, class Graph>
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, VProp& vweight,
-                              Graph&)
+                              size_t actual_B, Graph&)
     {
         if (r == nr || _allow_empty)
             return 0;
@@ -543,8 +543,8 @@ public:
                         return (B * (B + 1)) / 2;
                 };
 
-            S_b += lbinom(get_x(_actual_B) + _E - 1, _E);
-            S_a += lbinom(get_x(_actual_B + dB) + _E - 1, _E);
+            S_b += lbinom(get_x(actual_B) + _E - 1, _E);
+            S_a += lbinom(get_x(actual_B + dB) + _E - 1, _E);
         }
 
         return S_a - S_b;
@@ -778,6 +778,11 @@ public:
     size_t get_N()
     {
         return _N;
+    }
+
+    size_t get_actual_B()
+    {
+        return _actual_B;
     }
 
 private:

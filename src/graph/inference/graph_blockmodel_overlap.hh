@@ -442,7 +442,12 @@ public:
             if (_deg_corr && ea.degree_dl)
                 dS += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
             if (ea.edges_dl)
-                dS += ps.get_delta_edges_dl(v, r, nr, _g);
+            {
+                size_t actual_B = 0;
+                for (auto& ps : _partition_stats)
+                    actual_B += ps.get_actual_B();
+                dS += ps.get_delta_edges_dl(v, r, nr, actual_B, _g);
+            }
         }
 
         switch (_rec_type)

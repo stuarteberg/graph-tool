@@ -819,7 +819,7 @@ class BlockState(object):
                 if self.allow_empty:
                     actual_B = self.B
                 else:
-                    actual_B = (self.wr.a > 0).sum()
+                    actual_B = self.get_nonempty_B()
                 S += model_entropy(actual_B, N, E,
                                    directed=self.g.is_directed(), nr=False)
 

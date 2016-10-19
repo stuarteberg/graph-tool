@@ -209,7 +209,8 @@ class NestedBlockState(object):
             continuous_map(b)
             continuous_map(b2)
             assert ((b == b2).all() and
-                    (bstate.entropy() - self.levels[l].entropy())) < 1e-6, \
+                    (bstate.entropy(dl=False) -
+                     self.levels[l].entropy(dl=False))) < 1e-6, \
                 "inconsistent level %d (%s %g,  %s %g): %s" % \
                 (l, str(bstate), bstate.entropy(), str(self.levels[l]),
                  self.levels[l].entropy(), str(self))

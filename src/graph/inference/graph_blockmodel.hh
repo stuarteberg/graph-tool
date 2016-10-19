@@ -988,7 +988,13 @@ public:
                 dS += ps.get_delta_deg_dl(v, r, nr, gs._vweight, gs._eweight,
                                           gs._degs, gs._g, ea.degree_dl_kind);
             if (ea.edges_dl)
-                dS += ps.get_delta_edges_dl(v, r, nr, gs._vweight, gs._g);
+            {
+                size_t actual_B = 0;
+                for (auto& ps : _partition_stats)
+                    actual_B += ps.get_actual_B();
+                dS += ps.get_delta_edges_dl(v, r, nr, gs._vweight, actual_B,
+                                            gs._g);
+            }
         }
 
         auto positive_entries_op = [&](auto&& w_log_P)
@@ -1464,7 +1470,10 @@ public:
             break;
         case weight_type::DELTA_T: // waiting times
             for (auto r : vertices_range(_bg))
-                S += -positive_w_log_P(_mrp[r], _brecsum[r], _alpha, _beta);
+            {
+                if (_brecsum[r] > 0)
+                    S += -positive_w_log_P(_mrp[r], _brecsum[r], _alpha, _beta);
+            }
             break;
         }
         return S;

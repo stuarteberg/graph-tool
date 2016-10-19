@@ -862,7 +862,8 @@ struct overlap_partition_stats_t
     }
 
     template <class Graph>
-    double get_delta_edges_dl(size_t v, size_t r, size_t nr, const Graph&)
+    double get_delta_edges_dl(size_t v, size_t r, size_t nr, size_t actual_B,
+                              const Graph&)
     {
         if (r == nr || _allow_empty)
             return 0;
@@ -885,8 +886,8 @@ struct overlap_partition_stats_t
                         return (B * (B + 1)) / 2;
                 };
 
-            S_b += lbinom(get_x(_actual_B) + _E - 1, _E);
-            S_a += lbinom(get_x(_actual_B + dB) + _E - 1, _E);
+            S_b += lbinom(get_x(actual_B) + _E - 1, _E);
+            S_a += lbinom(get_x(actual_B + dB) + _E - 1, _E);
         }
 
         return S_a - S_b;
@@ -1205,6 +1206,11 @@ struct overlap_partition_stats_t
         _degs[u].swap(n_deg);
         assert(_bvs[u].size() > 0);
 
+    }
+
+    size_t get_actual_B()
+    {
+        return _actual_B;
     }
 
 private:
