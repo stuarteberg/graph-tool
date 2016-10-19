@@ -36,8 +36,8 @@ import copy
 def get_edges_dl(state, hstate_args, hentropy_args):
     bclabel = state.get_bclabel()
     bstate = state.get_block_state(b=bclabel, **hstate_args)
-    return bstate.entropy(**overlay(hentropy_args, dl=True, edges_dl=False,
-                                    multigraph=True))
+    return bstate.entropy(**dict(hentropy_args, dl=True, edges_dl=False,
+                                 multigraph=True))
 
 
 class NestedBlockState(object):
@@ -73,34 +73,37 @@ class NestedBlockState(object):
     def __init__(self, g, bs, base_type=BlockState, state_args={},
                  hstate_args={}, hentropy_args={}, sampling=False, **kwargs):
         self.g = g
-        self.state_args = overlay(kwargs, **state_args)
-        self.hstate_args = overlay(dict(deg_corr=False), **hstate_args)
+        self.state_args = dict(kwargs, **state_args)
+        self.hstate_args = dict(dict(deg_corr=False), **hstate_args)
         self.sampling = sampling
         if sampling:
-            self.hstate_args = overlay(self.hstate_args, vweight="nonempty",
-                                       copy_bg=False, B=g.num_vertices())
-            self.state_args = overlay(self.state_args, vweight="unity", eweight="unity",
-                                      B=g.num_vertices())
+            self.hstate_args = dict(self.hstate_args, vweight="nonempty",
+                                    copy_bg=False, B=g.num_vertices())
+            self.state_args = dict(self.state_args, vweight="unity", eweight="unity",
+                                   B=g.num_vertices())
             nbs = []
             for b in bs:
                 nb = numpy.zeros(g.num_vertices(), dtype="int")
                 nb[:len(b)] = b
                 nbs.append(nb)
             bs = nbs
-        self.hentropy_args = overlay(dict(adjacency=True,
-                                          dense=True,
-                                          multigraph=True,
-                                          dl=True,
-                                          partition_dl=True,
-                                          degree_dl=True,
-                                          degree_dl_kind="distributed",
-                                          edges_dl=True,
-                                          exact=True),
-                                     **hentropy_args)
+        self.hentropy_args = dict(dict(adjacency=True,
+                                       dense=True,
+                                       multigraph=True,
+                                       dl=True,
+                                       partition_dl=True,
+                                       degree_dl=True,
+                                       degree_dl_kind="distributed",
+                                       edges_dl=True,
+                                       exact=True),
+                                  **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
-        for b in bs[1:]:
+        for i, b in enumerate(bs[1:]):
             state = self.levels[-1]
-            bstate = state.get_block_state(b=b, **self.hstate_args)
+            args = self.hstate_args
+            if i == len(bs[1:]) - 1:
+                args = dict(args, clabel=None, pclabel=None)
+            bstate = state.get_block_state(b=b, **args)
             self.levels.append(bstate)
 
         if _bm_test():
@@ -198,7 +201,10 @@ class NestedBlockState(object):
         for l in range(1, len(self.levels)):
             b = self.levels[l].b.fa.copy()
             state = self.levels[l-1]
-            bstate = state.get_block_state(b=b, **self.hstate_args)
+            args = self.hstate_args
+            if l == len(self.levels) - 1:
+                args = dict(args, clabel=None, pclabel=None)
+            bstate = state.get_block_state(b=b, **args)
             b2 = bstate.b.fa.copy()
             continuous_map(b)
             continuous_map(b2)
@@ -451,13 +457,15 @@ class NestedBlockState(object):
         if l < len(self.levels) - 1:
             if B_min is None:
                 min_state = state.copy(b=clabel.fa, clabel=clabel.fa)
+                B_min = min_state.B
             else:
                 B_min = max(B_min, clabel.fa.max() + 1)
                 min_state = mcmc_multilevel(max_state, B_min,
                                             **mcmc_multilevel_args)
             if _bm_test():
-                assert min_state.B == self.levels[l+1].B, (min_state.B,
-                                                           self.levels[l+1].B)
+                assert (min_state.B == self.levels[l+1].B or
+                        min_state.B == B_min), (B_min, min_state.B,
+                                                self.levels[l+1].B)
         else:
             min_state = state.copy(b=clabel.fa, clabel=clabel.fa)
         if B_min is not None and  min_state.B > B_min:

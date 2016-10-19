@@ -161,7 +161,8 @@ public:
         auto mv_entries = [&](auto&&... args)
             {
                 move_entries(v, r, nr, get_b, gs._g, gs._eweight, m_entries,
-                             efilt, is_loop_nop(), args...);
+                             efilt, is_loop_nop(),
+                             std::forward<decltype(args)>(args)...);
             };
 
         switch (_rec_type)
@@ -169,6 +170,7 @@ public:
         case weight_type::POSITIVE: // positive weights
         case weight_type::DISCRETE_GEOMETRIC:
         case weight_type::DISCRETE_POISSON:
+        case weight_type::DELTA_T:
             mv_entries(gs._rec);
             break;
         case weight_type::SIGNED: // positive and negative weights
@@ -220,16 +222,17 @@ public:
                        case weight_type::POSITIVE: // positive weights
                        case weight_type::DISCRETE_GEOMETRIC:
                        case weight_type::DISCRETE_POISSON:
+                       case weight_type::DELTA_T:
                            this->_brec[me] += get<1>(delta);
                        }
                    });
 
         if (_rec_type == weight_type::DELTA_T) // waiting times
         {
-            if (_ignore_degrees[v] > 0)
+            auto& gs = *_gstate;
+            if (gs._ignore_degrees[v] > 0)
             {
-                double dt = out_degreeS()(v, _g, _rec);
-                auto r = _b[v];
+                double dt = out_degreeS()(v, gs._g, gs._rec);
                 if (Add)
                     _brecsum[r] += dt;
                 else
@@ -474,7 +477,7 @@ public:
         if (allow_empty)
             return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
         else
-            return ((_bclabel[r] == _bclabel[nr]));
+            return _bclabel[r] == _bclabel[nr];
     }
 
     // move a vertex from its current block to block nr
@@ -1058,9 +1061,9 @@ public:
                        });
             break;
         case weight_type::DELTA_T: // waiting times
-            if ((r != nr) && _ignore_degrees[v] > 0)
+            auto& gs = *_gstate;
+            if ((r != nr) && gs._ignore_degrees[v] > 0)
             {
-                auto& gs = *_gstate;
                 double dt = out_degreeS()(v, gs._g, gs._rec);
                 int k = out_degreeS()(v, gs._g, gs._eweight);
                 if (r != null_group)

@@ -101,6 +101,7 @@ struct Merge
         size_t move_proposal(size_t v, bool random, RNG& rng)
         {
             size_t r = _state._b[v];
+            assert(r == v);
             size_t s;
             if (!random)
             {
@@ -112,7 +113,7 @@ struct Merge
                 s = uniform_sample(_available, rng);
             }
 
-            if (s == v || !_state.allow_move(r, s, false))
+            if (s == r || !_state.allow_move(r, s, false))
                 return _null_move;
 
             return s;
@@ -126,7 +127,8 @@ struct Merge
 
         void perform_merge(size_t r, size_t s)
         {
-            //assert(_state._vweight[r] > 0 && _state._vweight[s] > 0);
+            assert(_state._bclabel[r] == _state._bclabel[s]);
+            assert(_state._ignore_degrees[r] == _state._ignore_degrees[s]);
             _state.move_vertex(r, s);
             _state.merge_vertices(r, s);
         }

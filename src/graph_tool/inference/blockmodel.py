@@ -312,6 +312,10 @@ class BlockState(object):
 
         if not self._check_clabel():
             raise ValueError("provided clabel is inconsistent with node partition")
+        if not self._check_clabel(clabel=self.pclabel):
+            raise ValueError("provided pclabel is inconsistent with node partition")
+        if not self._check_clabel(b=self.pclabel, clabel=self.clabel):
+            raise ValueError("provided pclabel and clabel are inconsistent")
 
         self.bclabel = self.get_bclabel()
 
@@ -321,9 +325,9 @@ class BlockState(object):
 
         self.ignore_degrees = kwargs.pop("ignore_degrees", None)
         if self.ignore_degrees is None:
-            self.ignore_degrees = g.new_vp("bool", False)
+            self.ignore_degrees = self.g.new_vp("bool", False)
         else:
-            self.ignore_degrees = self.ignore_degrees.copy("bool")
+            self.ignore_degrees = self.g.own_property(self.ignore_degrees).copy("bool")
 
         self.merge_map = kwargs.pop("merge_map",
                                     self.g.vertex_index.copy("int"))
@@ -353,17 +357,16 @@ class BlockState(object):
         else:
             self.rec_type = rec_type
 
-        if self.rec_type == libinference.rec_type.delta_t: # waiting times
-            self.brecsum = self.bg.degree_property_map("out", self.bg.ep.rec)
-            tokens = self.ignore_degrees.fa == 0
-            token_groups = bincount(self.b.fa[tokens]) > 0
-            token_groups.resize(self.bg.num_vertices())
-            self.brecsum.a[token_groups] = 0
-        else:
-            self.brecsum = self.bg.new_vp("double")
-
         self.brec = self.bg.ep.rec
         self.bdrec = self.bg.ep.drec
+
+        if self.rec_type == libinference.rec_type.delta_t: # waiting times
+            self.brecsum = self.bg.degree_property_map("out", self.brec)
+            mem = self.ignore_degrees.copy()
+            bmem = self.get_bclabel(clabel=mem)
+            self.brecsum.a[bmem.a == 0] = 0
+        else:
+            self.brecsum = self.bg.new_vp("double")
 
         self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
                                v0=self.rec.fa.std() ** 2, nu0=3)
@@ -495,8 +498,8 @@ class BlockState(object):
         == True`` the nodes of the block state are weighted with the node
         counts."""
 
-        deg_corr = kwargs.get("deg_corr", self.deg_corr)
-        copy_bg = extract_arg(kwargs, "copy_bg", True)
+        deg_corr = kwargs.pop("deg_corr", self.deg_corr)
+        copy_bg = kwargs.pop("copy_bg", True)
 
         if deg_corr and vweight:
             if isinstance(self.degs, libinference.simple_degs_t):
@@ -566,23 +569,22 @@ class BlockState(object):
         r"Returns the total number of nonempty blocks."
         return int((self.wr.a > 0).sum())
 
-    def get_bclabel(self):
+    def get_bclabel(self, clabel=None):
         r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to constraint
         labels for the block graph."""
 
         bclabel = self.bg.new_vertex_property("int")
         reverse_map(self.b, bclabel)
-        pmap(bclabel, self.clabel)
+        if clabel is None:
+            clabel = self.clabel
+        pmap(bclabel, clabel)
         return bclabel
 
     def get_bpclabel(self):
         r"""Returns a :class:`~graph_tool.PropertyMap`` corresponding to partition
         constraint labels for the block graph."""
 
-        bclabel = self.bg.new_vertex_property("int")
-        reverse_map(self.b, bclabel)
-        pmap(bclabel, self.pclabel)
-        return bclabel
+        return self.get_bclabel(self.pclabel)
 
     def _check_clabel(self, clabel=None, b=None):
         if b is None:
