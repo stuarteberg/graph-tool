@@ -438,10 +438,12 @@ class NestedBlockState(object):
         clabel = self.get_clabel(l)
         state = self.levels[l]
         if b_max is None:
-            b_max = state.g.vertex_index.copy("int").a
+            b_max = state.g.vertex_index.copy("int").fa
         else:
-            b_max = b_max + (b_max.max() + 1) * clabel.fa
-            continuous_map(b_max)
+            b_max = state.g.new_vp("int", b_max)
+            b_max = group_vector_property([b_max, clabel])
+            b_max = perfect_prop_hash([b_max])[0].fa
+        continuous_map(b_max)
         max_state = state.copy(b=b_max, clabel=clabel)
         if B_max is not None and max_state.B > B_max:
             max_state = mcmc_multilevel(max_state, B_max,

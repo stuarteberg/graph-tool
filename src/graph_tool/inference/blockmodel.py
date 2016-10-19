@@ -24,7 +24,8 @@ if sys.version_info < (3,):
     range = xrange
 
 from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
-    conv_pickle_state, Vector_size_t, Vector_double, group_vector_property
+    conv_pickle_state, Vector_size_t, Vector_double, group_vector_property, \
+    perfect_prop_hash
 from .. generation import condensation_graph
 from .. stats import label_self_loops
 from .. spectral import adjacency
@@ -586,12 +587,18 @@ class BlockState(object):
         pmap(bclabel, self.pclabel)
         return bclabel
 
-    def _check_clabel(self):
-        b = self.b.fa + self.clabel.fa * self.B
-        b2 = self.b.fa.copy()
+    def _check_clabel(self, clabel=None, b=None):
+        if b is None:
+            b = self.b
+        if clabel is None:
+            clabel = self.clabel
+        joint = group_vector_property([b, clabel])
+        joint = perfect_prop_hash([joint])[0]
+        joint = b.fa.copy()
+        b = b.fa.copy()
+        continuous_map(joint)
         continuous_map(b)
-        continuous_map(b2)
-        return (b == b2).all()
+        return (b == joint).all()
 
     def _couple_state(self, state, entropy_args):
         if state is None:
