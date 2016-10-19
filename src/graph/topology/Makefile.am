@@ -33,6 +33,7 @@ libgraph_tool_topology_la_SOURCES = \
     graph_reciprocity.cc \
     graph_sequential_color.cc \
     graph_similarity.cc \
+    graph_similarity_imp.cc \
     graph_subgraph_isomorphism.cc \
     graph_topological_sort.cc \
     graph_topology.cc \

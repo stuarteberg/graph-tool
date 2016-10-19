@@ -88,7 +88,8 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "is_planar", "make_maximal_planar", "similarity", "vertex_similarity",
            "edge_reciprocity"]
 
-def similarity(g1, g2, label1=None, label2=None, norm=True):
+def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
+               norm=True, distance=False):
     r"""Return the adjacency similarity between the two graphs.
 
     Parameters
@@ -97,6 +98,10 @@ def similarity(g1, g2, label1=None, label2=None, norm=True):
         First graph to be compared.
     g2 : :class:`~graph_tool.Graph`
         Second graph to be compared.
+    eweight1 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Edge weights for the first graph to be used in comparison.
+    eweight2 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Edge weights for the second graph to be used in comparison.
     label1 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex labels for the first graph to be used in comparison. If not
         supplied, the vertex indexes are used.
@@ -106,6 +111,9 @@ def similarity(g1, g2, label1=None, label2=None, norm=True):
     norm : bool (optional, default: ``True``)
         If ``True``, the returned value is normalized by the total number of
         edges.
+    distance : bool (optional, default: ``False``)
+        If ``True``, the complementary value is returned, i.e. the distance
+        between the two graphs.
 
     Returns
     -------
@@ -116,10 +124,33 @@ def similarity(g1, g2, label1=None, label2=None, norm=True):
     -----
     The adjacency similarity is the sum of equal entries in the adjacency
     matrix, given a vertex ordering determined by the vertex labels. In other
-    words it counts the number of edges which have the same source and target
+    words, it counts the number of edges which have the same source and target
     labels in both graphs.
 
+    More specifically, it is defined as:
+
+    .. math::
+
+       S(\boldsymbol A_1, \boldsymbol A_2) = E - d(\boldsymbol A_1, \boldsymbol A_2)
+
+    where
+
+    .. math::
+
+       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} |A_{ij}^{(1)} - A_{ij}^{(2)}|
+
+    is the distance between graphs, and :math:`E=\sum_{i<j}|A_{ij}^{(1)}| +
+    |A_{ij}^{(2)}|`.  This definition holds for undirected graphs, otherwise the
+    sums go over all directed pairs. If weights are provided, the weighted
+    adjacency matrix is used.
+
+    If ``norm == True`` the value returned is
+    :math:`S(\boldsymbol A_1, \boldsymbol A_2) / E`.
+
     The algorithm runs with complexity :math:`O(E_1 + V_1 + E_2 + V_2)`.
+
+    If enabled during compilation, and the vertex labels are integers, this
+    algorithm runs in parallel.
 
     Examples
     --------
@@ -138,29 +169,63 @@ def similarity(g1, g2, label1=None, label2=None, norm=True):
     24
     >>> gt.similarity(u, g)
     0.04666666666666667
+
     """
 
     if label1 is None:
         label1 = g1.vertex_index
     if label2 is None:
         label2 = g2.vertex_index
+
+    _check_prop_scalar(label1, name="label1")
+    _check_prop_scalar(label2, name="label2")
+
     if label1.value_type() != label2.value_type():
         try:
             label2 = label2.copy(label1.value_type())
         except ValueError:
             label1 = label1.copy(label2.value_type())
+
+    if eweight1 is None and eweight1 is None:
+        ew1 = ew2 = libcore.any()
+    else:
+        if eweight1 is None:
+            eweight1 = g1.new_ep(eweight2.value_type(), 1)
+        if eweight2 is None:
+            eweight2 = g2.new_ep(eweight1.value_type(), 1)
+
+        _check_prop_scalar(eweight1, name="eweight1")
+        _check_prop_scalar(eweight2, name="eweight2")
+
+        if eweight1.value_type() != eweight2.value_type():
+            try:
+                eweight2 = eweight2.copy(eweight1.value_type())
+            except ValueError:
+                eweight1 = eweight1.copy(eweight2.value_type())
+
+        ew1 = _prop("e", g1, eweight1)
+        ew2 = _prop("e", g2, eweight2)
+
     if label1.is_writable() or label2.is_writable():
         s = libgraph_tool_topology.\
                similarity(g1._Graph__graph, g2._Graph__graph,
-                          _prop("v", g1, label1), _prop("v", g2, label2))
+                          ew1, ew2, _prop("v", g1, label1),
+                          _prop("v", g2, label2))
     else:
         s = libgraph_tool_topology.\
                similarity_fast(g1._Graph__graph, g2._Graph__graph,
-                               _prop("v", g1, label1), _prop("v", g2, label2))
+                               ew1, ew2, _prop("v", g1, label1),
+                               _prop("v", g2, label2))
     if not g1.is_directed() or not g2.is_directed():
         s /= 2
+    if eweight1 is None and eweight1 is None:
+        E = g1.num_edges() + g2.num_edges()
+    else:
+        E = float(abs(eweight1.fa).sum() + abs(eweight2.fa).sum())
+    if not distance:
+        s = E - s
     if norm:
-        s /= float(max(g1.num_edges(), g2.num_edges()))
+        return s / E
     return s
 
 @_limit_args({"sim_type": ["dice", "jaccard", "inv-log-weight"]})
