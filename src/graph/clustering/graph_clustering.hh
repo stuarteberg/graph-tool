@@ -46,7 +46,7 @@ using namespace boost;
 template <class Graph, class VProp>
 pair<int,int>
 get_triangles(typename graph_traits<Graph>::vertex_descriptor v, VProp& mark,
-              const Graph &g)
+              const Graph& g)
 {
     size_t triangles = 0;
 
@@ -74,7 +74,10 @@ get_triangles(typename graph_traits<Graph>::vertex_descriptor v, VProp& mark,
         mark[n] = false;
 
     size_t k = out_degree(v, g);
-    return make_pair(triangles / 2, (k * (k - 1)) / 2);
+    if (is_directed::apply<Graph>::type::value)
+        return make_pair(triangles, (k * (k - 1)));
+    else
+        return make_pair(triangles / 2, (k * (k - 1)) / 2);
 }
 
 
@@ -124,7 +127,6 @@ struct set_clustering_to_property
     void operator()(const Graph& g, ClustMap clust_map) const
     {
         typedef typename property_traits<ClustMap>::value_type c_type;
-        typename get_undirected_graph<Graph>::type ug(g);
         vector<bool> mask(num_vertices(g), false);
 
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
@@ -133,7 +135,7 @@ struct set_clustering_to_property
             (g,
              [&](auto v)
              {
-                 auto triangles = get_triangles(v, mask, ug); // get from ug
+                 auto triangles = get_triangles(v, mask, g);
                  double clustering = (triangles.second > 0) ?
                      double(triangles.first)/triangles.second :
                      0.0;

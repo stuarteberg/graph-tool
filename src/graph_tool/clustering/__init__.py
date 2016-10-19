@@ -130,10 +130,10 @@ def local_clustering(g, prop=None, undirected=True):
        :doi:`10.1038/30918`
     """
 
-    if prop == None:
+    if prop is None:
         prop = g.new_vertex_property("double")
     if g.is_directed() and undirected:
-        g = GraphView(g, directed=False)
+        g = GraphView(g, directed=False, skip_properties=True)
     _gt.local_clustering(g._Graph__graph, _prop("v", g, prop))
     return prop
 
@@ -191,6 +191,8 @@ def global_clustering(g):
        :doi:`10.1137/S003614450342480`
     """
 
+    if g.is_directed():
+        g = GraphView(g, directed=False, skip_properties=True)
     c = _gt.global_clustering(g._Graph__graph)
     return c
 
