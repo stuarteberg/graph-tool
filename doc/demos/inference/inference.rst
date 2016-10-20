@@ -548,15 +548,6 @@ example, the following will perform 1000 sweeps of the algorithm with
 the network of characters in the novel Les Misérables, starting from a
 random partition into 20 groups
 
-.. testsetup:: model-averaging
-
-   import os
-   try:
-       os.chdir("demos/inference")
-   except FileNotFoundError:
-       pass
-
-
 .. testcode:: model-averaging
 
    g = gt.collection.data["lesmis"]
@@ -760,14 +751,6 @@ analogous, but now we make use of
 
 Here we perform the sampling of hierarchical partitions using the same
 network as above.
-
-.. testsetup:: nested-model-averaging
-
-   import os
-   try:
-       os.chdir("demos/inference")
-   except FileNotFoundError:
-       pass
 
 .. testcode:: nested-model-averaging
 
@@ -1032,14 +1015,6 @@ evidence efficiently, as we show below, using
 :meth:`~graph_tool.inference.mf_entropy` and
 :meth:`~graph_tool.inference.bethe_entropy`.
 
-.. testsetup:: model-evidence
-
-   import os
-   try:
-       os.chdir("demos/inference")
-   except FileNotFoundError:
-       pass
-
 .. testcode:: model-evidence
 
    g = gt.collection.data["lesmis"]
@@ -1284,14 +1259,6 @@ Below is an example for predicting the two following edges in the
 football network, using the nested model (for which we need to replace
 :math:`\boldsymbol b` by :math:`\{\boldsymbol b_l\}` in the equations
 above).
-
-.. testsetup:: missing-edges
-
-   import os
-   try:
-       os.chdir("demos/inference")
-   except FileNotFoundError:
-       pass
 
 .. testcode:: missing-edges
    :hide:
