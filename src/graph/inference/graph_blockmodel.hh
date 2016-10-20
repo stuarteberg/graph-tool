@@ -90,6 +90,7 @@ enum weight_type
     ((alpha,, double, 0))                                                      \
     ((beta,, double, 0))                                                       \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
+    ((bignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))               \
     ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
@@ -1471,7 +1472,7 @@ public:
         case weight_type::DELTA_T: // waiting times
             for (auto r : vertices_range(_bg))
             {
-                if (_brecsum[r] > 0)
+                if (_bignore_degrees[r] > 0)
                     S += -positive_w_log_P(_mrp[r], _brecsum[r], _alpha, _beta);
             }
             break;

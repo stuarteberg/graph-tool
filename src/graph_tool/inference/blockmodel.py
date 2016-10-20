@@ -363,10 +363,11 @@ class BlockState(object):
         if self.rec_type == libinference.rec_type.delta_t: # waiting times
             self.brecsum = self.bg.degree_property_map("out", self.brec)
             mem = self.ignore_degrees.copy()
-            bmem = self.get_bclabel(clabel=mem)
-            self.brecsum.a[bmem.a == 0] = 0
+            self.bignore_degrees = self.get_bclabel(clabel=mem).copy("bool")
+            self.brecsum.a[self.bignore_degrees.a == 0] = 0
         else:
             self.brecsum = self.bg.new_vp("double")
+            self.bignore_degrees = self.bg.new_vp("bool")
 
         self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
                                v0=self.rec.fa.std() ** 2, nu0=3)
