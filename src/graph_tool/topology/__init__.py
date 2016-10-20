@@ -247,7 +247,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
         If ``True``, vertices will be considered adjacent to themselves for the
         purpose of the similarity computation.
     sim_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        If provided, and ``vertex_pairs == None``, the vertex similarities will
+        If provided, and ``vertex_pairs is None``, the vertex similarities will
         be stored in this vector-valued property. Otherwise, a new one will be
         created.
 
@@ -290,7 +290,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
     reversed=True))``.
 
     The algorithm runs with complexity :math:`O(\left<k\right>N^2)` if
-    ``vertex_pairs == None``, otherwise with :math:`O(\left<k\right>P)` where
+    ``vertex_pairs is None``, otherwise with :math:`O(\left<k\right>P)` where
     :math:`P` is the length of ``vertex_pairs``.
 
     If enabled during compilation, this algorithm runs in parallel.

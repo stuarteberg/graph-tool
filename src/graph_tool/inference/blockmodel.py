@@ -1429,13 +1429,13 @@ class BlockState(object):
             Function to be called for each partition, with three arguments ``(S,
             S_min, b_min)`` corresponding to the the current entropy value, the
             minimum entropy value so far, and the corresponding partition,
-            respectively. If not provided, and ``hist == None`` an iterator over
+            respectively. If not provided, and ``hist is None`` an iterator over
             the same values will be returned instead.
         density : ``tuple`` (optional, default: ``None``)
             If provided, it should contain a tuple with values ``(S_min, S_max,
             n_bins)``, which will be used to obtain the density of states via a
             histogram of size ``n_bins``. This parameter is ignored unless
-            ``callback == None``.
+            ``callback is None``.
         vertices : iterable of ints (optional, default: ``None``)
             If provided, this should be a list of vertices which will be
             moved. Otherwise, all vertices will.

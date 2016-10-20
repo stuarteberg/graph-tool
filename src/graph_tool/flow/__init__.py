@@ -170,7 +170,7 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
     """
 
     _check_prop_scalar(capacity, "capacity")
-    if residual == None:
+    if residual is None:
         residual = g.new_edge_property(capacity.value_type())
     _check_prop_scalar(residual, "residual")
     _check_prop_writable(residual, "residual")
@@ -247,7 +247,7 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
     """
 
     _check_prop_scalar(capacity, "capacity")
-    if residual == None:
+    if residual is None:
         residual = g.new_edge_property(capacity.value_type())
     _check_prop_scalar(residual, "residual")
     _check_prop_writable(residual, "residual")
@@ -333,7 +333,7 @@ def boykov_kolmogorov_max_flow(g, source, target, capacity, residual=None):
        :doi:`10.1109/TPAMI.2004.60`
     """
     _check_prop_scalar(capacity, "capacity")
-    if residual == None:
+    if residual is None:
         residual = g.new_edge_property(capacity.value_type())
     _check_prop_scalar(residual, "residual")
     _check_prop_writable(residual, "residual")

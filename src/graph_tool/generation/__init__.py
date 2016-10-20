@@ -92,9 +92,9 @@ def random_graph(N, deg_sampler, directed=True,
         degree sequence cannot be used to build a graph.
 
         Optionally, you can also pass a function which receives one or two
-        arguments. If ``block_membership == None``, the single argument passed
+        arguments. If ``block_membership is None``, the single argument passed
         will be the index of the vertex which will receive the degree.  If
-        ``block_membership != None``, the first value passed will be the vertex
+        ``block_membership is not None``, the first value passed will be the vertex
         index, and the second will be the block value of the vertex.
     directed : bool (optional, default: ``True``)
         Whether the generated graph should be directed.
@@ -121,7 +121,7 @@ def random_graph(N, deg_sampler, directed=True,
         :func:`~graph_tool.generation.random_rewire` function which specifies
         the correlation matrix.
     block_type : string (optional, default: ``"int"``)
-        Value type of block labels. Valid only if ``block_membership != None``.
+        Value type of block labels. Valid only if ``block_membership is not None``.
     degree_block : bool (optional, default: ``False``)
         If ``True``, the degree of each vertex will be appended to block labels
         when constructing the blockmodel, such that the resulting block type
@@ -139,7 +139,7 @@ def random_graph(N, deg_sampler, directed=True,
         The generated graph.
     blocks : :class:`~graph_tool.PropertyMap`
         A vertex property map with the block values. This is only returned if
-        ``block_membership != None``.
+        ``block_membership is not None``.
 
     See Also
     --------
@@ -1832,7 +1832,7 @@ class Sampler(libgraph_tool_generation.Sampler):
 
 class DynamicSampler(libgraph_tool_generation.DynamicSampler):
     def __init__(self, values=None, probs=None):
-        if values == None:
+        if values is None:
             values = probs = []
         libgraph_tool_generation.DynamicSampler.__init__(self, values, probs)
 

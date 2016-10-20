@@ -524,7 +524,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
         has_layout = True
         retv = libgv.gvRender(gvc, gvg, "dot".encode("utf8"), None)  # retrieve positions only
 
-        if pos == None:
+        if pos is None:
             pos = (g.new_vertex_property("double"),
                    g.new_vertex_property("double"))
         for v in g.vertices():

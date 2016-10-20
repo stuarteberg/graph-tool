@@ -908,7 +908,7 @@ class PropertyArray(numpy.ndarray):
 def _check_prop_writable(prop, name=None):
     if not prop.is_writable():
         raise ValueError("property map%s is not writable." %\
-                         ((" '%s'" % name) if name != None else ""))
+                         ((" '%s'" % name) if name is not None else ""))
 
 
 def _check_prop_scalar(prop, name=None, floating=False):
@@ -919,7 +919,7 @@ def _check_prop_scalar(prop, name=None, floating=False):
 
     if prop.value_type() not in scalars:
         raise ValueError("property map%s is not of scalar%s type." %\
-                         (((" '%s'" % name) if name != None else ""),
+                         (((" '%s'" % name) if name is not None else ""),
                           (" floating" if floating else "")))
 
 
@@ -933,7 +933,7 @@ def _check_prop_vector(prop, name=None, scalar=True, floating=False):
     vals = ["vector<%s>" % v for v in scalars]
     if prop.value_type() not in vals:
         raise ValueError("property map%s is not of vector%s type." %\
-                         (((" '%s'" % name) if name != None else ""),
+                         (((" '%s'" % name) if name is not None else ""),
                           (" floating" if floating else "")))
 
 
@@ -987,11 +987,11 @@ def group_vector_property(props, value_type=None, vprop=None, pos=None):
         raise ValueError("'props' must be of the same key type.")
     k = keys.pop()
 
-    if vprop == None:
-        if value_type == None and len(vtypes) == 1:
+    if vprop is None:
+        if value_type is None and len(vtypes) == 1:
             value_type = vtypes.pop()
 
-        if value_type != None:
+        if value_type is not None:
             value_type = "vector<%s>" % value_type
             if k == 'v':
                 vprop = g.new_vertex_property(value_type)
@@ -1010,7 +1010,7 @@ def group_vector_property(props, value_type=None, vprop=None, pos=None):
                           skip_properties=True)
             libcore.group_vector_property(u._Graph__graph, _prop(k, g, vprop),
                                           _prop(k, g, p),
-                                          i if pos == None else pos[i],
+                                          i if pos is None else pos[i],
                                           k == 'e')
         else:
             vprop[g][i if pos is None else pos[i]] = p[g]
@@ -1057,7 +1057,7 @@ def ungroup_vector_property(vprop, pos, props=None):
     _check_prop_vector(vprop, name="vprop", scalar=False)
     k = vprop.key_type()
     value_type = vprop.value_type().split("<")[1].split(">")[0]
-    if props == None:
+    if props is None:
         if k == 'v':
             props = [g.new_vertex_property(value_type) for i in pos]
         elif k == 'e':
@@ -2830,7 +2830,7 @@ class GraphView(Graph):
     ``True`` if a given vertex/edge is to be selected, or ``False`` otherwise.
 
     The boolean parameter ``directed`` can be used to set the directionality of
-    the graph view. If ``directed == None``, the directionality is inherited
+    the graph view. If ``directed is None``, the directionality is inherited
     from ``g``.
 
     If ``reversed == True``, the direction of the edges is reversed.

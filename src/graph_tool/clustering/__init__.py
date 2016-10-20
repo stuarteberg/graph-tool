@@ -277,7 +277,7 @@ def extended_clustering(g, props=None, max_depth=3, undirected=False):
 
     if g.is_directed() and undirected:
         g = GraphView(g, directed=False)
-    if props == None:
+    if props is None:
         props = []
         for i in range(0, max_depth):
             props.append(g.new_vertex_property("double"))

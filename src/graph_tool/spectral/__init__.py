@@ -136,7 +136,7 @@ def adjacency(g, weight=None, index=None):
     """
 
     if index is None:
-        if g.get_vertex_filter()[0] != None:
+        if g.get_vertex_filter()[0] is not None:
             index = g.new_vertex_property("int64_t")
             index.fa = numpy.arange(g.num_vertices())
         else:
@@ -285,7 +285,7 @@ def laplacian(g, deg="total", normalized=False, weight=None, index=None):
     """
 
     if index is None:
-        if g.get_vertex_filter()[0] != None:
+        if g.get_vertex_filter()[0] is not None:
             index = g.new_vertex_property("int64_t")
             index.fa = numpy.arange(g.num_vertices())
         else:
@@ -383,14 +383,14 @@ def incidence(g, vindex=None, eindex=None):
     """
 
     if vindex is None:
-        if g.get_edge_filter()[0] != None:
+        if g.get_edge_filter()[0] is not None:
             vindex = g.new_vertex_property("int64_t")
             vindex.fa = numpy.arange(g.num_vertices())
         else:
             vindex = g.vertex_index
 
     if eindex is None:
-        if g.get_edge_filter()[0] != None:
+        if g.get_edge_filter()[0] is not None:
             eindex = g.new_edge_property("int64_t")
             eindex.fa = numpy.arange(g.num_edges())
         else:
@@ -489,7 +489,7 @@ def transition(g, weight=None, index=None):
     """
 
     if index is None:
-        if g.get_vertex_filter()[0] != None:
+        if g.get_vertex_filter()[0] is not None:
             index = g.new_vertex_property("int64_t")
             index.fa = numpy.arange(g.num_vertices())
         else:

@@ -212,9 +212,9 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
        Weblogging Ecosystem (2005). :DOI:`10.1145/1134271.1134277`
     """
 
-    if max_iter == None:
+    if max_iter is None:
         max_iter = 0
-    if prop == None:
+    if prop is None:
         prop = g.new_vertex_property("double")
         N = len(prop.fa)
         prop.fa = pers.fa[:N] if pers is not None else 1. / g.num_vertices()
@@ -323,11 +323,11 @@ def betweenness(g, vprop=None, eprop=None, weight=None, norm=True):
        and the 2004 US Election", in Proceedings of the WWW-2005 Workshop on the
        Weblogging Ecosystem (2005). :DOI:`10.1145/1134271.1134277`
     """
-    if vprop == None:
+    if vprop is None:
         vprop = g.new_vertex_property("double")
-    if eprop == None:
+    if eprop is None:
         eprop = g.new_edge_property("double")
-    if weight != None and weight.value_type() != eprop.value_type():
+    if weight is not None and weight.value_type() != eprop.value_type():
         nw = g.new_edge_property(eprop.value_type())
         g.copy_property(weight, nw)
         weight = nw
@@ -447,7 +447,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
 
     """
     if source is None:
-        if vprop == None:
+        if vprop is None:
             vprop = g.new_vertex_property("double")
         libgraph_tool_centrality.\
             closeness(g._Graph__graph, _prop("e", g, weight),
@@ -1005,7 +1005,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
        Weblogging Ecosystem (2005). :DOI:`10.1145/1134271.1134277`
     """
 
-    if vprop == None:
+    if vprop is None:
         vprop = g.new_vertex_property("double")
     i = libgraph_tool_centrality.\
            get_eigentrust(g._Graph__graph, _prop("e", g, trust_map),
@@ -1138,15 +1138,15 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
 
     """
 
-    if vprop == None:
+    if vprop is None:
         vprop = g.new_vertex_property("vector<double>")
 
-    if target == None:
+    if target is None:
         target = -1
     else:
         target = g.vertex_index[target]
 
-    if source == None:
+    if source is None:
         source = -1
     else:
         source = g.vertex_index[source]

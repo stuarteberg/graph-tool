@@ -386,7 +386,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
         and starting from the first value.
     samples : int (optional, default: None)
         If supplied, the distances will be randomly sampled from a number of
-        source vertices given by this parameter. It `samples == None` (default),
+        source vertices given by this parameter. It `samples is None` (default),
         all pairs are used.
     float_count : bool (optional, default: True)
         If True, the counts in each histogram bin will be returned as floats. If
@@ -409,7 +409,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     Notes
     -----
     The algorithm runs in :math:`O(V^2)` time, or :math:`O(V^2\log V)` if
-    `weight != None`. If `samples` is supplied, the complexities are
+    `weight is not None`. If `samples` is supplied, the complexities are
     :math:`O(\text{samples}\times V)`  and
     :math:`O(\text{samples}\times V\log V)`, respectively.
 
