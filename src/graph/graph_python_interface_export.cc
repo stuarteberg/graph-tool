@@ -148,7 +148,8 @@ struct export_edge_property_map
             .def("is_writable", &pmap_t::is_writable)
             .def("reserve", &pmap_t::reserve)
             .def("resize", &pmap_t::resize)
-            .def("shrink_to_fit", &pmap_t::shrink_to_fit);
+            .def("shrink_to_fit", &pmap_t::shrink_to_fit)
+            .def("data_ptr", &pmap_t::data_ptr);
 
 
         typedef boost::mpl::transform<graph_tool::all_graph_views,
