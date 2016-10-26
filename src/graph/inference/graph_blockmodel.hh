@@ -384,9 +384,6 @@ public:
             case weight_type::DISCRETE_POISSON:
                 _brec[me] -= _rec[e];
             }
-
-            // if (_mrs[me] == 0)
-            //     _emat.remove_me(me, _bg);
         }
     }
 
@@ -1336,6 +1333,7 @@ public:
                 }
             };
 
+        // self-loops are always ignored when sampling neighbors
         for (auto e : out_edges_range(v, _g))
         {
             if (target(e, _g) == v)
@@ -1688,7 +1686,7 @@ public:
         _emat.sync(_bg);
     }
 
-    void check_edge_counts()
+    bool check_edge_counts()
     {
         gt_hash_map<std::pair<size_t, size_t>, size_t> mrs;
         for (auto e : edges_range(_g))
@@ -1705,9 +1703,18 @@ public:
             auto r = rs_m.first.first;
             auto s = rs_m.first.second;
             auto me = _emat.get_me(r, s);
-            assert(me != _emat.get_null_edge());
-            assert(size_t(_mrs[me]) == rs_m.second);
+            if (me == _emat.get_null_edge())
+            {
+                assert(false);
+                return false;
+            }
+            if (size_t(_mrs[me]) != rs_m.second)
+            {
+                assert(false);
+                return false;
+            }
         }
+        return true;
     }
 
     void check_node_counts()
