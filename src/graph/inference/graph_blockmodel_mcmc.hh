@@ -104,21 +104,22 @@ struct MCMC
             return s;
         }
 
-        std::pair<double, double> virtual_move_dS(size_t v, size_t nr)
+        std::tuple<double, double, double>
+        virtual_move_dS(size_t v, size_t nr)
         {
-            double dS = _state.virtual_move(v, _state._b[v], nr, _entropy_args,
+            size_t r = _state._b[v];
+            double dS = _state.virtual_move(v, r, nr, _entropy_args,
                                             _m_entries);
             double a = 0;
             if (!std::isinf(_c))
             {
-                size_t r = _state._b[v];
                 double pf = _state.get_move_prob(v, r, nr, _c, false,
                                                  _m_entries);
                 double pb = _state.get_move_prob(v, nr, r, _c, true,
                                                  _m_entries);
                 a = log(pb) - log(pf);
             }
-            return make_pair(dS, a);
+            return make_tuple(dS, a, dS);
         }
 
         void perform_move(size_t v, size_t nr)

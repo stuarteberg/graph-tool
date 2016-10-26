@@ -483,10 +483,8 @@ public:
 
     // move a vertex from its current block to block nr
     template <class GetB>
-    void move_vertex(size_t v, size_t nr, GetB&& get_b)
+    void move_vertex(size_t v, size_t r, size_t nr, GetB&& get_b)
     {
-        size_t r = get_b(v);
-
         if (r == nr)
             return;
 
@@ -513,6 +511,13 @@ public:
             }
         }
         assert(size_t(get_b(v)) == nr);
+    }
+
+    template <class GetB>
+    void move_vertex(size_t v, size_t nr, GetB&& get_b)
+    {
+        size_t r = get_b(v);
+        move_vertex(v, r, nr, get_b);
     }
 
     void move_vertex(size_t v, size_t nr)

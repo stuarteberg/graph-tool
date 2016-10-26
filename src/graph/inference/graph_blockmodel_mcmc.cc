@@ -48,8 +48,16 @@ python::object do_mcmc_sweep(python::object omcmc_state,
            (omcmc_state,
             [&](auto& s)
             {
-                auto ret_ = mcmc_sweep(s, rng);
-                ret = python::make_tuple(ret_.first, ret_.second);
+                if (s._parallel)
+                {
+                    auto ret_ = mcmc_sweep_parallel(s, rng);
+                    ret = python::make_tuple(ret_.first, ret_.second);
+                }
+                else
+                {
+                    auto ret_ = mcmc_sweep(s, rng);
+                    ret = python::make_tuple(ret_.first, ret_.second);
+                }
             });
     };
     block_state::dispatch(oblock_state, dispatch);

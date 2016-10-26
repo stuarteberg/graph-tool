@@ -34,20 +34,86 @@
 namespace graph_tool
 {
 
+template <class RNG>
+bool metropolis_accept(double dS, double mP, double beta, RNG& rng)
+{
+    if (std::isinf(beta))
+    {
+        return dS < 0;
+    }
+    else
+    {
+        double a = -dS * beta + mP;
+        if (a > 0)
+        {
+            return true;
+        }
+        else
+        {
+            typedef std::uniform_real_distribution<> rdist_t;
+            double sample = rdist_t()(rng);
+            return sample < exp(a);
+        }
+    }
+}
+
+
 template <class MCMCState, class RNG>
-auto mcmc_sweep(MCMCState state, RNG& rng_)
+auto mcmc_sweep(MCMCState state, RNG& rng)
+{
+    auto& vlist = state._vlist;
+    auto& beta = state._beta;
+
+    double S = 0;
+    size_t nmoves = 0;
+
+    for (size_t iter = 0; iter < state._niter; ++iter)
+    {
+        std::shuffle(vlist.begin(), vlist.end(), rng);
+
+        for (auto v : vlist)
+        {
+            if (!state._sequential)
+                v = uniform_sample(vlist, rng);
+
+            if (state.node_weight(v) == 0)
+                continue;
+
+            auto r = state.node_state(v);
+            auto s = state.move_proposal(v, rng);
+
+            if (s == r)
+                continue;
+
+            double dS, mP, rdS;
+            std::tie(dS, mP, rdS) = state.virtual_move_dS(v, s);
+
+            if (metropolis_accept(dS, mP, beta, rng))
+            {
+                state.perform_move(v, s);
+                nmoves += state.node_weight(v);
+                S += rdS;
+            }
+
+            if (state._verbose)
+                cout << v << ": " << r << " -> " << s << " " << S << endl;
+        }
+    }
+    return make_pair(S, nmoves);
+}
+
+
+template <class MCMCState, class RNG>
+auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
 {
     auto& g = state._g;
 
     vector<std::shared_ptr<RNG>> rngs;
     std::vector<std::pair<size_t, double>> best_move;
 
-    if (state._parallel)
-    {
-        init_rngs(rngs, rng_);
-        init_cache(state._E);
-        best_move.resize(num_vertices(g));
-    }
+    init_rngs(rngs, rng_);
+    init_cache(state._E);
+    best_move.resize(num_vertices(g));
 
     auto& vlist = state._vlist;
     auto& beta = state._beta;
@@ -58,30 +124,20 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
-        if (!state._parallel)
-        {
-            std::shuffle(vlist.begin(), vlist.end(), rng_);
-        }
-        else
-        {
-            parallel_loop(vlist,
-                          [&](size_t, auto v)
-                          {
-                              best_move[v] =
-                                  std::make_pair(state.node_state(v),
-                                                 numeric_limits<double>::max());
-                          });
-        }
+        parallel_loop(vlist,
+                      [&](size_t, auto v)
+                      {
+                          best_move[v] =
+                              std::make_pair(state.node_state(v),
+                                             numeric_limits<double>::max());
+                      });
 
-        #pragma omp parallel firstprivate(state) if (state._parallel)
+        #pragma omp parallel firstprivate(state)
         parallel_loop_no_spawn
             (vlist,
              [&](size_t, auto v)
              {
                  auto& rng = get_rng(rngs, rng_);
-
-                 if (!state._sequential)
-                     v = uniform_sample(vlist, rng);
 
                  if (state.node_weight(v) == 0)
                      return;
@@ -92,68 +148,39 @@ auto mcmc_sweep(MCMCState state, RNG& rng_)
                  if (s == r)
                      return;
 
-                 std::pair<double, double> dS = state.virtual_move_dS(v, s);
+                 double dS, mP, rdS;
+                 std::tie(dS, mP, rdS) = state.virtual_move_dS(v, s);
 
-                 bool accept = false;
-                 if (std::isinf(beta))
+                 if (metropolis_accept(dS, mP, beta, rng))
                  {
-                     accept = dS.first < 0;
-                 }
-                 else
-                 {
-                     double a = -dS.first * beta + dS.second;
-                     if (a > 0)
-                     {
-                         accept = true;
-                     }
-                     else
-                     {
-                         typedef std::uniform_real_distribution<> rdist_t;
-                         double sample = rdist_t()(rng);
-                         accept = sample < exp(a);
-                     }
+                     best_move[v].first = s;
+                     best_move[v].second = dS;
                  }
 
-                 if (accept)
-                 {
-                     if (!state._parallel)
-                     {
-                         state.perform_move(v, s);
-                         nmoves += state.node_weight(v);
-                         S += dS.first;
-                     }
-                     else
-                     {
-                         best_move[v].first = s;
-                         best_move[v].second = dS.first;
-                     }
-                     if (state._verbose)
-                         cout << v << ": " << r << " -> " << s << " " << S << endl;
-                 }
+                 if (state._verbose)
+                     cout << v << ": " << r << " -> " << s << " " << S << endl;
              });
 
-        if (state._parallel)
+        for (auto v : vlist)
         {
-            for (auto v : vlist)
+            auto s = best_move[v].first;
+            double dS = best_move[v].second;
+            if (dS != numeric_limits<double>::max())
             {
-                auto s = best_move[v].first;
-                double dS = best_move[v].second;
-                if (dS != numeric_limits<double>::max())
-                {
-                    dS = state.virtual_move_dS(v, s).first;
+                auto ddS = state.virtual_move_dS(v, s);
 
-                    if (dS > 0 && std::isinf(beta))
-                        continue;
+                if (get<0>(ddS) > 0 && std::isinf(beta))
+                    continue;
 
-                    state.perform_move(v, s);
-                    nmoves++;
-                    S += dS;
-                }
+                state.perform_move(v, s);
+                nmoves++;
+                S += get<2>(ddS);
             }
         }
     }
     return make_pair(S, nmoves);
 }
+
 
 } // graph_tool namespace
 
