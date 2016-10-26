@@ -128,7 +128,7 @@ public:
 
             assert(_mrs[me] >= 0);
             if (_mrs[me] == 0)
-                _emat.remove_me(r, s, me, _bg);
+                _emat.remove_me(me, _bg);
         }
 
         u = _overlap_stats.get_in_neighbour(v);
@@ -146,7 +146,7 @@ public:
             eop(e, me);
 
             if (_mrs[me] == 0)
-                _emat.remove_me(s, r, me, _bg);
+                _emat.remove_me(me, _bg);
         }
 
         _overlap_stats.remove_half_edge(v, r, _b, _g);

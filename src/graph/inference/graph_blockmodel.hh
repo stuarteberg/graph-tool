@@ -385,8 +385,8 @@ public:
                 _brec[me] -= _rec[e];
             }
 
-            if (_mrs[me] == 0)
-                _emat.remove_me(r, s, me, _bg);
+            // if (_mrs[me] == 0)
+            //     _emat.remove_me(me, _bg);
         }
     }
 

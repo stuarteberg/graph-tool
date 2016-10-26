@@ -847,16 +847,14 @@ public:
             _mat[s][r] = e;
     }
 
-    void remove_me(vertex_t r, vertex_t s, const edge_t& me, BGraph& bg,
-                   bool delete_edge = true)
+    void remove_me(const edge_t& me, BGraph& bg)
     {
-        if (delete_edge)
-        {
-            _mat[r][s] = _null_edge;
-            if (!is_directed::apply<BGraph>::type::value)
-                _mat[s][r] = _null_edge;
-            remove_edge(me, bg);
-        }
+        auto r = source(me, bg);
+        auto s = target(me, bg);
+        _mat[r][s] = _null_edge;
+        if (!is_directed::apply<BGraph>::type::value)
+            _mat[s][r] = _null_edge;
+        remove_edge(me, bg);
     }
 
     const auto& get_null_edge() const { return _null_edge; }
@@ -941,17 +939,15 @@ public:
         _hash[r][s] = e;
     }
 
-    void remove_me(vertex_t r, vertex_t s, const edge_t& me, BGraph& bg,
-                   bool delete_edge = true)
+    void remove_me(const edge_t& me, BGraph& bg)
     {
-        if (delete_edge)
-        {
-            if (!is_directed::apply<BGraph>::type::value && r > s)
-                std::swap(r, s);
-            assert(r < _hash.size());
-            _hash[r].erase(s);
-            remove_edge(me, bg);
-        }
+        auto r = source(me, bg);
+        auto s = target(me, bg);
+        if (!is_directed::apply<BGraph>::type::value && r > s)
+            std::swap(r, s);
+        assert(r < _hash.size());
+        _hash[r].erase(s);
+        remove_edge(me, bg);
     }
 
     const auto& get_null_edge() const { return _null_edge; }
