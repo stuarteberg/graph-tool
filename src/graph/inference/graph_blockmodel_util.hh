@@ -1330,17 +1330,7 @@ public:
         _egroups.resize(num_vertices(bg));
 
         for (auto e : edges_range(g))
-        {
-            size_t r = b[get_source(e, g)];
-            auto& r_elist = _egroups[r];
-            _epos[e].first = insert_edge(std::make_tuple(e, true), r_elist,
-                                         eweight[e]);
-
-            size_t s = b[get_target(e, g)];
-            auto& s_elist = _egroups[s];
-            _epos[e].second = insert_edge(std::make_tuple(e, false), s_elist,
-                                          eweight[e]);
-        }
+            insert_edge(e, eweight[e], b, g);
     }
 
     void clear()
@@ -1353,23 +1343,55 @@ public:
         return _egroups.empty();
     }
 
+    template <class Edge, class Vprop>
+    void insert_edge(const Edge& e, size_t weight, Vprop& b, Graph& g)
+    {
+        size_t r = b[get_source(e, g)];
+        auto& r_elist = _egroups[r];
+        insert_edge(std::make_tuple(e, true), r_elist, weight,
+                    _epos[e].first);
+
+        size_t s = b[get_target(e, g)];
+        auto& s_elist = _egroups[s];
+        insert_edge(std::make_tuple(e, false), s_elist, weight,
+                    _epos[e].second);
+    }
+
     template <class Edge, class EV>
-    size_t insert_edge(const Edge& e, EV& elist, size_t)
+    void insert_edge(const Edge& e, EV& elist, size_t, size_t& pos)
     {
+        if (pos < elist.size() && elist[pos] == e)
+            return;
         elist.push_back(e);
-        return elist.size() - 1;
+        pos = elist.size() - 1;
     }
 
     template <class Edge>
-    size_t insert_edge(const Edge& e, DynamicSampler<Edge>& elist,
-                       size_t weight)
+    void insert_edge(const Edge& e, DynamicSampler<Edge>& elist,
+                     size_t weight, size_t& pos)
     {
-        return elist.insert(e, weight);
+        if (pos < elist.size() && elist[pos] == e)
+            return;
+        pos = elist.insert(e, weight);
+    }
+
+    template <class Edge, class Vprop>
+    void remove_edge(const Edge& e, Vprop& b, Graph& g)
+    {
+        auto& pos = _epos[e];
+
+        size_t r = b[get_source(e, g)];
+        remove_edge(make_tuple(e, true), pos.first, _egroups[r]);
+
+        size_t s = b[get_target(e, g)];
+        remove_edge(make_tuple(e, false), pos.second, _egroups[s]);
     }
 
     template <class Edge>
-    void remove_edge(size_t pos, vector<Edge>& elist)
+    void remove_edge(const Edge& e, size_t pos, vector<Edge>& elist)
     {
+        if (pos >= elist.size() || elist[pos] != e)
+            return;
         if (get<1>(elist.back()))
             _epos[get<0>(elist.back())].first = pos;
         else
@@ -1383,8 +1405,10 @@ public:
     }
 
     template <class Edge>
-    void remove_edge(size_t pos, DynamicSampler<Edge>& elist)
+    void remove_edge(const Edge& e, size_t pos, DynamicSampler<Edge>& elist)
     {
+        if (pos >= elist.size() || elist[pos] != e)
+            return;
         if (get<1>(elist[pos]))
             _epos[get<0>(elist[pos])].first = numeric_limits<size_t>::max();
         else
@@ -1392,81 +1416,28 @@ public:
         elist.remove(pos);
     }
 
-    template <class Vertex>
-    void remove_vertex(Vertex v, Vertex r, Graph& g)
+    template <class Vertex, class VProp>
+    void remove_vertex(Vertex v, VProp& b, Graph& g)
     {
         if (_egroups.empty())
             return;
-
-        typedef Vertex vertex_t;
-
-        auto& elist = _egroups[r];
-
         // update the half-edge lists
-        for (auto e : all_edges_range(v, g))
-        {
-            vertex_t src = get_source(e, g);
-            vertex_t tgt = get_target(e, g);
-
-            bool is_src = (src == v);
-
-            // self-loops will appear twice; we must disambiguate
-            if (src == tgt)
-            {
-                size_t pos = _epos[e].first;
-                is_src = (pos < elist.size() && get<0>(elist[pos]) == e);
-            }
-
-            size_t pos = (is_src) ? _epos[e].first : _epos[e].second;
-            assert(pos < elist.size());
-            assert(get<0>(elist[pos]) == e);
-            remove_edge(pos, elist);
-        }
+        for (auto e : out_edges_range(v, g))
+            remove_edge(e, b, g);
+        for (auto e : in_edges_range(v, g))
+            remove_edge(e, b, g);
     }
 
-    template <class Vertex, class Eprop>
-    void add_vertex(Vertex v, Vertex s, Eprop& eweight, Graph& g)
+    template <class Vertex, class Vprop, class Eprop>
+    void add_vertex(Vertex v, Vprop& b, Eprop& eweight, Graph& g)
     {
         if (_egroups.empty())
             return;
-
-        typedef Vertex vertex_t;
-
-        auto& elist = _egroups[s];
-
         //update the half-edge lists
-        for (auto e : all_edges_range(v, g))
-        {
-            vertex_t src = get_source(e, g);
-            vertex_t tgt = get_target(e, g);
-
-            bool is_src = (src == v);
-
-            // self-loops will appear twice; we must disambiguate
-            if (src == tgt)
-            {
-                size_t pos = _epos[e].first;
-                is_src = !(pos < elist.size() && get<0>(elist[pos]) == e);
-            }
-
-            typedef typename graph_traits<Graph>::edge_descriptor e_type;
-            size_t pos = insert_edge(std::make_tuple(e_type(e), is_src),
-                                     elist, size_t(eweight[e]));
-            if (is_src)
-                _epos[e].first = pos;
-            else
-                _epos[e].second = pos;
-        }
-    }
-
-    template <class Vertex, class Eprop>
-    void move_vertex(Vertex v, Vertex r, Vertex s, Eprop& eweight,
-                     Graph& g)
-    {
-        if (r == s)
-            return;
-        remove_egroups(v, r, g);
-        add_egroups(v, s, eweight, g);
+        for (auto e : out_edges_range(v, g))
+            insert_edge(e, eweight[e], b, g);
+        for (auto e : in_edges_range(v, g))
+            insert_edge(e, eweight[e], b, g);
     }
 
     template <class Edge, class RNG>

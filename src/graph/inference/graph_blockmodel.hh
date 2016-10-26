@@ -264,8 +264,8 @@ public:
 
         _wr[r] -= gs._vweight[v];
 
-        if (!_egroups.empty())
-            _egroups.remove_vertex(v, r, gs._g);
+        if (!_egroups.empty() && _gstate == this)
+            _egroups.remove_vertex(v, _b, _g);
 
         if (is_partition_stats_enabled())
             get_partition_stats(v).remove_vertex(v, r, _deg_corr, gs._g,
@@ -285,8 +285,8 @@ public:
 
         _wr[r] += gs._vweight[v];
 
-        if (!_egroups.empty())
-            _egroups.add_vertex(v, r, gs._eweight, gs._g);
+        if (!_egroups.empty() && _gstate == this)
+            _egroups.add_vertex(v, _b, _eweight, _g);
 
         if (is_partition_stats_enabled())
             get_partition_stats(v).add_vertex(v, r, _deg_corr, gs._g, gs._vweight,
@@ -1202,6 +1202,8 @@ public:
                 s = _b[target(e, _g)];
                 if (s == t)
                     s = _b[source(e, _g)];
+                else
+                    assert(_b[source(e, _g)] == t);
             }
         }
 

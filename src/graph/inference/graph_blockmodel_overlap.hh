@@ -153,7 +153,7 @@ public:
         _wr[r] = _overlap_stats.get_block_size(r);
 
         if (!_egroups.empty())
-            _egroups.remove_vertex(v, size_t(r), _g);
+            _egroups.remove_vertex(v, _b, _g);
     }
 
     void remove_vertex(size_t v)
@@ -242,7 +242,7 @@ public:
         _b[v] = r;
 
         if (!_egroups.empty())
-            _egroups.add_vertex(v, r, _eweight, _g);
+            _egroups.add_vertex(v, _b, _eweight, _g);
     }
 
     void add_vertex(size_t v, size_t r)
