@@ -21,6 +21,46 @@
  * Direct inquiries to 30 Frost Street, Cambridge, MA 02140
  */
 
+/*
+ *      Dilogarithm
+ *
+ *
+ *
+ * SYNOPSIS:
+ *
+ * float x, y, spencef();
+ *
+ * y = spencef( x );
+ *
+ *
+ *
+ * DESCRIPTION:
+ *
+ * Computes the integral
+ *
+ *                    x
+ *                    -
+ *                   | | log t
+ * spence(x)  =  -   |   ----- dt
+ *                 | |   t - 1
+ *                  -
+ *                  1
+ *
+ * for x >= 0.  A rational approximation gives the integral in
+ * the interval (0.5, 1.5).  Transformation formulas for 1/x
+ * and 1-x are employed outside the basic expansion range.
+ *
+ *
+ *
+ * ACCURACY:
+ *
+ *                      Relative error:
+ * arithmetic   domain     # trials      peak         rms
+ *    IEEE      0,4         30000       4.4e-7      6.3e-8
+ *
+ *
+ */
+
 #include <cmath>
 #include <limits>
 
