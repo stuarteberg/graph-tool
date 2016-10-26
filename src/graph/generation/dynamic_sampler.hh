@@ -31,11 +31,11 @@ template <class Value>
 class DynamicSampler
 {
 public:
-    DynamicSampler() : _back(0) {}
+    DynamicSampler() : _back(0), _n_items(0) {}
 
     DynamicSampler(const vector<Value>& items,
                    const vector<double>& probs)
-        : _back(0)
+        : _back(0), _n_items(0)
     {
         for (size_t i = 0; i < items.size(); ++i)
             insert(items[i], probs[i]);
@@ -54,7 +54,7 @@ public:
         double u = _tree[0] * sample(rng), c = 0;
 
         size_t pos = 0;
-        while (_idx[pos] < 0)
+        while (_idx[pos] == numeric_limits<size_t>::max())
         {
             size_t l = get_left(pos);
             double a = _tree[l];
@@ -85,7 +85,7 @@ public:
                 _idx[l] = _idx[pos];
                 _ipos[_idx[l]] = l;
                 _tree[l] = _tree[pos];
-                _idx[pos] = -1;
+                _idx[pos] = numeric_limits<size_t>::max();
 
                 // position new item to the right
                 _back = get_right(pos);
@@ -96,6 +96,7 @@ public:
 
             _idx[pos] = _items.size();
             _items.push_back(v);
+            _valid.push_back(true);
             _ipos.push_back(pos);
             _tree[pos] = w;
             _back++;
@@ -105,11 +106,13 @@ public:
         {
             pos = _free.back();
             _items[_idx[pos]] = v;
+            _valid[_idx[pos]] = true;
             _tree[pos] = w;
             _free.pop_back();
         }
 
         insert_leaf_prob(pos);
+        _n_items++;
         return _idx[pos];
     }
 
@@ -118,6 +121,9 @@ public:
         size_t pos = _ipos[i];
         remove_leaf_prob(pos);
         _free.push_back(pos);
+        _items[i] = Value();
+        _valid[i] = false;
+        _n_items--;
     }
 
     void clear()
@@ -127,6 +133,7 @@ public:
         _idx.clear();
         _back = 0;
         _free.clear();
+        _n_items = 0;
     }
 
     void rebuild()
@@ -136,7 +143,7 @@ public:
 
         for (size_t i = 0; i < _tree.size(); ++i)
         {
-            if (_idx[i] < 0)
+            if (_idx[i] == numeric_limits<size_t>::max())
                 continue;
             items.push_back(_items[_idx[i]]);
             probs.push_back(_tree[i]);
@@ -153,9 +160,24 @@ public:
         return _items[i];
     }
 
+    bool is_valid(size_t i)
+    {
+        return (i < _items.size() && _valid[i]);
+    }
+
     const auto& items() const
     {
         return _items;
+    }
+
+    const auto begin() const
+    {
+        return _items.begin();
+    }
+
+    const auto end() const
+    {
+        return _items.end();
     }
 
     size_t size() const
@@ -165,7 +187,7 @@ public:
 
     bool empty() const
     {
-        return _items.empty();
+        return _n_items == 0;
     }
 
 private:
@@ -174,7 +196,7 @@ private:
     {
         if (i >= _tree.size())
         {
-            _idx.resize(i + 1, -1);
+            _idx.resize(i + 1, numeric_limits<size_t>::max());
             _tree.resize(i + 1, 0);
         }
     }
@@ -208,10 +230,11 @@ private:
     vector<size_t> _ipos;   // position of the item in the tree
 
     vector<double> _tree;  // tree nodes with weight sums
-    vector<int>    _idx;   // index in _items
+    vector<size_t> _idx;   // index in _items
     int _back;             // last item in tree
 
-    vector<size_t> _free; // empty leafs
+    vector<size_t> _free;  // empty leafs
+    vector<bool> _valid;   // non-removed items
     size_t _n_items;
 };
 
