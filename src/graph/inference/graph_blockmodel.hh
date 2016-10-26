@@ -779,7 +779,7 @@ public:
         if (is_directed::apply<g_t>::type::value)
             kin = in_degreeS()(v, gs._g, gs._eweight);
 
-        int dwr = _vweight[v];
+        int dwr = gs._vweight[v];
         int dwnr = dwr;
 
         if (r == null_group && dwnr == 0)
@@ -857,7 +857,7 @@ public:
         }
 
         double dS = 0;
-        int dwr = _vweight[v];
+        int dwr = gs._vweight[v];
         int dwnr = dwr;
 
         if (r == null_group && dwnr == 0)
