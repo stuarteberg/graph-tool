@@ -191,8 +191,9 @@ public:
     }
 
 
-    template <bool Add, class EFilt, class GetB>
-    void modify_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b)
+    template <bool Add, class EFilt, class GetB, class BEop>
+    void modify_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b,
+                       BEop&& beop)
     {
         _m_entries.clear();
         if (Add)
@@ -203,6 +204,8 @@ public:
         entries_op(_m_entries, _emat,
                    [&](auto r, auto s, auto& me, auto& delta)
                    {
+                       beop(false, me);
+
                        if (Add && me == this->_emat.get_null_edge())
                        {
                            me = add_edge(r, s, this->_bg).first;
@@ -215,6 +218,8 @@ public:
                        this->_mrs[me] += get<0>(delta);
                        this->_mrp[r] += get<0>(delta);
                        this->_mrm[s] += get<0>(delta);
+
+                       beop(true, me);
 
                        switch (this->_rec_type)
                        {
@@ -294,17 +299,19 @@ public:
         }
     }
 
-    template <class EFilt, class GetB>
-    void remove_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b)
+    template <class EFilt, class GetB, class BEop>
+    void remove_vertex(size_t v, size_t r, EFilt&& efilt, GetB&& get_b,
+                       BEop&& beop)
     {
-        modify_vertex<false>(v, r, efilt, get_b);
+        modify_vertex<false>(v, r, efilt, get_b, beop);
     }
 
     template <class EFilt>
     void remove_vertex(size_t v, size_t r, EFilt&& efilt)
     {
         remove_vertex(v, r, efilt,
-                      [&](auto u) -> auto& { return this->_b[u]; });
+                      [&](auto u) -> auto& { return this->_b[u]; },
+                      [](bool, const auto &){});
     }
 
     void remove_vertex(size_t v, size_t r)
@@ -379,10 +386,11 @@ public:
         remove_vertices(vs);
     }
 
-    template <class Efilt, class GetB>
-    void add_vertex(size_t v, size_t r, Efilt&& efilt, GetB&& get_b)
+    template <class Efilt, class GetB, class BEop>
+    void add_vertex(size_t v, size_t r, Efilt&& efilt, GetB&& get_b,
+                    BEop&& beop)
     {
-        modify_vertex<true>(v, r, efilt, get_b);
+        modify_vertex<true>(v, r, efilt, get_b, beop);
         assert(size_t(get_b(v)) == r);
     }
 
@@ -390,7 +398,8 @@ public:
     void add_vertex(size_t v, size_t r, Efilt&& efilt)
     {
         add_vertex(v, r, efilt,
-                   [&](auto u) -> auto& { return this->_b[u]; });
+                   [&](auto u) -> auto& { return this->_b[u]; },
+                   [](bool, const auto&){});
     }
 
     void add_vertex(size_t v, size_t r)
@@ -482,8 +491,8 @@ public:
     }
 
     // move a vertex from its current block to block nr
-    template <class GetB>
-    void move_vertex(size_t v, size_t r, size_t nr, GetB&& get_b)
+    template <class GetB, class BEop>
+    void move_vertex(size_t v, size_t r, size_t nr, GetB&& get_b, BEop&& beop)
     {
         if (r == nr)
             return;
@@ -491,8 +500,8 @@ public:
         if (!allow_move(r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
-        remove_vertex(v, r, [](auto&) {return false;}, get_b);
-        add_vertex(v, nr, [](auto&) {return false;}, get_b);
+        remove_vertex(v, r, [](auto&) {return false;}, get_b, beop);
+        add_vertex(v, nr, [](auto&) {return false;}, get_b, beop);
 
         if (_coupled_state != nullptr && _vweight[v] > 0)
         {
@@ -513,16 +522,18 @@ public:
         assert(size_t(get_b(v)) == nr);
     }
 
-    template <class GetB>
-    void move_vertex(size_t v, size_t nr, GetB&& get_b)
+    template <class GetB, class BEop>
+    void move_vertex(size_t v, size_t nr, GetB&& get_b, BEop&& beop)
     {
         size_t r = get_b(v);
-        move_vertex(v, r, nr, get_b);
+        move_vertex(v, r, nr, get_b, beop);
     }
 
     void move_vertex(size_t v, size_t nr)
     {
-        move_vertex(v, nr, [&](auto u) -> auto& { return this->_b[u]; });
+        move_vertex(v, nr,
+                    [&](auto u) -> auto& { return this->_b[u]; },
+                    [](bool, auto&){});
     }
 
     void set_vertex_weight(size_t v, int w)
