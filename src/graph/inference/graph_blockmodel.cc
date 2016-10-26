@@ -44,7 +44,8 @@ GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 python::object make_block_state(boost::python::object ostate,
                                 rng_t& rng);
 
-degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
+degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight,
+                          size_t B)
 {
     degs_map_t degs;
     vmap_t b = boost::any_cast<vmap_t>(ab);
@@ -52,7 +53,7 @@ degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
                    [&](auto& g, auto& eweight)
                    {
                        std::vector<gt_hash_map<std::tuple<size_t, size_t>,
-                                               size_t>> hist;
+                                               size_t>> hist(B);
                        for (auto v : vertices_range(g))
                        {
                            size_t r = b[v];
@@ -63,7 +64,7 @@ degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
                            hist[r][std::make_tuple(kin, kout)]++;
                        }
 
-                       for (size_t r = 0; r < hist.size(); ++r)
+                       for (size_t r = 0; r < B; ++r)
                        {
                            auto& deg = degs[r];
                            for (auto& kn : hist[r])
@@ -77,7 +78,7 @@ degs_map_t get_block_degs(GraphInterface& gi, boost::any ab, boost::any aweight)
 }
 
 degs_map_t get_weighted_block_degs(GraphInterface& gi, degs_map_t& degs,
-                                   boost::any ab)
+                                   boost::any ab, size_t B)
 {
     degs_map_t ndegs;
     vmap_t b = boost::any_cast<vmap_t>(ab);
@@ -85,7 +86,7 @@ degs_map_t get_weighted_block_degs(GraphInterface& gi, degs_map_t& degs,
                    [&](auto& g)
                    {
                        std::vector<gt_hash_map<std::tuple<size_t, size_t>,
-                                               size_t>> hist;
+                                               size_t>> hist(B);
                        for (auto v : vertices_range(g))
                        {
                            size_t r = b[v];
@@ -97,7 +98,7 @@ degs_map_t get_weighted_block_degs(GraphInterface& gi, degs_map_t& degs,
                                h[std::make_tuple(get<0>(k), get<1>(k))] += get<2>(k);
                        }
 
-                       for (size_t r = 0; r < hist.size(); ++r)
+                       for (size_t r = 0; r < B; ++r)
                        {
                            auto& deg = ndegs[r];
                            for (auto& kn : hist[r])

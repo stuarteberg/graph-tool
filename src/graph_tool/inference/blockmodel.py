@@ -231,6 +231,13 @@ class BlockState(object):
         self.degs = kwargs.pop("degs", libinference.simple_degs_t())
         if self.degs is None:
             self.degs = libinference.simple_degs_t()
+        elif self.degs == "weighted":
+            idx_ = self.g.vertex_index.copy("int")
+            self.degs = libinference.get_block_degs(self.g._Graph__graph,
+                                                    _prop("v", self.g, idx_),
+                                                    self.eweight._get_any(),
+                                                    self.g.num_vertices(True))
+
 
         # ensure we have at most as many blocks as nodes
         if B is not None and b is None:
@@ -506,12 +513,14 @@ class BlockState(object):
             if isinstance(self.degs, libinference.simple_degs_t):
                 degs = libinference.get_block_degs(self.g._Graph__graph,
                                                    _prop("v", self.g, self.b),
-                                                   self.eweight._get_any())
+                                                   self.eweight._get_any(),
+                                                   self.get_B())
             else:
                 degs = libinference.get_weighted_block_degs(self.g._Graph__graph,
                                                             self.degs,
                                                             _prop("v", self.g,
-                                                                  self.b))
+                                                                  self.b),
+                                                            self.get_B())
         else:
             degs = libinference.simple_degs_t()
 
