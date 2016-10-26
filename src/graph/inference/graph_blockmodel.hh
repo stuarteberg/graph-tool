@@ -968,6 +968,8 @@ public:
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea,
                         MEntries& m_entries, GetB&& get_b)
     {
+        assert(size_t(get_b(v)) == r);
+
         if (r == nr)
             return 0;
 
@@ -1203,7 +1205,7 @@ public:
                 if (s == t)
                     s = _b[source(e, _g)];
                 else
-                    assert(_b[source(e, _g)] == t);
+                    assert(size_t(_b[source(e, _g)]) == t);
             }
         }
 
@@ -1604,7 +1606,7 @@ public:
 
     partition_stats_t& get_partition_stats(size_t v)
     {
-        return _partition_stats[_pclabel[v]];
+        return _partition_stats[_gstate->_pclabel[v]];
     }
 
     void init_mcmc(double c, double dl)
