@@ -787,6 +787,7 @@ public:
 
         auto vt = [&](auto mrp, auto mrm, auto nr)
             {
+                assert(mrp >= 0 && mrm >=0 && nr >= 0);
                 if (exact)
                     return vterm_exact(mrp, mrm, nr, _deg_corr, _bg);
                 else
@@ -1651,6 +1652,38 @@ public:
     void sync_emat()
     {
         _emat.sync(_bg);
+    }
+
+    void check_edge_counts()
+    {
+        gt_hash_map<std::pair<size_t, size_t>, size_t> mrs;
+        for (auto e : edges_range(_g))
+        {
+            size_t r = _b[source(e, _g)];
+            size_t s = _b[target(e, _g)];
+            if (!is_directed::apply<g_t>::type::value && s < r)
+                std::swap(r, s);
+            mrs[std::make_pair(r, s)] += _eweight[e];
+        }
+
+        for (auto& rs_m : mrs)
+        {
+            auto r = rs_m.first.first;
+            auto s = rs_m.first.second;
+            auto me = _emat.get_me(r, s);
+            assert(me != _emat.get_null_edge());
+            assert(size_t(_mrs[me]) == rs_m.second);
+        }
+    }
+
+    void check_node_counts()
+    {
+        vector<size_t> wr(num_vertices(_bg));
+        for (auto v : vertices_range(_g))
+            wr[_b[v]] += _vweight[v];
+
+        for (auto r : vertices_range(_bg))
+            assert(size_t(_wr[r]) == wr[r]);
     }
 
 //private:

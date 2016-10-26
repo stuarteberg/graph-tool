@@ -1139,6 +1139,7 @@ public:
         {
             auto& rs = _entries[i];
             _mes.push_back(emat.get_me(rs.first, rs.second));
+            assert(_mes.back() != emat.get_null_edge() || get<0>(_delta[i]) > 0);
         }
         return _mes;
     }
