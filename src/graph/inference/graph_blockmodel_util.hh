@@ -1329,7 +1329,11 @@ public:
         _egroups.resize(num_vertices(bg));
 
         for (auto e : edges_range(g))
+        {
+            _epos[e] = make_pair(numeric_limits<size_t>::max(),
+                                 numeric_limits<size_t>::max());
             insert_edge(e, eweight[e], b, g);
+        }
     }
 
     void clear()
@@ -1340,6 +1344,40 @@ public:
     bool empty()
     {
         return _egroups.empty();
+    }
+
+    template <class Vprop>
+    bool check(Vprop b, Graph& g)
+    {
+        for (size_t r = 0; r < _egroups.size(); ++r)
+        {
+            auto& edges = _egroups[r];
+            for (size_t i = 0; i < edges.size(); ++i)
+            {
+                const auto& e = edges[i];
+                if (!is_valid(i, edges))
+                    continue;
+                if (size_t(b[source(get<0>(e), g)]) != r &&
+                    size_t(b[target(get<0>(e), g)]) != r)
+                {
+                    assert(false);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    template <class Edge>
+    bool is_valid(size_t i, DynamicSampler<Edge>& elist)
+    {
+        return elist.is_valid(i);
+    }
+
+    template <class Edge>
+    bool is_valid(size_t, vector<Edge>& elist)
+    {
+        return true;
     }
 
     template <class Edge, class Vprop>
@@ -1361,6 +1399,7 @@ public:
     {
         if (pos < elist.size() && elist[pos] == e)
             return;
+        assert(pos >= elist.size() || elist[pos] != e);
         elist.push_back(e);
         pos = elist.size() - 1;
     }
@@ -1369,8 +1408,9 @@ public:
     void insert_edge(const Edge& e, DynamicSampler<Edge>& elist,
                      size_t weight, size_t& pos)
     {
-        if (pos < elist.size() && elist[pos] == e)
+        if (pos < elist.size() && elist.is_valid(pos) && elist[pos] == e)
             return;
+        assert(pos >= elist.size() || !elist.is_valid(pos) || elist[pos] != e);
         pos = elist.insert(e, weight);
     }
 

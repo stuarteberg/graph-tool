@@ -1755,9 +1755,7 @@ public:
 
     EGroups<g_t, is_weighted_t> _egroups;
 
-    typedef typename std::conditional<is_weighted_t::value,
-                                      WeightedNeighbourSampler<g_t, DynamicSampler>,
-                                      UnweightedNeighbourSampler<g_t>>::type
+    typedef NeighbourSampler<g_t, is_weighted_t, std::true_type>
         neighbour_sampler_t;
 
     neighbour_sampler_t _neighbour_sampler;
