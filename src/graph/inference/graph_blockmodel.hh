@@ -209,6 +209,9 @@ public:
         entries_op(_m_entries, _emat,
                    [&](auto r, auto s, auto& me, auto& delta)
                    {
+                       if (get<0>(delta) == 0) // can happen with zero-weight
+                           return;             // edges
+
                        beop(false, me);
 
                        if (Add && me == this->_emat.get_null_edge())

@@ -1408,7 +1408,8 @@ public:
     void insert_edge(const Edge& e, DynamicSampler<Edge>& elist,
                      size_t weight, size_t& pos)
     {
-        if (pos < elist.size() && elist.is_valid(pos) && elist[pos] == e)
+        if ((pos < elist.size() && elist.is_valid(pos) && elist[pos] == e) ||
+            weight == 0)
             return;
         assert(pos >= elist.size() || !elist.is_valid(pos) || elist[pos] != e);
         pos = elist.insert(e, weight);
