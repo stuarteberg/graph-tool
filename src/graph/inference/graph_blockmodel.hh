@@ -926,7 +926,7 @@ public:
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea,
                         MEntries& m_entries)
     {
-        assert(size_t(_b[v]) == r);
+        assert(size_t(_b[v]) == r || r == null_group);
 
         if (r == nr)
             return 0;
