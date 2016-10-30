@@ -330,8 +330,7 @@ public:
     {
         auto mv_entries = [&](auto&&... args)
             {
-                move_entries(v, r, nr, [&](auto u) { return this->_b[u]; },
-                             _g, _eweight, m_entries,
+                move_entries(v, r, nr, _b, _g, _eweight, m_entries,
                              [](auto) { return false; },
                              is_loop_overlap(_overlap_stats), args...);
             };

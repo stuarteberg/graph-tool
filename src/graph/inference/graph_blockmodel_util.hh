@@ -1174,11 +1174,11 @@ struct is_loop_nop
     bool operator()(size_t) const { return false; }
 };
 
-template <bool Add, class Vertex, class Graph, class GetB,
+template <bool Add, class Vertex, class Graph, class Vprop,
           class Eprop, class MEntries, class Efilt, class IL, class... Eprops>
-void modify_entries(Vertex v, Vertex r, GetB&& get_b, Graph& g,
-                    Eprop& eweights, MEntries& m_entries, Efilt&& efilt,
-                    IL&& is_loop, Eprops&... eprops)
+void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
+                    MEntries& m_entries, Efilt&& efilt, IL&& is_loop,
+                    Eprops&... eprops)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     std::tuple<int, typename property_traits<Eprops>::value_type...>
@@ -1188,7 +1188,7 @@ void modify_entries(Vertex v, Vertex r, GetB&& get_b, Graph& g,
         if (efilt(e))
             continue;
         vertex_t u = target(e, g);
-        vertex_t s = get_b(u);
+        vertex_t s = _b[u];
         int ew = eweights[e];
         //assert(ew > 0);
 
@@ -1223,7 +1223,7 @@ void modify_entries(Vertex v, Vertex r, GetB&& get_b, Graph& g,
         vertex_t u = source(e, g);
         if (u == v)
             continue;
-        vertex_t s = get_b(u);
+        vertex_t s = _b[u];
         int ew = eweights[e];
 
         if (Add)
@@ -1235,21 +1235,21 @@ void modify_entries(Vertex v, Vertex r, GetB&& get_b, Graph& g,
 
 // obtain the necessary entries in the e_rs matrix which need to be modified
 // after the move
-template <class Graph, class Vertex, class GetB, class Eprop,
+template <class Graph, class Vertex, class VProp, class Eprop,
           class MEntries, class EFilt, class IL, class... Eprops>
-void move_entries(Vertex v, size_t r, size_t nr, GetB&& get_b, Graph& g,
+void move_entries(Vertex v, size_t r, size_t nr, VProp& _b, Graph& g,
                   Eprop& eweights, MEntries& m_entries, EFilt&& efilt,
                   IL&& is_loop, Eprops&... eprops)
 {
     m_entries.set_move(r, nr);
 
     if (r != null_group)
-        modify_entries<false>(v, r, std::forward<GetB>(get_b), g, eweights,
-                              m_entries, std::forward<EFilt>(efilt),
+        modify_entries<false>(v, r, _b, g, eweights, m_entries,
+                              std::forward<EFilt>(efilt),
                               std::forward<IL>(is_loop), eprops...);
     if (nr != null_group)
-        modify_entries<true>(v, nr, std::forward<GetB>(get_b), g, eweights,
-                             m_entries, std::forward<EFilt>(efilt),
+        modify_entries<true>(v, nr, _b, g, eweights, m_entries,
+                             std::forward<EFilt>(efilt),
                              std::forward<IL>(is_loop), eprops...);
 }
 
