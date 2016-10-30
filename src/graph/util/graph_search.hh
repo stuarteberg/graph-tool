@@ -87,9 +87,10 @@ struct find_vertices
                      (!is_eq && (range.first <= val && val <= range.second)))
                  {
                      PythonVertex<Graph> pv(gp, v);
+                     auto& ret_ = ret;  // work around clang
                      #pragma omp critical
                      {
-                         ret.append(pv);
+                         ret_.append(pv);
                      }
                  }
              });
@@ -139,9 +140,10 @@ struct find_edges
                      (!is_eq && (range.first <= val && val <= range.second)))
                  {
                      PythonEdge<Graph> pe(gp, e);
+                     auto& ret_ = ret;  // work around clang
                      #pragma omp critical
                      {
-                         ret.append(pe);
+                         ret_.append(pe);
                      }
                  }
              });

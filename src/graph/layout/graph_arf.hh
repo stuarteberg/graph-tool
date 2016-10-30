@@ -91,10 +91,11 @@ struct get_arf_layout
                          }
                      }
 
+                     auto dt_ = dt; // workaround clang
                      for (size_t j = 0; j < dim; ++j)
                      {
                          #pragma omp atomic
-                         pos[v][j] += dt * delta_pos[j];
+                         pos[v][j] += dt_ * delta_pos[j];
                          delta += abs(delta_pos[j]);
                      }
 

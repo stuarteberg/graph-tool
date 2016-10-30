@@ -170,12 +170,12 @@ public:
         return _items;
     }
 
-    const auto begin() const
+    auto begin() const
     {
         return _items.begin();
     }
 
-    const auto end() const
+    auto end() const
     {
         return _items.end();
     }

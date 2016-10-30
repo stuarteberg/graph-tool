@@ -38,8 +38,6 @@ struct do_maximal_vertex_set
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
 
-        uniform_real_distribution<> sample(0, 1);
-
         VertexSet marked(vertex_index, num_vertices(g));
         vector<vertex_t> vlist;
         double max_deg = 0, tmp_max_deg = 0;
@@ -86,9 +84,12 @@ struct do_maximal_vertex_set
                          else
                              p = 1. / (2 * out_degree(v, g));
 
+
+                         uniform_real_distribution<> sample(0, 1);
+                         auto& rng_ = rng; // workaround clang
                          #pragma omp critical
                          {
-                             r = sample(rng);
+                             r = sample(rng_);
                          }
                          if (r < p)
                              include = true;
@@ -101,17 +102,20 @@ struct do_maximal_vertex_set
                      if (include)
                      {
                          marked[v] = true;
+                         auto& selected_ = selected; // workaround clang
                          #pragma omp critical (selected)
                          {
-                             selected.push_back(v);
+                             selected_.push_back(v);
                          }
                      }
                      else
                      {
+                         auto& tmp_ = tmp;                 // workaround clang
+                         auto& tmp_max_deg_ = tmp_max_deg;
                          #pragma omp critical (tmp)
                          {
-                             tmp.push_back(v);
-                             tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
+                             tmp_.push_back(v);
+                             tmp_max_deg_ = max(tmp_max_deg_, out_degree(v, g));
                          }
                      }
                  });
@@ -149,10 +153,12 @@ struct do_maximal_vertex_set
                      }
                      else
                      {
+                         auto& tmp_ = tmp;                 // workaround clang
+                         auto& tmp_max_deg_ = tmp_max_deg;
                          #pragma omp critical (tmp)
                          {
-                             tmp.push_back(v);
-                             tmp_max_deg = max(tmp_max_deg, out_degree(v, g));
+                             tmp_.push_back(v);
+                             tmp_max_deg_ = max(tmp_max_deg_, out_degree(v, g));
                          }
                      }
                      marked[v] = false;
