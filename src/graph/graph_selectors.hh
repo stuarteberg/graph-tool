@@ -82,7 +82,7 @@ struct in_degreeS
     }
 
     template <class Graph, class Weight>
-    inline __attribute__((always_inline))
+    inline  __attribute__((always_inline))
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
@@ -675,21 +675,21 @@ auto mk_range(std::pair<Iter, Iter>&& range)
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto vertices_range(const Graph& g)
 {
     return mk_range(vertices(g));
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto edges_range(const Graph& g)
 {
     return mk_range(edges(g));
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
                              const Graph& g)
 {
@@ -697,7 +697,7 @@ auto adjacent_vertices_range(typename boost::graph_traits<Graph>::vertex_descrip
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
                      const Graph& g)
 {
@@ -705,7 +705,7 @@ auto out_edges_range(typename out_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto out_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
                           const Graph& g)
 {
@@ -714,7 +714,7 @@ auto out_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor
 
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
                     const Graph& g)
 {
@@ -722,7 +722,7 @@ auto in_edges_range(typename in_edge_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto in_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor v,
                          const Graph& g)
 {
@@ -731,7 +731,7 @@ auto in_neighbours_range(typename boost::graph_traits<Graph>::vertex_descriptor 
 
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
                      const Graph& g)
 {
@@ -739,7 +739,7 @@ auto all_edges_range(typename all_edges_iteratorS<Graph>::vertex_descriptor v,
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto all_neighbours_range(typename all_neighbours_iteratorS<Graph>::vertex_descriptor v,
                           const Graph& g)
 {
@@ -747,7 +747,7 @@ auto all_neighbours_range(typename all_neighbours_iteratorS<Graph>::vertex_descr
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
                            const Graph& g)
 {
@@ -755,7 +755,7 @@ auto in_or_out_edges_range(typename in_or_out_edge_iteratorS<Graph>::vertex_desc
 }
 
 template <class Graph>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 auto in_or_out_neighbours_range(typename in_or_out_edge_iteratorS<Graph>::vertex_descriptor v,
                                 const Graph& g)
 {
