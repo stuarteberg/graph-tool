@@ -1670,7 +1670,7 @@ public:
 
     EGroups<g_t, is_weighted_t> _egroups;
 
-    typedef NeighbourSampler<g_t, is_weighted_t, std::true_type>
+    typedef NeighbourSampler<g_t, is_weighted_t, boost::mpl::false_>
         neighbour_sampler_t;
 
     neighbour_sampler_t _neighbour_sampler;

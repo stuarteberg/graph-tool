@@ -40,6 +40,14 @@ public:
           _sampler_pos(get(vertex_index_t(), g), num_vertices(g)),
           _eindex(get(edge_index_t(), g))
     {
+        init(g, eweight, self_loops,
+             typename boost::mpl::and_<Weighted,
+                                       typename boost::mpl::not_<Dynamic>::type>::type());
+    }
+
+    template <class Eprop>
+    void init(Graph& g, Eprop& eweight, bool self_loops, boost::mpl::false_)
+    {
         for (auto e : edges_range(g))
         {
             auto u = source(e, g);
@@ -62,6 +70,44 @@ public:
                 insert(v, u, w, e);
                 insert(u, v, w, e);
             }
+        }
+    }
+
+    template <class Eprop>
+    void init(Graph& g, Eprop& eweight, bool self_loops, boost::mpl::true_)
+    {
+        for (auto v : vertices_range(g))
+        {
+            std::vector<item_t> us;
+            std::vector<double> probs;
+            for (auto e : out_edges_range(v, g))
+            {
+                auto u = target(e, g);
+                double w = eweight[e];
+                if (w == 0)
+                    continue;
+
+                if (u == v)
+                {
+                    if (!self_loops)
+                        continue;
+                    if (!is_directed::apply<Graph>::type::value)
+                        w /= 2;
+                }
+                us.emplace_back(u, 0);
+                probs.push_back(w);
+            }
+
+            for (auto e : in_edges_range(v, g))
+            {
+                auto u = source(e, g);
+                double w = eweight[e];
+                if (w == 0 || u == v)
+                    continue;
+                us.emplace_back(u, 0);
+                probs.push_back(w);
+            }
+            _sampler[v] = sampler_t(us, probs);
         }
     }
 
@@ -142,8 +188,8 @@ private:
         sampler.push_back(u);
     }
 
-    template <class Sampler, class Weight>
-    void insert_item(item_t& u, Weight w, Sampler& sampler,
+    template <class Weight>
+    void insert_item(item_t& u, Weight w, DynamicSampler<item_t>& sampler,
                      pos_map_t& sampler_pos)
     {
         assert(sampler_pos.find(u) == sampler_pos.end());
@@ -153,7 +199,8 @@ private:
     typedef typename std::conditional<Weighted::value,
                                       typename std::conditional<Dynamic::value,
                                                                 DynamicSampler<item_t>,
-                                                                Sampler<item_t>>::type,
+                                                                Sampler<item_t,
+                                                                        boost::mpl::false_>>::type,
                                       vector<item_t>>::type
         sampler_t;
 

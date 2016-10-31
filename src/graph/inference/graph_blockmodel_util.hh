@@ -1375,7 +1375,7 @@ public:
     }
 
     template <class Edge>
-    bool is_valid(size_t, vector<Edge>& elist)
+    bool is_valid(size_t, vector<Edge>&)
     {
         return true;
     }
