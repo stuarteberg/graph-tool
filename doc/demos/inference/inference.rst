@@ -234,6 +234,7 @@ network of American football teams, which we load from the
       os.chdir("demos/inference")
    except FileNotFoundError:
        pass
+   gt.seed_rng(3)
 
 .. testcode:: football
 
