@@ -21,6 +21,8 @@
 #include "numpy_bind.hh"
 #include "hash_map_wrap.hh"
 
+#include <boost/math/special_functions/gamma.hpp>
+
 using namespace std;
 using namespace boost;
 using namespace graph_tool;
@@ -266,9 +268,9 @@ double log_n_permutations(const vector<int32_t>& b)
     std::vector<int32_t> count(b.size());
     for (auto bi : b)
         count[bi]++;
-    double n = boost::lgamma(b.size() + 1);
+    double n = boost::math::lgamma(b.size() + 1);
     for (auto nr : count)
-        n -= boost::lgamma(nr + 1);
+        n -= boost::math::lgamma(nr + 1);
     return n;
 }
 

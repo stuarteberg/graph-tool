@@ -391,7 +391,16 @@ namespace boost {
   }
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline
+  typename filtered_graph<G, EP, VP>::degree_size_type
+  degree(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
+         const filtered_graph<G, EP, VP>& g)
+  {
+      return in_degree(u, g) + out_degree(u, g);
+  }
+
+  template <typename G, typename EP, typename VP>
+  inline __attribute__((always_inline)) __attribute__((flatten))
   std::pair<typename filtered_graph<G, EP, VP>::adjacency_iterator,
             typename filtered_graph<G, EP, VP>::adjacency_iterator>
   out_neighbours(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
