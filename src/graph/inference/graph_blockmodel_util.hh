@@ -908,6 +908,8 @@ public:
     {
         _hash.clear();
         _hash.resize(num_vertices(bg), ehash_t(0, _hash_function));
+        for (auto& h : _hash)
+            h.max_load_factor(.3);
 
         for (auto e : edges_range(bg))
         {
