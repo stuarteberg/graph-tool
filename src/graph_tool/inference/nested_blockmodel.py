@@ -529,6 +529,7 @@ class NestedBlockState(object):
 
             if l > 0:
                 self.levels[l]._state.sync_emat()
+                self.levels[l]._state.clear_egroups()
                 self.levels[l]._state.rebuild_neighbour_sampler()
             if l < len(self.levels) - 1:
                 self.levels[l + 1]._state.sync_emat()

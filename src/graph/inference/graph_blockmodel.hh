@@ -203,7 +203,7 @@ public:
                        if (get<0>(delta) == 0) // can happen with zero-weight
                            return;             // edges
 
-                       if (Add && me == this->_emat.get_null_edge())
+                       if (Add && me == _emat.get_null_edge())
                        {
                            me = add_edge(r, s, this->_bg).first;
                            _emat.put_me(r, s, me);
@@ -229,6 +229,11 @@ public:
                        case weight_type::DISCRETE_POISSON:
                        case weight_type::DELTA_T:
                            this->_brec[me] += get<1>(delta);
+                       }
+
+                       if (!Add && this->_mrs[me] == 0)
+                       {
+                           _emat.remove_me(me, this->_bg);
                        }
                    });
 
@@ -358,6 +363,9 @@ public:
             case weight_type::DISCRETE_POISSON:
                 _brec[me] -= _rec[e];
             }
+
+            if (_mrs[me] == 0)
+                _emat.remove_me(me, _bg);
         }
     }
 
