@@ -1010,7 +1010,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
 
     if pos is None:
         if (g.num_vertices() > 2 and output is None and
-            not inline and kwargs.get("update_layout", True)):
+            not inline and kwargs.get("update_layout", True) and
+            mplfig is None):
             L = np.sqrt(g.num_vertices())
             pos = random_layout(g, [L, L])
             if g.num_vertices() > 1000:
