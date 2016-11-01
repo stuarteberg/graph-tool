@@ -19,12 +19,8 @@
 
 #include "graph_tool.hh"
 #include "numpy_bind.hh"
-
+#include "coroutine.hh"
 #include "graph_python_interface.hh"
-
-#ifdef HAVE_BOOST_COROUTINE
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace graph_tool;

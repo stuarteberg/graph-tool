@@ -17,15 +17,11 @@
 
 #include "graph.hh"
 #include "graph_filtering.hh"
-
 #include "random.hh"
+#include "coroutine.hh"
 
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 #include <graph_python_interface.hh>
-
-#ifdef HAVE_BOOST_COROUTINE
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
 
 using namespace graph_tool;
 using namespace boost;
@@ -79,7 +75,7 @@ struct ListMatch
 
 #ifdef HAVE_BOOST_COROUTINE
 
-typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+typedef graph_tool::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
 
 struct GenMatch
 {

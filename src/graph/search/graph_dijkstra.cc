@@ -25,9 +25,8 @@
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 
-#ifdef HAVE_BOOST_COROUTINE
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
+#include "coroutine.hh"
+#include "graph_python_interface.hh"
 
 using namespace std;
 using namespace boost;

@@ -46,10 +46,7 @@ namespace std
 #include "graph_selectors.hh"
 #include "demangle.hh"
 #include "numpy_bind.hh"
-
-#ifdef HAVE_BOOST_COROUTINE
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
+#include "coroutine.hh"
 
 // This file includes a simple python interface for the internally kept
 // graph. It defines a PythonVertex, PythonEdge and PythonIterator template
@@ -85,7 +82,8 @@ private:
 
 // generic coroutine generator adaptor
 
-typedef boost::coroutines::asymmetric_coroutine<boost::python::object> coro_t;
+typedef graph_tool::coroutines::asymmetric_coroutine<boost::python::object>
+   coro_t;
 
 class CoroGenerator
 {

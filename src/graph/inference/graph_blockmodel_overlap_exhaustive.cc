@@ -26,11 +26,8 @@
 #include "exhaustive_loop.hh"
 
 #include "numpy_bind.hh"
-
-#ifdef HAVE_BOOST_COROUTINE
+#include "coroutine.hh"
 #include "graph_python_interface.hh"
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
 
 using namespace boost;
 using namespace graph_tool;

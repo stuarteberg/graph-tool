@@ -22,16 +22,14 @@
 #include "graph_python_interface.hh"
 #include "numpy_bind.hh"
 #include "hash_map_wrap.hh"
+#include "coroutine.hh"
+#include "graph_python_interface.hh"
 
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
 #include <boost/graph/bellman_ford_shortest_paths.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python.hpp>
-
-#ifdef HAVE_BOOST_COROUTINE
-#include <boost/coroutine/all.hpp>
-#endif // HAVE_BOOST_COROUTINE
 
 using namespace std;
 using namespace boost;
