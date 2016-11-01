@@ -141,7 +141,7 @@ public:
     {
         if (!is_valid())
             throw ValueException("invalid vertex descriptor: " +
-                                 boost::lexical_cast<string>(_v));
+                                 boost::lexical_cast<std::string>(_v));
     }
 
     GraphInterface::vertex_t get_descriptor() const
@@ -423,7 +423,7 @@ struct return_reference
                 std::is_class<ValueType>,
                 typename boost::mpl::and_<
                     typename boost::mpl::not_<std::is_same<ValueType,
-                                                           string> >::type,
+                                                           std::string> >::type,
                     typename boost::mpl::not_<std::is_same<ValueType,
                                                            boost::python::object> >::type>::type
                 >::type,
@@ -625,8 +625,8 @@ private:
 struct new_property_map
 {
     template <class ValueType, class IndexMap>
-    void operator()(ValueType, IndexMap index, const string& type_name,
-                     boost::any pmap, boost::python::object& new_prop, bool& found) const
+    void operator()(ValueType, IndexMap index, const std::string& type_name,
+                    boost::any pmap, boost::python::object& new_prop, bool& found) const
     {
         size_t i = boost::mpl::find<value_types,ValueType>::type::pos::value;
         if (type_name == type_names[i])
@@ -646,7 +646,7 @@ struct new_property_map
 };
 
 template <class IndexMap>
-boost::python::object new_property(const string& type, IndexMap index_map,
+boost::python::object new_property(const std::string& type, IndexMap index_map,
                                    boost::any pmap)
 {
     boost::python::object prop;

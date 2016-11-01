@@ -39,13 +39,13 @@ namespace boost
 //
 
 template <>
-string lexical_cast<string,uint8_t>(const uint8_t& val)
+std::string lexical_cast<std::string,uint8_t>(const uint8_t& val)
 {
     return lexical_cast<std::string>(int(val));
 }
 
 template <>
-uint8_t lexical_cast<uint8_t,string>(const string& val)
+uint8_t lexical_cast<uint8_t,std::string>(const std::string& val)
 {
     return uint8_t(lexical_cast<int>(val));
 }
@@ -106,7 +106,7 @@ int scan_float(const char* str, Val& val)
 
 
 template <>
-string lexical_cast<string,float>(const float& val)
+std::string lexical_cast<std::string,float>(const float& val)
 {
     char* str = 0;
     int retval = print_float(str, val);
@@ -118,7 +118,7 @@ string lexical_cast<string,float>(const float& val)
 }
 
 template <>
-float lexical_cast<float,string>(const string& val)
+float lexical_cast<float,std::string>(const std::string& val)
 {
     float ret;
     int nc = scan_float(val.c_str(), ret);
@@ -128,7 +128,7 @@ float lexical_cast<float,string>(const string& val)
 }
 
 template <>
-string lexical_cast<string,double>(const double& val)
+std::string lexical_cast<std::string,double>(const double& val)
 {
     char* str = 0;
     int retval = print_float(str, val);
@@ -140,7 +140,7 @@ string lexical_cast<string,double>(const double& val)
 }
 
 template <>
-double lexical_cast<double,string>(const string& val)
+double lexical_cast<double,std::string>(const std::string& val)
 {
     double ret;
     int nc = scan_float(val.c_str(), ret);
@@ -150,7 +150,7 @@ double lexical_cast<double,string>(const string& val)
 }
 
 template <>
-string lexical_cast<string,long double>(const long double& val)
+std::string lexical_cast<std::string,long double>(const long double& val)
 {
     char* str = 0;
     int retval = print_float(str, val);
@@ -162,7 +162,7 @@ string lexical_cast<string,long double>(const long double& val)
 }
 
 template <>
-long double lexical_cast<long double,string>(const string& val)
+long double lexical_cast<long double,std::string>(const std::string& val)
 {
     long double ret;
     int nc = scan_float(val.c_str(), ret);
@@ -182,11 +182,11 @@ namespace std
 // string vectors need special attention, since separators must be properly
 // escaped.
 template <>
-ostream& operator<<(ostream& out, const vector<string>& vec)
+ostream& operator<<(ostream& out, const std::vector<std::string>& vec)
 {
     for (size_t i = 0; i < vec.size(); ++i)
     {
-        string s = vec[i];
+        std::string s = vec[i];
         // escape separators
         boost::replace_all(s, "\\", "\\\\");
         boost::replace_all(s, ", ", ",\\ ");
@@ -199,17 +199,17 @@ ostream& operator<<(ostream& out, const vector<string>& vec)
 }
 
 template <>
-istream& operator>>(istream& in, vector<string>& vec)
+istream& operator>>(istream& in, std::vector<std::string>& vec)
 {
     using namespace boost;
     using namespace boost::algorithm;
     using namespace boost::xpressive;
 
     vec.clear();
-    string data;
+    std::string data;
     while (in.good())
     {
-        string line;
+        std::string line;
         getline(in, line);
         data += line;
     }

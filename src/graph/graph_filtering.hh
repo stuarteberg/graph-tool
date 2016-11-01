@@ -111,11 +111,11 @@ class ActionNotFound: public GraphException
 {
 public:
     ActionNotFound(const std::type_info& action,
-                   const vector<const std::type_info*>& args);
+                   const std::vector<const std::type_info*>& args);
     virtual ~ActionNotFound() throw () {}
 private:
     const std::type_info& _action;
-    vector<const std::type_info*> _args;
+    std::vector<const std::type_info*> _args;
 };
 
 namespace detail
@@ -196,10 +196,10 @@ struct graph_filter
         // type. Otherwise return the filtered_graph type.
         typedef typename boost::mpl::if_<
             typename boost::mpl::and_<
-                is_same<edge_predicate,
-                        boost::keep_all>,
-                is_same<vertex_predicate,
-                        boost::keep_all>
+                std::is_same<edge_predicate,
+                             boost::keep_all>,
+                std::is_same<vertex_predicate,
+                             boost::keep_all>
                 >::type,
             Graph,
             filtered_graph_t>::type type;
@@ -450,7 +450,7 @@ struct action_dispatch
             boost::mpl::nested_for_each<TRS...>(_a, std::forward<Args>(args)...);
         if (!found)
         {
-            vector<const std::type_info*> args_t = {(&(args).type())...};
+            std::vector<const std::type_info*> args_t = {(&(args).type())...};
             throw ActionNotFound(typeid(Action), args_t);
         }
     }

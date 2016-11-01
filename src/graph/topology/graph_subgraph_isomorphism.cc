@@ -29,6 +29,7 @@
 
 using namespace graph_tool;
 using namespace boost;
+using namespace std;
 
 struct ListMatch
 {

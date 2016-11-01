@@ -34,7 +34,6 @@
 
 namespace graph_tool
 {
-using namespace std;
 
 // This file contain selector for degree types for different types of
 // graphs. Namely, they will return the in degree, out degree, and total degree
@@ -86,7 +85,7 @@ struct in_degreeS
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
-        typedef typename is_convertible
+        typedef typename std::is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
              boost::directed_tag>::type is_directed;
         return get_in_degree(v, g, is_directed(), std::forward<Weight>(weight));
@@ -214,7 +213,7 @@ struct total_degreeS
     auto operator()(typename boost::graph_traits<Graph>::vertex_descriptor v,
                     const Graph& g, Weight&& weight) const
     {
-        typedef typename is_convertible
+        typedef typename std::is_convertible
             <typename boost::graph_traits<Graph>::directed_category,
              boost::directed_tag>::type is_directed;
         return get_total_degree(v, g, is_directed(),
@@ -314,8 +313,8 @@ boost::any degree_selector(GraphInterface::deg_t deg);
 template <class Graph, class IsDirected>
 struct get_in_edges
 {
-    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -333,7 +332,7 @@ struct get_in_edges
 template <class Graph>
 struct get_in_edges<Graph,std::false_type>
 {
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::undirected_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -343,7 +342,7 @@ struct get_in_edges<Graph,std::false_type>
     static std::pair<type,type> get_edges(vertex_descriptor,
                                           const Graph&)
     {
-        return make_pair(type(), type());
+        return std::make_pair(type(), type());
     }
 };
 
@@ -355,8 +354,8 @@ struct in_edge_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_in_edges<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -389,8 +388,8 @@ struct out_edge_iteratorS
 template <class Graph, class IsDirected>
 struct get_all_edges
 {
-    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -410,7 +409,7 @@ struct get_all_edges
 template <class Graph>
 struct get_all_edges<Graph,std::false_type>
 {
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::undirected_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -433,8 +432,8 @@ struct all_edges_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_all_edges<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -466,8 +465,8 @@ struct in_or_out_edge_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_in_or_out_edges<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -485,8 +484,8 @@ struct in_or_out_edge_iteratorS
 template <class Graph, class IsDirected>
 struct get_in_neighbours
 {
-    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -504,7 +503,7 @@ struct get_in_neighbours
 template <class Graph>
 struct get_in_neighbours<Graph,std::false_type>
 {
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::undirected_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -526,8 +525,8 @@ struct in_neighbour_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_in_edges<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -561,8 +560,8 @@ struct out_neighbour_iteratorS
 template <class Graph, class IsDirected>
 struct get_all_neighbours
 {
-    BOOST_MPL_ASSERT((is_same<IsDirected,std::true_type>));
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_same<IsDirected,std::true_type>));
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -582,7 +581,7 @@ struct get_all_neighbours
 template <class Graph>
 struct get_all_neighbours<Graph,std::false_type>
 {
-    BOOST_MPL_ASSERT((is_convertible
+    BOOST_MPL_ASSERT((std::is_convertible
                       <typename boost::graph_traits<Graph>::directed_category,
                       boost::undirected_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -606,8 +605,8 @@ struct all_neighbours_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_all_edges<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
@@ -639,8 +638,8 @@ struct in_or_out_neighbours_iteratorS
 {
     typedef typename boost::graph_traits<Graph>::directed_category
         directed_category;
-    typedef typename is_convertible<directed_category,
-                                    boost::directed_tag>::type is_directed;
+    typedef typename std::is_convertible<directed_category,
+                                         boost::directed_tag>::type is_directed;
     typedef typename get_in_or_out_neighbours<Graph,is_directed>::type type;
 
     typedef typename boost::graph_traits<Graph>::vertex_descriptor

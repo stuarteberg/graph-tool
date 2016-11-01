@@ -41,6 +41,7 @@ Value power(Value value, int n)
 namespace graph_tool
 {
 using namespace boost;
+using namespace std;
 
 // calculates the number of triangles to which v belongs
 template <class Graph, class VProp>

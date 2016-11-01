@@ -23,6 +23,7 @@
 using namespace boost;
 using namespace boost::python;
 using namespace graph_tool;
+using namespace std;
 
 bool check_isomorphism(GraphInterface& gi1, GraphInterface& gi2,
                        boost::any ainv_map1, boost::any ainv_map2,

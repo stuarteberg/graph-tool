@@ -33,6 +33,7 @@ namespace graph_tool
 {
 
 using namespace boost;
+using namespace std;
 
 // this will label each edge covariate in a consecutive range [0, C-1]
 

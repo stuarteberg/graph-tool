@@ -63,8 +63,8 @@ struct copy_property
         {
             typename IteratorSel::template apply<GraphSrc>::type vs, vs_end;
             typename IteratorSel::template apply<GraphTgt>::type vt, vt_end;
-            tie(vt, vt_end) = IteratorSel::range(tgt);
-            tie(vs, vs_end) = IteratorSel::range(src);
+            std::tie(vt, vt_end) = IteratorSel::range(tgt);
+            std::tie(vs, vs_end) = IteratorSel::range(src);
             for (; vs != vs_end; ++vs)
             {
                 put(dst_map, *vt++, get(src_map, *vs));

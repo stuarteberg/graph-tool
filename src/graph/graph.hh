@@ -37,7 +37,6 @@
 
 namespace graph_tool
 {
-using namespace std;
 
 // GraphInterface
 // this class is the main interface to the internally kept graph. This is how
@@ -112,17 +111,17 @@ public:
     //
     // python interface
     //
-    boost::python::object degree_map(string deg, boost::any weight) const;
+    boost::python::object degree_map(std::string deg, boost::any weight) const;
 
     // used for graph properties
     boost::graph_property_tag get_descriptor() const { return boost::graph_property_tag(); }
     bool check_valid() const {return true;}
 
     // I/O
-    void write_to_file(string s, boost::python::object pf, string format,
+    void write_to_file(std::string s, boost::python::object pf, std::string format,
                        boost::python::list properties);
-    boost::python::tuple read_from_file(string s, boost::python::object pf,
-                                        string format,
+    boost::python::tuple read_from_file(std::string s, boost::python::object pf,
+                                        std::string format,
                                         boost::python::list ignore_vp,
                                         boost::python::list ignore_ep,
                                         boost::python::list ignore_gp);
@@ -151,7 +150,7 @@ public:
 
     // Gets the encapsulated graph view. See graph_filtering.cc for details
     boost::any get_graph_view() const;
-    vector<boost::any>& get_graph_views() {return _graph_views;}
+    std::vector<boost::any>& get_graph_views() {return _graph_views;}
 
 private:
 
@@ -160,7 +159,7 @@ private:
     friend struct detail::graph_action;
 
     // this is the main graph
-    shared_ptr<multigraph_t> _mg;
+    std::shared_ptr<multigraph_t> _mg;
 
     // vertex index map
     vertex_index_map_t _vertex_index;
@@ -169,7 +168,7 @@ private:
     edge_index_map_t _edge_index;
 
     // this will hold an instance of the graph views at run time
-    vector<boost::any> _graph_views;
+    std::vector<boost::any> _graph_views;
 
     // reverse and directed states
     bool _reversed;

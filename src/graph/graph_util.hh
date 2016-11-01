@@ -63,8 +63,8 @@ struct is_directed
     template <class Graph>
     struct apply
     {
-        typedef is_convertible<typename boost::graph_traits<Graph>::directed_category,
-                               boost::directed_tag> type;
+        typedef std::is_convertible<typename boost::graph_traits<Graph>::directed_category,
+                                    boost::directed_tag> type;
     };
 };
 
@@ -77,7 +77,7 @@ struct HardNumVertices
     {
         size_t n = 0;
         typename boost::graph_traits<Graph>::vertex_iterator v_iter, v_begin, v_end;
-        tie(v_begin, v_end) = vertices(g);
+        std::tie(v_begin, v_end) = vertices(g);
         for (v_iter = v_begin; v_iter != v_end; ++v_iter)
             n++;
         return n;
@@ -100,7 +100,7 @@ struct HardNumEdges
     {
         size_t n = 0;
         typename boost::graph_traits<Graph>::edge_iterator e_iter, e_begin, e_end;
-        tie(e_begin, e_end) = edges(g);
+        std::tie(e_begin, e_end) = edges(g);
         for (e_iter = e_begin; e_iter != e_end; ++e_iter)
             n++;
         return n;
@@ -137,7 +137,7 @@ out_degree_no_loops(typename boost::graph_traits<Graph>::vertex_descriptor v,
 {
     size_t k = 0;
     typename boost::graph_traits<Graph>::adjacency_iterator a,a_end;
-    for (tie(a,a_end) = adjacent_vertices(v,g); a != a_end; ++a)
+    for (std::tie(a,a_end) = adjacent_vertices(v,g); a != a_end; ++a)
         if (*a != v)
             k++;
     return k;
@@ -151,7 +151,7 @@ out_degree_no_loops_weighted(typename boost::graph_traits<Graph>::vertex_descrip
 {
     typename boost::property_traits<Weights>::value_type k = 0;
     typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
-    for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+    for (std::tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
         if (target(*e, g) != v)
             k += get(w, *e);
     return k;
@@ -163,13 +163,13 @@ void graph_copy(const GraphOrig& g, GraphTarget& gt)
 {
     typename boost::property_map<GraphOrig, boost::vertex_index_t>::type index = get(boost::vertex_index, g);
     typedef typename boost::graph_traits<GraphTarget>::vertex_descriptor tvertex_t;
-    vector<tvertex_t> vmap(num_vertices(g));
+    std::vector<tvertex_t> vmap(num_vertices(g));
     typename boost::graph_traits<GraphOrig>::vertex_iterator v, v_end;
-    for (tie(v, v_end) = vertices(g); v != v_end; ++v)
+    for (std::tie(v, v_end) = vertices(g); v != v_end; ++v)
         vmap[index[*v]] = add_vertex(gt);
 
     typename boost::graph_traits<GraphOrig>::edge_iterator e, e_end;
-    for (tie(e, e_end) = edges(g); e != e_end; ++e)
+    for (std::tie(e, e_end) = edges(g); e != e_end; ++e)
         add_edge(vmap[index[source(*e, g)]], vmap[index[target(*e, g)]], gt);
 }
 
@@ -489,31 +489,30 @@ inline bool max(const bool& a, const bool& b) { return a || b; }
 
 namespace boost
 {
-using namespace std;
 
 template <>
-string lexical_cast<string,uint8_t>(const uint8_t& val);
+std::string lexical_cast<std::string,uint8_t>(const uint8_t& val);
 template <>
-uint8_t lexical_cast<uint8_t,string>(const string& val);
+uint8_t lexical_cast<uint8_t,std::string>(const std::string& val);
 template <>
-string lexical_cast<string,double>(const double& val);
+std::string lexical_cast<std::string,double>(const double& val);
 template <>
-double lexical_cast<double,string>(const string& val);
+double lexical_cast<double,std::string>(const std::string& val);
 template <>
-string lexical_cast<string,long double>(const long double& val);
+std::string lexical_cast<std::string,long double>(const long double& val);
 template <>
-long double lexical_cast<long double,string>(const string& val);
+long double lexical_cast<long double,std::string>(const std::string& val);
 }
 
 // std::vector<> stream i/o
 namespace std
 {
 template <class Type>
-ostream& operator<<(ostream& out, const vector<Type>& vec)
+ostream& operator<<(ostream& out, const std::vector<Type>& vec)
 {
     for (size_t i = 0; i < vec.size(); ++i)
     {
-        out << boost::lexical_cast<string>(vec[i]);
+        out << boost::lexical_cast<std::string>(vec[i]);
         if (i < vec.size() - 1)
             out << ", ";
     }
@@ -521,17 +520,17 @@ ostream& operator<<(ostream& out, const vector<Type>& vec)
 }
 
 template <class Type>
-istream& operator>>(istream& in, vector<Type>& vec)
+istream& operator>>(istream& in, std::vector<Type>& vec)
 {
     using namespace boost;
     using namespace boost::algorithm;
 
     vec.clear();
-    string data;
+    std::string data;
     getline(in, data);
     if (data == "")
-        return in; // empty strings are OK
-    vector<string> split_data;
+        return in; // empty std::strings are OK
+    std::vector<std::string> split_data;
     split(split_data, data, is_any_of(","));
     for (size_t i = 0; i < split_data.size(); ++i)
     {
@@ -541,13 +540,13 @@ istream& operator>>(istream& in, vector<Type>& vec)
     return in;
 }
 
-// string vectors need special attention, since separators must be properly
+// std::string vectors need special attention, since separators must be properly
 // escaped.
 template <>
-ostream& operator<<(ostream& out, const vector<string>& vec);
+ostream& operator<<(ostream& out, const std::vector<std::string>& vec);
 
 template <>
-istream& operator>>(istream& in, vector<string>& vec);
+istream& operator>>(istream& in, std::vector<std::string>& vec);
 
 } // std namespace
 
@@ -660,9 +659,9 @@ struct hash<std::pair<T1, T2>>
 };
 
 template <class Value, class Allocator>
-struct hash<vector<Value, Allocator>>
+struct hash<std::vector<Value, Allocator>>
 {
-    size_t operator()(const vector<Value, Allocator>& v) const
+    size_t operator()(const std::vector<Value, Allocator>& v) const
     {
         size_t seed = 0;
         for (const auto& x : v)

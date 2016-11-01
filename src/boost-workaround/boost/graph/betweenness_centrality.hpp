@@ -315,10 +315,10 @@ namespace detail { namespace graph {
     init_centrality_map(vertices(g), centrality);
     init_centrality_map(edges(g), edge_centrality_map);
 
-    vector<typename property_traits<IncomingMap>::value_type> vincoming(num_vertices(g));
-    vector<typename property_traits<DistanceMap>::value_type> vdistance(num_vertices(g));
-    vector<typename property_traits<DependencyMap>::value_type> vdependency(num_vertices(g));
-    vector<typename property_traits<PathCountMap>::value_type> vpath_count(num_vertices(g));
+    std::vector<typename property_traits<IncomingMap>::value_type> vincoming(num_vertices(g));
+    std::vector<typename property_traits<DistanceMap>::value_type> vdistance(num_vertices(g));
+    std::vector<typename property_traits<DependencyMap>::value_type> vdependency(num_vertices(g));
+    std::vector<typename property_traits<PathCountMap>::value_type> vpath_count(num_vertices(g));
 
     int i, N = num_vertices(g);
     #pragma omp parallel for default(shared) private(i) \

@@ -21,6 +21,7 @@
 using namespace graph_tool;
 using namespace graph_tool::detail;
 using namespace boost;
+using namespace std;
 
 bool graph_tool::graph_filtering_enabled()
 {

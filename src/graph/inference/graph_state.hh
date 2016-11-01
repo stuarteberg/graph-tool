@@ -289,7 +289,7 @@ struct StateWrap
 
 
     template <class TR>
-    static boost::any get_any(python::object mobj, string name, TR)
+    static boost::any get_any(python::object mobj, std::string name, TR)
     {
         python::object obj = mobj.attr(name.c_str());
         if (PyObject_HasAttrString(obj.ptr(), "_get_any"))

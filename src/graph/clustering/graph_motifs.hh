@@ -28,7 +28,7 @@
 
 namespace graph_tool
 {
-using namespace boost;
+namespace mpl = boost::mpl;
 
 template <class Value>
 void insert_sorted(std::vector<Value>& v, const Value& val)
@@ -50,12 +50,12 @@ bool has_val(std::vector<Value>& v, const Value& val)
 
 // gets all the subgraphs starting from vertex v and store it in subgraphs.
 template <class Graph, class Sampler>
-void get_subgraphs(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
+void get_subgraphs(Graph& g, typename boost::graph_traits<Graph>::vertex_descriptor v,
                    size_t n,
-                   std::vector<std::vector<typename graph_traits<Graph>::vertex_descriptor> >& subgraphs,
+                   std::vector<std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> >& subgraphs,
                    Sampler sampler)
 {
-    typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor vertex_t;
 
     // extension and subgraph stack
     std::vector<std::vector<vertex_t>> ext_stack(1);
@@ -65,7 +65,7 @@ void get_subgraphs(Graph& g, typename graph_traits<Graph>::vertex_descriptor v,
     sub_stack[0].push_back(v);
     for (auto e : out_edges_range(v, g))
     {
-        typename graph_traits<Graph>::vertex_descriptor u = target(e, g);
+        typename boost::graph_traits<Graph>::vertex_descriptor u = target(e, g);
         if (u > v && !has_val(ext_stack[0], u))
         {
             insert_sorted(ext_stack[0], u);
@@ -184,7 +184,7 @@ struct sample_some
             {
                 j = i + random_v();
             }
-            swap(extend[i], extend[j]);
+            std::swap(extend[i], extend[j]);
         }
         extend.resize(n);
     }
@@ -197,15 +197,15 @@ struct sample_some
 // build the actual induced subgraph from the vertex list
 template <class Graph, class GraphSG>
 void make_subgraph
-    (std::vector<typename graph_traits<Graph>::vertex_descriptor>& vlist,
+    (std::vector<typename boost::graph_traits<Graph>::vertex_descriptor>& vlist,
      Graph& g, GraphSG& sub)
 {
     for (size_t i = 0; i < vlist.size(); ++i)
         add_vertex(sub);
     for (size_t i = 0; i < vlist.size(); ++i)
     {
-        typename graph_traits<Graph>::vertex_descriptor ov = vlist[i], ot;
-        typename graph_traits<GraphSG>::vertex_descriptor nv = vertex(i,sub);
+        typename boost::graph_traits<Graph>::vertex_descriptor ov = vlist[i], ot;
+        typename boost::graph_traits<GraphSG>::vertex_descriptor nv = vertex(i,sub);
         for (auto e : out_edges_range(ov, g))
         {
             ot = target(e, g);
@@ -225,24 +225,24 @@ bool graph_cmp(Graph& g1, Graph& g2)
     if (num_vertices(g1) != num_vertices(g2) || num_edges(g1) != num_edges(g2))
         return false;
 
-    typename graph_traits<Graph>::vertex_iterator v1, v1_end;
-    typename graph_traits<Graph>::vertex_iterator v2, v2_end;
-    tie(v2, v2_end) = vertices(g2);
-    for (tie(v1, v1_end) = vertices(g1); v1 != v1_end; ++v1)
+    typename boost::graph_traits<Graph>::vertex_iterator v1, v1_end;
+    typename boost::graph_traits<Graph>::vertex_iterator v2, v2_end;
+    std::tie(v2, v2_end) = vertices(g2);
+    for (std::tie(v1, v1_end) = vertices(g1); v1 != v1_end; ++v1)
     {
         if (out_degree(*v1, g1) != out_degree(*v2, g2))
             return false;
         if (in_degreeS()(*v1, g1) != in_degreeS()(*v2, g2))
             return false;
 
-        std::vector<typename graph_traits<Graph>::vertex_descriptor> out1, out2;
-        typename graph_traits<Graph>::out_edge_iterator e, e_end;
-        for (tie(e, e_end) = out_edges(*v1, g1); e != e_end; ++e)
+        std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> out1, out2;
+        typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
+        for (std::tie(e, e_end) = out_edges(*v1, g1); e != e_end; ++e)
             out1.push_back(target(*e, g1));
-        for (tie(e, e_end) = out_edges(*v2, g2); e != e_end; ++e)
+        for (std::tie(e, e_end) = out_edges(*v2, g2); e != e_end; ++e)
             out2.push_back(target(*e, g2));
-        sort(out1.begin(), out1.end());
-        sort(out2.begin(), out2.end());
+        std::sort(out1.begin(), out1.end());
+        std::sort(out2.begin(), out2.end());
         if (out1 != out2)
             return false;
     }
@@ -250,7 +250,7 @@ bool graph_cmp(Graph& g1, Graph& g2)
 }
 
 // short hand for subgraph types
-typedef adj_list<size_t> d_graph_t;
+typedef boost::adj_list<size_t> d_graph_t;
 
 // we need this wrap to use the UndirectedAdaptor only on directed graphs
 struct wrap_undirected
@@ -259,7 +259,7 @@ struct wrap_undirected
     struct apply
     {
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
-                                  UndirectedAdaptor<Graph>,
+                                  boost::UndirectedAdaptor<Graph>,
                                   Graph&>::type type;
     };
 };
@@ -271,7 +271,7 @@ struct wrap_directed
     {
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
                                   Sub&,
-                                  UndirectedAdaptor<Sub>>::type type;
+                                  boost::UndirectedAdaptor<Sub>>::type type;
     };
 };
 
@@ -314,7 +314,7 @@ struct get_all_motifs
     {
         // this hashes subgraphs according to their signature
         gt_hash_map<std::vector<size_t>,
-                    std::vector<pair<size_t, d_graph_t> >,
+                    std::vector<std::pair<size_t, d_graph_t> >,
                     std::hash<std::vector<size_t>>> sub_list;
         std::vector<size_t> sig; // current signature
 
@@ -324,7 +324,7 @@ struct get_all_motifs
             typename wrap_directed::apply<Graph,d_graph_t>::type
                 usub(sub);
             get_sig(usub, sig);
-            sub_list[sig].push_back(make_pair(i, sub));
+            sub_list[sig].emplace_back(i, sub);
         }
 
         // the subgraph count
@@ -352,7 +352,7 @@ struct get_all_motifs
                 auto random_v = std::bind(idist_t(0, V.size()-i-1),
                                           std::ref(rng));
                 size_t j = i + random_v();
-                swap(V[i], V[j]);
+                std::swap(V[i], V[j]);
             }
             V.resize(n);
         }
@@ -362,9 +362,9 @@ struct get_all_motifs
             private(sig)
         for (size_t i = 0; i < N; ++i)
         {
-            std::vector<std::vector<typename graph_traits<Graph>::vertex_descriptor> >
+            std::vector<std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> >
                 subgraphs;
-            typename graph_traits<Graph>::vertex_descriptor v =
+            typename boost::graph_traits<Graph>::vertex_descriptor v =
                 (p < 1) ? V[i] : vertex(i, g);
             if (!is_valid_vertex(v, g))
                 continue;
@@ -403,8 +403,8 @@ struct get_all_motifs
                             if (comp_iso)
                             {
                                 if (isomorphism(umotif, usub,
-                                                vertex_index1_map(get(vertex_index, umotif)).
-                                                vertex_index2_map(get(vertex_index, usub))))
+                                                vertex_index1_map(get(boost::vertex_index, umotif)).
+                                                vertex_index2_map(get(boost::vertex_index, usub))))
                                     found = true;
                             }
                             else
@@ -424,8 +424,8 @@ struct get_all_motifs
                     if (found == false && fill_list)
                     {
                         subgraph_list.push_back(sub);
-                        sub_list[sig].push_back(make_pair(subgraph_list.size() - 1,
-                                                          sub));
+                        sub_list[sig].emplace_back(subgraph_list.size() - 1,
+                                                   sub);
                         hist.push_back(1);
                         pos = hist.size() - 1;
                         found = true;

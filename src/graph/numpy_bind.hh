@@ -42,8 +42,6 @@
 
 #include "demangle.hh"
 
-using namespace std;
-
 typedef boost::mpl::map<
     boost::mpl::pair<bool, boost::mpl::int_<NPY_BOOL> >,
     boost::mpl::pair<char, boost::mpl::int_<NPY_CHAR> >,
@@ -65,7 +63,7 @@ typedef boost::mpl::map<
     > numpy_types;
 
 template <class ValueType>
-boost::python::object wrap_vector_owned(const vector<ValueType>& vec)
+boost::python::object wrap_vector_owned(const std::vector<ValueType>& vec)
 {
     int val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp size[1];
@@ -90,7 +88,7 @@ boost::python::object wrap_vector_owned(const vector<ValueType>& vec)
 }
 
 template <class ValueType>
-boost::python::object wrap_vector_not_owned(vector<ValueType>& vec)
+boost::python::object wrap_vector_not_owned(std::vector<ValueType>& vec)
 {
     PyArrayObject* ndarray;
     int val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
@@ -165,9 +163,9 @@ public:
 struct InvalidNumpyConversion:
     public std::exception
 {
-    string _error;
+    std::string _error;
 public:
-    InvalidNumpyConversion(const string& error) :_error(error) {}
+    InvalidNumpyConversion(const std::string& error) :_error(error) {}
     ~InvalidNumpyConversion() throw () {}
     const char * what () const throw () {return _error.c_str();}
 };
@@ -184,19 +182,19 @@ boost::multi_array_ref<ValueType,dim> get_array(boost::python::object points)
     {
         boost::python::handle<> x(boost::python::borrowed((PyObject*) PyArray_DESCR(pa)->typeobj));
         boost::python::object dtype(x);
-        string type_name = boost::python::extract<string>(boost::python::str(dtype));
-        string error = "invalid array value type: " + type_name;
-        error += " (id: " + boost::lexical_cast<string>(PyArray_DESCR(pa)->type_num) + ")";
+        std::string type_name = boost::python::extract<std::string>(boost::python::str(dtype));
+        std::string error = "invalid array value type: " + type_name;
+        error += " (id: " + boost::lexical_cast<std::string>(PyArray_DESCR(pa)->type_num) + ")";
         error += ", wanted: " + name_demangle(typeid(ValueType).name());
-        error += " (id: " + boost::lexical_cast<string>(boost::mpl::at<numpy_types,ValueType>::type::value) + ")";
+        error += " (id: " + boost::lexical_cast<std::string>(boost::mpl::at<numpy_types,ValueType>::type::value) + ")";
         throw InvalidNumpyConversion(error);
     }
 
-    vector<size_t> shape(dim);
+    std::vector<size_t> shape(dim);
     for (size_t i = 0; i < dim; ++i)
         shape[i] = PyArray_DIMS(pa)[i];
 
-    vector<size_t> stride(dim);
+    std::vector<size_t> stride(dim);
     for (size_t i = 0; i < dim; ++i)
         stride[i] = PyArray_STRIDE(pa, i) / sizeof(ValueType);
 

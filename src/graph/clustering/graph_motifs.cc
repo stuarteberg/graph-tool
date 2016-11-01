@@ -26,14 +26,12 @@
 #include "graph_python_interface.hh"
 #include <boost/python.hpp>
 
-using namespace std;
 using namespace graph_tool;
-
 
 struct append_to_list
 {
     template <class Graph>
-    void operator()(Graph& g, vector<d_graph_t>& glist) const
+    void operator()(Graph& g, std::vector<d_graph_t>& glist) const
     {
         glist.emplace_back();
         graph_copy(g, glist.back());
@@ -43,7 +41,7 @@ struct append_to_list
 struct retrieve_from_list
 {
     template <class Graph>
-    void operator()(Graph& g, vector<d_graph_t>& glist, bool& done) const
+    void operator()(Graph& g, std::vector<d_graph_t>& glist, bool& done) const
     {
         if (glist.empty())
         {
@@ -62,7 +60,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
                 bool collect_vmaps, boost::python::list p, bool comp_iso,
                 bool fill_list, rng_t& rng)
 {
-    vector<d_graph_t> list;
+    std::vector<d_graph_t> list;
     for (int i = 0; i <  boost::python::len(subgraph_list); ++i)
     {
         GraphInterface& sub =
@@ -72,8 +70,8 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
                                       std::ref(list)))();
     }
 
-    vector<size_t> phist;
-    vector<double> plist;
+    std::vector<size_t> phist;
+    std::vector<double> plist;
     double total = 1;
     for (int i = 0; i < boost::python::len(p); ++i)
     {
@@ -90,7 +88,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
     typedef property_map_type
             ::apply<int32_t, GraphInterface::vertex_index_map_t>::type
             vmap_t;
-    vector<vector<vmap_t> > vmaps;
+    std::vector<std::vector<vmap_t> > vmaps;
 
     run_action<>()
         (g, std::bind(get_all_motifs(collect_vmaps, plist[0], comp_iso,
@@ -104,7 +102,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
 
     for (size_t i = 0; i < vmaps.size(); ++i)
     {
-         boost::python::list vlist;
+        boost::python::list vlist;
         for (size_t j = 0; j < vmaps[i].size(); ++j)
             vlist.append(PythonPropertyMap<vmap_t>(vmaps[i][j]));
         pvmaps.append(vlist);

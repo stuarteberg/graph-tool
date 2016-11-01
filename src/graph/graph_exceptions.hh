@@ -27,29 +27,28 @@
 // things go wrong
 
 namespace graph_tool{
-using namespace std;
 
 class GraphException : public std::exception
 {
 public:
-    GraphException(const string& error);
+    GraphException(const std::string& error);
     virtual ~GraphException() throw ();
     virtual const char * what () const throw ();
 protected:
-    string _error;
+    std::string _error;
 };
 
 class IOException : public GraphException
 {
 public:
-    IOException(const string& error);
+    IOException(const std::string& error);
     virtual ~IOException() throw ();
 };
 
 class ValueException : public GraphException
 {
 public:
-    ValueException(const string& error);
+    ValueException(const std::string& error);
     virtual ~ValueException() throw ();
 };
 

@@ -50,7 +50,6 @@
 
 namespace graph_tool
 {
-using namespace std;
 
 // Metaprogramming
 // ===============
@@ -64,11 +63,12 @@ using namespace std;
 //       broken, and use a vector<uint8_t> instead!
 //       see: http://www.gotw.ca/publications/N1211.pdf
 
-typedef boost::mpl::vector15<uint8_t, int16_t, int32_t, int64_t, double, long double, string,
-                             vector<uint8_t>, vector<int16_t>, vector<int32_t>, vector<int64_t>,
-                             vector<double>, vector<long double>, vector<string>,
-                             boost::python::object>
-    value_types;
+typedef boost::mpl::vector15<uint8_t, int16_t, int32_t, int64_t, double,
+                             long double, std::string, std::vector<uint8_t>,
+                             std::vector<int16_t>, std::vector<int32_t>,
+                             std::vector<int64_t>, std::vector<double>,
+                             std::vector<long double>, std::vector<std::string>,
+                             boost::python::object> value_types;
 
 extern const char* type_names[]; // respective type names (defined in
                                  // graph_properties.cc)
@@ -85,7 +85,7 @@ typedef boost::mpl::vector2<double, long double> floating_types;
 
 struct make_vector
 {
-    template <class ValueType> struct apply { typedef vector<ValueType> type; };
+    template <class ValueType> struct apply { typedef std::vector<ValueType> type; };
 };
 
 // scalar_vector_types: vector types with floating point values
@@ -195,21 +195,21 @@ public:
         if (_all_names.empty())
         {
             boost::mpl::for_each<TypeSequence>
-                (bind(get_all_names(), std::placeholders::_1,
-                      ref(_type_names), ref(_all_names)));
+                (std::bind(get_all_names(), std::placeholders::_1,
+                      std::ref(_type_names), std::ref(_all_names)));
         }
     }
 
-    const string& operator()(const std::type_info& type) const
+    const std::string& operator()(const std::type_info& type) const
     {
-        string const* name;
+        std::string const* name;
         boost::mpl::for_each<TypeSequence>
-            (bind(find_name(), std::placeholders::_1, ref(type),
-                  ref(_all_names), ref(name)));
+            (std::bind(find_name(), std::placeholders::_1, std::ref(type),
+                       std::ref(_all_names), std::ref(name)));
         return *name;
     }
 
-    const vector<string>& all_names() const
+    const std::vector<std::string>& all_names() const
     {
         return _all_names;
     }
@@ -219,8 +219,8 @@ private:
     {
         template <class Type>
         void operator()(Type, const std::type_info& type,
-                        const vector<string>& all_names,
-                        string const*& name) const
+                        const std::vector<std::string>& all_names,
+                        std::string const*& name) const
         {
             size_t index = boost::mpl::find<TypeSequence,Type>::type::pos::value;
             if (type == typeid(Type))
@@ -233,7 +233,7 @@ private:
         typedef void result_type;
         template <class Type>
         void operator()(Type, const char** t_names,
-                        vector<string>& names) const
+                        std::vector<std::string>& names) const
         {
             size_t index = boost::mpl::find<NamedSequence,Type>::type::pos::value;
             names.push_back(t_names[index]);
@@ -241,7 +241,7 @@ private:
     };
 
     const char** _type_names;
-    vector<string> _all_names;
+    std::vector<std::string> _all_names;
 };
 
 //
@@ -257,7 +257,7 @@ struct convert
 {
     Type1 operator()(const Type2& v) const
     {
-        return do_convert(v, is_convertible<Type2,Type1>());
+        return do_convert(v, std::is_convertible<Type2,Type1>());
     }
 
     Type1 do_convert(const Type2& v, std::true_type) const
@@ -295,14 +295,14 @@ struct convert
         }
     };
 
-    // string
+    // std::string
     template <class T1>
-    struct specific_convert<T1,string>
+    struct specific_convert<T1,std::string>
     {
-        T1 operator()(const string& v) const
+        T1 operator()(const std::string& v) const
         {
             //uint8_t is not char, it is bool!
-            if (is_same<T1, uint8_t>::value)
+            if (std::is_same<T1, uint8_t>::value)
                 return convert<T1,int>()(boost::lexical_cast<int>(v));
             else
                 return boost::lexical_cast<T1>(v);
@@ -310,25 +310,25 @@ struct convert
     };
 
     template <class T2>
-    struct specific_convert<string,T2>
+    struct specific_convert<std::string,T2>
     {
-        string operator()(const T2& v) const
+        std::string operator()(const T2& v) const
         {
             //uint8_t is not char, it is bool!
-            if (is_same<T2, uint8_t>::value)
-                return boost::lexical_cast<string>(convert<int,T2>()(v));
+            if (std::is_same<T2, uint8_t>::value)
+                return boost::lexical_cast<std::string>(convert<int,T2>()(v));
             else
-                return boost::lexical_cast<string>(v);
+                return boost::lexical_cast<std::string>(v);
         }
     };
 
     // vectors
     template <class T1, class T2>
-    struct specific_convert<vector<T1>, vector<T2>>
+    struct specific_convert<std::vector<T1>, std::vector<T2>>
     {
-        vector<T1> operator()(const vector<T2>& v) const
+        std::vector<T1> operator()(const std::vector<T2>& v) const
         {
-            vector<T1> v2(v.size());
+            std::vector<T1> v2(v.size());
             convert<T1,T2> c;
             for (size_t i = 0; i < v.size(); ++i)
                 v2[i] = c(v[i]);
@@ -338,13 +338,13 @@ struct convert
 
 };
 
-// python::object to string, to solve ambiguity
+// python::object to std::string, to solve ambiguity
 template<> template<>
-struct convert<string,boost::python::object>::specific_convert<string,boost::python::object>
+struct convert<std::string,boost::python::object>::specific_convert<std::string,boost::python::object>
 {
-    string operator()(const boost::python::object& v) const
+    std::string operator()(const boost::python::object& v) const
     {
-        boost::python::extract<string> x(v);
+        boost::python::extract<std::string> x(v);
         if (x.check())
             return x();
         else
@@ -387,7 +387,7 @@ public:
         if (converter == 0)
             throw boost::bad_lexical_cast();
         else
-            _converter = shared_ptr<ValueConverter>(converter);
+            _converter = std::shared_ptr<ValueConverter>(converter);
     }
 
     DynamicPropertyMapWrap() {}
@@ -423,15 +423,15 @@ private:
         virtual Value get(const Key& k)
         {
             return get_dispatch(_pmap, k,
-                                is_convertible<typename boost::property_traits<PropertyMap>::category,
-                                               boost::readable_property_map_tag>());
+                                std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                                    boost::readable_property_map_tag>());
         }
 
         virtual void put(const Key& k, const Value& val)
         {
             put_dispatch(_pmap, k, _c_put(val),
-                         is_convertible<typename boost::property_traits<PropertyMap>::category,
-                         boost::writable_property_map_tag>());
+                         std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                             boost::writable_property_map_tag>());
         }
 
         template <class PMap>
@@ -483,7 +483,7 @@ private:
         }
     };
 
-    shared_ptr<ValueConverter> _converter;
+    std::shared_ptr<ValueConverter> _converter;
 };
 
 template <class Value, class Key, class ConvKey>
@@ -505,7 +505,7 @@ void put(graph_tool::DynamicPropertyMapWrap<Value,Key>& pmap,
 // based on its index
 template <class IndexMap>
 class DescriptorHash
-    : public unary_function<typename IndexMap::key_type, size_t>
+    : public std::unary_function<typename IndexMap::key_type, size_t>
 {
 public:
     DescriptorHash() {}
@@ -527,7 +527,7 @@ class HashedDescriptorMap
 {
 public:
     typedef DescriptorHash<IndexMap> hashfc_t;
-    typedef unordered_map<typename IndexMap::key_type,Value,hashfc_t>
+    typedef std::unordered_map<typename IndexMap::key_type,Value,hashfc_t>
         map_t;
     typedef boost::associative_property_map<map_t> prop_map_t;
 
@@ -545,7 +545,7 @@ public:
     const reference operator[](const key_type& k) const { return _prop_map[k]; }
 
 private:
-    shared_ptr<map_t> _base_map;
+    std::shared_ptr<map_t> _base_map;
     prop_map_t _prop_map;
 };
 
@@ -582,7 +582,7 @@ public:
         typename Container::iterator val;
         val = _base_map->find(k);
         if (val == _base_map->end())
-            val = _base_map->insert(make_pair(k, _default)).first;
+            val = _base_map->insert({k, _default}).first;
         return val->second;
     }
 
