@@ -676,9 +676,9 @@ will output:
     niter:    53  count:    9  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 735.06773  ΔS:      24.1310  moves:    28 
     niter:    54  count:   10  breaks:  2  min_S: 702.85027  max_S: 761.09434  S: 738.16756  ΔS:      3.09983  moves:   115
 
-Note that the value of `wait` above was made purposefully low so that
+Note that the value of ``wait`` above was made purposefully low so that
 the output would not be overly long. The most appropriate value requires
-experimentation, but a typically good value is `wait=1000`.
+experimentation, but a typically good value is ``wait=1000``.
 
 The function :func:`~graph_tool.inference.mcmc_equilibrate` accepts a
 ``callback`` argument that takes an optional function to be invoked
@@ -767,7 +767,7 @@ analogous, but now we make use of
 
     When using :class:`~graph_tool.inference.NestedBlockState` instances
     to perform model averaging, they need to be constructed with the
-    option `sampling=True`.
+    option ``sampling=True``.
 
 Here we perform the sampling of hierarchical partitions using the same
 network as above.
