@@ -378,7 +378,7 @@ namespace boost {
   }
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline
   typename filtered_graph<G, EP, VP>::degree_size_type
   out_degree(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
              const filtered_graph<G, EP, VP>& g)
@@ -414,7 +414,7 @@ namespace boost {
   }
 
 template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline __attribute__((always_inline)) __attribute__((flatten))
   std::pair<typename filtered_graph<G, EP, VP>::in_adjacency_iterator,
             typename filtered_graph<G, EP, VP>::in_adjacency_iterator>
   in_neighbours(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
@@ -428,7 +428,7 @@ template <typename G, typename EP, typename VP>
   }
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline __attribute__((always_inline)) __attribute__((flatten))
   std::pair<typename filtered_graph<G, EP, VP>::adjacency_iterator,
             typename filtered_graph<G, EP, VP>::adjacency_iterator>
   adjacent_vertices(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
@@ -439,7 +439,7 @@ template <typename G, typename EP, typename VP>
 
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline __attribute__((always_inline)) __attribute__((flatten))
   std::pair<typename filtered_graph<G, EP, VP>::in_edge_iterator,
             typename filtered_graph<G, EP, VP>::in_edge_iterator>
   in_edges(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
@@ -453,7 +453,7 @@ template <typename G, typename EP, typename VP>
   }
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline
   typename filtered_graph<G, EP, VP>::degree_size_type
   in_degree(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
             const filtered_graph<G, EP, VP>& g)
@@ -466,7 +466,7 @@ template <typename G, typename EP, typename VP>
   }
 
   template <typename G, typename EP, typename VP>
-  inline __attribute__((always_inline))
+  inline
   std::pair<typename filtered_graph<G, EP, VP>::edge_descriptor, bool>
   edge(typename filtered_graph<G, EP, VP>::vertex_descriptor u,
        typename filtered_graph<G, EP, VP>::vertex_descriptor v,

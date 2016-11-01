@@ -661,7 +661,6 @@ public:
     template <class Ks>
     double get_delta_deg_dl_dist_change(size_t v, size_t r, Ks& ks, int diff)
     {
-
         auto get_Se = [&](int delta, int kin, int kout)
             {
                 double S = 0;
@@ -920,6 +919,7 @@ public:
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
+    __attribute__((flatten))
     const auto& get_me(vertex_t r, vertex_t s) const
     {
         if (!is_directed::apply<BGraph>::type::value && r > s)
@@ -1009,6 +1009,7 @@ public:
     }
 
     template <class... DVals>
+    __attribute__((flatten))
     void insert_delta(size_t t, size_t s, DVals... delta)
     {
         insert_delta_imp(t, s, typename is_directed::apply<Graph>::type(),

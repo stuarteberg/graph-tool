@@ -542,18 +542,18 @@ struct graph_property_type<adj_list<Vertex> >
 //========================================================================
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::vertex_iterator,
           typename adj_list<Vertex>::vertex_iterator>
 vertices(const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::vertex_iterator vi_t;
-    return std::make_pair(vi_t(0), vi_t(g._out_edges.size()));
+    return {vi_t(0), vi_t(g._out_edges.size())};
 }
 
 
 template <class Vertex>
-inline
+inline  __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::edge_iterator,
           typename adj_list<Vertex>::edge_iterator>
 edges(const adj_list<Vertex>& g)
@@ -580,7 +580,7 @@ edges(const adj_list<Vertex>& g)
                                                   g._out_edges.end(),
                                                   last_vi,
                                                   ei_end);
-    return std::make_pair(ebegin, eend);
+    return {ebegin, eend};
 }
 
 template <class Vertex>
@@ -600,10 +600,9 @@ edge(Vertex s, Vertex t, const adj_list<Vertex>& g)
     auto iter = std::find_if(oes.begin(), oes.end(),
                              [&](const auto& e) -> bool {return e.first == t;});
     if (iter != oes.end())
-        return std::make_pair(edge_descriptor(s, t, iter->second, false),
-                              true);
+        return {edge_descriptor(s, t, iter->second, false), true};
     Vertex v = graph_traits<adj_list<Vertex> >::null_vertex();
-    return std::make_pair(edge_descriptor(v, v, v, false), false);
+    return {edge_descriptor(v, v, v, false), false};
 }
 
 template <class Vertex>
@@ -628,55 +627,51 @@ size_t degree(Vertex v, const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::out_edge_iterator,
           typename adj_list<Vertex>::out_edge_iterator>
 out_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::out_edge_iterator ei_t;
     auto& edges = g._out_edges[v];
-    return std::make_pair(ei_t(v, edges.begin()),
-                          ei_t(v, edges.end()));
+    return {ei_t(v, edges.begin()), ei_t(v, edges.end())};
 }
 
 template <class Vertex>
-inline  __attribute__((always_inline))
+inline  __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::in_edge_iterator,
           typename adj_list<Vertex>::in_edge_iterator>
 in_edges(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::in_edge_iterator ei_t;
     auto& edges = g._in_edges[v];
-    return std::make_pair(ei_t(v, edges.begin()),
-                          ei_t(v, edges.end()));
+    return {ei_t(v, edges.begin()), ei_t(v, edges.end())};
 }
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 out_neighbours(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::adjacency_iterator ai_t;
     auto& edges = g._out_edges[v];
-    return std::make_pair(ai_t(edges.begin()),
-                          ai_t(edges.end()));
+    return {ai_t(edges.begin()), ai_t(edges.end())};
 }
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 in_neighbours(Vertex v, const adj_list<Vertex>& g)
 {
     typedef typename adj_list<Vertex>::adjacency_iterator ai_t;
     auto& edges = g._in_edges[v];
-    return std::make_pair(ai_t(edges.begin()),
-                          ai_t(edges.end()));
+    return {ai_t(edges.begin()), ai_t(edges.end())};
 }
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g)
@@ -700,7 +695,7 @@ size_t num_edges(const adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline __attribute__((always_inline))
+inline __attribute__((always_inline)) __attribute__((flatten))
 Vertex add_vertex(adj_list<Vertex>& g)
 {
     g._out_edges.emplace_back();
@@ -709,7 +704,7 @@ Vertex add_vertex(adj_list<Vertex>& g)
 }
 
 template <class Vertex, class Pred>
-inline void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
+void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
 {
     if (!g._keep_epos)
     {
@@ -798,7 +793,7 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
 }
 
 template <class Vertex>
-inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
+void clear_vertex(Vertex v, adj_list<Vertex>& g)
 {
     clear_vertex(v, g, [](auto&&){ return true; });
 }
@@ -806,7 +801,7 @@ inline void clear_vertex(Vertex v, adj_list<Vertex>& g)
 
 // O(V + E)
 template <class Vertex>
-inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
+void remove_vertex(Vertex v, adj_list<Vertex>& g)
 {
     clear_vertex(v, g);
     g._out_edges.erase(g._out_edges.begin() + v);
@@ -832,7 +827,7 @@ inline void remove_vertex(Vertex v, adj_list<Vertex>& g)
 
 // O(k + k_last)
 template <class Vertex>
-inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
+void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 {
     Vertex back = g._out_edges.size() - 1;
 
@@ -888,7 +883,6 @@ inline void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 }
 
 template <class Vertex>
-inline
 typename std::pair<typename adj_list<Vertex>::edge_descriptor, bool>
 add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
 {
@@ -919,12 +913,11 @@ add_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
     }
 
     typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
-    return std::make_pair(edge_descriptor(s, t, idx, false), true);
+    return {edge_descriptor(s, t, idx, false), true};
 }
 
 template <class Vertex>
-inline void remove_edge(Vertex s, Vertex t,
-                        adj_list<Vertex>& g)
+void remove_edge(Vertex s, Vertex t, adj_list<Vertex>& g)
 {
     if (!g._keep_epos)
     {
@@ -955,8 +948,8 @@ inline void remove_edge(Vertex s, Vertex t,
 }
 
 template <class Vertex>
-inline void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
-                        adj_list<Vertex>& g)
+void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
+                 adj_list<Vertex>& g)
 {
     auto& s = e.s;
     auto& t = e.t;
