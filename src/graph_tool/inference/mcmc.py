@@ -29,7 +29,7 @@ import numpy
 from . util import *
 
 def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
-                     force_niter=None, epsilon=0, gibbs=False,
+                     force_niter=None, epsilon=0, gibbs=False, multiflip=False,
                      block_moves=False, mcmc_args={}, entropy_args={},
                      history=False, callback=None, verbose=False):
     r"""Equilibrate a MCMC with a given starting state.
@@ -53,6 +53,9 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
         as record-breaking.
     gibbs : ``bool`` (optional, default: ``False``)
         If ``True``, each step will call ``state.gibbs_sweep`` instead of
+        ``state.mcmc_sweep``.
+    gibbs : ``bool`` (optional, default: ``False``)
+        If ``True``, each step will call ``state.multiflip_mcmc_sweep`` instead of
         ``state.mcmc_sweep``.
     block_moves : ``bool`` (optional, default: ``False``)
         If ``True``, each iteration will be accompanied by a "block move", where
@@ -116,10 +119,12 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     m_eps = 1e-6
     hist = []
     while count < wait:
-        if not gibbs:
-            delta, nmoves = state.mcmc_sweep(**mcmc_args)
-        else:
+        if gibbs:
             delta, nmoves = state.gibbs_sweep(**mcmc_args)
+        elif multiflip:
+            delta, nmoves = state.multiflip_mcmc_sweep(**mcmc_args)
+        else:
+            delta, nmoves = state.mcmc_sweep(**mcmc_args)
 
         if block_moves:
             bstate = state.get_block_state(vweight=True,

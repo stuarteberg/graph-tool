@@ -112,23 +112,25 @@ for directed in [True, False]:
     state = minimize_blockmodel_dl(g, deg_corr=True)
     state = state.copy(B=g.num_vertices())
 
-    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, "gibbs"]))
+    cs = list(reversed([numpy.inf, 1, 0.1, 0.01, "gibbs", -1]))
 
     for i, c in enumerate(cs):
         if c != "gibbs":
-            mcmc_args=dict(beta=1, c=c, niter=40)
+            mcmc_args=dict(beta=1, c=abs(c), niter=40)
         else:
             mcmc_args=dict(beta=1, niter=40)
         if i == 0:
             mcmc_equilibrate(state,
                              mcmc_args=mcmc_args,
                              gibbs=c=="gibbs",
+                             multiflip = c != "gibbs" and c < 0,
                              nbreaks=5,
                              wait=1000,
                              verbose=(1, "c = %s (t) " % str(c))  if verbose else False)
         hists[c] = mcmc_equilibrate(state,
                                     mcmc_args=mcmc_args,
                                     gibbs=c=="gibbs",
+                                    multiflip = c != "gibbs" and c < 0,
                                     wait=1000,
                                     nbreaks=5,
                                     verbose=(1, "c = %s " % str(c)) if verbose else False,

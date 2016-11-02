@@ -114,6 +114,7 @@ public:
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(_bg, rng),
+          _egroups_enabled(true),
           _neighbour_sampler(_g, _eweight),
           _m_entries(num_vertices(_bg)),
           _coupled_state(nullptr)
@@ -139,6 +140,7 @@ public:
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _emat(other._emat),
+          _egroups_enabled(other._egroups_enabled),
           _neighbour_sampler(other._neighbour_sampler),
           _m_entries(num_vertices(_bg)),
           _coupled_state(nullptr)
@@ -146,7 +148,6 @@ public:
         if (other.is_partition_stats_enabled())
             enable_partition_stats();
     }
-
 
     // =========================================================================
     // State modification
@@ -264,7 +265,7 @@ public:
     {
         _wr[r] -= _vweight[v];
 
-        if (!_egroups.empty())
+        if (!_egroups.empty() && _egroups_enabled)
             _egroups.remove_vertex(v, _b, _g);
 
         if (is_partition_stats_enabled())
@@ -283,7 +284,7 @@ public:
     {
         _wr[r] += _vweight[v];
 
-        if (!_egroups.empty())
+        if (!_egroups.empty() && _egroups_enabled)
             _egroups.add_vertex(v, _b, _eweight, _g);
 
         if (is_partition_stats_enabled())
@@ -1677,6 +1678,7 @@ public:
     emat_t _emat;
 
     EGroups<g_t, is_weighted_t> _egroups;
+    bool _egroups_enabled;
 
     typedef NeighbourSampler<g_t, is_weighted_t, boost::mpl::false_>
         neighbour_sampler_t;

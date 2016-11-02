@@ -798,6 +798,16 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.__bundled = bundled
         return BlockState.mcmc_sweep(self, **kwargs)
 
+    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
+        if not self.overlap:
+            return libinference.multiflip_mcmc_layered_sweep(mcmc_state,
+                                                             self._state,
+                                                             _get_rng())
+        else:
+            return libinference.multiflip_mcmc_layered_overlap_sweep(mcmc_state,
+                                                                     self._state,
+                                                                     _get_rng())
+
     def _gibbs_sweep_dispatch(self, mcmc_state):
         if not self.overlap:
             return libinference.gibbs_layered_sweep(mcmc_state, self._state,

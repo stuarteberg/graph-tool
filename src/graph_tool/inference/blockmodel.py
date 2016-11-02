@@ -1206,6 +1206,117 @@ class BlockState(object):
 
         return dS, nmoves
 
+    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
+        return libinference.multiflip_mcmc_sweep(mcmc_state, self._state,
+                                                 _get_rng())
+
+
+    def multiflip_mcmc_sweep(self, beta=1., a=1, c=1., niter=1, entropy_args={},
+                             allow_vacate=True, sequential=True, verbose=False,
+                             **kwargs):
+        r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
+        sampling MCMC with multiple moves to sample network partitions.
+
+        Parameters
+        ----------
+        beta : ``float`` (optional, default: ``1.``)
+            Inverse temperature.
+        a : ``float`` (optional, default: ``1.``)
+            Parameter for the number of multiple moves. The number :math:`m` of
+            nodes that will be moved together is sampled with probability
+            proportional to :math:`1/m^a`.
+        c : ``float`` (optional, default: ``1.``)
+            Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
+            blocks are sampled according to the local neighbourhood of a given
+            node and their block connections; for :math:`c\to\infty` the blocks
+            are sampled randomly. Note that only for :math:`c > 0` the MCMC is
+            guaranteed to be ergodic.
+        niter : ``int`` (optional, default: ``1``)
+            Number of sweeps to perform. During each sweep, a move attempt is
+            made for each node.
+        entropy_args : ``dict`` (optional, default: ``{}``)
+            Entropy arguments, with the same meaning and defaults as in
+            :meth:`graph_tool.inference.BlockState.entropy`.
+        allow_vacate : ``bool`` (optional, default: ``True``)
+            Allow groups to be vacated.
+        sequential : ``bool`` (optional, default: ``True``)
+            If ``sequential == True`` each vertex move attempt is made
+            sequentially, where vertices are visited in random order. Otherwise
+            the moves are attempted by sampling vertices randomly, so that the
+            same vertex can be moved more than once, before other vertices had
+            the chance to move.
+        verbose : ``bool`` (optional, default: ``False``)
+            If ``verbose == True``, detailed information will be displayed.
+
+        Returns
+        -------
+        dS : ``float``
+            Entropy difference after the sweeps.
+        nmoves : ``int``
+            Number of vertices moved.
+
+        Notes
+        -----
+        This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
+        number of edges (independent of the number of blocks).
+        """
+
+        mcmc_state = DictState(locals())
+        entropy_args = dict(self._entropy_args, **entropy_args)
+        if (_bm_test() and entropy_args["multigraph"] and
+            not entropy_args["dense"] and
+            hasattr(self, "degs") and
+            not isinstance(self.degs, libinference.simple_degs_t)):
+            entropy_args["multigraph"] = False
+        mcmc_state.entropy_args = get_entropy_args(entropy_args)
+        mcmc_state.mproposals = Vector_size_t()
+        mcmc_state.mproposals.resize(self.g.num_vertices() + 1)
+        if "mproposals" in kwargs:
+            mcmc_state.mproposals.a = kwargs["mproposals"]
+        mcmc_state.maccept = Vector_size_t()
+        mcmc_state.maccept.resize(self.g.num_vertices() + 1)
+        if "maccept" in kwargs:
+            mcmc_state.maccept.a = kwargs["maccept"]
+        mcmc_state.E = self.get_E()
+        mcmc_state.state = self._state
+
+        disable_callback_test = kwargs.pop("disable_callback_test", False)
+        if _bm_test():
+            assert self._check_clabel(), "invalid clabel before sweep"
+            if disable_callback_test:
+                Si = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Si = self.entropy(**entropy_args)
+
+        nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
+
+        dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+
+        nmoves += (mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
+
+        if "mproposals" in kwargs:
+            kwargs["mproposals"][:] = mcmc_state.mproposals.a
+            del kwargs["mproposals"]
+        if "maccept" in kwargs:
+            kwargs["maccept"][:] = mcmc_state.maccept.a
+            del kwargs["maccept"]
+
+        if _bm_test():
+            assert self._check_clabel(), "invalid clabel after sweep"
+            if disable_callback_test:
+                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+            else:
+                Sf = self.entropy(**entropy_args)
+            assert abs(dS - (Sf - Si)) < 1e-6, \
+                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                            str(entropy_args))
+
+        if len(kwargs) > 0:
+            raise ValueError("unrecognized keyword arguments: " +
+                             str(list(kwargs.keys())))
+
+        return dS, nmoves
+
     def _gibbs_sweep_dispatch(self, gibbs_state):
         return libinference.gibbs_sweep(gibbs_state, self._state,
                                         _get_rng())

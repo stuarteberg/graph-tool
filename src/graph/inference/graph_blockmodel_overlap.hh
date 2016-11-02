@@ -87,6 +87,7 @@ public:
           _c_brec(_brec.get_checked()),
           _c_bdrec(_bdrec.get_checked()),
           _emat(_bg, rng),
+          _egroups_enabled(true),
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg))
     {
         for (auto r : vertices_range(_bg))
@@ -101,6 +102,7 @@ public:
           _c_brec(_brec.get_checked()),
           _c_bdrec(_bdrec.get_checked()),
           _emat(other._emat),
+          _egroups_enabled(other._egroups_enabled),
           _overlap_stats(other._overlap_stats)
     {
         if (other.is_partition_stats_enabled())
@@ -152,7 +154,7 @@ public:
         _overlap_stats.remove_half_edge(v, r, _b, _g);
         _wr[r] = _overlap_stats.get_block_size(r);
 
-        if (!_egroups.empty())
+        if (!_egroups.empty() && _egroups_enabled)
             _egroups.remove_vertex(v, _b, _g);
     }
 
@@ -241,7 +243,7 @@ public:
 
         _b[v] = r;
 
-        if (!_egroups.empty())
+        if (!_egroups.empty() && _egroups_enabled)
             _egroups.add_vertex(v, _b, _eweight, _g);
     }
 
@@ -1012,6 +1014,7 @@ public:
     emat_t _emat;
 
     EGroups<g_t, mpl::false_> _egroups;
+    bool _egroups_enabled;
 
     overlap_stats_t _overlap_stats;
     std::vector<overlap_partition_stats_t> _partition_stats;

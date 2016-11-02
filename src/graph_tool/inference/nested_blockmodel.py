@@ -575,6 +575,26 @@ class NestedBlockState(object):
 
         return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c, **kwargs)
 
+    def multiflip_mcmc_sweep(self, **kwargs):
+        r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection MCMC
+        with multiple moves to sample hierarchical network partitions.
+
+        The arguments accepted are the same as in
+        :method:`graph_tool.inference.BlockState.multiflip_mcmc_sweep`.
+
+        If the parameter ``c`` is a scalar, the values used at each level are
+        ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
+        of values may be passed instead, which specifies the value of ``c[l]``
+        to be used at each level.
+
+        """
+
+        c = kwargs.pop("c", 1)
+        if not isinstance(c, collections.Iterable):
+            c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
+
+        return self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a), c=c, **kwargs)
+
     def gibbs_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs MCMC to sample network
         partitions.

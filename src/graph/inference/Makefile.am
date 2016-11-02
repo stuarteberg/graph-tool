@@ -27,16 +27,19 @@ libgraph_tool_inference_la_SOURCES = \
     graph_blockmodel_layers_mcmc.cc \
     graph_blockmodel_layers_merge.cc \
     graph_blockmodel_layers_multicanonical.cc \
+    graph_blockmodel_layers_multiflip_mcmc.cc \
     graph_blockmodel_layers_overlap.cc \
     graph_blockmodel_layers_overlap_exhaustive.cc \
     graph_blockmodel_layers_overlap_mcmc.cc \
     graph_blockmodel_layers_overlap_mcmc_bundled.cc \
+    graph_blockmodel_layers_overlap_multiflip_mcmc.cc \
     graph_blockmodel_layers_overlap_gibbs.cc \
     graph_blockmodel_layers_overlap_multicanonical.cc \
     graph_blockmodel_layers_overlap_vacate.cc \
     graph_blockmodel_marginals.cc \
     graph_blockmodel_mcmc.cc \
     graph_blockmodel_multicanonical.cc \
+    graph_blockmodel_multiflip_mcmc.cc \
     graph_blockmodel_merge.cc \
     graph_blockmodel_overlap.cc \
     graph_blockmodel_overlap_exhaustive.cc \
@@ -44,6 +47,7 @@ libgraph_tool_inference_la_SOURCES = \
     graph_blockmodel_overlap_mcmc.cc \
     graph_blockmodel_overlap_mcmc_bundled.cc \
     graph_blockmodel_overlap_multicanonical.cc \
+    graph_blockmodel_overlap_multiflip_mcmc.cc \
     graph_blockmodel_overlap_vacate.cc \
     graph_inference.cc \
     int_part.cc \
@@ -63,6 +67,7 @@ libgraph_tool_inference_la_include_HEADERS = \
     graph_blockmodel_mcmc.hh \
     graph_blockmodel_merge.hh \
     graph_blockmodel_multicanonical.hh \
+    graph_blockmodel_multiflip_mcmc.hh \
     graph_blockmodel_overlap.hh \
     graph_blockmodel_overlap_mcmc_bundled.hh \
     graph_blockmodel_overlap_util.hh \

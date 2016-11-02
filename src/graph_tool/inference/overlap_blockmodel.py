@@ -604,6 +604,11 @@ class OverlapBlockState(BlockState):
         self.__bundled = bundled
         return BlockState.mcmc_sweep(self, **kwargs)
 
+    def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
+        return libinference.multiflip_mcmc_overlap_sweep(mcmc_state,
+                                                         self._state,
+                                                         _get_rng())
+
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
         return libinference.multicanonical_overlap_sweep(multicanonical_state,
                                                          self._state,
