@@ -85,14 +85,14 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
             if (s == r)
                 continue;
 
-            double dS, mP, rdS;
-            std::tie(dS, mP, rdS) = state.virtual_move_dS(v, s);
+            double dS, mP;
+            std::tie(dS, mP) = state.virtual_move_dS(v, s);
 
             if (metropolis_accept(dS, mP, beta, rng))
             {
                 state.perform_move(v, s);
                 nmoves += state.node_weight(v);
-                S += rdS;
+                S += dS;
             }
 
             if (state._verbose)
@@ -148,8 +148,8 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
                  if (s == r)
                      return;
 
-                 double dS, mP, rdS;
-                 std::tie(dS, mP, rdS) = state.virtual_move_dS(v, s);
+                 double dS, mP;
+                 std::tie(dS, mP) = state.virtual_move_dS(v, s);
 
                  if (metropolis_accept(dS, mP, beta, rng))
                  {
@@ -174,7 +174,7 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
 
                 state.perform_move(v, s);
                 nmoves++;
-                S += get<2>(ddS);
+                S += get<0>(ddS);
             }
         }
     }

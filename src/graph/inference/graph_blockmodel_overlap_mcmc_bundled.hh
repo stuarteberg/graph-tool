@@ -129,7 +129,7 @@ struct MCMC
             return s;
         }
 
-        std::tuple<double, double, double>
+        std::tuple<double, double>
         virtual_move_dS(size_t i, size_t nr)
         {
             double dS = 0;
@@ -161,7 +161,7 @@ struct MCMC
             for (auto v : _bundles[i])
                 _state.move_vertex(v, r);
 
-            return std::make_tuple(dS, a, dS);
+            return {dS, a};
         }
 
         void perform_move(size_t i, size_t nr)

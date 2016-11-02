@@ -104,7 +104,7 @@ struct MCMC
             return s;
         }
 
-        std::tuple<double, double, double>
+        std::tuple<double, double>
         virtual_move_dS(size_t v, size_t nr)
         {
             size_t r = _state._b[v];
@@ -119,7 +119,7 @@ struct MCMC
                                                  _m_entries);
                 a = log(pb) - log(pf);
             }
-            return make_tuple(dS, a, dS);
+            return {dS, a};
         }
 
         void perform_move(size_t v, size_t nr)
