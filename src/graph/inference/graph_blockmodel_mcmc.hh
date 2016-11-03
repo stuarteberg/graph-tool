@@ -119,7 +119,7 @@ struct MCMC
                                                  _m_entries);
                 a = log(pb) - log(pf);
             }
-            return {dS, a};
+            return std::make_tuple(dS, a);
         }
 
         void perform_move(size_t v, size_t nr)

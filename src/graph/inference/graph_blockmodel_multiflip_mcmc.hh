@@ -207,7 +207,7 @@ struct MCMC
                     _state.move_vertex(v, r);
                 _state._egroups_enabled = true;
             }
-            return {dS, a};
+            return std::make_tuple(dS, a);
         }
 
         void perform_move(size_t r, size_t nr)

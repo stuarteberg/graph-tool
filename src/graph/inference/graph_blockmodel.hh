@@ -590,9 +590,9 @@ public:
 
         gt_hash_map<std::tuple<vertex_t, int>, vector<edge_t>> ns_u, ns_v;
         for(auto e : out_edges_range(u, _g))
-            ns_u[{target(e, _g), ec[e]}].push_back(e);
+            ns_u[std::make_tuple(target(e, _g), ec[e])].push_back(e);
         for(auto e : out_edges_range(v, _g))
-            ns_v[{target(e, _g), ec[e]}].push_back(e);
+            ns_v[std::make_tuple(target(e, _g), ec[e])].push_back(e);
 
         for(auto& kv : ns_u)
         {
@@ -621,7 +621,7 @@ public:
                 }
             }
 
-            auto iter = ns_v.find({t, l});
+            auto iter = ns_v.find(std::make_tuple(t, l));
             if (iter != ns_v.end())
             {
                 auto& e = iter->second.front();
@@ -632,7 +632,7 @@ public:
             else
             {
                 auto e = add_edge(v, t, _g).first;
-                ns_v[{t, l}].push_back(e);
+                ns_v[std::make_tuple(t, l)].push_back(e);
                 eweight_c[e] = w;
                 rec_c[e] = ecc;
                 drec_c[e] = decc;
@@ -646,9 +646,9 @@ public:
             ns_v.clear();
 
             for(auto e : in_edges_range(v, _g))
-                ns_v[{source(e, _g), ec[e]}].push_back(e);
+                ns_v[std::make_tuple(source(e, _g), ec[e])].push_back(e);
             for(auto e : in_edges_range(u, _g))
-                ns_u[{source(e, _g), ec[e]}].push_back(e);
+                ns_u[std::make_tuple(source(e, _g), ec[e])].push_back(e);
 
             for(auto& kv : ns_u)
             {
@@ -668,7 +668,7 @@ public:
                     decc += _drec[e];
                 }
 
-                auto iter = ns_v.find({s, l});
+                auto iter = ns_v.find(std::make_tuple(s, l));
                 if (iter != ns_v.end())
                 {
                     auto& e = iter->second.front();
@@ -679,7 +679,7 @@ public:
                 else
                 {
                     auto e = add_edge(s, v, _g).first;
-                    ns_v[{s, l}].push_back(e);
+                    ns_v[std::make_tuple(s, l)].push_back(e);
                     eweight_c[e] = w;
                     rec_c[e] = ecc;
                     drec_c[e] = decc;
@@ -718,9 +718,9 @@ public:
     {
         gt_hash_map<std::tuple<size_t, size_t>, size_t> hist;
         for (auto& kn : degs[u])
-            hist[{get<0>(kn), get<1>(kn)}] += get<2>(kn);
+            hist[make_tuple(get<0>(kn), get<1>(kn))] += get<2>(kn);
         for (auto& kn : degs[v])
-            hist[{get<0>(kn), get<1>(kn)}] += get<2>(kn);
+            hist[make_tuple(get<0>(kn), get<1>(kn))] += get<2>(kn);
         degs[u].clear();
         degs[v].clear();
         auto& d = degs[v];
@@ -1619,7 +1619,7 @@ public:
             size_t s = _b[target(e, _g)];
             if (!is_directed::apply<g_t>::type::value && s < r)
                 std::swap(r, s);
-            mrs[{r, s}] += _eweight[e];
+            mrs[std::make_pair(r, s)] += _eweight[e];
         }
 
         for (auto& rs_m : mrs)
