@@ -477,7 +477,7 @@ fits. In our particular case, we have
 
 .. testcode:: model-selection
 
-   print("ln Λ: ", state_dc.entropy() - state_ndc.entropy())
+   print(u"ln Λ: ", state_dc.entropy() - state_ndc.entropy())
 
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
@@ -504,7 +504,7 @@ example, for the American football network above, we have:
 
    print("Non-degree-corrected DL:\t", state_ndc.entropy())
    print("Degree-corrected DL:\t", state_dc.entropy())
-   print("ln Λ:\t\t\t", state_ndc.entropy() - state_dc.entropy())
+   print(u"ln Λ:\t\t\t", state_ndc.entropy() - state_dc.entropy())
 
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
@@ -1283,19 +1283,28 @@ above).
 .. testcode:: missing-edges
    :hide:
 
+   import os
+   try:
+      os.chdir("demos/inference")
+   except FileNotFoundError:
+       pass
+
    g = gt.collection.data["football"].copy()
    color = g.new_vp("string", val="#cccccc")
    ecolor = g.new_ep("string", val="#cccccc")
+   ewidth = g.new_ep("double", 1)
    e = g.add_edge(101, 102)
    ecolor[e] = "#a40000"
+   ewidth[e] = 5
    e = g.add_edge(17, 56)
    ecolor[e] = "#a40000"
+   ewidth[e] = 5
    eorder = g.edge_index.copy("int")
 
    gt.graph_draw(g, pos=g.vp.pos, vertex_color=color,
                  vertex_fill_color=color, edge_color=ecolor,
-                 eorder=eorder,
-                 output="football_missing.svg")
+                 eorder=eorder, edge_pen_width=ewidth,
+                 nodesfirst=True, output="football_missing.svg")
 
 .. figure:: football_missing.*
    :align: center
