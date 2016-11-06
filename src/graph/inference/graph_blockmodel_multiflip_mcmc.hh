@@ -44,7 +44,6 @@ using namespace std;
     ((mproposals, & ,std::vector<size_t>&, 0))                                 \
     ((maccept, & ,std::vector<size_t>&, 0))                                    \
     ((allow_vacate,, bool, 0))                                                 \
-    ((sequential,, bool, 0))                                                   \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
@@ -72,7 +71,8 @@ struct MCMC
             _groups(num_vertices(_state._bg)),
             _vpos(get(vertex_index_t(), _state._g),
                   num_vertices(_state._g)),
-            _mprobs(num_vertices(_state._g) + 1)
+            _mprobs(num_vertices(_state._g) + 1),
+            _sequential(false)
         {
             _state.init_mcmc(_c,
                              (_entropy_args.partition_dl ||
@@ -97,6 +97,8 @@ struct MCMC
         std::vector<size_t> _vlist;
         std::vector<size_t> _vs;
         std::vector<double> _mprobs;
+
+        bool _sequential;
 
         size_t node_state(size_t r)
         {

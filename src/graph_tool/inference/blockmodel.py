@@ -1212,8 +1212,7 @@ class BlockState(object):
 
 
     def multiflip_mcmc_sweep(self, beta=1., a=1, c=1., niter=1, entropy_args={},
-                             allow_vacate=True, sequential=True, verbose=False,
-                             **kwargs):
+                             allow_vacate=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC with multiple moves to sample network partitions.
 
@@ -1239,12 +1238,6 @@ class BlockState(object):
             :meth:`graph_tool.inference.BlockState.entropy`.
         allow_vacate : ``bool`` (optional, default: ``True``)
             Allow groups to be vacated.
-        sequential : ``bool`` (optional, default: ``True``)
-            If ``sequential == True`` each vertex move attempt is made
-            sequentially, where vertices are visited in random order. Otherwise
-            the moves are attempted by sampling vertices randomly, so that the
-            same vertex can be moved more than once, before other vertices had
-            the chance to move.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
