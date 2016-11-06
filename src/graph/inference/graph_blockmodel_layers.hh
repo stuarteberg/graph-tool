@@ -462,12 +462,13 @@ struct Layers
         }
 
         double entropy(bool dense, bool multigraph, bool deg_entropy,
-                       bool exact)
+                       bool exact, bool recs)
         {
             double S = 0;
             if (_master)
             {
-                S += BaseState::entropy(dense, multigraph, deg_entropy, exact);
+                S += BaseState::entropy(dense, multigraph, deg_entropy, exact,
+                                        recs);
                 S -= covariate_entropy(_bg, _mrs);
                 if (multigraph)
                     S -= BaseState::get_parallel_entropy();
@@ -481,7 +482,8 @@ struct Layers
             else
             {
                 for (auto& state : _layers)
-                    S += state.entropy(dense, multigraph, deg_entropy, exact);
+                    S += state.entropy(dense, multigraph, deg_entropy, exact,
+                                       recs);
             }
             return S;
         }

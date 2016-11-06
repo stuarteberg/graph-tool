@@ -31,6 +31,7 @@ import numpy
 from collections import defaultdict
 from scipy.special import gammaln
 import copy
+import warnings
 
 from .. import group_vector_property, ungroup_vector_property, Vector_size_t, \
     perfect_prop_hash
@@ -283,8 +284,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         kwargs.pop("rec_params", None)
 
         if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
+            warnings.warn("unrecognized keyword arguments: " +
+                          str(list(kwargs.keys())))
 
     def get_N(self):
         r"Returns the total number of edges."

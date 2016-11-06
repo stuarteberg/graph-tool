@@ -271,8 +271,8 @@ class OverlapBlockState(BlockState):
                                   exact=True)
 
         if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
+            warnings.warn("unrecognized keyword arguments: " +
+                          str(list(kwargs.keys())))
 
     def __repr__(self):
         return "<OverlapBlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
@@ -351,15 +351,23 @@ class OverlapBlockState(BlockState):
                            vweight=wr if vweight else None,
                            b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
-                           rec_type=kwargs.get("rec_type", self.rec_type if vweight else None),
-                           rec=kwargs.get("rec", bg.ep.rec if vweight else None),
-                           drec=kwargs.get("drec", bg.ep.drec if vweight else None),
-                           rec_params=kwargs.get("rec_params", self.rec_params),
-                           allow_empty=kwargs.get("allow_empty",
+                           rec_types=kwargs.pop("rec_types",
+                                                self.rec_types if vweight else None),
+                           recs=kwargs.pop("recs",
+                                           ungroup_vector_property(bg.ep.rec,
+                                                                   range(len(self.rec_types)))
+                                           if (vweight and
+                                               len(self.rec_types) > 0)
+                                           else None),
+                           drec=kwargs.pop("drec",
+                                           bg.ep.drec if (vweight and
+                                                          len(self.rec_types) > 0)
+                                           else None),
+                           rec_params=kwargs.pop("rec_params", self.rec_params),
+                           allow_empty=kwargs.pop("allow_empty",
                                                   self.allow_empty),
                            max_BE=self.max_BE,
-                           **dmask(kwargs, ["allow_empty", "rec_type",
-                                            "rec_params", "rec", "drec"]))
+                           **kwargs)
         return state
 
     def get_E(self):

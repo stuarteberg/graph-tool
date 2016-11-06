@@ -39,26 +39,61 @@
 #include <omp.h>
 #endif
 
+namespace std
+{
+template <class T>
+void operator+=(vector<T>& ret, const vector<T>& v)
+{
+    ret.resize(max(ret.size(), v.size()));
+    for (size_t i = 0; i < v.size(); ++i)
+        ret[i] += v[i];
+}
+
+template <class T>
+void operator-=(vector<T>& ret, const vector<T>& v)
+{
+    ret.resize(max(ret.size(), v.size()));
+    for (size_t i = 0; i < v.size(); ++i)
+        ret[i] -= v[i];
+}
+
+template <class T1, class T2>
+void operator*=(vector<T1>& ret, const T2& v)
+{
+    for (auto& x : ret)
+        x *= v;
+}
+
+template <class T1, class T2>
+void operator/=(vector<T1>& ret, const T2& v)
+{
+    for (auto& x : ret)
+        x /= v;
+}
+
+}
+
 namespace graph_tool
 {
 
 // tuple utils
-template <size_t i, class T>
-void add_to_tuple_imp(T&)
+template <size_t i, class T, class OP>
+void tuple_op_imp(T&, OP&&)
 {
 }
 
-template <size_t i, class T, class Ti, class... Ts>
-void add_to_tuple_imp(T& tuple, Ti&& v, Ts&&... vals)
+template <size_t i, class T, class OP, class Ti, class... Ts>
+void tuple_op_imp(T& tuple, OP&& op, Ti&& v, Ts&&... vals)
 {
-    get<i>(tuple) += v;
-    add_to_tuple_imp<i+1>(tuple, vals...);
+    op(get<i>(tuple), v);
+    tuple_op_imp<i+1>(tuple, op, vals...);
 }
 
-template <class T, class... Ts>
-void add_to_tuple(T& tuple, Ts&&... vals)
+template <class OP, class T, class... Ts>
+__attribute__((flatten))
+void tuple_op(T& tuple, OP&& op, Ts&&... vals)
 {
-    add_to_tuple_imp<0>(tuple, vals...);
+    tuple_op_imp<0>(tuple, op, vals...);
 }
 
 namespace detail {
@@ -95,6 +130,7 @@ struct entropy_args_t
     bool multigraph;
     bool exact;
     bool adjacency;
+    bool recs;
     bool partition_dl;
     bool degree_dl;
     deg_dl_kind  degree_dl_kind;
@@ -222,8 +258,8 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
-    return boost::math::lgamma(N + alpha) - boost::math::lgamma(alpha)
-        + alpha * log(beta) - (alpha + N) * log(beta + x);
+    return lgamma(N + alpha) - lgamma(alpha) + alpha * log(beta) -
+        (alpha + N) * log(beta + x);
 }
 
 // normal
@@ -236,9 +272,9 @@ double signed_w_log_P(DT N, double x, double v, double m0, double k0, double v0,
     auto k_n = k0 + N;
     auto nu_n = nu0 + N;
     auto v_n = (v0 * nu0 + v + ((N * k0)/(k0 + N)) * pow(m0 - x/N, 2.)) / nu_n;
-    return boost::math::lgamma(nu_n/2.) - boost::math::lgamma(nu0/2.)
-        + (log(k0) - log(k_n))/2. + (nu0 / 2.) * log(nu0 * v0)
-        - (nu_n / 2.) * log(nu_n * v_n) - (N/2.) * log(M_PI);
+    return lgamma(nu_n / 2.) - lgamma(nu0 / 2.) + (log(k0) - log(k_n)) / 2. +
+        (nu0 / 2.) * log(nu0 * v0) - (nu_n / 2.) * log(nu_n * v_n) - (N / 2.) *
+        log(M_PI);
 }
 
 // discrete: geometric
@@ -247,21 +283,26 @@ double geometric_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
-    return boost::math::lgamma(alpha + beta)
-        + boost::math::lgamma(alpha + 1) + boost::math::lgamma(beta + 1)
-        - boost::math::lgamma(alpha) - boost::math::lgamma(beta)
-        - boost::math::lgamma(x + alpha + beta + 1);
+    return lbeta(N + alpha, x + beta) - lbeta(alpha, beta);
+}
+
+// discrete: binomial
+template <class DT>
+double binomial_w_log_P(DT N, double x, size_t n, double alpha, double beta)
+{
+    if (N == 0)
+        return 0.;
+    return lbeta(x + alpha, N * n - x + beta) - lbeta(alpha, beta);
 }
 
 // discrete: Poisson
 template <class DT>
-double poisson_w_log_P(DT N, double x, double alpha, double beta)
+double poisson_w_log_P(DT N, double x, double r, double theta)
 {
     if (N == 0)
         return 0.;
-    return boost::math::lgamma(x + alpha)
-        - boost::math::lgamma(x + 1) - boost::math::lgamma(alpha)
-        + alpha * log(beta) - (x + alpha) * log(beta + 1);
+    return lgamma(x + r) - lgamma(r) - r * log(theta) - (x + r) *
+        log(N + 1. / theta);
 }
 
 // ===============
@@ -1012,14 +1053,15 @@ public:
 
     template <class... DVals>
     __attribute__((flatten))
-    void insert_delta(size_t t, size_t s, DVals... delta)
+    void insert_delta(bool add, size_t t, size_t s, DVals&&... delta)
     {
-        insert_delta_imp(t, s, typename is_directed::apply<Graph>::type(),
-                         delta...);
+        insert_delta_imp(add, t, s, typename is_directed::apply<Graph>::type(),
+                         std::forward<DVals>(delta)...);
     }
 
     template <class... DVals>
-    void insert_delta_imp(size_t t, size_t s, std::true_type, DVals... delta)
+    void insert_delta_imp(bool add, size_t t, size_t s, std::true_type,
+                          DVals&&... delta)
     {
         bool src = false;
         if (t != _rnr.first && t != _rnr.second)
@@ -1043,11 +1085,17 @@ public:
                 _entries.emplace_back(t, s);
             _delta.emplace_back();
         }
-        add_to_tuple(_delta[field[s]], delta...);
+        if (add)
+            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r += v; },
+                     delta...);
+        else
+            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r -= v; },
+                     delta...);
     }
 
     template <class... DVals>
-    void insert_delta_imp(size_t t, size_t s, std::false_type, DVals... delta)
+    void insert_delta_imp(bool add, size_t t, size_t s, std::false_type,
+                          DVals&&... delta)
     {
         if (t > s)
             std::swap(t, s);
@@ -1066,7 +1114,12 @@ public:
             _entries.emplace_back(t, s);
             _delta.emplace_back();
         }
-        add_to_tuple(_delta[field[s]], delta...);
+        if (add)
+            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r += v; },
+                     delta...);
+        else
+            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r -= v; },
+                     delta...);
     }
 
     size_t get_field(size_t r, size_t s)
@@ -1152,6 +1205,8 @@ public:
         return _mes[field];
     }
 
+    std::tuple<EVals...> _self_weight;
+
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
     static const std::tuple<EVals...> _null_delta;
@@ -1184,8 +1239,17 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
                     Eprops&... eprops)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-    std::tuple<int, typename property_traits<Eprops>::value_type...>
-        self_weight;
+    auto& self_weight = m_entries._self_weight;
+    if (!is_directed::apply<Graph>::type::value)
+    {
+        tuple_apply([&](auto&&... vals)
+                    {
+                        auto op = [](auto& x) -> auto& { x *= 0; return x; };
+                        auto f = [](auto&...) {};
+                        f(op(vals)...);
+                    }, self_weight);
+    }
+
     for (auto e : out_edges_range(v, g))
     {
         if (efilt(e))
@@ -1198,26 +1262,22 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         if (Add && u == v)
             s = r;
 
-        if (Add)
-            m_entries.insert_delta(r, s, ew, eprops[e]...);
-        else
-            m_entries.insert_delta(r, s, -ew, -eprops[e]...);
+        m_entries.insert_delta(Add, r, s, ew, eprops[e]...);
 
         if ((u == v || is_loop(v)) && !is_directed::apply<Graph>::type::value)
-            add_to_tuple(self_weight, ew, eprops[e]...);
+            tuple_op(self_weight, [&](auto& r, auto& v){ r += v; },
+                     ew, eprops[e]...);
     }
 
     if (get<0>(self_weight) > 0 && get<0>(self_weight) % 2 == 0 &&
         !is_directed::apply<Graph>::type::value)
+    {
         tuple_apply([&](auto&&... vals)
                     {
-                        if (Add)
-                            m_entries.insert_delta(r, r,
-                                                   (-vals / 2)...);
-                        else
-                            m_entries.insert_delta(r, r,
-                                                   (vals / 2)...);
+                        auto op = [](auto& x) -> auto& { x /= 2; return x; };
+                        m_entries.insert_delta(!Add, r, r, op(vals)...);
                     }, self_weight);
+    }
 
     for (auto e : in_edges_range(v, g))
     {
@@ -1229,10 +1289,7 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         vertex_t s = _b[u];
         int ew = eweights[e];
 
-        if (Add)
-            m_entries.insert_delta(s, r, ew, eprops[e]...);
-        else
-            m_entries.insert_delta(s, r, -ew, -eprops[e]...);
+        m_entries.insert_delta(Add, s, r, ew, eprops[e]...);
     }
 }
 

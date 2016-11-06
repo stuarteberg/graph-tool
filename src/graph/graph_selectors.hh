@@ -120,7 +120,8 @@ struct in_degreeS
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type, Weight& weight) const
     {
-        typename boost::property_traits<Weight>::value_type d = 0;
+        typedef typename boost::property_traits<Weight>::value_type val_t;
+        val_t d = val_t();
         typename boost::graph_traits<Graph>::in_edge_iterator e, e_end;
         for (std::tie(e, e_end) = in_edges(v, g); e != e_end; ++e)
             d += get(weight, *e);
@@ -179,7 +180,8 @@ struct out_degreeS
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g, const Weight& weight) const
     {
-        typename boost::property_traits<Weight>::value_type d = 0;
+        typedef typename boost::property_traits<Weight>::value_type val_t;
+        val_t d = val_t();
         typename boost::graph_traits<Graph>::out_edge_iterator e, e_end;
         for (std::tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
             d += get(weight, *e);

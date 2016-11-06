@@ -67,18 +67,17 @@ void clear_xlogx()
 
 void init_lgamma(size_t x)
 {
-    using namespace boost::math::policies;
     #pragma omp critical (_lgamma_)
     {
-
         size_t old_size = __lgamma_cache.size();
         if (x >= old_size)
         {
             __lgamma_cache.resize(x + 1);
             if (old_size == 0)
                 __lgamma_cache[0] = numeric_limits<double>::infinity();
-            for (size_t i = std::max(old_size, size_t(1)); i < __lgamma_cache.size(); ++i)
-                __lgamma_cache[i] = boost::math::lgamma(i);
+            for (size_t i = std::max(old_size, size_t(1));
+                 i < __lgamma_cache.size(); ++i)
+                __lgamma_cache[i] = lgamma(i);
         }
     }
 }

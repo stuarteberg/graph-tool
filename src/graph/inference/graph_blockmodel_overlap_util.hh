@@ -1248,12 +1248,17 @@ public:
     void set_move(size_t, size_t) {}
 
     template <class... DVals>
-    void insert_delta(size_t t, size_t s, DVals... delta)
+    void insert_delta(bool add, size_t t, size_t s, DVals... delta)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
-        add_to_tuple(_delta[_pos], delta...);
+        if (add)
+            tuple_op(_delta[_pos], [&](auto& r, auto& v){ r += v; },
+                     delta...);
+        else
+            tuple_op(_delta[_pos], [&](auto& r, auto& v){ r -= v; },
+                     delta...);
         ++_pos;
     }
 
@@ -1313,6 +1318,8 @@ public:
         }
         return emat.get_me(t, s);
     }
+
+    std::tuple<EVals...> _self_weight;
 
 private:
     size_t _pos;

@@ -54,18 +54,13 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
     ((deg_corr,, bool, 0))                                                     \
-    ((rec_type,, int, 0))                                                      \
-    ((rec,, eprop_map_t<double>::type, 0))                                     \
-    ((drec,, eprop_map_t<double>::type, 0))                                    \
-    ((brec,, eprop_map_t<double>::type, 0))                                    \
-    ((bdrec,, eprop_map_t<double>::type, 0))                                   \
+    ((rec_types,, std::vector<int>, 0))                                        \
+    ((rec,, eprop_map_t<std::vector<double>>::type, 0))                        \
+    ((drec,, eprop_map_t<std::vector<double>>::type, 0))                       \
+    ((brec,, eprop_map_t<std::vector<double>>::type, 0))                       \
+    ((bdrec,, eprop_map_t<std::vector<double>>::type, 0))                      \
     ((brecsum,, vprop_map_t<double>::type, 0))                                 \
-    ((m0,, double, 0))                                                         \
-    ((k0,, double, 0))                                                         \
-    ((v0,, double, 0))                                                         \
-    ((nu0,, double, 0))                                                        \
-    ((alpha,, double, 0))                                                      \
-    ((beta,, double, 0))                                                       \
+    ((wparams,, std::vector<std::vector<double>>, 0))                          \
     ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(OverlapBlockStateBase, OVERLAP_BLOCK_STATE_params)
@@ -160,26 +155,24 @@ public:
 
     void remove_vertex(size_t v)
     {
-        switch (_rec_type)
-        {
-        case weight_type::POSITIVE: // positive weights
-            remove_vertex(v,
-                          [&](auto& e, auto& me)
+        remove_vertex(v,
+                      [&](auto& e, auto& me)
+                      {
+                          for (size_t i = 0; i < this->_rec_types.size(); ++i)
                           {
-                              this->_brec[me] -=  this->_rec[e];
-                          });
-            break;
-        case weight_type::SIGNED: // positive and negative weights
-            remove_vertex(v,
-                          [&](auto& e, auto& me)
-                          {
-                              this->_brec[me] -= this->_rec[e];
-                              this->_bdrec[me] -= this->_drec[e];
-                          });
-            break;
-        case weight_type::NONE: // no weights
-            remove_vertex(v, [](auto&, auto&){});
-        }
+                              switch (this->_rec_types[i])
+                              {
+                              case weight_type::REAL_NORMAL: // signed weights
+                                  this->_bdrec[me][i] -= this->_drec[e][i];
+                              case weight_type::REAL_EXPONENTIAL:
+                              case weight_type::DISCRETE_GEOMETRIC:
+                              case weight_type::DISCRETE_POISSON:
+                              case weight_type::DISCRETE_BINOMIAL:
+                              case weight_type::DELTA_T:
+                                  this->_brec[me][i] -= this->_rec[e][i];
+                              }
+                          }
+                      });
     }
 
     template <class EOP>
@@ -199,8 +192,8 @@ public:
                 me = add_edge(r, s, _bg).first;
                 _emat.put_me(r, s, me);
                 _c_mrs[me] = 0;
-                _c_brec[me] = 0;
-                _c_bdrec[me] = 0;
+                _c_brec[me].clear();
+                _c_bdrec[me].clear();
             }
 
             assert(me == _emat.get_me(r, s));
@@ -225,8 +218,8 @@ public:
                 me = add_edge(s, r, _bg).first;
                 _emat.put_me(s, r, me);
                 _c_mrs[me] = 0;
-                _c_brec[me] = 0;
-                _c_bdrec[me] = 0;
+                _c_brec[me].clear();
+                _c_bdrec[me].clear();
             }
 
             assert(me == _emat.get_me(s, r));
@@ -249,26 +242,24 @@ public:
 
     void add_vertex(size_t v, size_t r)
     {
-        switch (_rec_type)
-        {
-        case weight_type::POSITIVE: // positive weights
-            add_vertex(v, r,
-                       [&](auto& e, auto& me)
+        add_vertex(v, r,
+                   [&](auto& e, auto& me)
+                   {
+                       for (size_t i = 0; i < this->_rec_types.size(); ++i)
                        {
-                           this->_brec[me] +=  this->_rec[e];
-                       });
-            break;
-        case weight_type::SIGNED: // positive and negative weights
-            add_vertex(v, r,
-                       [&](auto& e, auto& me)
-                       {
-                           this->_brec[me] += this->_rec[e];
-                           this->_bdrec[me] += this->_drec[e];
-                       });
-            break;
-        case weight_type::NONE: // no weights
-            add_vertex(v, r, [](auto&, auto&){});
-        }
+                           switch (this->_rec_types[i])
+                           {
+                           case weight_type::REAL_NORMAL: // signed weights
+                               this->_bdrec[me][i] += this->_drec[e][i];
+                           case weight_type::REAL_EXPONENTIAL:
+                           case weight_type::DISCRETE_GEOMETRIC:
+                           case weight_type::DISCRETE_POISSON:
+                           case weight_type::DISCRETE_BINOMIAL:
+                           case weight_type::DELTA_T:
+                               this->_brec[me][i] += this->_rec[e][i];
+                           }
+                       }
+                   });
     }
 
     bool allow_move(size_t r, size_t nr)
@@ -337,12 +328,20 @@ public:
                              is_loop_overlap(_overlap_stats), args...);
             };
 
-        switch (_rec_type)
+        int rec_type = weight_type::NONE;
+        for (auto rt : _rec_types)
         {
-        case weight_type::POSITIVE: // positive weights
+            rec_type = rt;
+            if (rt == weight_type::REAL_NORMAL)
+                break;
+        }
+
+        switch (rec_type)
+        {
+        case weight_type::REAL_EXPONENTIAL:
             mv_entries(_rec);
             break;
-        case weight_type::SIGNED: // positive and negative weights
+        case weight_type::REAL_NORMAL:
             mv_entries(_rec, _drec);
             break;
         default: // no weights
@@ -451,59 +450,96 @@ public:
             }
         }
 
-        switch (_rec_type)
-        {
-        case weight_type::POSITIVE: // positive weights
-            entries_op(m_entries, _emat,
-                       [&](auto, auto, auto& me, auto& delta)
-                       {
-                           size_t ers = 0;
-                           double xrs = 0;
-                           if (me != m_entries.get_null_edge())
-                           {
-                               ers = this->_mrs[me];
-                               xrs = this->_brec[me];
-                           }
-                           auto d = get<0>(delta);
-                           auto dx = get<1>(delta);
-                           dS -= -positive_w_log_P(ers, xrs,
-                                                   this->_alpha, this->_beta);
-                           dS += -positive_w_log_P(ers + d, xrs + dx,
-                                                   this->_alpha, this->_beta);
-                       });
-            break;
-        case weight_type::SIGNED: // positive and negative weights
-            entries_op(m_entries, _emat,
-                       [&](auto, auto, auto& me, auto& delta)
-                       {
-                           size_t ers = 0;
-                           double xrs = 0, x2rs = 0;
-                           if (me != m_entries.get_null_edge())
-                           {
-                               ers = this->_mrs[me];
-                               xrs = this->_brec[me];
-                               x2rs = this->_bdrec[me];
-                           }
-                           auto d = get<0>(delta);
-                           auto dx = get<1>(delta);
-                           auto dx2 = get<2>(delta);
-                           auto sigma1 = x2rs - xrs * (xrs / ers);
-                           auto sigma2 = x2rs + dx2 - (xrs + dx) * ((xrs + dx) / (ers + d));
-                           dS -= -signed_w_log_P(ers, xrs, sigma1,
-                                                 this->_m0,
-                                                 this->_k0,
-                                                 this->_v0,
-                                                 this->_nu0);
-                           dS += -signed_w_log_P(ers + d, xrs + dx,
-                                                 sigma2,
-                                                 this->_m0,
-                                                 this->_k0,
-                                                 this->_v0,
-                                                 this->_nu0);
-                       });
-            break;
-        }
 
+        auto positive_entries_op = [&](size_t i, auto&& w_log_P)
+            {
+                entries_op(m_entries, this->_emat,
+                           [&](auto, auto, auto& me, auto& delta)
+                           {
+                               size_t ers = 0;
+                               double xrs = 0;
+                               if (me != _emat.get_null_edge())
+                               {
+                                   ers = this->_mrs[me];
+                                   xrs = this->_brec[me][i];
+                               }
+                               auto d = get<0>(delta);
+                               auto dx = get<1>(delta)[i];
+                               dS -= -w_log_P(ers, xrs);
+                               dS += -w_log_P(ers + d, xrs + dx);
+                           });
+            };
+
+        for (size_t i = 0; i < _rec_types.size(); ++i)
+        {
+            auto& wparams = _wparams[i];
+            switch (_rec_types[i])
+            {
+            case weight_type::REAL_EXPONENTIAL:
+                positive_entries_op(i,
+                                    [&](auto N, auto x)
+                                    { return positive_w_log_P(N, x,
+                                                              wparams[0],
+                                                              wparams[1]);
+                                    });
+                break;
+            case weight_type::DISCRETE_GEOMETRIC:
+                positive_entries_op(i,
+                                    [&](auto N, auto x)
+                                    { return geometric_w_log_P(N, x,
+                                                               wparams[0],
+                                                               wparams[1]);
+                                    });
+                break;
+            case weight_type::DISCRETE_POISSON:
+                positive_entries_op(i,
+                                    [&](auto N, auto x)
+                                    { return poisson_w_log_P(N, x,
+                                                             wparams[0],
+                                                             wparams[1]);
+                                    });
+                break;
+            case weight_type::DISCRETE_BINOMIAL:
+                positive_entries_op(i,
+                                    [&](auto N, auto x)
+                                    { return binomial_w_log_P(N, x,
+                                                              wparams[0],
+                                                              wparams[1],
+                                                              wparams[2]);
+                                    });
+                break;
+            case weight_type::REAL_NORMAL:
+                entries_op(m_entries, _emat,
+                           [&](auto, auto, auto& me, auto& delta)
+                           {
+                               size_t ers = 0;
+                               double xrs = 0, x2rs = 0;
+                               if (me != _emat.get_null_edge())
+                               {
+                                   ers = this->_mrs[me];
+                                   xrs = this->_brec[me][i];
+                                   x2rs = this->_bdrec[me][i];
+                               }
+                               auto d = get<0>(delta);
+                               auto dx = get<1>(delta)[i];
+                               auto dx2 = get<2>(delta)[i];
+                               auto sigma1 = x2rs - xrs * (xrs / ers);
+                               auto sigma2 = x2rs + dx2 - (xrs + dx) * ((xrs + dx) / (ers + d));
+                               dS -= -signed_w_log_P(ers, xrs, sigma1,
+                                                     wparams[0],
+                                                     wparams[1],
+                                                     wparams[2],
+                                                     wparams[3]);
+                               dS += -signed_w_log_P(ers + d, xrs + dx,
+                                                     sigma2,
+                                                     wparams[0],
+                                                     wparams[1],
+                                                     wparams[2],
+                                                     wparams[3]);
+                           });
+            break;
+            }
+        }
         return dS;
     }
 
@@ -734,7 +770,7 @@ public:
 
         if (multigraph)
         {
-            for(const auto& h : _overlap_stats.get_parallel_bundles())
+            for (const auto& h : _overlap_stats.get_parallel_bundles())
             {
                 for (const auto& kc : h)
                 {
@@ -757,7 +793,8 @@ public:
         throw GraphException("Dense entropy for overlapping model not implemented!");
     }
 
-    double entropy(bool dense, bool multigraph, bool deg_entropy, bool exact)
+    double entropy(bool dense, bool multigraph, bool deg_entropy, bool exact,
+                   bool recs)
     {
         double S = 0;
         if (dense)
@@ -765,26 +802,73 @@ public:
         else
             S = sparse_entropy(multigraph, deg_entropy, exact);
 
-        switch (_rec_type)
+        if (recs)
         {
-        case weight_type::POSITIVE: // positive weights
-            for (auto me : edges_range(_bg))
+            for (size_t i = 0; i < _rec_types.size(); ++i)
             {
-                auto ers = _mrs[me];
-                auto xrs = _brec[me];
-                S += -positive_w_log_P(ers, xrs, _alpha, _beta);
+                switch (_rec_types[i])
+                {
+                case weight_type::REAL_EXPONENTIAL:
+                    for (auto me : edges_range(_bg))
+                    {
+                        auto ers = _mrs[me];
+                        auto xrs = _brec[me][i];
+                        S += -positive_w_log_P(ers, xrs,
+                                               _wparams[i][0],
+                                               _wparams[i][1]);
+                    }
+                    break;
+                case weight_type::DISCRETE_GEOMETRIC:
+                    for (auto me : edges_range(_bg))
+                    {
+                        auto ers = _mrs[me];
+                        auto xrs = _brec[me][i];
+                        S += -geometric_w_log_P(ers, xrs,
+                                                _wparams[i][0],
+                                                _wparams[i][1]);
+                    }
+                    break;
+                case weight_type::DISCRETE_POISSON:
+                    for (auto me : edges_range(_bg))
+                    {
+                        auto ers = _mrs[me];
+                        auto xrs = _brec[me][i];
+                        S += -poisson_w_log_P(ers, xrs,
+                                              _wparams[i][0],
+                                              _wparams[i][1]);
+                    }
+                    for (auto e : edges_range(_g))
+                        S += boost::math::lgamma(_rec[e][i] + 1);
+                    break;
+                case weight_type::DISCRETE_BINOMIAL:
+                    for (auto me : edges_range(_bg))
+                    {
+                        auto ers = _mrs[me];
+                        auto xrs = _brec[me][i];
+                        S += -binomial_w_log_P(ers, xrs,
+                                               _wparams[i][0],
+                                               _wparams[i][1],
+                                               _wparams[i][2]);
+                    }
+                    for (auto e : edges_range(_g))
+                        S -= lbinom(_wparams[i][0], _rec[e][i]);
+                    break;
+                case weight_type::REAL_NORMAL:
+                    for (auto me : edges_range(_bg))
+                    {
+                        auto ers = _mrs[me];
+                        auto xrs = _brec[me][i];
+                        auto x2rs = _bdrec[me][i];
+                        auto sigma = x2rs - xrs * (xrs / ers);
+                        S += -signed_w_log_P(ers, xrs, sigma,
+                                             _wparams[i][0],
+                                             _wparams[i][1],
+                                             _wparams[i][2],
+                                             _wparams[i][3]);
+                    }
+                    break;
+                }
             }
-            break;
-        case weight_type::SIGNED: // positive and negative weights
-            for (auto me : edges_range(_bg))
-            {
-                auto ers = _mrs[me];
-                auto xrs = _brec[me];
-                auto x2rs = _bdrec[me];
-                auto sigma = x2rs - xrs * (xrs / ers);
-                S += -signed_w_log_P(ers, xrs, sigma, _m0, _k0, _v0, _nu0);
-            }
-            break;
         }
         return S;
     }
@@ -812,7 +896,7 @@ public:
     double get_parallel_entropy()
     {
         double S = 0;
-        for(auto& h : _overlap_stats.get_parallel_bundles())
+        for (auto& h : _overlap_stats.get_parallel_bundles())
         {
             for (auto& kc : h)
                 S += lgamma_fast(kc.second + 1);
@@ -1021,7 +1105,8 @@ public:
     std::vector<size_t> _bmap;
     std::vector<size_t> _vmap;
 
-    typedef SingleEntrySet<g_t, bg_t, int, double, double> m_entries_t;
+    typedef SingleEntrySet<g_t, bg_t, int, std::vector<double>,
+                           std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 
     UnityPropertyMap<int,GraphInterface::edge_t> _eweight;

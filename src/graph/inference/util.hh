@@ -29,33 +29,28 @@ namespace graph_tool
 {
 using namespace boost;
 
-// Warning: std::lgamma(x) is not thread-safe! Although in the context of this
-// program the outputs should _always_ be positive, we use boost::math::lgamma
-// instead.
-
 inline double lbinom(double N, double k)
 {
     if (N == 0 || k == 0 || k > N)
         return 0;
     assert(N > 0);
     assert(k > 0);
-    return ((boost::math::lgamma(N + 1) - boost::math::lgamma(k + 1))
-            - boost::math::lgamma(N - k + 1));
+    return ((lgamma(N + 1) - lgamma(k + 1)) - lgamma(N - k + 1));
 }
 
 inline double lbinom_fast(int N, int k)
 {
     if (N == 0 || k == 0 || k > N)
         return 0;
-    return lgamma_fast(N + 1) - lgamma_fast(N - k + 1) - lgamma_fast(k + 1);
+    return ((lgamma_fast(N + 1) - lgamma_fast(k + 1)) - lgamma_fast(N - k + 1));
 }
 
 inline double lbinom_careful(double N, double k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;
-    double lgN = boost::math::lgamma(N + 1);
-    double lgk = boost::math::lgamma(k + 1);
+    double lgN = lgamma(N + 1);
+    double lgk = lgamma(k + 1);
     if (lgN - lgk > 1e8)
     {
         // We have N >> k. Use Stirling's approximation: ln N! ~ N ln N - N
@@ -64,8 +59,13 @@ inline double lbinom_careful(double N, double k)
     }
     else
     {
-        return lgN - boost::math::lgamma(N - k + 1) - lgk;
+        return lgN - lgamma(N - k + 1) - lgk;
     }
+}
+
+inline double lbeta(double x, double y)
+{
+    return lgamma(x) + lgamma(y) - lgamma(x + y);
 }
 
 template <class Vec, class PosMap, class Val>

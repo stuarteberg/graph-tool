@@ -475,6 +475,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
 
     boost::mpl::for_each<boost::mpl::push_back<scalar_types,string>::type>(export_vector_types());
     export_vector_types()(size_t(), "size_t");
+    export_vector_types()(std::vector<double>(), "Vector_double");
 
     class_<GraphInterface>("GraphInterface", init<>())
         .def(init<GraphInterface,bool,boost::python::object,

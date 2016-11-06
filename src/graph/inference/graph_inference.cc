@@ -28,7 +28,6 @@ using namespace graph_tool;
 template <class Value>
 void vector_map(boost::python::object ovals, boost::python::object omap)
 {
-
     multi_array_ref<Value,1> vals = get_array<Value,1>(ovals);
     multi_array_ref<Value,1> map = get_array<Value,1>(omap);
 
@@ -45,7 +44,6 @@ void vector_map(boost::python::object ovals, boost::python::object omap)
 template <class Value>
 void vector_continuous_map(boost::python::object ovals)
 {
-
     multi_array_ref<Value,1> vals = get_array<Value,1>(ovals);
     gt_hash_map<Value, size_t> map;
 
@@ -62,7 +60,6 @@ void vector_continuous_map(boost::python::object ovals)
 template <class Value>
 void vector_rmap(boost::python::object ovals, boost::python::object omap)
 {
-
     multi_array_ref<Value,1> vals = get_array<Value,1>(ovals);
     multi_array_ref<Value,1> map = get_array<Value,1>(omap);
 

@@ -220,6 +220,7 @@ void export_blockmodel_state()
         .def_readwrite("dense", &entropy_args_t::dense)
         .def_readwrite("multigraph", &entropy_args_t::multigraph)
         .def_readwrite("adjacency", &entropy_args_t::adjacency)
+        .def_readwrite("recs", &entropy_args_t::recs)
         .def_readwrite("partition_dl", &entropy_args_t::partition_dl)
         .def_readwrite("degree_dl", &entropy_args_t::degree_dl)
         .def_readwrite("degree_dl_kind", &entropy_args_t::degree_dl_kind)
@@ -232,10 +233,11 @@ void export_blockmodel_state()
 
     enum_<weight_type>("rec_type")
         .value("none", weight_type::NONE)
-        .value("positive", weight_type::POSITIVE)
-        .value("signed", weight_type::SIGNED)
+        .value("real_exponential", weight_type::REAL_EXPONENTIAL)
+        .value("real_normal", weight_type::REAL_NORMAL)
         .value("discrete_geometric", weight_type::DISCRETE_GEOMETRIC)
         .value("discrete_poisson", weight_type::DISCRETE_POISSON)
+        .value("discrete_binomial", weight_type::DISCRETE_BINOMIAL)
         .value("delta_t", weight_type::DELTA_T);
 
     def("make_block_state", &make_block_state);
@@ -255,4 +257,10 @@ void export_blockmodel_state()
     def("log_q_approx", log_q_approx);
     def("log_q_approx_big", log_q_approx_big);
     def("log_q_approx_small", log_q_approx_small);
+
+    def("positive_w_log_P", positive_w_log_P<size_t>);
+    def("signed_w_log_P", signed_w_log_P<size_t>);
+    def("geometric_w_log_P", geometric_w_log_P<size_t>);
+    def("binomial_w_log_P", binomial_w_log_P<size_t>);
+    def("poisson_w_log_P", poisson_w_log_P<size_t>);
 }

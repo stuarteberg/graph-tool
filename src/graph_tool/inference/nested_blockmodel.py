@@ -98,7 +98,8 @@ class NestedBlockState(object):
                                        degree_dl=True,
                                        degree_dl_kind="distributed",
                                        edges_dl=True,
-                                       exact=True),
+                                       exact=True,
+                                       recs=False),
                                   **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for i, b in enumerate(bs[1:]):

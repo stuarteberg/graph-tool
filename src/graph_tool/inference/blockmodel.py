@@ -34,7 +34,9 @@ from numpy import *
 import numpy
 import copy
 import collections
+from collections import OrderedDict
 import itertools
+import warnings
 
 from . util import *
 
@@ -115,10 +117,12 @@ def get_entropy_args(kargs):
     ea.dense = args.dense
     ea.multigraph = args.multigraph
     ea.adjacency = args.adjacency
+    ea.recs = args.recs
     del kargs["exact"]
     del kargs["dense"]
     del kargs["multigraph"]
     del kargs["adjacency"]
+    del kargs["recs"]
     if args.dl:
         ea.partition_dl = args.partition_dl
         ea.degree_dl = args.degree_dl
@@ -151,26 +155,58 @@ class BlockState(object):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Edge multiplicities (for multigraphs or block graphs).
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Vertex multiplicities (for block graphs).
-    rec : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Real-valued edge covariates.
-    rec_type : `"positive"`, `"signed"`, `"discrete_geometric"`, `"discrete_poisson"` or `None` (optional, default: ``None``)
-        Type of edge covariates. If not specified, it will be guessed from
-        ``rec``.
-    rec_params : ``dict`` (optional, default: ``{}``)
-        Model hyperparameters for real-valued covariates. This should be a
-        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type`` is
-        one of ``"positive"``, ``"discrete-geometric"``, ``"discrete-poisson"``
-        or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == "signed"``.
     b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Initial block labels on the vertices. If not supplied, it will be
         randomly sampled.
     B : ``int`` (optional, default: ``None``)
         Number of blocks (or vertex groups). If not supplied it will be obtained
         from the parameter ``b``.
+    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Edge multiplicities (for multigraphs or block graphs).
+    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Vertex multiplicities (for block graphs).
+    recs : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``[]``)
+        List of real or discrete-valued edge covariates.
+    rec_types : list of edge covariate types (optional, default: ``[]``)
+        List of types of edge covariates. The possible types are:
+        ``"real-exponential"``, ``"real-normal"``, ``"discrete-geometric"``,
+        ``"discrete-poisson"`` or ``"discrete-binomial"``.
+    rec_params : list of ``dict`` (optional, default: ``[]``)
+        Model hyperparameters for edge covariates. This should a list of
+        ``dict`` instances. The keys depend on the type of edge covariate:
+
+        ``"real-exponential"`` or ``"discrete-poisson"``
+            The parameter list is ``["r", "theta"]``, corresponding to the
+            parameters of the `Gamma
+            <https://en.wikipedia.org/wiki/Gamma_distribution>`_ prior
+            distribution.  If unspecified, the default is the "empirical Bayes"
+            choice: ``r = 1.0`` and ``theta`` is the global average of the edge
+            covariate.
+
+        ``"discrete-geometric"``
+            The parameter list is ``["alpha", "beta"]``, corresponding to the
+            parameters of the `Beta
+            <https://en.wikipedia.org/wiki/Beta_distribution>`_ prior
+            distribution. If unspecified, the default is the noninformative
+            choice: ``alpha = beta = 1.0``
+
+        ``"discrete-binomial"``
+            The parameter list is ``["N", "alpha", "beta"]``, corresponding to
+            the number of trials ``N`` and the parameters of the `Beta
+            <https://en.wikipedia.org/wiki/Beta_distribution>`_ prior
+            distribution. If unspecified, the default is the noninformative
+            choice, ``alpha = beta = 1.0``, and ``N`` is taken to be the maximum
+            edge covarite value.
+
+        ``"real-normal"``
+            The parameter list is ``["m0", "k0", "v0", "nu0"]`` corresponding to
+            the `normal
+            <https://en.wikipedia.org/wiki/Normal_distribution>`_-`inverse-chi-squared
+            <https://en.wikipedia.org/wiki/Inverse-chi-squared_distribution>`_
+            prior. If unspecified, the defaults are: ``m0 = rec.fa.mean()``,
+            ``k0 = 1``, ``v0 = rec.fa.std() ** 2``, and ``nu0 = 3``, where
+            ``rec`` is the corresponding edge covariate property map.
+
     clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
@@ -190,8 +226,8 @@ class BlockState(object):
 
     """
 
-    def __init__(self, g, eweight=None, vweight=None, rec=None, rec_type=None,
-                 rec_params={}, b=None, B=None, clabel=None, pclabel=None,
+    def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
+                 rec_types=[], rec_params=[], clabel=None, pclabel=None,
                  deg_corr=True, allow_empty=False, max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
@@ -269,16 +305,23 @@ class BlockState(object):
             raise ValueError("Maximum value of b is larger or equal to B! (%d vs %d)" %
                              (self.b.fa.max(), B))
 
-        if rec is None:
-            self.rec = self.g.new_ep("double")
+        self.recs = recs
+        if len(recs) == 0:
+            self.rec = self.g.new_ep("vector<double>")
         else:
-            self.rec = rec.copy("double")
+            recs = [x.copy("double") for x in recs]
+            self.rec = group_vector_property(recs)
         self.drec = kwargs.pop("drec", None)
         if self.drec is None:
-            self.drec = self.rec.copy()
-            self.drec.fa **= 2
+            if len(self.recs) == 0:
+                self.drec = self.g.new_ep("vector<double>")
+            else:
+                drecs = [x.copy("double") for x in self.recs]
+                for r in drecs:
+                    r.fa **= 2
+                self.drec = group_vector_property(drecs)
         else:
-            self.drec = self.drec.copy("double")
+            self.drec = self.drec.copy()
 
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, self.vweight, self.eweight,
@@ -344,30 +387,32 @@ class BlockState(object):
         self.empty_blocks = Vector_size_t()
         self.empty_pos = self.bg.new_vp("int")
 
-        if rec is None:
-            self.rec_type = libinference.rec_type.none
-        elif rec_type is None:
-            if self.rec.fa.min() > 0:
-                self.rec_type = libinference.rec_type.positive
+        if len(rec_types) != len(recs):
+            raise ValueError("The size of 'rec_types' (%d) must be the same of 'recs' (%d)" %
+                             (len(rec_types), len(recs)))
+        self.rec_types = libcore.Vector_int32_t()
+        for rec_type in rec_types:
+            if rec_type == "real-exponential":
+                rt = libinference.rec_type.real_exponential
+            elif rec_type == "real-normal":
+                rt = libinference.rec_type.real_normal
+            elif rec_type == "discrete-geometric":
+                rt = libinference.rec_type.discrete_geometric
+            elif rec_type == "discrete-poisson":
+                rt = libinference.rec_type.discrete_poisson
+            elif rec_type == "discrete-binomial":
+                rt = libinference.rec_type.discrete_binomial
+            elif rec_type == "delta_t":
+                rt = libinference.rec_type.delta_t
             else:
-                self.rec_type = libinference.rec_type.signed
-        elif rec_type == "positive":
-            self.rec_type = libinference.rec_type.positive
-        elif rec_type == "signed":
-            self.rec_type = libinference.rec_type.signed
-        elif rec_type == "discrete-geometric":
-            self.rec_type = libinference.rec_type.discrete_geometric
-        elif rec_type == "discrete-poisson":
-            self.rec_type = libinference.rec_type.discrete_poisson
-        elif rec_type == "delta_t":
-            self.rec_type = libinference.rec_type.delta_t
-        else:
-            self.rec_type = rec_type
+                rt = rec_type
+            self.rec_types.append(rt)
 
         self.brec = self.bg.ep.rec
         self.bdrec = self.bg.ep.drec
 
-        if self.rec_type == libinference.rec_type.delta_t: # waiting times
+        if (len(self.rec_types) > 0 and
+            self.rec_types[0] == libinference.rec_type.delta_t): # waiting times
             self.brecsum = self.bg.degree_property_map("out", self.brec)
             mem = self.ignore_degrees.copy()
             self.bignore_degrees = self.get_bclabel(clabel=mem).copy("bool")
@@ -376,18 +421,43 @@ class BlockState(object):
             self.brecsum = self.bg.new_vp("double")
             self.bignore_degrees = self.bg.new_vp("bool")
 
-        self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
-                               v0=self.rec.fa.std() ** 2, nu0=3)
+        self.rec_params = rec_params
+        rec_params = list(rec_params)
+        while len(rec_params) < len(self.rec_types):
+            rec_params.append({})
+        self.wparams = libcore.Vector_Vector_double()
+        for i, rt in enumerate(self.rec_types):
+            ps = Vector_double()
+            if rt == libinference.rec_type.real_exponential:
+                defaults = OrderedDict([("r", 1),
+                                        ("theta", self.recs[i].fa.mean())])
+            elif rt == libinference.rec_type.real_normal:
+                defaults = OrderedDict([("m0", self.recs[i].fa.mean()),
+                                        ("k0", 1),
+                                        ("v0", self.recs[i].fa.std() ** 2),
+                                        ("nu0", 3)])
+            elif rt == libinference.rec_type.discrete_geometric:
+                defaults = OrderedDict([("alpha",1),
+                                        ("beta",1)])
+            elif rt == libinference.rec_type.discrete_poisson:
+                defaults = OrderedDict([("r", 1),
+                                        ("theta", self.recs[i].fa.mean())])
+            elif rt == libinference.rec_type.discrete_binomial:
+                defaults = OrderedDict([("N", self.recs[i].fa.max()),
+                                        ("alpha", 1),
+                                        ("beta", 1)])
+            else: # delta_t
+                defaults = OrderedDict([("alpha", 1),
+                                        ("beta", self.recs[i].fa.mean())])
 
-        if self.rec_type == libinference.rec_type.discrete_geometric:
-            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean() - 1))
-        elif self.rec_type == libinference.rec_type.discrete_poisson:
-            self.rec_params.update(dict(alpha=1, beta=1./self.rec.fa.mean()))
-        else:
-            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean()))
-
-        self.rec_params.update(rec_params)
-        self.__dict__.update(self.rec_params)
+            ks = list(defaults.keys())
+            defaults.update(rec_params[i])
+            for k in ks:
+                ps.append(defaults.pop(k))
+            if len(defaults) > 0:
+                raise ValueError("unknown parameters for weight type: " +
+                                 str(list(defaults.keys())))
+            self.wparams.append(ps)
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
@@ -401,21 +471,20 @@ class BlockState(object):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True)
+                                  exact=True, recs=True)
 
         if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
+            warnings.warn("unrecognized keyword arguments: " +
+                          str(list(kwargs.keys())))
 
 
     def __repr__(self):
         return "<BlockState object with %d blocks (%d nonempty),%s%s for graph %s, at 0x%x>" % \
             (self.B, self.get_nonempty_B(),
              " degree-corrected," if self.deg_corr else "",
-             ((" with %s real-typed edge covariates," %
-               ("positive" if self.rec_type == libinference.rec_type.positive
-                else "signed"))
-              if self.rec_type != libinference.rec_type.none else ""),
+             ((" with %d edge covariate%s," % (len(self.rec_types),
+                                               "s" if len(self.rec_types) > 1 else ""))
+              if len(self.rec_types) > 0 else ""),
              str(self.g), id(self))
 
     def __copy__(self):
@@ -444,9 +513,9 @@ class BlockState(object):
                                degs=self.degs.copy(),
                                merge_map=kwargs.pop("merge_map",
                                                     self.merge_map.copy()),
-                               rec=kwargs.pop("rec", self.rec),
+                               recs=kwargs.pop("recs", self.recs),
                                drec=kwargs.pop("drec", self.drec),
-                               rec_type=kwargs.pop("rec_type", self.rec_type),
+                               rec_types=kwargs.pop("rec_types", self.rec_types),
                                rec_params=kwargs.pop("rec_params",
                                                      self.rec_params),
                                ignore_degrees=kwargs.pop("ignore_degrees",
@@ -458,10 +527,9 @@ class BlockState(object):
             state = OverlapBlockState(self.g if g is None else g,
                                       b=self.b.copy() if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
-                                      rec=kwargs.pop("rec", self.rec),
+                                      recs=kwargs.pop("recs", self.recs),
                                       drec=kwargs.pop("drec", self.drec),
-                                      rec_type=kwargs.pop("rec_type",
-                                                          self.rec_type),
+                                      rec_types=kwargs.pop("rec_types", self.rec_types),
                                       rec_params=kwargs.pop("rec_params",
                                                             self.rec_params),
                                       clabel=self.clabel if clabel is None else clabel,
@@ -485,9 +553,9 @@ class BlockState(object):
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
-                     rec=self.rec if self.rec_type != libinference.rec_type.none else None,
-                     drec=self.drec if self.rec_type == libinference.rec_type.signed else None,
-                     rec_type=int(self.rec_type),
+                     recs=self.recs,
+                     drec=self.drec,
+                     rec_types=list(self.rec_types),
                      rec_params=self.rec_params,
                      ignore_degrees=self.ignore_degrees.copy("int"),
                      degs=self.degs if not isinstance(self.degs,
@@ -551,9 +619,18 @@ class BlockState(object):
                            allow_empty=kwargs.pop("allow_empty",
                                                   self.allow_empty),
                            degs=degs,
-                           rec_type=kwargs.pop("rec_type", self.rec_type if vweight else None),
-                           rec=kwargs.pop("rec", bg.ep.rec if vweight else None),
-                           drec=kwargs.pop("drec", bg.ep.drec if vweight else None),
+                           rec_types=kwargs.pop("rec_types",
+                                                self.rec_types if vweight else []),
+                           recs=kwargs.pop("recs",
+                                           ungroup_vector_property(bg.ep.rec,
+                                                                   range(len(self.rec_types)))
+                                           if (vweight is not None and
+                                               len(self.rec_types) > 0)
+                                           else []),
+                           drec=kwargs.pop("drec",
+                                           bg.ep.drec if (vweight is not None and
+                                                          len(self.rec_types) > 0)
+                                           else None),
                            rec_params=kwargs.pop("rec_params", self.rec_params),
                            ignore_degrees=kwargs.pop("ignore_degrees",
                                                      self.get_bclabel(clabel=self.ignore_degrees)),
@@ -652,8 +729,8 @@ class BlockState(object):
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, exact=True,
-                **kwargs):
+                dense=False, multigraph=True, deg_entropy=True, recs=True,
+                exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -683,6 +760,9 @@ class BlockState(object):
         deg_entropy : ``bool`` (optional, default: ``True``)
             If ``True``, the degree entropy term that is independent of the
             network partition will be included (for degree-corrected models).
+        recs : ``bool`` (optional, default: ``True``)
+            If ``True``, the likelihood for real or discrete-valued edge
+            covariates is computed.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -813,7 +893,7 @@ class BlockState(object):
 
         S = 0
         if adjacency:
-            S += self._state.entropy(dense, multigraph, deg_entropy, exact)
+            S += self._state.entropy(dense, multigraph, deg_entropy, exact, recs)
 
             if not dense and not exact:
                 if multigraph:
