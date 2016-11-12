@@ -61,9 +61,12 @@ libgraph_tool_core.IStream.readline = IStream_readline
 libgraph_tool_core.OStream.write = OStream_write
 
 # define and set the pickler/unpickler functions
+
+GT_PICKLE_PROTOCOL = -1
+
 def pickler(stream, obj):
     sstream = BytesIO()
-    pickle.dump(obj, sstream, -1)
+    pickle.dump(obj, sstream, GT_PICKLE_PROTOCOL)
     stream.write(sstream.getvalue())
 
 def unpickler(stream):
