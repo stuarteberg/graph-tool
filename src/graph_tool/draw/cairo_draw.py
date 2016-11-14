@@ -546,7 +546,7 @@ def parse_props(prefix, args):
 def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, vcmap=default_cm, ecmap=default_cm,
                loop_angle=numpy.nan, parallel_distance=None, fit_view=False,
-               res=0, render_offset=0, max_render_time=-1, **kwargs):
+               res=0, max_render_time=-1, **kwargs):
     r"""
     Draw a graph to a :mod:`cairo` context.
 
@@ -593,9 +593,6 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         Background color. The default is transparent.
     res : float (optional, default: ``0.``):
         If shape sizes fall below this value, simplified drawing is used.
-    render_offset : int (optional, default: ``0``):
-        If supplied, the rendering will skip the specified initial amount of
-        vertices / edges.
     max_render_time : int (optional, default: ``-1``):
         Maximum allowed time (in milliseconds) for rendering. If exceeded, the
         rendering will return unfinished. If negative values are given, the
@@ -685,12 +682,17 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         eprops["control_points"] = position_parallel_edges(g, pos, loop_angle,
                                                            parallel_distance)
     g = GraphView(g, directed=True)
-    count = libgraph_tool_draw.cairo_draw(g._Graph__graph, _prop("v", g, pos),
-                                          _prop("v", g, vorder), _prop("e", g, eorder),
-                                          nodesfirst, vattrs, eattrs, vdefs, edefs, res,
-                                          render_offset, max_render_time, cr)
+    generator = libgraph_tool_draw.cairo_draw(g._Graph__graph, _prop("v", g, pos),
+                                              _prop("v", g, vorder), _prop("e", g, eorder),
+                                              nodesfirst, vattrs, eattrs, vdefs, edefs, res,
+                                              max_render_time, cr)
+    if max_render_time >= 0:
+        for count in generator:
+            yield count
+    else:
+        for count in generator:
+            pass
     cr.restore()
-    return count
 
 def color_contrast(color):
     c = np.asarray(color)
@@ -700,7 +702,6 @@ def color_contrast(color):
     else:
         c[:3] = 0
     return c
-
 
 def auto_colors(g, bg, pos, back):
     if not isinstance(bg, PropertyMap):

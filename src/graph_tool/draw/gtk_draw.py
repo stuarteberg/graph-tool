@@ -285,7 +285,7 @@ class GraphWidget(Gtk.DrawingArea):
         self.base_geometry = None
         self.background = None
         self.bg_color = bg_color if bg_color is not None else [1, 1, 1, 1]
-        self.regenerate_offset = 0
+        self.regenerate_generator = None
         self.regenerate_max_time = max_render_time
         self.max_render_time = max_render_time
         self.lazy_regenerate = False
@@ -452,7 +452,8 @@ class GraphWidget(Gtk.DrawingArea):
         r"""Redraw the graph surface."""
 
         if reset:
-            self.regenerate_offset = 0
+            self.regenerate_generator = None
+            self.regen_context = None
 
         geometry = [self.get_allocated_width() * 3,
                     self.get_allocated_height() * 3]
@@ -467,7 +468,7 @@ class GraphWidget(Gtk.DrawingArea):
             self.base = w.create_similar_surface(cairo.CONTENT_COLOR_ALPHA,
                                                  *geometry)
             self.base_geometry = geometry
-            self.regenerate_offset = 0
+            self.regenerate_generator = None
 
             m = cairo.Matrix()
             m.translate(self.get_allocated_width(),
@@ -478,18 +479,23 @@ class GraphWidget(Gtk.DrawingArea):
             self.smatrix.translate(-self.get_allocated_width(),
                                    -self.get_allocated_height())
 
-        cr = cairo.Context(self.base)
-        if self.regenerate_offset == 0:
+        if self.regenerate_generator is None:
+            cr = cairo.Context(self.base)
             cr.set_source_rgba(*self.bg_color)
             cr.paint()
-        cr.set_matrix(self.tmatrix)
-        mtime = -1 if complete else self.regenerate_max_time
-        res = 5 * self.get_scale_factor()
-        count = cairo_draw(self.g, self.pos, cr, self.vprops, self.eprops,
-                           self.vorder, self.eorder, self.nodesfirst, res=res,
-                           render_offset=self.regenerate_offset,
-                           max_render_time=mtime, **self.kwargs)
-        self.regenerate_offset = count
+            cr.set_matrix(self.tmatrix)
+            mtime = -1 if complete else self.regenerate_max_time
+            res = 5 * self.get_scale_factor()
+            gen = cairo_draw(self.g, self.pos, cr, self.vprops, self.eprops,
+                             self.vorder, self.eorder, self.nodesfirst, res=res,
+                             max_render_time=mtime, **self.kwargs)
+            self.regenerate_generator = gen
+            self.regen_context = cr
+        try:
+            next(self.regenerate_generator)
+        except StopIteration:
+            self.regenerate_generator = None
+            self.regen_context = None
         self.lazy_regenerate = False
 
     def draw(self, da, cr):
@@ -519,7 +525,7 @@ class GraphWidget(Gtk.DrawingArea):
              ul[1] > 0 or lr[1] < geometry[1]) or
             self.lazy_regenerate):
             self.regenerate_surface(reset=True)
-        elif self.regenerate_offset > 0:
+        elif self.regenerate_generator is not None:
             self.regenerate_surface()
 
         if self.background is None:
@@ -626,7 +632,7 @@ class GraphWidget(Gtk.DrawingArea):
             cr.set_source_rgba(0, 0, 1, 0.3)
             cr.fill()
 
-        if self.regenerate_offset > 0:
+        if self.regenerate_generator is not None:
             icon = self.render_icon(Gtk.STOCK_EXECUTE, Gtk.IconSize.BUTTON)
             Gdk.cairo_set_source_pixbuf(cr, icon, 10, 10)
             cr.paint()
@@ -652,7 +658,7 @@ class GraphWidget(Gtk.DrawingArea):
             cr.set_source_rgba(0, 0, 0, 1.0)
             cr.show_text(txt)
 
-        if self.regenerate_offset > 0:
+        if self.regenerate_generator is not None:
             self.queue_draw()
         return False
 
