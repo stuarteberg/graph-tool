@@ -666,7 +666,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
         The partition to be used with the minimum number of blocks.
     b_max : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         The partition to be used with the maximum number of blocks.
-    frozen_levels : sequence of ``int``s (optional, default: ``None``)
+    frozen_levels : sequence of ``int`` values (optional, default: ``None``)
         List of hierarchy levels that are kept constant during the minimization.
     sparse_thres : int (optional, default: ``100``)
         If the number of nodes in a given level is larger than `sparse_thres`,
