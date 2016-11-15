@@ -682,17 +682,20 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
             parallel_distance = _defaults
         eprops["control_points"] = position_parallel_edges(g, pos, loop_angle,
                                                            parallel_distance)
-    g = GraphView(g, directed=True)
     generator = libgraph_tool_draw.cairo_draw(g._Graph__graph, _prop("v", g, pos),
                                               _prop("v", g, vorder), _prop("e", g, eorder),
                                               nodesfirst, vattrs, eattrs, vdefs, edefs, res,
                                               max_render_time, cr)
     if max_render_time >= 0:
-        return generator
+        def gen():
+            for count in generator:
+                yield count
+            cr.restore()
+        return gen()
     else:
         for count in generator:
             pass
-    cr.restore()
+        cr.restore()
 
 def color_contrast(color):
     c = np.asarray(color)

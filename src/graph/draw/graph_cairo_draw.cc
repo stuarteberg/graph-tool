@@ -1829,7 +1829,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
             Cairo::Context cr(PycairoContext_GET(ocr.ptr()));
 
             if (nodesfirst)
-                run_action<graph_tool::detail::always_directed>()
+                run_action<>()
                     (gi, std::bind(do_cairo_draw_vertices(), std::placeholders::_1,
                                    std::placeholders::_2, std::placeholders::_3,
                                    std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
@@ -1838,7 +1838,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                      vertex_scalar_vector_properties(),
                      vorder_t())(pos, vorder);
 
-            run_action<graph_tool::detail::always_directed>()
+            run_action<>()
                 (gi, std::bind(do_cairo_draw_edges(), std::placeholders::_1,
                                std::placeholders::_2, std::placeholders::_3,
                                std::ref(vattrs), std::ref(eattrs),
@@ -1849,7 +1849,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
 
             if (!nodesfirst)
             {
-                run_action<graph_tool::detail::always_directed>()
+                run_action<>()
                     (gi, std::bind(do_cairo_draw_vertices(), std::placeholders::_1,
                                    std::placeholders::_2, std::placeholders::_3,
                            std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
@@ -1858,7 +1858,6 @@ boost::python::object cairo_draw(GraphInterface& gi,
                      vertex_scalar_vector_properties(),
                      vorder_t())(pos, vorder);
             }
-            yield(boost::python::object(count));
         };
     return boost::python::object(CoroGenerator(dispatch));
 }

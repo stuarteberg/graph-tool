@@ -465,10 +465,13 @@ class GraphWidget(Gtk.DrawingArea):
             w = self.get_window()
             if w is None:
                 return False
+
+            self.regenerate_generator = None
+            self.regen_context = None
+
             self.base = w.create_similar_surface(cairo.CONTENT_COLOR_ALPHA,
                                                  *geometry)
             self.base_geometry = geometry
-            self.regenerate_generator = None
 
             m = cairo.Matrix()
             m.translate(self.get_allocated_width(),
