@@ -1858,6 +1858,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                      vertex_scalar_vector_properties(),
                      vorder_t())(pos, vorder);
             }
+            yield(boost::python::object(count));
         };
     return boost::python::object(CoroGenerator(dispatch));
 }

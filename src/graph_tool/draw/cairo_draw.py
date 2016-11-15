@@ -594,9 +594,9 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
     res : float (optional, default: ``0.``):
         If shape sizes fall below this value, simplified drawing is used.
     max_render_time : int (optional, default: ``-1``):
-        Maximum allowed time (in milliseconds) for rendering. If exceeded, the
-        rendering will return unfinished. If negative values are given, the
-        rendering will always complete.
+        If nonnegative, this function will return an iterator that will perform
+        part of the drawing at each step, so that each iteration takes at most
+        ``max_render_time`` milliseconds.
     vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
@@ -608,9 +608,10 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
 
     Returns
     -------
-    offset : int
-        The offset into the completed rendering. If this value is zero, the
-        rendering was complete.
+    iterator :
+        If ``max_render_time`` is nonnegative, this will be an iterator that will
+        perform part of the drawing at each step, so that each iteration takes
+        at most ``max_render_time`` milliseconds.
     """
 
     if vorder is not None:
@@ -687,8 +688,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                                               nodesfirst, vattrs, eattrs, vdefs, edefs, res,
                                               max_render_time, cr)
     if max_render_time >= 0:
-        for count in generator:
-            yield count
+        return generator
     else:
         for count in generator:
             pass

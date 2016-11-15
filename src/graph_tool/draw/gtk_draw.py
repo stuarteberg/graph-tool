@@ -491,11 +491,13 @@ class GraphWidget(Gtk.DrawingArea):
                              max_render_time=mtime, **self.kwargs)
             self.regenerate_generator = gen
             self.regen_context = cr
-        try:
-            next(self.regenerate_generator)
-        except StopIteration:
-            self.regenerate_generator = None
-            self.regen_context = None
+
+        if self.regenerate_generator is not None:
+            try:
+                next(self.regenerate_generator)
+            except StopIteration:
+                self.regenerate_generator = None
+                self.regen_context = None
         self.lazy_regenerate = False
 
     def draw(self, da, cr):
