@@ -1804,7 +1804,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
             populate_attrs<vertex_t, vertex_properties>(ovattrs, vattrs);
             populate_defaults(ovdefaults, vdefaults);
 
-            run_action<graph_tool::detail::always_directed>()
+            run_action<>()
                 (gi, std::bind(populate_edge_attrs(), std::placeholders::_1,
                                oeattrs, std::ref(eattrs), oedefaults,
                                std::ref(edefaults)))();
@@ -1883,7 +1883,7 @@ void apply_transforms(GraphInterface& gi, boost::any pos, double xx, double yx,
                       double xy, double yy, double x0, double y0)
 {
     Cairo::Matrix m(xx, yx, xy, yy, x0, y0);
-    run_action<graph_tool::detail::always_directed>()
+    run_action<>()
         (gi, std::bind(do_apply_transforms(), std::placeholders::_1,
                        std::placeholders::_2, std::ref(m)),
          vertex_scalar_vector_properties())(pos);
@@ -2030,7 +2030,7 @@ void put_parallel_splines(GraphInterface& gi, boost::any opos,
     DynamicPropertyMapWrap<double, GraphInterface::vertex_t>
         angle(loop_angle, vertex_scalar_properties());
 
-    run_action<graph_tool::detail::always_directed>()
+    run_action<>()
         (gi, std::bind(do_put_parallel_splines(), std::placeholders::_1, pos, l,
                        std::placeholders::_2, angle, parallel_distance),
          edge_scalar_vector_properties())(splines);
