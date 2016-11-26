@@ -109,7 +109,13 @@ Expectation-maximization Inference
 
    em_infer
 
+Large-scale descriptors
++++++++++++++++++++++++
 
+.. autosummary::
+   :nosignatures:
+
+   modularity
 
 Contents
 ++++++++
@@ -145,7 +151,8 @@ __all__ = ["minimize_blockmodel_dl",
            "BlockPairHist",
            "half_edge_graph",
            "get_block_edge_gradient",
-           "get_hierarchy_tree"]
+           "get_hierarchy_tree",
+           "modularity"]
 
 from . blockmodel import *
 from . overlap_blockmodel import *
@@ -156,3 +163,4 @@ from . bisection import *
 from . minimize import *
 from . blockmodel_em import *
 from . util import *
+from . modularity import *

@@ -73,6 +73,7 @@ graph_tool_inference_PYTHON = \
     inference/overlap_blockmodel.py \
     inference/mcmc.py \
     inference/minimize.py \
+    inference/modularity.py \
     inference/util.py
 graph_tool_inferencedir = $(MOD_DIR)/inference
 

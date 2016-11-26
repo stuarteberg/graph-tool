@@ -101,6 +101,7 @@ extern void export_overlap_blockmodel_exhaustive();
 extern void export_layered_blockmodel_exhaustive();
 extern void export_layered_overlap_blockmodel_exhaustive();
 extern void export_marginals();
+extern void export_modularity();
 
 BOOST_PYTHON_MODULE(libgraph_tool_inference)
 {
@@ -137,6 +138,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_layered_blockmodel_exhaustive();
     export_layered_overlap_blockmodel_exhaustive();
     export_marginals();
+    export_modularity();
 
     def("vector_map", vector_map<int32_t>);
     def("vector_map64", vector_map<int64_t>);
