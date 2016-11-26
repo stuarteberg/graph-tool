@@ -54,14 +54,6 @@ graph_tool_centrality_PYTHON = \
     centrality/__init__.py
 graph_tool_centralitydir = $(MOD_DIR)/centrality
 
-graph_tool_community_old_PYTHON = \
-    community_old/__init__.py \
-    community_old/blockmodel.py \
-    community_old/covariate_blockmodel.py \
-    community_old/nested_blockmodel.py \
-    community_old/overlap_blockmodel.py
-graph_tool_community_olddir = $(MOD_DIR)/community_old
-
 graph_tool_draw_PYTHON = \
     draw/__init__.py \
     draw/cairo_draw.py \
