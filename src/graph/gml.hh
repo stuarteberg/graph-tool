@@ -241,8 +241,14 @@ public:
         {
             // Push nested lists down the stack
             if (_stack.size() < 2)
-                throw gml_parse_error("invalid syntax: list '" + k + "' not within 'node', 'edge' or 'graph'");
-            _stack[_stack.size() - 2].second[k] = _stack.back().second;
+            {
+                if (k != "comments")
+                    throw gml_parse_error("invalid syntax: list '" + k + "' not within 'node', 'edge' or 'graph'");
+            }
+            else
+            {
+                _stack[_stack.size() - 2].second[k] = _stack.back().second;
+            }
         }
         _stack.pop_back();
     }
@@ -289,11 +295,12 @@ struct gml : spirit::qi::grammar<Iterator, void(), Skipper>
         using namespace spirit;
         using spirit::ascii::char_;
 
-        unesc_str = spirit::lexeme['"' >> *(unesc_char | (spirit::qi::char_ - "\"") | "\\x" >> qi::hex) >> '"'];
+        unesc_str = spirit::lexeme['"' >> *(unesc_char | (spirit::qi::graph - "\"") |
+                                            spirit::qi::space | "\\x" >> qi::hex) >> '"'];
         unesc_char.add("\\a", '\a')("\\b", '\b')("\\f", '\f')("\\n", '\n')
             ("\\r", '\r')("\\t", '\t')("\\v", '\v')("\\\\", '\\')
             ("\\\'", '\'')("\\\"", '\"');
-        key_identifier %= spirit::lexeme[((+spirit::qi::alnum) >> *spirit::qi::alnum)];
+        key_identifier %= spirit::lexeme[((+((spirit::qi::alnum | "_") | "-")) >> *spirit::qi::alnum)];
         key = key_identifier
             [boost::bind(&gml_state<Graph>::push_key, &_state, ::_1)];
         value_identifier %= (spirit::lexeme[spirit::qi::double_] | unesc_str);
