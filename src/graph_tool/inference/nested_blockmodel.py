@@ -548,7 +548,8 @@ class NestedBlockState(object):
                 rs = rs[:N_]
                 self.levels[l].empty_blocks.resize(len(rs))
                 self.levels[l].empty_blocks.a = rs
-                reverse_map(rs, self.levels[l].empty_pos)
+                if len(rs) > 0:
+                    reverse_map(rs, self.levels[l].empty_pos)
 
             ret = algo(self.levels[l], **args)
 
