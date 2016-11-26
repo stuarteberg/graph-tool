@@ -513,7 +513,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
                                allow_gaps=False, callback=None,
                                multicanonical_args={}, verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
-     algorithm.
+    algorithm.
 
     Parameters
     ----------
