@@ -245,6 +245,8 @@ public:
         add_vertex(v, r,
                    [&](auto& e, auto& me)
                    {
+                       this->_brec[me].resize(this->_rec_types.size());
+                       this->_bdrec[me].resize(this->_rec_types.size());
                        for (size_t i = 0; i < this->_rec_types.size(); ++i)
                        {
                            switch (this->_rec_types[i])

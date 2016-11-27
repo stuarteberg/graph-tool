@@ -387,6 +387,27 @@ class BlockState(object):
         self.empty_blocks = Vector_size_t()
         self.empty_pos = self.bg.new_vp("int")
 
+        self._init_recs(recs, rec_types, rec_params)
+
+        self.allow_empty = allow_empty
+        self._abg = self.bg._get_any()
+        self._avweight = self.vweight._get_any()
+        self._aeweight = self.eweight._get_any()
+        self._state = libinference.make_block_state(self, _get_rng())
+
+        if deg_corr:
+            init_q_cache(max(self.get_E(), self.get_N()) + 1)
+
+        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
+                                  degree_dl=True, degree_dl_kind="distributed",
+                                  edges_dl=True, dense=False, multigraph=True,
+                                  exact=True, recs=True)
+
+        if len(kwargs) > 0:
+            warnings.warn("unrecognized keyword arguments: " +
+                          str(list(kwargs.keys())))
+
+    def _init_recs(self, recs, rec_types, rec_params):
         if len(rec_types) != len(recs):
             raise ValueError("The size of 'rec_types' (%d) must be the same of 'recs' (%d)" %
                              (len(rec_types), len(recs)))
@@ -458,25 +479,6 @@ class BlockState(object):
                 raise ValueError("unknown parameters for weight type: " +
                                  str(list(defaults.keys())))
             self.wparams.append(ps)
-
-        self.allow_empty = allow_empty
-        self._abg = self.bg._get_any()
-        self._avweight = self.vweight._get_any()
-        self._aeweight = self.eweight._get_any()
-        self._state = libinference.make_block_state(self, _get_rng())
-
-        if deg_corr:
-            init_q_cache(max(self.get_E(), self.get_N()) + 1)
-
-        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
-                                  degree_dl=True, degree_dl_kind="distributed",
-                                  edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True)
-
-        if len(kwargs) > 0:
-            warnings.warn("unrecognized keyword arguments: " +
-                          str(list(kwargs.keys())))
-
 
     def __repr__(self):
         return "<BlockState object with %d blocks (%d nonempty),%s%s for graph %s, at 0x%x>" % \

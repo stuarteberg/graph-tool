@@ -51,7 +51,7 @@ void get_eg_overlap(GraphInterface& gi, GraphInterface& egi, boost::any obe,
     typedef vprop_map_t<vector<int64_t>>::type vvmap_t;
     typedef eprop_map_t<vector<int32_t>>::type evmap_t;
     typedef eprop_map_t<int64_t>::type emap_t;
-    typedef eprop_map_t<double>::type ermap_t;
+    typedef eprop_map_t<vector<double>>::type ermap_t;
 
     vmap_t b = any_cast<vmap_t>(ob);
     evmap_t be = any_cast<evmap_t>(obe);

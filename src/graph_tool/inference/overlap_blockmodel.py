@@ -46,15 +46,6 @@ class OverlapBlockState(BlockState):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    rec : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        Real-valued edge covariates.
-    rec_type : `"positive"`, `"signed"` or `None` (optional, default: ``None``)
-        Type of edge covariates. If not specified, it will be guessed from
-        ``rec``.
-    rec_params : ``dict`` (optional, default: ``{}``)
-        Model hyperparameters for real-valued covariates. This should be a
-        ``dict`` with keys in the list ``["alpha", "beta"]`` if ``rec_type ==
-        positive`` or ``["m0", "k0", "v0". "nu0"]`` if ``rec_type == signed``.
     b : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
         Initial block labels on the vertices or half-edges. If not supplied, it
         will be randomly sampled.
@@ -68,6 +59,16 @@ class OverlapBlockState(BlockState):
     B : ``int`` (optional, default: ``None``)
         Number of blocks (or vertex groups). If not supplied it will be obtained
         from the parameter ``b``.
+    recs : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``[]``)
+        List of real or discrete-valued edge covariates.
+    rec_types : list of edge covariate types (optional, default: ``[]``)
+        List of types of edge covariates. The possible types are:
+        ``"real-exponential"``, ``"real-normal"``, ``"discrete-geometric"``,
+        ``"discrete-poisson"`` or ``"discrete-binomial"``.
+    rec_params : list of ``dict`` (optional, default: ``[]``)
+        Model hyperparameters for edge covariates. This should a list of
+        ``dict`` instances. See :class:`~graph_tool.inference.BlockState` for
+        more details.
     clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
@@ -83,9 +84,9 @@ class OverlapBlockState(BlockState):
         memory,
     """
 
-    def __init__(self, g, rec=None, rec_type=None, rec_params={}, b=None,
-                 B=None, clabel=None, pclabel=None, deg_corr=True,
-                 allow_empty=True, max_BE=1000, **kwargs):
+    def __init__(self, g, b=None, B=None, recs=[], rec_types=[], rec_params=[],
+                 clabel=None, pclabel=None, deg_corr=True, allow_empty=True,
+                 max_BE=1000, **kwargs):
 
         kwargs = kwargs.copy()
 
@@ -106,6 +107,12 @@ class OverlapBlockState(BlockState):
         if node_index is None:
             # keep base graph
             self.base_g = g
+
+            if len(recs) == 0:
+                rec = self.base_g.new_ep("vector<double>")
+            else:
+                recs = [x.copy("double") for x in recs]
+                rec = group_vector_property(recs)
 
             # substitute provided graph by its half-edge graph
             g, b, node_index, half_edges, eindex, rec = \
@@ -160,14 +167,21 @@ class OverlapBlockState(BlockState):
         if self.b.fa.max() >= B:
             raise ValueError("Maximum value of b is larger or equal to B!")
 
-        if rec is None:
-            self.rec = self.g.new_ep("double")
+        self.recs = recs
+        if len(recs) == 0:
+            self.rec = self.g.new_ep("vector<double>")
         else:
-            self.rec = rec.copy("double")
+            recs = [x.copy("double") for x in recs]
+            self.rec = group_vector_property(recs)
         self.drec = kwargs.pop("drec", None)
         if self.drec is None:
-            self.drec = self.rec.copy()
-            self.drec.fa **= 2
+            if len(self.recs) == 0:
+                self.drec = self.g.new_ep("vector<double>")
+            else:
+                drecs = [x.copy("double") for x in self.recs]
+                for r in drecs:
+                    r.fa **= 2
+                self.drec = group_vector_property(drecs)
         else:
             self.drec = self.drec.copy()
 
@@ -215,43 +229,7 @@ class OverlapBlockState(BlockState):
 
         self.bclabel = self.get_bclabel()
 
-        if rec is None:
-            self.rec_type = libinference.rec_type.none
-        elif rec_type is None:
-            if self.rec.fa.min() > 0:
-                self.rec_type = libinference.rec_type.positive
-            else:
-                self.rec_type = libinference.rec_type.signed
-        elif rec_type == "positive":
-            self.rec_type = libinference.rec_type.positive
-        elif rec_type == "signed":
-            self.rec_type = libinference.rec_type.signed
-        elif rec_type == "delta_t":
-            self.rec_type = libinference.rec_type.delta_t
-        else:
-            self.rec_type = rec_type
-
-        if self.rec_type == libinference.rec_type.delta_t: # waiting times
-            self.brecsum = self.bg.degree_property_map("out", self.bg.ep.rec)
-            tokens = self.ignore_degrees.fa == 0
-            token_groups = bincount(self.b.fa[tokens]) > 0
-            token_groups.resize(self.bg.num_vertices())
-            self.brecsum.a[token_groups] = 0
-        else:
-            self.brecsum = self.bg.new_vp("double")
-
-        self.brec = self.bg.ep.rec
-        self.bdrec = self.bg.ep.drec
-
-        self.rec_params = dict(m0=self.rec.fa.mean(), k0=1,
-                               v0=self.rec.fa.std() ** 2, nu0=3)
-        if self.is_edge_weighted:
-            idx = self.eweight.fa > 0
-            self.rec_params.update(dict(alpha=1, beta=self.rec.fa[idx].mean()))
-        else:
-            self.rec_params.update(dict(alpha=1, beta=self.rec.fa.mean()))
-        self.rec_params.update(rec_params)
-        self.__dict__.update(self.rec_params)
+        BlockState._init_recs(self, recs, rec_types, rec_params)
 
         self.max_BE = max_BE
 
@@ -268,7 +246,7 @@ class OverlapBlockState(BlockState):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True)
+                                  exact=True, recs=True)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -291,23 +269,26 @@ class OverlapBlockState(BlockState):
         return self.copy(g=g, node_index=node_index, eindex=eindex,
                          half_edges=half_edges, base_g=base_g)
 
-    def copy(self, g=None, rec=None, rec_type=None, rec_params=None, b=None,
-             B=None, deg_corr=None, clabel=None, pclabel=None, **kwargs):
+    def copy(self, g=None, b=None, B=None, deg_corr=None, clabel=None,
+             pclabel=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor. If ``overlap=False`` an
          instance of :class:`~graph_tool.community.BlockState` is returned. This
          is by default a shallow copy."""
 
+        recs = ungroup_vector_property(self.rec, range(len(self.recs)))
+
         state = OverlapBlockState(self.g if g is None else g,
-                                  rec=self.rec if rec is None else rec,
-                                  drec=kwargs.get("drec", self.drec),
-                                  rec_type=self.rec_type if rec_type is None else rec_type,
-                                  rec_params=self.rec_params if rec_params is None else rec_params,
                                   b=self.b if b is None else b,
                                   B=(self.B if b is None else None) if B is None else B,
                                   clabel=self.clabel.fa if clabel is None else clabel,
                                   pclabel=self.pclabel if pclabel is None else pclabel,
                                   deg_corr=self.deg_corr if deg_corr is None else deg_corr,
+                                  recs=kwargs.pop("recs", recs),
+                                  drec=kwargs.pop("drec", self.drec),
+                                  rec_types=kwargs.pop("rec_types", self.rec_types),
+                                  rec_params=kwargs.pop("rec_params",
+                                                        self.rec_params),
                                   half_edges=kwargs.get("half_edges", self.half_edges),
                                   node_index=kwargs.get("node_index", self.node_index),
                                   eindex=kwargs.get("eindex", self.eindex),
@@ -320,14 +301,15 @@ class OverlapBlockState(BlockState):
 
     def __getstate__(self):
         state = dict(g=self.g,
-                     rec=self.rec if self.rec_type != libinference.rec_type.none else None,
-                     drec=self.drec if self.rec_type == libinference.rec_type.signed else None,
-                     rec_type=int(self.rec_type),
-                     rec_params=self.rec_params,
                      b=self.b,
                      B=self.B,
                      clabel=array(self.clabel.fa),
                      deg_corr=self.deg_corr,
+                     recs=ungroup_vector_property(self.rec,
+                                                  range(len(self.recs))),
+                     drec=self.drec,
+                     rec_types=list(self.rec_types),
+                     rec_params=self.rec_params,
                      half_edges=self.half_edges,
                      node_index=self.node_index,
                      eindex=self.eindex,
@@ -352,15 +334,15 @@ class OverlapBlockState(BlockState):
                            b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
                            rec_types=kwargs.pop("rec_types",
-                                                self.rec_types if vweight else None),
+                                                self.rec_types if vweight else []),
                            recs=kwargs.pop("recs",
                                            ungroup_vector_property(bg.ep.rec,
                                                                    range(len(self.rec_types)))
-                                           if (vweight and
+                                           if (vweight is not None and
                                                len(self.rec_types) > 0)
-                                           else None),
+                                           else []),
                            drec=kwargs.pop("drec",
-                                           bg.ep.drec if (vweight and
+                                           bg.ep.drec if (vweight is not None and
                                                           len(self.rec_types) > 0)
                                            else None),
                            rec_params=kwargs.pop("rec_params", self.rec_params),
@@ -450,8 +432,8 @@ class OverlapBlockState(BlockState):
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, exact=True,
-                **kwargs):
+                dense=False, multigraph=True, deg_entropy=True, recs=True,
+                exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -481,6 +463,9 @@ class OverlapBlockState(BlockState):
         deg_entropy : ``bool`` (optional, default: ``True``)
             If ``True``, the degree entropy term that is independent of the
             network partition will be included (for degree-corrected models).
+        recs : ``bool`` (optional, default: ``True``)
+            If ``True``, the likelihood for real or discrete-valued edge
+            covariates is computed.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -587,8 +572,8 @@ class OverlapBlockState(BlockState):
                                   degree_dl_kind=degree_dl_kind,
                                   edges_dl=edges_dl, dense=dense,
                                   multigraph=multigraph,
-                                  deg_entropy=deg_entropy, exact=exact,
-                                  **kwargs)
+                                  deg_entropy=deg_entropy, recs=recs,
+                                  exact=exact, **kwargs)
 
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
@@ -760,10 +745,10 @@ def half_edge_graph(g, b=None, B=None, rec=None):
     half_edges = g.new_vertex_property("vector<int64_t>")
     be = eg.new_vertex_property("int")
     eindex = eg.new_edge_property("int64_t")
-    erec = eg.new_edge_property("double")
+    erec = eg.new_edge_property("vector<double>")
 
     if rec is None:
-        rec_ = g.new_edge_property("double")
+        rec_ = g.new_edge_property("vector<double>")
     else:
         rec_ = rec
 
