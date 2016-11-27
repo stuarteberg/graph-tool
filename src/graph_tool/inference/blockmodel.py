@@ -421,8 +421,7 @@ class BlockState(object):
             self.brecsum = self.bg.new_vp("double")
             self.bignore_degrees = self.bg.new_vp("bool")
 
-        self.rec_params = rec_params
-        rec_params = list(rec_params)
+        self.rec_params = rec_params = list(rec_params)
         while len(rec_params) < len(self.rec_types):
             rec_params.append({})
         self.wparams = libcore.Vector_Vector_double()
@@ -452,6 +451,7 @@ class BlockState(object):
 
             ks = list(defaults.keys())
             defaults.update(rec_params[i])
+            rec_params[i] = dict(**defaults)
             for k in ks:
                 ps.append(defaults.pop(k))
             if len(defaults) > 0:
@@ -500,6 +500,8 @@ class BlockState(object):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
 
+        recs = ungroup_vector_property(self.rec, range(len(self.recs)))
+
         if not overlap:
             state = BlockState(self.g if g is None else g,
                                eweight=self.eweight if eweight is None else eweight,
@@ -513,7 +515,7 @@ class BlockState(object):
                                degs=self.degs.copy(),
                                merge_map=kwargs.pop("merge_map",
                                                     self.merge_map.copy()),
-                               recs=kwargs.pop("recs", self.recs),
+                               recs=kwargs.pop("recs", recs),
                                drec=kwargs.pop("drec", self.drec),
                                rec_types=kwargs.pop("rec_types", self.rec_types),
                                rec_params=kwargs.pop("rec_params",
@@ -527,9 +529,10 @@ class BlockState(object):
             state = OverlapBlockState(self.g if g is None else g,
                                       b=self.b.copy() if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
-                                      recs=kwargs.pop("recs", self.recs),
+                                      recs=kwargs.pop("recs", recs),
                                       drec=kwargs.pop("drec", self.drec),
-                                      rec_types=kwargs.pop("rec_types", self.rec_types),
+                                      rec_types=kwargs.pop("rec_types",
+                                                           self.rec_types),
                                       rec_params=kwargs.pop("rec_params",
                                                             self.rec_params),
                                       clabel=self.clabel if clabel is None else clabel,
@@ -553,7 +556,8 @@ class BlockState(object):
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
-                     recs=self.recs,
+                     recs=ungroup_vector_property(self.rec,
+                                                  range(len(self.recs))),
                      drec=self.drec,
                      rec_types=list(self.rec_types),
                      rec_params=self.rec_params,

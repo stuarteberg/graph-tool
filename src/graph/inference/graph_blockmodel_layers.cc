@@ -98,7 +98,7 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
     typedef vprop_map_t<int32_t>::type vmap_t;
     typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
     typedef eprop_map_t<int32_t>::type emap_t;
-    typedef eprop_map_t<double>::type remap_t;
+    typedef eprop_map_t<std::vector<double>>::type remap_t;
 
     emap_t& ec = any_cast<emap_t&>(aec);
     vmap_t& b = any_cast<vmap_t&>(ab);
