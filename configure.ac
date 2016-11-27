@@ -439,7 +439,6 @@ src/Makefile
 src/graph/Makefile
 src/graph/centrality/Makefile
 src/graph/clustering/Makefile
-src/graph/community_old/Makefile
 src/graph/correlations/Makefile
 src/graph/draw/Makefile
 src/graph/flow/Makefile
