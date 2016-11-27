@@ -103,7 +103,7 @@ def assortativity(g, deg):
        >>> g = gt.collection.data["pgp-strong-2009"]
        >>> g = gt.GraphView(g, directed=False)
        >>> gt.assortativity(g, "out")
-       (0.033159070186109..., 0.00032590407570...)
+       (0.0240578552..., 0.0003272847...)
 
     References
     ----------
@@ -167,7 +167,7 @@ def scalar_assortativity(g, deg):
        >>> g = gt.collection.data["pgp-strong-2009"]
        >>> g = gt.GraphView(g, directed=False)
        >>> gt.scalar_assortativity(g, "out")
-       (0.0263849324180816..., 0.00129447062420...)
+       (0.026384932418..., 0.001213444270...)
 
     References
     ----------

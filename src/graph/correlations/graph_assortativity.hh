@@ -37,14 +37,11 @@ struct get_assortativity_coefficient
     void operator()(const Graph& g, DegreeSelector deg, double& r,
                     double& r_err) const
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
-                                  size_t, double>::type count_t;
-
-        count_t n_edges = 0;
-        count_t e_kk = 0;
+        size_t n_edges = 0;
+        size_t e_kk = 0;
 
         typedef typename DegreeSelector::value_type val_t;
-        typedef gt_hash_map<val_t, count_t> map_t;
+        typedef gt_hash_map<val_t, size_t> map_t;
         map_t a, b;
 
         SharedMap<map_t> sa(a), sb(b);
@@ -83,7 +80,9 @@ struct get_assortativity_coefficient
 
         // "jackknife" variance
         double err = 0;
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:err)
+        size_t one = (is_directed::apply<Graph>::type::value) ? 1 : 2;
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            reduction(+:err)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
@@ -92,16 +91,19 @@ struct get_assortativity_coefficient
                  for (auto w : out_neighbours_range(v, g))
                  {
                      val_t k2 = deg(w, g);
-                     double tl2 = (t2 * (n_edges * n_edges) - b[k1] - a[k2]) /
-                         ((n_edges - 1.) * (n_edges - 1.));
+                     double tl2 = (t2 * (n_edges * n_edges)
+                                   - one * b[k1] - one * a[k2]) /
+                         ((n_edges - one) * (n_edges - one));
                      double tl1 = t1 * n_edges;
                      if (k1 == k2)
-                         tl1 -= 1;
-                     tl1 /= n_edges - 1;
+                         tl1 -= one;
+                     tl1 /= n_edges - one;
                      double rl = (tl1 - tl2) / (1.0 - tl2);
                      err += (r - rl) * (r - rl);
                 }
              });
+        if (!is_directed::apply<Graph>::type::value)
+            err /= 2;
         r_err = sqrt(err);
     }
 };
@@ -115,10 +117,7 @@ struct get_scalar_assortativity_coefficient
     void operator()(const Graph& g, DegreeSelector deg, double& r,
                     double& r_err) const
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
-                                  size_t, double>::type count_t;
-
-        count_t n_edges = 0;
+        size_t n_edges = 0;
         double e_xy = 0;
         double a = 0, b = 0, da = 0, db = 0;
 
@@ -156,6 +155,7 @@ struct get_scalar_assortativity_coefficient
         r_err = 0.0;
 
         double err = 0.0;
+        size_t one = (is_directed::apply<Graph>::type::value) ? 1 : 2;
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             reduction(+:err)
         parallel_vertex_loop_no_spawn
@@ -163,15 +163,15 @@ struct get_scalar_assortativity_coefficient
              [&](auto v)
              {
                  double k1 = double(deg(v, g));
-                 double al = (a * n_edges - k1) / (n_edges - 1);
-                 double dal = sqrt((da - k1 * k1) / (n_edges - 1) - al * al);
+                 double al = (a * n_edges - k1) / (n_edges - one);
+                 double dal = sqrt((da - k1 * k1) / (n_edges - one) - al * al);
 
                  for (auto u : out_neighbours_range(v, g))
                  {
                      double k2 = deg(u, g);
-                     double bl = (b * n_edges - k2) / (n_edges - 1);
-                     double dbl = sqrt((db - k2 * k2) / (n_edges - 1) - bl * bl);
-                     double t1l = (e_xy - k1 * k2)/(n_edges - 1);
+                     double bl = (b * n_edges - k2 * one) / (n_edges - one);
+                     double dbl = sqrt((db - k2 * k2 * one) / (n_edges - one) - bl * bl);
+                     double t1l = (e_xy - k1 * k2 * one)/(n_edges - one);
                      double rl;
                      if (dal * dbl > 0)
                          rl = (t1l - al * bl)/(dal * dbl);
@@ -180,6 +180,8 @@ struct get_scalar_assortativity_coefficient
                      err += (r - rl) * (r - rl);
                  }
              });
+        if (!is_directed::apply<Graph>::type::value)
+            err /= 2;
         r_err = sqrt(err);
     }
 };
