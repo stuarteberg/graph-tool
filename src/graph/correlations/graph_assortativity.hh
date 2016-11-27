@@ -40,7 +40,6 @@ struct get_assortativity_coefficient
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
                                   size_t, double>::type count_t;
 
-        count_t c = (is_directed::apply<Graph>::type::value) ? count_t(1) : count_t(0.5);
         count_t n_edges = 0;
         count_t e_kk = 0;
 
@@ -49,8 +48,8 @@ struct get_assortativity_coefficient
         map_t a, b;
 
         SharedMap<map_t> sa(a), sb(b);
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) firstprivate(sa, sb) \
-            reduction(+:e_kk, n_edges)
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(sa, sb) reduction(+:e_kk, n_edges)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
@@ -60,10 +59,10 @@ struct get_assortativity_coefficient
                  {
                      val_t k2 = deg(w, g);
                      if (k1 == k2)
-                         e_kk += c;
-                     sa[k1] += c;
-                     sb[k2] += c;
-                     n_edges += c;
+                         e_kk++;
+                     sa[k1]++;
+                     sb[k2]++;
+                     n_edges++;
                  }
              });
 
@@ -78,7 +77,7 @@ struct get_assortativity_coefficient
             if (bi != b.end())
                 t2 += ai.second * bi->second;
         }
-        t2 /= n_edges*n_edges;
+        t2 /= n_edges * n_edges;
 
         r = (t1 - t2)/(1.0 - t2);
 
@@ -100,7 +99,7 @@ struct get_assortativity_coefficient
                          tl1 -= 1;
                      tl1 /= n_edges - 1;
                      double rl = (tl1 - tl2) / (1.0 - tl2);
-                     err += (r - rl) * (r - rl) * c;
+                     err += (r - rl) * (r - rl);
                 }
              });
         r_err = sqrt(err);
@@ -119,12 +118,12 @@ struct get_scalar_assortativity_coefficient
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
                                   size_t, double>::type count_t;
 
-        count_t c = (is_directed::apply<Graph>::type::value) ? count_t(1) : count_t(0.5);
         count_t n_edges = 0;
         double e_xy = 0;
         double a = 0, b = 0, da = 0, db = 0;
 
-        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:e_xy,n_edges,a,b,da,db)
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            reduction(+:e_xy,n_edges,a,b,da,db)
         parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
@@ -133,12 +132,12 @@ struct get_scalar_assortativity_coefficient
                  for (auto u : out_neighbours_range(v, g))
                  {
                      auto k2 = deg(u, g);
-                     a += k1 * c;
-                     da += k1 * k1 * c;
-                     b += k2 * c;
-                     db += k2 * k2 * c;
-                     e_xy += k1 * k2 * c;
-                     n_edges += c;
+                     a += k1;
+                     da += k1 * k1;
+                     b += k2;
+                     db += k2 * k2;
+                     e_xy += k1 * k2;
+                     n_edges++;
                  }
              });
 
@@ -178,7 +177,7 @@ struct get_scalar_assortativity_coefficient
                          rl = (t1l - al * bl)/(dal * dbl);
                      else
                          rl = (t1l - al * bl);
-                     err += (r - rl) * (r - rl) * c;
+                     err += (r - rl) * (r - rl);
                  }
              });
         r_err = sqrt(err);
