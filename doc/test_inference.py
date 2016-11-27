@@ -28,23 +28,26 @@ rec_p = g.new_ep("double", random(g.num_edges()))
 rec_s = g.new_ep("double", normal(0, 10, g.num_edges()))
 
 
-def gen_state(directed, deg_corr, layers, overlap, rec, allow_empty):
+def gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
     u = GraphView(g, directed=directed)
     if layers != False:
         state = graph_tool.inference.LayeredBlockState(u, B=u.num_vertices(),
                                                        deg_corr=deg_corr,
                                                        ec=ec.copy(),
-                                                       rec=rec,
+                                                       recs=[rec] if rec is not None else [],
+                                                       rec_types=[rec_type] if rec is not None else [],
                                                        overlap=overlap,
                                                        layers=layers == True,
                                                        allow_empty=allow_empty)
     elif overlap:
         state = graph_tool.inference.OverlapBlockState(u, B=2 * u.num_edges(),
-                                                       rec=rec,
+                                                       recs=[rec] if rec is not None else [],
+                                                       rec_types=[rec_type] if rec is not None else [],
                                                        deg_corr=deg_corr)
     else:
         state = graph_tool.inference.BlockState(u, B=u.num_vertices(),
-                                                rec=rec,
+                                                recs=[rec] if rec is not None else [],
+                                                rec_types=[rec_type] if rec is not None else [],
                                                 deg_corr=deg_corr,
                                                 allow_empty=allow_empty)
     return state
@@ -53,7 +56,7 @@ def gen_state(directed, deg_corr, layers, overlap, rec, allow_empty):
 pranges = [("directed", [False, True]),
            ("overlap", [False, True]),
            ("layered", [False, "covariates", True]),
-           ("rec", [None, "positive", "signed"]),
+           ("rec", [None, "real-exponential", "real-normal"]),
            ("deg_corr", [False, True]),
            ("dl", [False, True]),
            ("degree_dl_kind", ["uniform", "distributed", "entropy"]),
@@ -84,13 +87,13 @@ for pvals in iter_ranges(pranges):
     print(params, file=out)
 
     rec_ = None
-    if rec == "positive":
+    if rec == "real-exponential":
         rec_ = rec_p
-    elif rec == "signed":
+    elif rec == "real-normal":
         rec_ = rec_s
 
     print("\t mcmc (unweighted)", file=out)
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
 
     print("\t\t",
           state.mcmc_sweep(beta=0,
@@ -107,7 +110,7 @@ for pvals in iter_ranges(pranges):
                                                  exact=exact)),
               state.get_nonempty_B(), file=out)
 
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
 
     if not overlap:
         print("\t mcmc", file=out)
@@ -136,7 +139,7 @@ for pvals in iter_ranges(pranges):
 
     print("\t merge", file=out)
 
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
 
     if not overlap:
         bstate = state.get_block_state(vweight=True, deg_corr=deg_corr)
@@ -174,7 +177,7 @@ for pvals in iter_ranges(pranges):
 
     print("\t shrink", file=out)
 
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
     state = state.shrink(B=5, entropy_args=dict(dl=dl,
                                                 degree_dl_kind=degree_dl_kind,
                                                 multigraph=False,
@@ -185,7 +188,7 @@ for pvals in iter_ranges(pranges):
 pranges = [("directed", [False, True]),
            ("overlap", [False, True]),
            ("layered", [False, "covariates", True]),
-           ("rec", [None, "positive", "signed"]),
+           ("rec", [None, "real-exponential", "real-normal"]),
            ("deg_corr", [False, True]),
            ("degree_dl_kind", ["uniform", "distributed", "entropy"]),
            ("exact", [True])]
@@ -205,16 +208,17 @@ for pvals in iter_ranges(pranges):
 
     print(params, file=out)
 
-    rec_ = None
-    if rec == "positive":
+    rec_ = []
+    if rec == "real-exponential":
         rec_ = rec_p
-    elif rec == "signed":
+    elif rec == "real-normal":
         rec_ = rec_s
 
     if layered != False:
-        state_args = dict(ec=ec, layers=(layered == True), rec=rec_)
+        state_args = dict(ec=ec, layers=(layered == True), recs=[rec_],
+                          rec_types=[rec])
     else:
-        state_args = dict(rec=rec_)
+        state_args = dict(recs=[rec_], rec_types=[rec])
 
     entropy_args = dict(exact=exact)
 

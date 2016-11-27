@@ -456,7 +456,7 @@ case of the `C. elegans` network we have
    :options: +NORMALIZE_WHITESPACE
 
    Non-degree-corrected DL:	 8507.97432099
-   Degree-corrected DL:	 8228.11609772
+   Degree-corrected DL:	 8249.76252971
 
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -482,12 +482,12 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -279.858223272
+   ln Λ:  -258.211791282
 
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
 subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`e^{280} \sim 10^{121}`
+particular degree-corrected fit is around :math:`e^{258} \sim 10^{112}`
 times more likely than the non-degree corrected one, and hence it can be
 safely concluded that it provides a substantially better fit.
 
@@ -509,12 +509,12 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 1749.51938237
-   Degree-corrected DL:	 1780.57671694
-   ln Λ:			 -31.0573345685
+   Non-degree-corrected DL:	 1738.71605436
+   Degree-corrected DL:	 1795.27140372
+   ln Λ:			 -56.5553493622
 
-Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-36} \sim
-10^{-16}` in favor of the non-degree-corrected model, it seems like the
+Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-56} \sim
+10^{-24}` in favor of the non-degree-corrected model, it seems like the
 degree-corrected variant is an unnecessarily complex description for
 this network.
 
@@ -1068,8 +1068,8 @@ evidence efficiently, as we show below, using
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -575.864972067 (mean field), -802.39062289 (Bethe)
-   Model evidence for deg_corr = False: -584.307313493 (mean field), -707.827204203 (Bethe)
+   Model evidence for deg_corr = True: -575.889667037 (mean field), -794.733483508 (Bethe)
+   Model evidence for deg_corr = False: -618.120673252 (mean field), -729.104723167 (Bethe)
 
 If we consider the more accurate approximation, the outcome shows a
 preference for the non-degree-corrected model.
@@ -1133,8 +1133,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -346.618790006 (mean field), -601.313781849 (Bethe)
-   Model evidence for deg_corr = False: -374.614350884 (mean field), -563.256840699 (Bethe)
+   Model evidence for deg_corr = True: -333.948404832 (mean field), -651.91054824 (Bethe)
+   Model evidence for deg_corr = False: -360.235692786 (mean field), -549.293909028 (Bethe)
 
 The results are similar: If we consider the most accurate approximation,
 the non-degree-corrected model possesses the largest evidence. Note also
@@ -1363,11 +1363,11 @@ above).
 
 .. testoutput:: missing-edges
 
-   likelihood-ratio for (101, 102): 0.372308
-   likelihood-ratio for (17, 56): 0.627692
+   likelihood-ratio for (101, 102): 0.436558
+   likelihood-ratio for (17, 56): 0.563442
 
-From which we can conclude that edge :math:`(17, 56)` is around twice as
-likely as :math:`(101, 102)` to be a missing edge.
+From which we can conclude that edge :math:`(17, 56)` is more likely
+than :math:`(101, 102)` to be a missing edge.
 
 The prediction using the non-nested model can be performed in an
 entirely analogous fashion.
