@@ -74,8 +74,9 @@ struct get_assortativity_coefficient
 
         for (auto& ai : a)
         {
-            if (b.find(ai.second) != b.end())
-                t2 += double(ai.second * b[ai.first]);
+            auto bi = b.find(ai.first);
+            if (bi != b.end())
+                t2 += ai.second * bi->second;
         }
         t2 /= n_edges*n_edges;
 
