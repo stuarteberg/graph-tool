@@ -210,15 +210,19 @@ for pvals in iter_ranges(pranges):
 
     rec_ = []
     if rec == "real-exponential":
-        rec_ = rec_p
+        rec_ = [rec_p]
+        rec = [rec]
     elif rec == "real-normal":
-        rec_ = rec_s
+        rec_ = [rec_s]
+        rec = [rec]
+    else:
+        rec = []
 
     if layered != False:
-        state_args = dict(ec=ec, layers=(layered == True), recs=[rec_],
-                          rec_types=[rec])
+        state_args = dict(ec=ec, layers=(layered == True), recs=rec_,
+                          rec_types=rec)
     else:
-        state_args = dict(recs=[rec_], rec_types=[rec])
+        state_args = dict(recs=rec_, rec_types=rec)
 
     entropy_args = dict(exact=exact)
 
