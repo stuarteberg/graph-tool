@@ -62,7 +62,7 @@ def modularity(g, b, weight=None):
     Examples
     --------
     >>> g = gt.collection.data["football"]
-    >>> modularity(g, g.vp.value_tsevans)
+    >>> gt.modularity(g, g.vp.value_tsevans)
     0.5744393497...
 
     References
