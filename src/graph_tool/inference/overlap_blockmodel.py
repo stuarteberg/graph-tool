@@ -338,8 +338,7 @@ class OverlapBlockState(BlockState):
                            recs=kwargs.pop("recs",
                                            ungroup_vector_property(bg.ep.rec,
                                                                    range(len(self.rec_types)))
-                                           if (vweight is not None and
-                                               len(self.rec_types) > 0)
+                                           if (vweight and len(self.rec_types) > 0)
                                            else []),
                            drec=kwargs.pop("drec",
                                            bg.ep.drec if (vweight is not None and
