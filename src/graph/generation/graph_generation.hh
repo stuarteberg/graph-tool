@@ -538,9 +538,8 @@ struct gen_graph
 
             while (s_deg.second > 0)
             {
-                //assert(!targets.empty());
-                //assert(t_iter != targets.end());
-
+                // assert(!targets.empty());
+                // assert(t_iter != targets.end());
                 while (v_iter == vset.end() || v_iter->second.empty())
                 {
                     ++t_iter;
@@ -559,8 +558,8 @@ struct gen_graph
                     swap(v_list.back(), v_list.front());
                     v_list.pop_back();
                     update_deg(t_i, nt_deg, vset, targets, sources, g);
-                    //t_iter = targets.begin();
-                    //v_iter = vset.find(*t_iter);
+                    t_iter = targets.begin();
+                    v_iter = vset.find(*t_iter);
                     continue;
                 }
 
@@ -591,6 +590,8 @@ struct gen_graph
                         update_deg(skip[i],
                                    get_deg(vertices[skip[i]], g), vset,
                                    targets, sources, g);
+                        t_iter = targets.begin();
+                        v_iter = vset.find(*t_iter);
                     }
                     skip.clear();
                     if (no_self_loops)
@@ -611,7 +612,7 @@ struct gen_graph
                 update_deg(skip[i],
                            get_deg(vertices[skip[i]], g),
                            vset, targets, sources, g);
-       }
+        }
         if (verbose)
             cout << endl;
 
