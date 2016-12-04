@@ -252,8 +252,9 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
        ...         accept = np.random.random() < 1.0/k
        ...     return k
        ...
-       >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
-       ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
+       >>> g = gt.random_graph(10000, lambda: sample_k(40),
+       ...                     model="probabilistic-configuration",
+       ...                     edge_probs=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
        ...                     directed=False, n_iter=100)
        >>> h = gt.corr_hist(g, "out", "out")
        >>> clf()
@@ -453,8 +454,9 @@ def avg_neighbour_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
        ...         accept = np.random.random() < 1.0 / k
        ...     return k
        ...
-       >>> g = gt.random_graph(10000, lambda: sample_k(40), model="probabilistic",
-       ...                     vertex_corr=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
+       >>> g = gt.random_graph(10000, lambda: sample_k(40),
+       ...                     model="probabilistic-configuration",
+       ...                     edge_probs=lambda i, j: (sin(i / pi) * sin(j / pi) + 1) / 2,
        ...                     directed=False, n_iter=100)
        >>> h = gt.avg_neighbour_corr(g, "out", "out")
        >>> clf()

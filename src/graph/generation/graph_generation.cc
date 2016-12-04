@@ -68,6 +68,10 @@ void generate_graph(GraphInterface& gi, size_t N,
                        std::ref(rng), verbose, verify))();
 }
 
+void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
+                  boost::python::object oss, boost::python::object oprobs,
+                  boost::any ain_deg, boost::any aout_deg, rng_t& rng);
+
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
                      bool alias, bool traditional, bool persist,
@@ -119,6 +123,7 @@ using namespace boost::python;
 BOOST_PYTHON_MODULE(libgraph_tool_generation)
 {
     def("gen_graph", &generate_graph);
+    def("gen_sbm", &generate_sbm);
     def("random_rewire", &random_rewire);
     def("predecessor_graph", &predecessor_graph);
     def("line_graph", &line_graph);

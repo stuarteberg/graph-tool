@@ -139,7 +139,6 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     emap_t::unchecked_t pin =
         any_cast<emap_t>(apin).get_unchecked(gi.get_edge_index_range());
 
-
     if (strat == "erdos")
     {
         run_action<graph_tool::detail::never_reversed>()
@@ -151,7 +150,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)))();
     }
-    else if (strat == "uncorrelated")
+    else if (strat == "configuration")
     {
         run_action<graph_tool::detail::never_reversed>()
             (gi, std::bind(graph_rewire<RandomRewireStrategy>(),
@@ -161,7 +160,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)))();
     }
-    else if (strat == "correlated")
+    else if (strat == "constrained-configuration")
     {
         if (block.empty())
         {
@@ -186,7 +185,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                  vertex_properties())(block);
         }
     }
-    else if (strat == "probabilistic")
+    else if (strat == "probabilistic-configuration")
     {
         run_action<>()
             (gi, std::bind(graph_rewire<ProbabilisticRewireStrategy>(),

@@ -710,6 +710,9 @@ public:
             for (auto iter = _probs.begin(); iter != _probs.end(); ++iter)
             {
                 double& p = iter->second;
+                // avoid zero probability to not get stuck in rejection step
+                if (std::isnan(p) || std::isinf(p) || p <= 0)
+                    p = numeric_limits<double>::min();
                 p = log(p);
             }
         }
@@ -788,7 +791,6 @@ private:
     EdgeIndexMap _edge_index;
     CorrProb _corr_prob;
     BlockDeg _blockdeg;
-
 
     typedef std::unordered_map<pair<deg_t, deg_t>, double> prob_map_t;
     prob_map_t _probs;
@@ -1020,7 +1022,7 @@ public:
         double pi = get_prob(s_deg, t_deg) + get_prob(ep_s_deg, ep_t_deg);
         double pf = get_prob(s_deg, ep_t_deg) + get_prob(ep_s_deg, t_deg);
 
-        double a = exp(pf - pi);
+        double a = pf - pi;
 
         if (is_directed::apply<Graph>::type::value)
         {
@@ -1032,10 +1034,10 @@ public:
                 e_t -= in_degreeS()(ep_t, _g);
             }
 
-            a /= (get_sprob(s_deg, ep_t_deg) / e_ep_t +
-                  get_sprob(ep_s_deg, t_deg) / e_t);        // forwards
-            a *= (get_sprob(s_deg, t_deg) / e_t +
-                  get_sprob(ep_s_deg, ep_t_deg) / e_ep_t);  // backwards
+            a -= log(get_sprob(s_deg, ep_t_deg)) - log(e_ep_t) +
+                 log(get_sprob(ep_s_deg, t_deg)) - log(e_t);        // forwards
+            a += log(get_sprob(s_deg, t_deg)) - log(e_t) +
+                 log(get_sprob(ep_s_deg, ep_t_deg)) - log(e_ep_t);  // backwards
         }
         else
         {
@@ -1055,22 +1057,22 @@ public:
                 e_s -= out_degree(ep_s, _g);
             }
 
-            a /= (get_sprob(s_deg, ep_t_deg) / e_ep_t +
-                  get_sprob(ep_t_deg, s_deg) / e_s +
-                  get_sprob(ep_s_deg, t_deg) / e_t +
-                  get_sprob(t_deg, ep_s_deg) / e_ep_s);      // forwards
-            a *= (get_sprob(s_deg, t_deg) / e_t +
-                  get_sprob(t_deg, s_deg) / e_s +
-                  get_sprob(ep_s_deg, ep_t_deg) / e_ep_t +
-                  get_sprob(ep_t_deg, ep_s_deg) / e_ep_s);   // backwards
+            a -= log(get_sprob(s_deg, ep_t_deg)) - log(e_ep_t) +
+                 log(get_sprob(ep_t_deg, s_deg)) - log(e_s) +
+                 log(get_sprob(ep_s_deg, t_deg)) - log(e_t) +
+                 log(get_sprob(t_deg, ep_s_deg)) - log(e_ep_s);      // forwards
+            a += log(get_sprob(s_deg, t_deg)) - log(e_t) +
+                 log(get_sprob(t_deg, s_deg)) - log(e_s) +
+                 log(get_sprob(ep_s_deg, ep_t_deg)) - log(e_ep_t) +
+                 log(get_sprob(ep_t_deg, ep_s_deg)) - log(e_ep_s);   // backwards
         }
 
-        if (a > 1)
+        if (a > 0)
             return ep;
 
         std::uniform_real_distribution<> rsample(0.0, 1.0);
         double r = rsample(base_t::_rng);
-        if (r > a)
+        if (r > exp(a))
             return e; // reject
         return ep;
     }
@@ -1163,11 +1165,10 @@ public:
         : _g(g), _edge_index(edge_index), _edges(edges), _corr_prob(corr_prob),
           _blockdeg(blockdeg), _rng(rng), _sampler(nullptr)
     {
-        typename graph_traits<Graph>::vertex_iterator v, v_end;
-        for (tie(v, v_end) = vertices(_g); v != v_end; ++v)
+        for (auto v : vertices_range(_g))
         {
-            deg_t d = _blockdeg.get_block(*v, g);
-            _vertices[d].push_back(*v);
+            deg_t d = _blockdeg.get_block(v, g);
+            _vertices[d].push_back(v);
         }
 
         std::unordered_map<pair<deg_t, deg_t>, double> probs;
@@ -1176,31 +1177,31 @@ public:
         vector<double> dprobs;
         if (probs.empty())
         {
-            for (auto s_iter = _vertices.begin(); s_iter != _vertices.end(); ++s_iter)
+            for (auto& s : _vertices)
             {
-                for (auto t_iter = _vertices.begin(); t_iter != _vertices.end(); ++t_iter)
+                for (auto& t : _vertices)
                 {
-                    double p = _corr_prob(s_iter->first, t_iter->first);
+                    double p = _corr_prob(s.first, t.first);
                     if (std::isnan(p) || std::isinf(p) || p <= 0)
                         continue;
 
-                    _items.push_back(make_pair(s_iter->first, t_iter->first));
-                    dprobs.push_back(p);
+                    _items.push_back(make_pair(s.first, t.first));
+                    dprobs.push_back(p * s.second.size() * t.second.size());
                 }
             }
         }
         else
         {
-            for (auto iter = probs.begin(); iter != probs.end(); ++iter)
+            for (auto& stp : probs)
             {
-                deg_t s = iter->first.first;
-                deg_t t = iter->first.second;
-                double p = iter->second;
+                deg_t s = stp.first.first;
+                deg_t t = stp.first.second;
+                double p = stp.second;
                 // avoid zero probability to not get stuck in rejection step
                 if (std::isnan(p) || std::isinf(p) || p <= 0)
                     continue;
                 _items.push_back(make_pair(s, t));
-                dprobs.push_back(p);
+                dprobs.push_back(p * _vertices[s].size() * _vertices[t].size());
             }
         }
 
@@ -1230,11 +1231,8 @@ public:
             if (svs.empty() || tvs.empty())
                 continue;
 
-            std::uniform_int_distribution<size_t> s_sample(0, svs.size() - 1);
-            std::uniform_int_distribution<size_t> t_sample(0, tvs.size() - 1);
-
-            s = svs[s_sample(_rng)];
-            t = tvs[t_sample(_rng)];
+            s = uniform_sample(svs, _rng);
+            t = uniform_sample(tvs, _rng);
 
             break;
         }

@@ -28,6 +28,7 @@ libgraph_tool_generation_la_SOURCES = \
     graph_predecessor.cc \
     graph_price.cc \
     graph_rewiring.cc \
+    graph_sbm.cc \
     graph_triangulation.cc \
     graph_union.cc \
     graph_union_eprop.cc \
@@ -44,6 +45,7 @@ libgraph_tool_generation_la_include_HEADERS = \
     graph_predecessor.hh \
     graph_price.hh \
     graph_rewiring.hh \
+    graph_sbm.hh \
     graph_triangulation.hh \
     graph_union.hh \
     sampler.hh

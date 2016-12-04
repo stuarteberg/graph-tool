@@ -38,18 +38,18 @@ class Sampler
 public:
     Sampler(const vector<Value>& items,
             const vector<double>& probs)
-        : _items(items), _probs(probs), _alias(items.size())
+        : _items(items), _probs(probs), _alias(items.size()),
+          _S(0)
     {
-        double S = 0;
         for (size_t i = 0; i < _probs.size(); ++i)
-            S += _probs[i];
+            _S += _probs[i];
 
         vector<size_t> small;
         vector<size_t> large;
 
         for (size_t i = 0; i < _probs.size(); ++i)
         {
-            _probs[i] *= _probs.size() / S;
+            _probs[i] *= _probs.size() / _S;
             if (_probs[i] < 1)
                 small.push_back(i);
             else
@@ -95,6 +95,7 @@ public:
 
     size_t size() const { return _items.size(); }
     bool empty() const { return _items.empty(); }
+    double prob_sum() const { return _S; }
 
     const Value& operator[](size_t i) const
     {
@@ -125,7 +126,7 @@ private:
     vector<double> _probs;
     vector<size_t> _alias;
     uniform_int_distribution<size_t> _sample;
-
+    double _S;
 };
 
 // uniform sampling from containers
