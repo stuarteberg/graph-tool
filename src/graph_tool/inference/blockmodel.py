@@ -26,8 +26,8 @@ if sys.version_info < (3,):
 from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
     conv_pickle_state, Vector_size_t, Vector_double, group_vector_property, \
     perfect_prop_hash
-from .. generation import condensation_graph
-from .. stats import label_self_loops
+from .. generation import condensation_graph, random_rewire, generate_sbm
+from .. stats import label_self_loops, remove_parallel_edges, remove_self_loops
 from .. spectral import adjacency
 import random
 from numpy import *
@@ -1993,6 +1993,93 @@ class BlockState(object):
                           **dmask(kwargs, ["vertex_fill_color",
                                            "vertex_color",
                                            "edge_gradient"]))
+
+    def sample_graph(self, canonical=False, niter=100, multigraph=True,
+                     self_loops=True):
+        r"""Sample a new graph from the fitted model.
+
+        Parameters
+        ----------
+        canonical : ``bool`` (optional, default: ``False``)
+            If ``canonical == True``, the graph will be sampled from the
+            maximum-likelihood estimate of the Poisson stochastic block
+            model. Otherwise, it will be sampled from the microcanonical model.
+        niter : ``int`` (optional, default: ``None``)
+            Number of MCMC steps. This value is ignored if ``canonical ==
+            False``.
+        multigraph : ``bool`` (optional, default: ``True``)
+            If ``True``, parallel edges will be allowed.
+        self-loops : ``bool`` (optional, default: ``True``)
+            If ``True``, self-loops will be allowed.
+
+        Returns
+        -------
+        g : :class:`~graph_tool.Graph`
+            Generated graph.
+
+        Notes
+        -----
+        This function is just a convenience wrapper to
+        :func:`~graph_tool.generation.random_rewire` (if ``canonical == False``)
+        and :func:`~graph_tool.generation.generate_sbm` (if ``canonical ==
+        True``).
+
+        Examples
+        --------
+        .. doctest:: gen_sbm
+
+           >>> g = gt.collection.data["polbooks"]
+           >>> state = gt.minimize_blockmodel_dl(g, B_max=3)
+           >>> u = state.sample_graph(canonical=True, self_loops=False, multigraph=False)
+           >>> ustate = gt.BlockState(u, b=state.b)
+           >>> state.draw(pos=g.vp.pos, output="polbooks-sbm.png")
+           <...>
+           >>> ustate.draw(pos=g.vp.pos, output="polbooks-sbm-sampled.png")
+           <...>
+
+        .. image:: polbooks-sbm.*
+            :width: 40%
+        .. image:: polbooks-sbm-sampled.*
+            :width: 40%
+
+        *Left:* Political books network. *Right:* Sample from the degree-corrected
+        SBM fitted to the original network.
+
+        """
+        if canonical:
+            in_degs = out_degs = None
+            if self.deg_corr:
+                out_degs = self.g.degree_property_map("out").fa
+                if self.g.is_directed():
+                    in_degs = self.g.degree_property_map("in").fa
+                else:
+                    in_degs = None
+            g = generate_sbm(b=self.b.fa,
+                             probs=adjacency(self.bg, weight=self.mrs),
+                             in_degs=in_degs, out_degs=out_degs,
+                             directed=self.g.is_directed())
+            if not multigraph:
+                remove_parallel_edges(g)
+            if not self_loops:
+                remove_self_loops(g)
+        else:
+            g = self.g.copy()
+            if self.deg_corr:
+                model = "constrained-configuration"
+                probs = None
+            else:
+                model = "blockmodel"
+                if multigraph and self_loops:
+                    niter = 1
+                def probs(r, s):
+                    me = self.bg.edge(r, s)
+                    if me is None:
+                        return 0.
+                    return self.mrs[me]
+            random_rewire(g, model=model, edge_probs=probs, n_iter=niter,
+                          parallel_edges=multigraph, self_loops=self_loops,
+                          block_membership=self.b)
+        return g
 
 def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     r"""Computes the amount of information necessary for the parameters of the
