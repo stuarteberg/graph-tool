@@ -652,7 +652,7 @@ class NestedBlockState(object):
 
 def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
                        frozen_levels=None, sparse_thres=100, bisection_args={},
-                       verbose=False):
+                       epsilon=1e-8, verbose=False):
     """Attempt to find a fit of the nested stochastic block model that minimizes the
     description length.
 
@@ -676,6 +676,9 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
         full entropy is always computed exactly).
     bisection_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :func:`~graph_tool.inference.bisection_minimize`.
+    epsilon: ``float`` (optional, default: ``1e-8``)
+        Only replace levels if the description length difference is above this
+        threshold.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
@@ -757,7 +760,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
             Sf = state.entropy()
 
-            if Sf < Si:
+            if Si - Sf > epsilon:
                 kept = False
                 dS += Sf - Si
 
@@ -788,7 +791,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
             Sf = state.entropy()
 
-            if Sf > Si:
+            if Si - Sf < epsilon:
                 state.levels[l - 1] = bstates[0]
                 state.levels.insert(l, bstates[1])
             else:
@@ -823,7 +826,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
             Sf = state.entropy()
 
-            if Sf >= Si:
+            if Si - Sf < epsilon:
                 if check_verbose(verbose):
                     print(verbose_pad(verbose) + "level", l, ": rejected insert",
                           state.levels[l].B, ", dS:", Sf - Si)
