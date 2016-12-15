@@ -175,30 +175,6 @@ html_use_opensearch = 'http://graph-tool.skewed.de/doc/'
 htmlhelp_basename = 'graph-tooldoc'
 
 
-# Options for LaTeX output
-# ------------------------
-
-# Grouping the document tree into LaTeX files. List of tuples (source start
-# file, target name, title, author, document class [howto/manual]).
-latex_documents = [
-  ('index', 'graph-tool.tex', ur'graph-tool documentation',
-   ur'Tiago de Paula Peixoto', 'manual'),
-]
-
-latex_preamble = """
-\setcounter{tocdepth}{2}
-"""
-
-latex_show_pagerefs = True
-latex_show_urls = False
-latex_paper_size = "a4"
-
-latex_logo = "blockmodel.pdf"
-
-latex_elements = {
-    'papersize': "a4paper",
-    'fontpkg': r"\usepackage{bookman}"}
-
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy', None),
