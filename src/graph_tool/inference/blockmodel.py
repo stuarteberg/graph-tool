@@ -2054,8 +2054,8 @@ class BlockState(object):
                     in_degs = self.g.degree_property_map("in").fa
                 else:
                     in_degs = None
-            g = generate_sbm(b=self.b.fa,
-                             probs=adjacency(self.bg, weight=self.mrs),
+            probs = adjacency(self.bg, weight=self.mrs)
+            g = generate_sbm(b=self.b.fa, probs=probs,
                              in_degs=in_degs, out_degs=out_degs,
                              directed=self.g.is_directed())
             if not multigraph:

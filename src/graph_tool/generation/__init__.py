@@ -851,13 +851,16 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     probs : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
         Matrix with edge propensities between groups. The value ``probs[r,s]``
         corresponds to the average number of edges between groups ``r`` and
-        ``s``.
+        ``s`` (or twice the average number if ``r == s`` and the graph is
+        undirected).
     out_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        Expected out-degree for each node. If not provided, a constant value
-        will be used.
+        Out-degree propensity for each node. If not provided, a constant value
+        will be used. Note that the values will be normalized inside each group,
+        if they are not already so.
     in_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
-        Expected in-degree for each node. If not provided, a constant value
-        will be used. This parameter is ignored if ``directed == False``.
+        In-degree propensity for each node. If not provided, a constant value
+        will be used. Note that the values will be normalized inside each group,
+        if they are not already so.
     directed : ``bool`` (optional, default: ``False``)
         Whether the graph is directed.
 
@@ -879,12 +882,19 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
 
         P({\boldsymbol A}|{\boldsymbol \lambda},{\boldsymbol \theta},{\boldsymbol b})
             = \prod_{i<j}\frac{e^{-\lambda_{b_ib_j}\theta_i\theta_j}(\lambda_{b_ib_j}\theta_i\theta_j)^{A_{ij}}}{A_{ij}!}
-              \times\prod_i\frac{e^{-\lambda_{b_ib_i}\theta_i^2}(\lambda_{b_ib_i}\theta_i^2)^{A_{ij}/2}}{(A_{ij}/2)!},
+              \times\prod_i\frac{e^{-\lambda_{b_ib_i}\theta_i^2/2}(\lambda_{b_ib_i}\theta_i^2/2)^{A_{ij}/2}}{(A_{ij}/2)!},
 
     where :math:`\lambda_{rs}` is the edge propensity between groups :math:`r`
     and :math:`s`, and :math:`\theta_i` is the propensity of node i to receive
-    edges, which is proportional to its expected degree. For directed graphs,
-    likelihood is analogous:
+    edges, which is proportional to its expected degree. Note that in the
+    algorithm it is assumed that the node propensities are normalized for each
+    group,
+
+    .. math::
+
+        \sum_i\theta_i\delta_{b_i,r} = 1.
+
+    For directed graphs, the probability is analogous:
 
     .. math::
 
@@ -931,7 +941,6 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     if not directed:
         if out_degs is None:
             out_degs = in_degs = g.new_vp("double", 1)
-
         else:
             out_degs = in_degs = g.new_vp("double", out_degs)
     else:
@@ -949,7 +958,9 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
         idx = r <= s
         r = r[idx]
         s = s[idx]
-    p = probs[r, s]
+    p = numpy.squeeze(probs[r, s])
+
+    g.set_directed(directed)
 
     libgraph_tool_generation.gen_sbm(g._Graph__graph,
                                      _prop("v", g, b),
@@ -959,8 +970,6 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
                                      _prop("v", g, in_degs),
                                      _prop("v", g, out_degs),
                                      _get_rng())
-    g.set_directed(directed)
-
     return g
 
 def predecessor_tree(g, pred_map):

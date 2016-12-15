@@ -64,12 +64,14 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         v_out_sampler.emplace_back(rvs[r], v_out_probs[r]);
     }
 
-
     for (size_t i = 0; i < rs.shape()[0]; ++i)
     {
         size_t r = rs[i];
         size_t s = ss[i];
-        double p = probs[0][i];
+        double p = probs[i];
+
+        if (!is_directed::apply<Graph>::type::value && r == s)
+            p /= 2;
 
         if (r >= v_out_sampler.size() || v_out_sampler[r].prob_sum() == 0 ||
             s >= v_in_sampler.size() || v_in_sampler[s].prob_sum() == 0)
