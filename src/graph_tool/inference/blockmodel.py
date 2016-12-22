@@ -606,6 +606,8 @@ class BlockState(object):
             eweight = self.mrs
             if self.g.get_vertex_filter()[0] is not None:
                 bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
+
+        recs = False
         if vweight == "nonempty":
             vweight = bg.new_vp("int", self.wr.a > 0)
         elif vweight == "unity":
@@ -615,6 +617,7 @@ class BlockState(object):
                 vweight = bg.own_property(self.wr.copy())
             else:
                 vweight = self.wr
+            recs = True
         else:
             vweight = None
         state = BlockState(bg,
@@ -626,16 +629,14 @@ class BlockState(object):
                                                   self.allow_empty),
                            degs=degs,
                            rec_types=kwargs.pop("rec_types",
-                                                self.rec_types if vweight else []),
+                                                self.rec_types if recs else []),
                            recs=kwargs.pop("recs",
                                            ungroup_vector_property(bg.ep.rec,
                                                                    range(len(self.rec_types)))
-                                           if (vweight is not None and
-                                               len(self.rec_types) > 0)
+                                           if (recs and len(self.rec_types) > 0)
                                            else []),
                            drec=kwargs.pop("drec",
-                                           bg.ep.drec if (vweight is not None and
-                                                          len(self.rec_types) > 0)
+                                           bg.ep.drec if (recs and len(self.rec_types) > 0)
                                            else None),
                            rec_params=kwargs.pop("rec_params", self.rec_params),
                            ignore_degrees=kwargs.pop("ignore_degrees",
