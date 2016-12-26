@@ -456,9 +456,12 @@ class MulticanonicalState(object):
 
     def get_entropy(self, S, B=None):
         r = self.get_density(B)
-        dS = (self._S_max - self._S_min) / len(r)
-        j = int(round((S - self._S_min) / dS))
+        j = self.get_bin()
         return r[j]
+
+    def get_bin(self, S):
+        return int(round((len(self._hist) - 1) * ((S - self._S_min) /
+                                                  (self._S_max - self._S_min))))
 
     def get_hist(self):
         "Get energy histogram."
@@ -585,7 +588,7 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
             print(verbose_pad(verbose) +
                   "count: %d  time: %#8.8g  f: %#8.8g  flatness: %#8.8g  S: %#8.8g" % \
                   (count, m_state._time, m_state._f, hf,
-                   state.entropy(multicanonical_args.get("entropy_args", {}))))
+                   state.entropy(**multicanonical_args.get("entropy_args", {}))))
 
         if not m_state._refine:
             if hf > flatness:

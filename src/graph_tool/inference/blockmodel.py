@@ -1499,7 +1499,7 @@ class BlockState(object):
 
     def multicanonical_sweep(self, m_state, c=numpy.inf, niter=1,
                              entropy_args={}, allow_vacate=True, vertices=None,
-                             verbose=False, **kwargs):
+                             target_bin=-1, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
         Wang-Landau algorithm.
 
@@ -1525,6 +1525,8 @@ class BlockState(object):
         vertices : ``list`` of ints (optional, default: ``None``)
             If provided, this should be a list of vertices which will be
             moved. Otherwise, all vertices will.
+        target_bin : ``int`` (optional, default: ``-1``)
+            If this energy bin is reached, stop sweep prematurely.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -1579,6 +1581,7 @@ class BlockState(object):
         multi_state.S_max = m_state._S_max
         multi_state.hist = m_state._hist
         multi_state.dens = m_state._density
+        multi_state.target_bin = target_bin
 
         S, nmoves, f, time = \
                 self._multicanonical_sweep_dispatch(multi_state)

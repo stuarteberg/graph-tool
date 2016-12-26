@@ -49,6 +49,7 @@ using namespace std;
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
     ((verbose,, bool, 0))                                                      \
+    ((target_bin,, int, 0))                                                 \
     ((niter,, size_t, 0))
 
 
@@ -81,6 +82,12 @@ struct Multicanonical
         }
 
         typename state_t::g_t& _g;
+
+        int get_bin(double S)
+        {
+            return round((_hist.size() - 1) *
+                         ((S - _S_min) / (_S_max - _S_min)));
+        };
 
         size_t node_state(size_t v)
         {

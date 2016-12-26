@@ -47,15 +47,8 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
     auto& hist = state._hist;
     auto& dens = state._dens;
     int M = hist.size();
-    double S_min = state._S_min;
-    double S_max = state._S_max;
 
-    auto get_bin = [&](double x) -> int
-        {
-            return round((M - 1) * (x - S_min) / (S_max - S_min));
-        };
-
-    int i = get_bin(S);
+    int i = state.get_bin(S);
 
     if (i < 0 || i >= M)
         throw ValueException("current state lies outside the allowed entropy range");
@@ -71,7 +64,7 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
 
         std::pair<double, double> dS = state.virtual_move_dS(v, s);
 
-        int j = get_bin(S + dS.first);
+        int j = state.get_bin(S + dS.first);
 
         bool accept;
         if (j < 0 || j >= M)
@@ -107,6 +100,9 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
         state._time += 1./M;
         if (state._refine)
             state._f *= (state._time - 1. / M) / state._time;
+
+        if (i == state._target_bin)
+            break;
     }
     return make_pair(S, nmoves);
 }
