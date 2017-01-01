@@ -597,13 +597,13 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         desired. If degree probabilistic correlations are provided, the mixing
         time tends to be larger.
 
-        If ``model`` is either "probabilistic" or "blockmodel", the Markov chain
-        still needs to be mixed, even if parallel edges and self-loops are
-        allowed. In this case the Markov chain is implemented using the
-        Metropolis-Hastings [metropolis-equations-1953]_
-        [hastings-monte-carlo-1970]_ acceptance/rejection algorithm. It will
-        eventually converge to the desired probabilities for sufficiently large
-        values of ``n_iter``.
+        If ``model`` is either "probabilistic-configuration", "blockmodel" or
+        "blockmodel-degree", the Markov chain still needs to be mixed, even if
+        parallel edges and self-loops are allowed. In this case the Markov chain
+        is implemented using the Metropolis-Hastings
+        [metropolis-equations-1953]_ [hastings-monte-carlo-1970]_
+        acceptance/rejection algorithm. It will eventually converge to the
+        desired probabilities for sufficiently large values of ``n_iter``.
 
 
     Each edge is tentatively swapped once per iteration, so the overall
@@ -892,16 +892,33 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
 
     .. math::
 
-        \sum_i\theta_i\delta_{b_i,r} = 1.
+        \sum_i\theta_i\delta_{b_i,r} = 1,
 
-    For directed graphs, the probability is analogous:
+    such that the value :math:`\lambda_{rs}` will correspond to the average
+    number of edges between groups :math:`r` and :math:`s` (or twice that if
+    :math:`r = s`). If the supplied values of :math:`\theta_i` are not
+    normalized as above, they will be normalized prior to the generation of the
+    graph.
+
+    For directed graphs, the probability is analogous, with :math:`\lambda_{rs}`
+    being in general asymmetric:
 
     .. math::
 
         P({\boldsymbol A}|{\boldsymbol \lambda},{\boldsymbol \theta},{\boldsymbol b})
             = \prod_{ij}\frac{e^{-\lambda_{b_ib_j}\theta^+_i\theta^-_j}(\lambda_{b_ib_j}\theta^+_i\theta^-_j)^{A_{ij}}}{A_{ij}!}.
 
-    The graph is generated in time :math:`O(V + E)`.
+    Again, the same normalization is assumed:
+
+    .. math::
+
+        \sum_i\theta_i^+\delta_{b_i,r} = \sum_i\theta_i^-\delta_{b_i,r} = 1,
+
+    such that the value :math:`\lambda_{rs}` will correspond to the average
+    number of directed edges between groups :math:`r` and :math:`s`.
+
+    The graph is generated in time :math:`O(V + E + B)`, where :math:`B` is the
+    number of groups.
 
     Examples
     --------
@@ -910,7 +927,8 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     >>> g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
     >>> g = gt.Graph(g, prune=True)
     >>> state = gt.minimize_blockmodel_dl(g)
-    >>> u = gt.generate_sbm(state.b.a, gt.adjacency(state.bg, state.mrs),
+    >>> u = gt.generate_sbm(state.b.a, gt.adjacency(state.get_bg(),
+    ...                                             state.get_ers()),
     ...                     g.degree_property_map("out").a,
     ...                     g.degree_property_map("in").a, directed=True)
     >>> gt.graph_draw(g, g.vp.pos, output="polblogs-sbm.png")
@@ -958,7 +976,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
         idx = r <= s
         r = r[idx]
         s = s[idx]
-    p = numpy.squeeze(probs[r, s])
+    p = numpy.squeeze(numpy.array(probs[r, s]))
 
     g.set_directed(directed)
 
