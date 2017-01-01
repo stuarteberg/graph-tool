@@ -485,7 +485,7 @@ class MulticanonicalState(object):
             S_min, S_max = self.get_allowed_energies()
             h = array(h[numpy.logical_and(Ss >= S_min, Ss <= S_max)],
                       dtype="float")
-        if len(h) == 1:
+        if len(h) == 1 and h.sum() < 1000:
             h = array([1e-6] + list(h))
         if not use_ent:
             h_mean = h.mean()
