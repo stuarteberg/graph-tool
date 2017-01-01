@@ -441,7 +441,7 @@ def _graph_sig(g):
 
 def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
                        threshold=0, self_loops=False, parallel_edges=False,
-                       full_output=False, shuffle_model="uncorrelated"):
+                       full_output=False, shuffle_model="configuration"):
     r"""
     Obtain the motif significance profile, for subgraphs with k vertices. A
     tuple with two lists is returned: the list of motifs found, and their
@@ -475,7 +475,7 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
         of each motif, the average count of each motif in the shuffled networks,
         and the standard deviation of the average count of each motif in the
         shuffled networks.
-    shuffle_model : string (optional, default: "uncorrelated")
+    shuffle_model : string (optional, default: "configuration")
         Shuffle model to use. See :func:`~graph_tool.generation.random_rewire`
         for details.
 
