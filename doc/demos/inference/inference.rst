@@ -477,7 +477,7 @@ fits. In our particular case, we have
 
 .. testcode:: model-selection
 
-   print(u"ln Λ: ", state_dc.entropy() - state_ndc.entropy())
+   print(u"ln \u039b: ", state_dc.entropy() - state_ndc.entropy())
 
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
@@ -504,13 +504,13 @@ example, for the American football network above, we have:
 
    print("Non-degree-corrected DL:\t", state_ndc.entropy())
    print("Degree-corrected DL:\t", state_dc.entropy())
-   print(u"ln Λ:\t\t\t", state_ndc.entropy() - state_dc.entropy())
+   print(u"ln \u039b:\t\t\t", state_ndc.entropy() - state_dc.entropy())
 
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
    Non-degree-corrected DL:	 1738.71605436
-   Degree-corrected DL:	 1795.27140372
+   Degree-corrected DL:		 1795.27140372
    ln Λ:			 -56.5553493622
 
 Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-56} \sim
