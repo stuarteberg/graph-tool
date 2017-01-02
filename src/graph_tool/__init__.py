@@ -798,6 +798,7 @@ class PropertyMap(object):
     def set_value(self, val):
         """Sets all values in the property map to ``val``."""
         g = self.get_graph()
+        val = self.__convert(val)
         if self.key_type() == "v":
             libcore.set_vertex_property(g._Graph__graph, _prop("v", g, self), val)
         elif self.key_type() == "e":
