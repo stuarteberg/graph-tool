@@ -27,6 +27,7 @@ libgraph_tool_topology_la_SOURCES = \
     graph_maximal_planar.cc \
     graph_maximal_vertex_set.cc \
     graph_minimum_spanning_tree.cc \
+    graph_percolation.cc \
     graph_planar.cc \
     graph_random_matching.cc \
     graph_random_spanning_tree.cc \
@@ -45,5 +46,6 @@ libgraph_tool_topology_la_SOURCES = \
 libgraph_tool_topology_la_include_HEADERS = \
     graph_components.hh \
     graph_kcore.hh \
+    graph_percolation.hh \
     graph_similarity.hh \
     graph_vertex_similarity.hh

@@ -53,6 +53,8 @@ Summary
    label_biconnected_components
    label_largest_component
    label_out_component
+   vertex_percolation
+   edge_percolation
    kcore_decomposition
    is_bipartite
    is_DAG
@@ -82,9 +84,10 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "topological_sort", "transitive_closure", "tsp_tour",
            "sequential_vertex_coloring", "label_components",
            "label_largest_component", "label_biconnected_components",
-           "label_out_component", "kcore_decomposition", "shortest_distance",
-           "shortest_path", "all_shortest_paths", "all_predecessors",
-           "all_paths", "all_circuits", "pseudo_diameter", "is_bipartite", "is_DAG",
+           "label_out_component", "vertex_percolation", "edge_percolation",
+           "kcore_decomposition", "shortest_distance", "shortest_path",
+           "all_shortest_paths", "all_predecessors", "all_paths",
+           "all_circuits", "pseudo_diameter", "is_bipartite", "is_DAG",
            "is_planar", "make_maximal_planar", "similarity", "vertex_similarity",
            "edge_reciprocity"]
 
@@ -1254,6 +1257,169 @@ def label_biconnected_components(g, eprop=None, vprop=None):
              label_biconnected_components(g._Graph__graph, _prop("e", g, eprop),
                                           _prop("v", g, vprop))
     return eprop, vprop, hist
+
+def vertex_percolation(g, vertices):
+    """Compute the size of the largest component as vertices are (virtually)
+    removed from the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    vertices : :class:`numpy.ndarray` or iterable of ints
+        List of vertices in reversed order of removal.
+
+    Returns
+    -------
+    size : :class:`numpy.ndarray`
+        Size of the largest component prior to removal of each vertex.
+    comp : :class:`~graph_tool.PropertyMap`
+        Vertex property map with component labels.
+
+    Notes
+    -----
+
+    The algorithm runs in :math:`O(V + E)` time.
+
+    Examples
+    --------
+    .. testcode::
+       :hide:
+
+       import numpy.random
+       numpy.random.seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.random_graph(10000, lambda: geometric(1./4) + 1, directed=False)
+    >>> vertices = sorted([v for v in g.vertices()], key=lambda v: v.out_degree())
+    >>> sizes, comp = gt.vertex_percolation(g, vertices)
+    >>> numpy.random.shuffle(vertices)
+    >>> sizes2, comp = gt.vertex_percolation(g, vertices)
+    >>> figure()
+    <...>
+    >>> plot(sizes, label="Targeted")
+    [...]
+    >>> plot(sizes2, label="Random")
+    [...]
+    >>> xlabel("Vertices remaining")
+    <...>
+    >>> ylabel("Size of largest component")
+    <...>
+    >>> legend(loc="lower right")
+    <...>
+    >>> savefig("vertex-percolation.svg")
+
+    .. figure:: vertex-percolation.*
+        :align: center
+
+        Targeted and random vertex percolation of a random graph with an
+        exponential degree distribution.
+
+    References
+    ----------
+    .. [newman-ziff] M. E. J. Newman, R. M. Ziff, "A fast Monte Carlo algorithm
+       for site or bond percolation", Phys. Rev. E 64, 016706 (2001)
+       :doi:`10.1103/PhysRevE.64.016706`, :arxiv:`cond-mat/0101295`
+
+    """
+    vertices = numpy.asarray(vertices, dtype="uint64")
+
+    tree = g.vertex_index.copy("int64_t")
+    size = g.new_vertex_property("int64_t", 1)
+    max_size = numpy.zeros(len(vertices), dtype="uint64")
+
+    u = GraphView(g, directed=False)
+
+    libgraph_tool_topology.\
+        percolate_vertex(u._Graph__graph,
+                         _prop("v", u, tree),
+                         _prop("v", u, size),
+                         vertices, max_size)
+
+    return max_size, tree
+
+def edge_percolation(g, edges):
+    """Compute the size of the largest component as edges are (virtually)
+    removed from the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    edges : :class:`numpy.ndarray` or iterable of pairs of ints
+        List of edges in reversed order of removal. If the type is
+        :class:`numpy.ndarray`, it should have a shape ``(E, 2)``, where ``E``
+        is the number of edges, such that ``edges[i,0]`` and ``edges[i,1]`` are
+        the both endpoints of edge ``i``.
+
+    Returns
+    -------
+    size : :class:`numpy.ndarray`
+        Size of the largest component prior to removal of each edge.
+    comp : :class:`~graph_tool.PropertyMap`
+        Vertex property map with component labels.
+
+    Notes
+    -----
+
+    The algorithm runs in :math:`O(E)` time.
+
+    Examples
+    --------
+    .. testcode::
+       :hide:
+
+       import numpy.random
+       numpy.random.seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.random_graph(10000, lambda: geometric(1./4) + 1, directed=False)
+    >>> edges = sorted([(e.source(), e.target()) for e in g.edges()],
+    ...                key=lambda e: e[0].out_degree() * e[1].out_degree())
+    >>> sizes, comp = gt.edge_percolation(g, edges)
+    >>> numpy.random.shuffle(edges)
+    >>> sizes2, comp = gt.edge_percolation(g, edges)
+    >>> figure()
+    <...>
+    >>> plot(sizes, label="Targeted")
+    [...]
+    >>> plot(sizes2, label="Random")
+    [...]
+    >>> xlabel("Edges remaining")
+    <...>
+    >>> ylabel("Size of largest component")
+    <...>
+    >>> legend(loc="lower right")
+    <...>
+    >>> savefig("edge-percolation.svg")
+
+    .. figure:: edge-percolation.*
+        :align: center
+
+        Targeted and random edge percolation of a random graph with an
+        exponential degree distribution.
+
+    References
+    ----------
+    .. [newman-ziff] M. E. J. Newman, R. M. Ziff, "A fast Monte Carlo algorithm
+       for site or bond percolation", Phys. Rev. E 64, 016706 (2001)
+       :doi:`10.1103/PhysRevE.64.016706`, :arxiv:`cond-mat/0101295`
+
+    """
+    edges = numpy.asarray(edges, dtype="uint64")
+
+    tree = g.vertex_index.copy("int64_t")
+    size = g.new_vertex_property("int64_t", 1)
+    max_size = numpy.zeros(len(edges), dtype="uint64")
+
+    u = GraphView(g, directed=False)
+
+    libgraph_tool_topology.\
+        percolate_edge(u._Graph__graph,
+                       _prop("v", u, tree),
+                       _prop("v", u, size),
+                       edges, max_size)
+    return max_size, tree
 
 def kcore_decomposition(g, deg="out", vprop=None):
     """

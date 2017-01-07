@@ -55,6 +55,7 @@ vector<int32_t> get_tsp(GraphInterface& gi, size_t src, boost::any weight_map);
 
 void export_components();
 void export_kcore();
+void export_percolation();
 void export_similarity();
 void export_dists();
 void export_all_dists();
@@ -83,6 +84,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_topology)
     def("get_tsp", &get_tsp);
     export_components();
     export_kcore();
+    export_percolation();
     export_similarity();
     export_dists();
     export_all_dists();
