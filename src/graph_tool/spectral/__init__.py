@@ -292,7 +292,7 @@ def laplacian(g, deg="total", normalized=False, weight=None, index=None):
             index = g.vertex_index
 
     V = g.num_vertices()
-    nself = label_self_loops(g, mark_only=True).a.sum()
+    nself = int(label_self_loops(g, mark_only=True).a.sum())
     E = g.num_edges() - nself
     if not g.is_directed():
         E *= 2
