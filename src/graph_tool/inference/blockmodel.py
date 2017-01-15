@@ -396,7 +396,7 @@ class BlockState(object):
         self._state = libinference.make_block_state(self, _get_rng())
 
         if deg_corr:
-            init_q_cache(max(self.get_E(), self.get_N()) + 1)
+            init_q_cache(max(2 * max(self.get_E(), self.get_N()), 100))
 
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
