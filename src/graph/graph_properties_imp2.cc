@@ -22,6 +22,10 @@
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 
+#ifdef USING_OPENMP
+#include <omp.h>
+#endif
+
 using namespace std;
 using namespace boost;
 using namespace graph_tool;
@@ -160,7 +164,15 @@ struct do_out_edges_op
 
         auto vprop = boost::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
 
-        parallel_vertex_loop
+        #ifdef USING_OPENMP
+        size_t __attribute__ ((unused)) nt = omp_get_num_threads();
+        if (std::is_convertible<eval_t,python::object>::value)
+            nt = 1; // python is not thread-safe
+        #endif
+
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            num_threads(nt)
+        parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
              {
