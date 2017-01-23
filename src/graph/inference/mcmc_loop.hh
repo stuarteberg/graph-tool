@@ -69,11 +69,15 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
-        std::shuffle(vlist.begin(), vlist.end(), rng);
+        if (state._sequential)
+            std::shuffle(vlist.begin(), vlist.end(), rng);
 
-        for (auto v : vlist)
+        for (size_t vi = 0; vi < vlist.size(); ++vi)
         {
-            if (!state._sequential)
+            size_t v;
+            if (state._sequential)
+                v = vlist[vi];
+            else
                 v = uniform_sample(vlist, rng);
 
             if (state.node_weight(v) == 0)
