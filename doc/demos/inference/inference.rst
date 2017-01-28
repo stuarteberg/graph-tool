@@ -110,7 +110,7 @@ The `stochastic block model
 the simplest generative process based on the notion of groups of
 nodes [holland-stochastic-1983]_. The `microcanonical
 <https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ formulation
-[peixoto-nonparametric-2016]_ of the basic or "traditional" version takes
+[peixoto-nonparametric-2017]_ of the basic or "traditional" version takes
 as parameters the partition of the nodes into groups
 :math:`\boldsymbol b` and a :math:`B\times B` matrix of edge counts
 :math:`\boldsymbol e`, where :math:`e_{rs}` is the number of edges
@@ -182,7 +182,7 @@ degree distributions. A better model for such networks is called the
 it is defined just like the traditional model, with the addition of the
 degree sequence :math:`\boldsymbol k = \{k_i\}` of the graph as an
 additional set of parameters (assuming again a microcanonical
-formulation [peixoto-nonparametric-2016]_).
+formulation [peixoto-nonparametric-2017]_).
 
 
 The nested stochastic block model
@@ -461,7 +461,7 @@ case of the `C. elegans` network we have
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
 be accessed by inspecting the posterior odds ratio
-[peixoto-nonparametric-2016]_
+[peixoto-nonparametric-2017]_
 
 .. math::
 
@@ -918,7 +918,7 @@ Model class selection
 When averaging over partitions, we may be interested in evaluating which
 **model class** provides a better fit of the data, considering all
 possible parameter choices. This is done by evaluating the model
-evidence [peixoto-nonparametric-2016]_
+evidence [peixoto-nonparametric-2017]_
 
 .. math::
 
@@ -1383,8 +1383,9 @@ References
    blockmodels and community structure in networks", Phys. Rev. E 83,
    016107 (2011), :doi:`10.1103/PhysRevE.83.016107`, :arxiv:`1008.3926`
    
-.. [peixoto-nonparametric-2016] Tiago P. Peixoto, "Nonparametric
-   Bayesian inference of the microcanonical stochastic block model"
+.. [peixoto-nonparametric-2017] Tiago P. Peixoto, "Nonparametric
+   Bayesian inference of the microcanonical stochastic block model",
+   Phys. Rev. E 95 012317 (2017), :doi:`10.1103/PhysRevE.95.012317`,
    :arxiv:`1610.02703`
 
 .. [peixoto-parsimonious-2013] Tiago P. Peixoto, "Parsimonious module

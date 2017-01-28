@@ -738,7 +738,8 @@ class BlockState(object):
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
                 exact=True, **kwargs):
-        r"""Calculate the entropy associated with the current block partition.
+        r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
+        with the current block partition.
 
         Parameters
         ----------
@@ -777,14 +778,15 @@ class BlockState(object):
         Notes
         -----
 
-        The "entropy" of the state is minus the log-likelihood of the
+        The "entropy" of the state is the negative log-likelihood of the
         microcanonical SBM, that includes the generated graph
-        :math:`\boldsymbol{A}` and the model parameters :math:`\boldsymbol{\theta}`,
+        :math:`\boldsymbol{A}` and the model parameters
+        :math:`\boldsymbol{\theta}`,
 
         .. math::
 
-           \mathcal{S} &= - \ln P(\boldsymbol{A},\boldsymbol{\theta}) \\
-                       &= - \ln P(\boldsymbol{A}|\boldsymbol{\theta}) - \ln P(\boldsymbol{\theta}).
+           \Sigma &= - \ln P(\boldsymbol{A},\boldsymbol{\theta}) \\
+                  &= - \ln P(\boldsymbol{A}|\boldsymbol{\theta}) - \ln P(\boldsymbol{\theta}).
 
         This value is also called the `description length
         <https://en.wikipedia.org/wiki/Minimum_description_length>`_ of the data,
@@ -837,7 +839,7 @@ class BlockState(object):
 
         if ``multigraph == False``, otherwise we replace :math:`{n\choose
         m}\to\left(\!\!{n\choose m}\!\!\right)` above, where
-        :math:`\left(\!\!{n\choose m}\!\!\right) = {n+m-1\choose m}`.  A dense
+        :math:`\left(\!\!{n\choose m}\!\!\right) = {n+m-1\choose m}`.  A "dense"
         entropy for the degree-corrected model is not available, and if
         requested will raise a :exc:`NotImplementedError`.
 
@@ -856,7 +858,10 @@ class BlockState(object):
 
                 P(\boldsymbol{k}|\boldsymbol{e},\boldsymbol{b}) = \prod_r\left(\!\!{n_r\choose e_r}\!\!\right)^{-1}.
 
-        2. ``degree_dl_kind == "distributed"``
+            This corresponds to a noninformative prior, where the degrees are
+            sampled from a uniform distribution.
+
+        2. ``degree_dl_kind == "distributed"`` (default)
 
             .. math::
 
@@ -867,6 +872,10 @@ class BlockState(object):
             `partitions
             <https://en.wikipedia.org/wiki/Partition_(number_theory)>`_ of
             integer :math:`n` into at most :math:`m` parts.
+
+            This corresponds to a prior for the degree sequence conditioned on
+            the degree frequencies, which are themselves sampled from a uniform
+            hyperprior. This option should be preferred in most cases.
 
         3. ``degree_dl_kind == "entropy"``
 
@@ -881,10 +890,20 @@ class BlockState(object):
             only an approximation of the description length. It is meant to be
             used only for comparison purposes, and should be avoided in practice.
 
-
         For the directed case, the above expressions are duplicated for the in-
         and out-degrees.
 
+        References
+        ----------
+
+        .. [peixoto-nonparametric-2017] Tiago P. Peixoto, "Nonparametric
+           Bayesian inference of the microcanonical stochastic block model",
+           Phys. Rev. E 95 012317 (2017), :doi:`10.1103/PhysRevE.95.012317`,
+           :arxiv:`1610.02703`
+        .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block
+           structures and high-resolution model selection in large networks ",
+           Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
+           :arxiv:`1310.4377`.
         """
 
         if _bm_test() and kwargs.get("test", True):
@@ -1083,7 +1102,7 @@ class BlockState(object):
             return self._state.get_move_prob(int(v), s, self.b[v], c, True)
 
     def get_edges_prob(self, missing, spurious=[], entropy_args={}):
-        """Compute the joint log-probability of the missing and spurious edges given by
+        r"""Compute the joint log-probability of the missing and spurious edges given by
         ``missing`` and ``spurious`` (a list of ``(source, target)``
         tuples, or :meth:`~graph_tool.Edge` instances), together with the
         observed edges.
@@ -2150,15 +2169,10 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     .. [peixoto-parsimonious-2013] Tiago P. Peixoto, "Parsimonious module
        inference in large networks", Phys. Rev. Lett. 110, 148701 (2013),
        :doi:`10.1103/PhysRevLett.110.148701`, :arxiv:`1212.4794`.
-    .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block
-       structures and high-resolution model selection in large networks ",
-       Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
-       :arxiv:`1310.4377`.
-    .. [peixoto-model-2016] Tiago P. Peixoto, "Model selection and hypothesis
-       testing for large-scale network models with overlapping groups",
-       Phys. Rev. X 5, 011033 (2016), :doi:`10.1103/PhysRevX.5.011033`,
-       :arxiv:`1409.3059`.
-
+    .. [peixoto-nonparametric-2017] Tiago P. Peixoto, "Nonparametric
+       Bayesian inference of the microcanonical stochastic block model",
+       Phys. Rev. E 95 012317 (2017), :doi:`10.1103/PhysRevE.95.012317`,
+       :arxiv:`1610.02703`
     """
 
     if directed:
