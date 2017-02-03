@@ -1719,6 +1719,25 @@ class Graph(object):
         """
         return libcore.get_vertices(self.__graph)
 
+    def get_vertices(self):
+        """Return a :class:`numpy.ndarray` with the vertex indices.
+
+        .. note::
+
+           The order of the vertices is identical to
+           :meth:`~graph_tool.Graph.vertices`.
+
+        Examples
+        --------
+        >>> g = gt.Graph()
+        >>> g.add_vertex(5)
+        <...>
+        >>> g.get_vertices()
+        array([0, 1, 2, 3, 4], dtype=uint64)
+
+        """
+        return libcore.get_vertex_list(self.__graph)
+
     def vertex(self, i, use_index=True, add_missing=False):
         """Return the vertex with index ``i``. If ``use_index=False``, the
         ``i``-th vertex is returned (which can differ from the vertex with index
@@ -1776,6 +1795,124 @@ class Graph(object):
 
         """
         return libcore.get_edges(self.__graph)
+
+    def get_edges(self):
+        """Return a :class:`numpy.ndarray` containing the edges. The shape of
+        the array will be ``(E, 3)``, where ``E`` is the number of edges, and
+        each line will contain the source, target and index of an edge.
+
+        .. note::
+
+           The order of the edges is identical to
+           :meth:`~graph_tool.Graph.edges`.
+
+        Examples
+        --------
+        >>> g = gt.random_graph(6, lambda: 1, directed=False)
+        >>> g.get_edges()
+        array([[0, 4, 0],
+               [2, 1, 2],
+               [5, 3, 1]], dtype=uint64)
+        """
+        edges = libcore.get_edge_list(self.__graph)
+        E = edges.shape[0] // 3
+        return numpy.reshape(edges, (E, 3))
+
+    def get_out_edges(self, v):
+        """Return a :class:`numpy.ndarray` containing the out-edges of vertex ``v``. The
+        shape of the array will be ``(k, 3)``, where ``k`` is the out-degree of
+        ``v``, and each line will contain the source, target and index of an
+        edge.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_out_edges(66)
+        array([[   66,    63,  5266],
+               [   66, 20369,  5267],
+               [   66, 13980,  5268],
+               [   66,  8687,  5269],
+               [   66, 38674,  5270]], dtype=uint64)
+        """
+        edges = libcore.get_out_edge_list(self.__graph, int(v))
+        E = edges.shape[0] // 3
+        return numpy.reshape(edges, (E, 3))
+
+    def get_in_edges(self, v):
+        """Return a :class:`numpy.ndarray` containing the out-edges of vertex ``v``. The
+        shape of the array will be ``(k, 3)``, where ``k`` is the out-degree of
+        ``v``, and each line will contain the source, target and index of an
+        edge.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_in_edges(66)
+        array([[  8687,     66, 179681],
+               [ 20369,     66, 255033],
+               [ 38674,     66, 300230]], dtype=uint64)
+
+        """
+        edges = libcore.get_in_edge_list(self.__graph, int(v))
+        E = edges.shape[0] // 3
+        return numpy.reshape(edges, (E, 3))
+
+    def get_out_neighbours(self, v):
+        """Return a :class:`numpy.ndarray` containing the out-neighbours of vertex
+        ``v``.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_out_neighbours(66)
+        array([   63, 20369, 13980,  8687, 38674], dtype=uint64)
+
+        """
+        return libcore.get_out_neighbours_list(self.__graph, int(v))
+
+    def get_in_neighbours(self, v):
+        """Return a :class:`numpy.ndarray` containing the in-neighbours of vertex ``v``.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_in_neighbours(66)
+        array([ 8687, 20369, 38674], dtype=uint64)
+
+        """
+        return libcore.get_in_neighbours_list(self.__graph, int(v))
+
+    def get_out_degrees(self, vs, eweight=None):
+        """Return a :class:`numpy.ndarray` containing the out-degrees of vertex list
+        ``vs``. If supplied, the degrees will be weighted according to the edge
+        :class:`~graph_tool.PropertyMap` ``eweight``.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_out_degrees([42, 666])
+        array([20, 38], dtype=uint64)
+
+        """
+        return libcore.get_degree_list(self.__graph,
+                                       numpy.asarray(vs, dtype="uint64"),
+                                       _prop("e", self, eweight), True)
+
+    def get_in_degrees(self, vs, eweight=None):
+        """Return a :class:`numpy.ndarray` containing the in-degrees of vertex list
+        ``vs``. If supplied, the degrees will be weighted according to the edge
+        :class:`~graph_tool.PropertyMap` ``eweight``.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_in_degrees([42, 666])
+        array([20, 39], dtype=uint64)
+
+        """
+        return libcore.get_degree_list(self.__graph,
+                                       numpy.asarray(vs, dtype="uint64"),
+                                       _prop("e", self, eweight), False)
 
     def add_vertex(self, n=1):
         """Add a vertex to the graph, and return it. If ``n != 1``, ``n``

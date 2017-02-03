@@ -14,8 +14,21 @@
 
     See :ref:`sec_iteration` for more documentation and examples.
 
+    Iterator-based interface:
+
     .. automethod:: vertices
     .. automethod:: edges
+
+    Array-based interface:
+
+    .. automethod:: get_vertices
+    .. automethod:: get_edges
+    .. automethod:: get_out_edges
+    .. automethod:: get_in_edges
+    .. automethod:: get_out_neighbours
+    .. automethod:: get_in_neighbours
+    .. automethod:: get_out_degrees
+    .. automethod:: get_in_degrees
 
     .. container:: sec_title
 
@@ -71,7 +84,7 @@
     .. note::
 
        These functions do not actually modify the graph, and are fully
-       reversible. They are also very cheap, and have an :math:`O(1)`
+       reversible. They are also very cheap, with an :math:`O(1)`
        complexity.
 
     .. automethod:: set_directed

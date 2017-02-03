@@ -345,6 +345,160 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
     return deg_map;
 }
 
+python::object get_vertex_list(GraphInterface& gi)
+{
+    std::vector<size_t> vlist;
+    vlist.reserve(gi.get_num_vertices());
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       for (auto v: vertices_range(g))
+                           vlist.push_back(v);
+                   })();
+    return wrap_vector_owned(vlist);
+}
+
+python::object get_edge_list(GraphInterface& gi)
+{
+    std::vector<size_t> elist;
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       auto edge_index = get(edge_index_t(), g);
+                       for (auto e: edges_range(g))
+                       {
+                           elist.push_back(source(e, g));
+                           elist.push_back(target(e, g));
+                           elist.push_back(edge_index[e]);
+                       }
+                   })();
+    return wrap_vector_owned(elist);
+}
+
+python::object get_out_edge_list(GraphInterface& gi, size_t v)
+{
+    std::vector<size_t> elist;
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       if (!is_valid_vertex(v, g))
+                           throw ValueException("invalid vertex: " +
+                                                lexical_cast<string>(v));
+                       auto edge_index = get(edge_index_t(), g);
+                       elist.reserve(3 * out_degree(v, g));
+                       for (auto e: out_edges_range(v, g))
+                       {
+                           elist.push_back(source(e, g));
+                           elist.push_back(target(e, g));
+                           elist.push_back(edge_index[e]);
+                       }
+                   })();
+    return wrap_vector_owned(elist);
+}
+
+python::object get_in_edge_list(GraphInterface& gi, size_t v)
+{
+    std::vector<size_t> elist;
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       if (!is_valid_vertex(v, g))
+                           throw ValueException("invalid vertex: " +
+                                                lexical_cast<string>(v));
+                       auto edge_index = get(edge_index_t(), g);
+                       elist.reserve(3 * in_degree(v, g));
+                       for (auto e: in_edges_range(v, g))
+                       {
+                           elist.push_back(source(e, g));
+                           elist.push_back(target(e, g));
+                           elist.push_back(edge_index[e]);
+                       }
+                   })();
+    return wrap_vector_owned(elist);
+}
+
+python::object get_out_neighbours_list(GraphInterface& gi, size_t v)
+{
+    std::vector<size_t> vlist;
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       if (!is_valid_vertex(v, g))
+                           throw ValueException("invalid vertex: " +
+                                                lexical_cast<string>(v));
+                       vlist.reserve(out_degree(v, g));
+                       for (auto u: out_neighbours_range(v, g))
+                           vlist.push_back(u);
+                   })();
+    return wrap_vector_owned(vlist);
+}
+
+python::object get_in_neighbours_list(GraphInterface& gi, size_t v)
+{
+    std::vector<size_t> vlist;
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       if (!is_valid_vertex(v, g))
+                           throw ValueException("invalid vertex: " +
+                                                lexical_cast<string>(v));
+                       vlist.reserve(in_degree(v, g));
+                       for (auto u: in_neighbours_range(v, g))
+                           vlist.push_back(u);
+                   })();
+    return wrap_vector_owned(vlist);
+}
+
+python::object get_degree_list(GraphInterface& gi, python::object ovlist,
+                               boost::any eprop, bool out)
+{
+    python::object ret;
+    auto vlist = get_array<uint64_t,1>(ovlist);
+
+    typedef UnityPropertyMap<size_t,
+                             graph_traits<GraphInterface::multigraph_t>::edge_descriptor>
+        empty_t;
+    if (eprop.empty())
+    {
+        eprop = empty_t();
+    }
+    else
+    {
+        if (!belongs<edge_scalar_properties>()(eprop))
+            throw ValueException("edge weight property map must be of scalar type");
+    }
+
+    typedef mpl::push_back<edge_scalar_properties,
+                           empty_t>::type eprops_t;
+
+    auto get_degs = [&](auto deg)
+        {
+            run_action<>()(gi,
+                           [&](auto& g, auto& ew)
+                           {
+                               typedef typename std::remove_reference
+                                   <decltype(ew)>::type::value_type val_t;
+                               std::vector<val_t> dlist;
+                               dlist.reserve(vlist.size());
+                               for (auto v : vlist)
+                               {
+                                   if (!is_valid_vertex(v, g))
+                                       throw ValueException("invalid vertex: " +
+                                                            lexical_cast<string>(v));
+                                   dlist.push_back(val_t(deg(v, g, ew)));
+                               }
+                               ret = wrap_vector_owned(dlist);
+                           }, eprops_t())(eprop);
+        };
+
+    if (out)
+        get_degs(out_degreeS());
+    else
+        get_degs(in_degreeS());
+
+    return ret;
+}
+
 //
 // Below are the functions with will properly register all the types to python,
 // for every filter, type, etc.
@@ -569,6 +723,14 @@ void export_python_interface()
     def("add_edge_list_hashed", graph_tool::do_add_edge_list_hashed);
     def("add_edge_list_iter", graph_tool::do_add_edge_list_iter);
     def("get_edge", get_edge);
+
+    def("get_vertex_list", get_vertex_list);
+    def("get_edge_list", get_edge_list);
+    def("get_out_edge_list", get_out_edge_list);
+    def("get_in_edge_list", get_in_edge_list);
+    def("get_out_neighbours_list", get_out_neighbours_list);
+    def("get_in_neighbours_list", get_in_neighbours_list);
+    def("get_degree_list", get_degree_list);
 
     def("get_vertex_index", get_vertex_index);
     def("get_edge_index", do_get_edge_index);

@@ -308,7 +308,7 @@ and :meth:`~graph_tool.Vertex.in_neighbours` methods, respectively.
           print(w)
 
       # the edge and neighbours order always match
-      for e,w in izip(v.out_edges(), v.out_neighbours()):
+      for e, w in izip(v.out_edges(), v.out_neighbours()):
           assert(e.target() == w)
 
 The code above will print the out-edges and out-neighbours of all
@@ -322,8 +322,48 @@ vertices in the graph.
    somewhere (such as in a list) and remove them only after no iterator
    is being used. Removal during iteration will cause bad things to
    happen.
-   
 
+Fast iteration over vertices and edges
+""""""""""""""""""""""""""""""""""""""
+
+While convenient, looping over the graph as described in the previous
+section is not the most efficient approach. This is because the loops
+are performed in pure Python, and hence it undermines the main feature
+of the library, which is the offloading of loops from Python to
+C++. Following the :mod:`numpy` philosophy, :mod:`graph_tool` also
+provides an array-based interface that avoids loops in Python. This is
+done with the :meth:`~graph_tool.Graph.get_vertices`,
+:meth:`~graph_tool.Graph.get_edges`,
+:meth:`~graph_tool.Graph.get_out_edges`,
+:meth:`~graph_tool.Graph.get_in_edges`,
+:meth:`~graph_tool.Graph.get_out_neighbours`,
+:meth:`~graph_tool.Graph.get_in_neighbours`,
+:meth:`~graph_tool.Graph.get_out_degrees` and
+:meth:`~graph_tool.Graph.get_in_degrees` methods, which return
+:class:`numpy.ndarray` instances instead of iterators.
+
+For example, using this interface we can get the out-degree of each node via:
+
+.. testcode::
+
+   print(g.get_out_degrees(g.get_vertices()))
+
+.. testoutput::
+
+   [1 0 1 0 0 0 0 0 0 0 0 0]
+
+or the sum of the product of the in and out-degrees of the endpoints of
+each edge with:
+
+.. testcode::
+
+   edges = g.get_edges()
+   print((edges[:,0] * edges[:,1]).sum())
+
+.. testoutput::
+
+   6
+   
 .. _sec_property_maps:
 
 Property maps
