@@ -395,10 +395,10 @@ which shows the number of nodes and groups in all levels:
 
 .. testoutput:: celegans
 
-   l: 0, N: 297, B: 13
-   l: 1, N: 13, B: 5
-   l: 2, N: 5, B: 2
-   l: 3, N: 2, B: 1
+   l: 0, N: 297, B: 15
+   l: 1, N: 15, B: 7
+   l: 2, N: 7, B: 4
+   l: 3, N: 4, B: 1
 
 The hierarchical levels themselves are represented by individual
 :meth:`~graph_tool.inference.BlockState` instances obtained via the
@@ -412,10 +412,10 @@ The hierarchical levels themselves are represented by individual
 
 .. testoutput:: celegans
 
-   <BlockState object with 13 blocks (13 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
-   <BlockState object with 5 blocks (5 nonempty), for graph <Graph object, directed, with 13 vertices and 105 edges at 0x...>, at 0x...>
-   <BlockState object with 2 blocks (2 nonempty), for graph <Graph object, directed, with 5 vertices and 21 edges at 0x...>, at 0x...>
-   <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 2 vertices and 4 edges at 0x...>, at 0x...>
+   <BlockState object with 15 blocks (15 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
+   <BlockState object with 7 blocks (7 nonempty), for graph <Graph object, directed, with 15 vertices and 116 edges at 0x...>, at 0x...>
+   <BlockState object with 4 blocks (4 nonempty), for graph <Graph object, directed, with 7 vertices and 38 edges at 0x...>, at 0x...>
+   <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 4 vertices and 16 edges at 0x...>, at 0x...>
 
 This means that we can inspect the hierarchical partition just as before:
 
@@ -430,7 +430,7 @@ This means that we can inspect the hierarchical partition just as before:
 
 .. testoutput:: celegans
 
-   2
+   3
    1
    0
 
@@ -455,8 +455,8 @@ case of the `C. elegans` network we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 8507.97432099
-   Degree-corrected DL:	 8249.76252971
+   Non-degree-corrected DL:	 8477.321131...
+   Degree-corrected DL:	 8265.123659...
 
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -482,12 +482,12 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -258.211791282
+   ln Λ:  -212.197471...
 
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
 subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`e^{258} \sim 10^{112}`
+particular degree-corrected fit is around :math:`e^{258} \sim 10^{92}`
 times more likely than the non-degree corrected one, and hence it can be
 safely concluded that it provides a substantially better fit.
 
@@ -509,12 +509,12 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 1738.71605436
-   Degree-corrected DL:		 1795.27140372
-   ln Λ:			 -56.5553493622
+   Non-degree-corrected DL:	 1751.855586...
+   Degree-corrected DL:	 1810.717327...
+   ln Λ:			 -58.861740...
 
-Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-56} \sim
-10^{-24}` in favor of the non-degree-corrected model, it seems like the
+Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-58} \sim
+10^{-25}` in favor of the non-degree-corrected model, it seems like the
 degree-corrected variant is an unnecessarily complex description for
 this network.
 
@@ -575,8 +575,8 @@ random partition into 20 groups
 
 .. testoutput:: model-averaging
 
-   Change in description length: -355.396342...
-   Number of accepted vertex moves: 4561
+   Change in description length: -365.968533...
+   Number of accepted vertex moves: 4519
 
 .. note::
 
@@ -599,8 +599,8 @@ random partition into 20 groups
 
     .. testoutput:: model-averaging
 
-       Change in description length: 7.34234097...
-       Number of accepted vertex moves: 3939
+       Change in description length: 2.998041...
+       Number of accepted vertex moves: 3677
 
 Although the above is sufficient to implement model averaging, there is a
 convenience function called
@@ -621,60 +621,61 @@ will output:
 .. testoutput:: model-averaging
     :options: +NORMALIZE_WHITESPACE
 
-    niter:     1  count:    0  breaks:  0  min_S: 709.95524  max_S: 726.36140  S: 726.36140  ΔS:      16.4062  moves:    57 
-    niter:     2  count:    1  breaks:  0  min_S: 709.95524  max_S: 726.36140  S: 721.68682  ΔS:     -4.67459  moves:    67 
-    niter:     3  count:    0  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 709.37313  ΔS:     -12.3137  moves:    47 
-    niter:     4  count:    1  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 711.61100  ΔS:      2.23787  moves:    57 
-    niter:     5  count:    2  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 716.08147  ΔS:      4.47047  moves:    28 
-    niter:     6  count:    3  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 712.93940  ΔS:     -3.14207  moves:    47 
-    niter:     7  count:    4  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 712.38780  ΔS:    -0.551596  moves:    46 
-    niter:     8  count:    5  breaks:  0  min_S: 709.37313  max_S: 726.36140  S: 718.00449  ΔS:      5.61668  moves:    40 
-    niter:     9  count:    0  breaks:  0  min_S: 709.37313  max_S: 731.89940  S: 731.89940  ΔS:      13.8949  moves:    50 
-    niter:    10  count:    0  breaks:  0  min_S: 707.07048  max_S: 731.89940  S: 707.07048  ΔS:     -24.8289  moves:    45 
-    niter:    11  count:    1  breaks:  0  min_S: 707.07048  max_S: 731.89940  S: 711.91030  ΔS:      4.83982  moves:    31 
-    niter:    12  count:    2  breaks:  0  min_S: 707.07048  max_S: 731.89940  S: 726.56358  ΔS:      14.6533  moves:    56 
-    niter:    13  count:    3  breaks:  0  min_S: 707.07048  max_S: 731.89940  S: 731.77165  ΔS:      5.20807  moves:    72 
-    niter:    14  count:    4  breaks:  0  min_S: 707.07048  max_S: 731.89940  S: 707.08606  ΔS:     -24.6856  moves:    57 
-    niter:    15  count:    0  breaks:  0  min_S: 707.07048  max_S: 735.85102  S: 735.85102  ΔS:      28.7650  moves:    65 
-    niter:    16  count:    1  breaks:  0  min_S: 707.07048  max_S: 735.85102  S: 707.29116  ΔS:     -28.5599  moves:    43 
-    niter:    17  count:    0  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 702.18860  ΔS:     -5.10256  moves:    39 
-    niter:    18  count:    1  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 716.40444  ΔS:      14.2158  moves:    55 
-    niter:    19  count:    2  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 703.51896  ΔS:     -12.8855  moves:    32 
-    niter:    20  count:    3  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 714.30455  ΔS:      10.7856  moves:    34 
-    niter:    21  count:    4  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 707.26722  ΔS:     -7.03733  moves:    25 
-    niter:    22  count:    5  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 730.23976  ΔS:      22.9725  moves:    21 
-    niter:    23  count:    6  breaks:  0  min_S: 702.18860  max_S: 735.85102  S: 730.56562  ΔS:     0.325858  moves:    59 
-    niter:    24  count:    0  breaks:  0  min_S: 702.18860  max_S: 738.45136  S: 738.45136  ΔS:      7.88574  moves:    60 
-    niter:    25  count:    0  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 740.29015  ΔS:      1.83879  moves:    88 
-    niter:    26  count:    1  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 720.86367  ΔS:     -19.4265  moves:    68 
-    niter:    27  count:    2  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 723.60308  ΔS:      2.73941  moves:    48 
-    niter:    28  count:    3  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 732.81310  ΔS:      9.21002  moves:    44 
-    niter:    29  count:    4  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 729.62283  ΔS:     -3.19028  moves:    62 
-    niter:    30  count:    5  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 730.15676  ΔS:     0.533935  moves:    59 
-    niter:    31  count:    6  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 728.27350  ΔS:     -1.88326  moves:    65 
-    niter:    32  count:    7  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 732.19406  ΔS:      3.92056  moves:    57 
-    niter:    33  count:    8  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 730.53906  ΔS:     -1.65500  moves:    72 
-    niter:    34  count:    9  breaks:  0  min_S: 702.18860  max_S: 740.29015  S: 725.59638  ΔS:     -4.94268  moves:    72 
-    niter:    35  count:    0  breaks:  1  min_S: 733.07687  max_S: 733.07687  S: 733.07687  ΔS:      7.48049  moves:    54 
-    niter:    36  count:    0  breaks:  1  min_S: 728.56326  max_S: 733.07687  S: 728.56326  ΔS:     -4.51361  moves:    57 
-    niter:    37  count:    0  breaks:  1  min_S: 728.56326  max_S: 755.55140  S: 755.55140  ΔS:      26.9881  moves:    83 
-    niter:    38  count:    0  breaks:  1  min_S: 728.56326  max_S: 761.09434  S: 761.09434  ΔS:      5.54294  moves:    96 
-    niter:    39  count:    0  breaks:  1  min_S: 713.60740  max_S: 761.09434  S: 713.60740  ΔS:     -47.4869  moves:    71 
-    niter:    40  count:    1  breaks:  1  min_S: 713.60740  max_S: 761.09434  S: 713.98904  ΔS:     0.381637  moves:    67 
-    niter:    41  count:    2  breaks:  1  min_S: 713.60740  max_S: 761.09434  S: 729.22460  ΔS:      15.2356  moves:    68 
-    niter:    42  count:    3  breaks:  1  min_S: 713.60740  max_S: 761.09434  S: 724.70143  ΔS:     -4.52317  moves:    69 
-    niter:    43  count:    0  breaks:  1  min_S: 703.51896  max_S: 761.09434  S: 703.51896  ΔS:     -21.1825  moves:    40 
-    niter:    44  count:    0  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 702.85027  ΔS:    -0.668696  moves:    33 
-    niter:    45  count:    1  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 722.46508  ΔS:      19.6148  moves:    49 
-    niter:    46  count:    2  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 714.77930  ΔS:     -7.68578  moves:    62 
-    niter:    47  count:    3  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 722.04551  ΔS:      7.26621  moves:    55 
-    niter:    48  count:    4  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 708.96879  ΔS:     -13.0767  moves:    37 
-    niter:    49  count:    5  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 714.84009  ΔS:      5.87130  moves:    37 
-    niter:    50  count:    6  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 718.28558  ΔS:      3.44549  moves:    55 
-    niter:    51  count:    7  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 720.86398  ΔS:      2.57840  moves:    44 
-    niter:    52  count:    8  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 710.93672  ΔS:     -9.92726  moves:    45 
-    niter:    53  count:    9  breaks:  1  min_S: 702.85027  max_S: 761.09434  S: 735.06773  ΔS:      24.1310  moves:    28 
-    niter:    54  count:   10  breaks:  2  min_S: 702.85027  max_S: 761.09434  S: 738.16756  ΔS:      3.09983  moves:   115
+    niter:     1  count:    0  breaks:  0  min_S: 703.03618  max_S: 703.45134  S: 703.45134  ΔS:     0.415156  moves:    25 
+    niter:     2  count:    1  breaks:  0  min_S: 703.03618  max_S: 703.45134  S: 703.21595  ΔS:    -0.235390  moves:    24 
+    niter:     3  count:    0  breaks:  0  min_S: 701.19994  max_S: 703.45134  S: 701.19994  ΔS:     -2.01601  moves:    39 
+    niter:     4  count:    0  breaks:  0  min_S: 701.19994  max_S: 713.75408  S: 713.75408  ΔS:      12.5541  moves:    27 
+    niter:     5  count:    0  breaks:  0  min_S: 698.96330  max_S: 713.75408  S: 698.96330  ΔS:     -14.7908  moves:    31 
+    niter:     6  count:    1  breaks:  0  min_S: 698.96330  max_S: 713.75408  S: 709.99719  ΔS:      11.0339  moves:    25 
+    niter:     7  count:    0  breaks:  0  min_S: 698.96330  max_S: 714.31276  S: 714.31276  ΔS:      4.31558  moves:    33 
+    niter:     8  count:    0  breaks:  0  min_S: 698.96330  max_S: 723.31550  S: 723.31550  ΔS:      9.00274  moves:    45 
+    niter:     9  count:    1  breaks:  0  min_S: 698.96330  max_S: 723.31550  S: 707.76847  ΔS:     -15.5470  moves:    44 
+    niter:    10  count:    2  breaks:  0  min_S: 698.96330  max_S: 723.31550  S: 704.04928  ΔS:     -3.71920  moves:    27 
+    niter:    11  count:    3  breaks:  0  min_S: 698.96330  max_S: 723.31550  S: 717.27141  ΔS:      13.2221  moves:    41 
+    niter:    12  count:    0  breaks:  0  min_S: 698.96330  max_S: 726.10427  S: 726.10427  ΔS:      8.83286  moves:    50 
+    niter:    13  count:    1  breaks:  0  min_S: 698.96330  max_S: 726.10427  S: 704.29296  ΔS:     -21.8113  moves:    46 
+    niter:    14  count:    2  breaks:  0  min_S: 698.96330  max_S: 726.10427  S: 700.93097  ΔS:     -3.36199  moves:    28 
+    niter:    15  count:    0  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 697.90951  ΔS:     -3.02146  moves:    12 
+    niter:    16  count:    1  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 711.09915  ΔS:      13.1896  moves:    19 
+    niter:    17  count:    2  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 708.19531  ΔS:     -2.90384  moves:    30 
+    niter:    18  count:    3  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 703.07873  ΔS:     -5.11658  moves:    34 
+    niter:    19  count:    4  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 709.34044  ΔS:      6.26171  moves:    23 
+    niter:    20  count:    5  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 704.57077  ΔS:     -4.76967  moves:    19 
+    niter:    21  count:    6  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 711.97667  ΔS:      7.40590  moves:    40 
+    niter:    22  count:    7  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 710.58775  ΔS:     -1.38892  moves:    54 
+    niter:    23  count:    8  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 702.61903  ΔS:     -7.96872  moves:    31 
+    niter:    24  count:    9  breaks:  0  min_S: 697.90951  max_S: 726.10427  S: 706.06001  ΔS:      3.44098  moves:    24 
+    niter:    25  count:    0  breaks:  1  min_S: 711.64522  max_S: 711.64522  S: 711.64522  ΔS:      5.58521  moves:    33 
+    niter:    26  count:    0  breaks:  1  min_S: 710.56094  max_S: 711.64522  S: 710.56094  ΔS:     -1.08428  moves:    30 
+    niter:    27  count:    0  breaks:  1  min_S: 710.56094  max_S: 712.46103  S: 712.46103  ΔS:      1.90009  moves:    46 
+    niter:    28  count:    0  breaks:  1  min_S: 707.57080  max_S: 712.46103  S: 707.57080  ΔS:     -4.89023  moves:    34 
+    niter:    29  count:    0  breaks:  1  min_S: 707.57080  max_S: 722.00778  S: 722.00778  ΔS:      14.4370  moves:    27 
+    niter:    30  count:    0  breaks:  1  min_S: 707.57080  max_S: 734.73745  S: 734.73745  ΔS:      12.7297  moves:    50 
+    niter:    31  count:    1  breaks:  1  min_S: 707.57080  max_S: 734.73745  S: 719.44750  ΔS:     -15.2900  moves:    46 
+    niter:    32  count:    2  breaks:  1  min_S: 707.57080  max_S: 734.73745  S: 711.99566  ΔS:     -7.45184  moves:    48 
+    niter:    33  count:    0  breaks:  1  min_S: 704.17177  max_S: 734.73745  S: 704.17177  ΔS:     -7.82389  moves:    48 
+    niter:    34  count:    0  breaks:  1  min_S: 703.43809  max_S: 734.73745  S: 703.43809  ΔS:    -0.733679  moves:    44 
+    niter:    35  count:    1  breaks:  1  min_S: 703.43809  max_S: 734.73745  S: 715.43913  ΔS:      12.0010  moves:    31 
+    niter:    36  count:    2  breaks:  1  min_S: 703.43809  max_S: 734.73745  S: 708.54508  ΔS:     -6.89406  moves:    31 
+    niter:    37  count:    0  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 697.63193  ΔS:     -10.9131  moves:    17 
+    niter:    38  count:    1  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 716.87544  ΔS:      19.2435  moves:    25 
+    niter:    39  count:    2  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 706.87316  ΔS:     -10.0023  moves:    32 
+    niter:    40  count:    3  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 709.13483  ΔS:      2.26166  moves:    38 
+    niter:    41  count:    4  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 703.48652  ΔS:     -5.64830  moves:    35 
+    niter:    42  count:    5  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 710.13765  ΔS:      6.65113  moves:    24 
+    niter:    43  count:    6  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 713.00298  ΔS:      2.86533  moves:    46 
+    niter:    44  count:    7  breaks:  1  min_S: 697.63193  max_S: 734.73745  S: 699.51434  ΔS:     -13.4886  moves:    39 
+    niter:    45  count:    0  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 734.94974  ΔS:      35.4354  moves:    40 
+    niter:    46  count:    1  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 709.94102  ΔS:     -25.0087  moves:    64 
+    niter:    47  count:    2  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 715.21111  ΔS:      5.27009  moves:    62 
+    niter:    48  count:    3  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 726.59326  ΔS:      11.3822  moves:    89 
+    niter:    49  count:    4  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 700.21105  ΔS:     -26.3822  moves:    51 
+    niter:    50  count:    5  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 715.11949  ΔS:      14.9084  moves:    32 
+    niter:    51  count:    6  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 712.70602  ΔS:     -2.41347  moves:    38 
+    niter:    52  count:    7  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 715.03487  ΔS:      2.32885  moves:    40 
+    niter:    53  count:    8  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 703.76698  ΔS:     -11.2679  moves:    33 
+    niter:    54  count:    9  breaks:  1  min_S: 697.63193  max_S: 734.94974  S: 708.25232  ΔS:      4.48535  moves:    38 
+    niter:    55  count:   10  breaks:  2  min_S: 697.63193  max_S: 734.94974  S: 703.30308  ΔS:     -4.94924  moves:    22 
 
 Note that the value of ``wait`` above was made purposefully low so that
 the output would not be overly long. The most appropriate value requires
@@ -802,8 +803,7 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: 6.222068...
-   Number of accepted vertex moves: 7615
+   Change in description length: 4.770959...
 
 Similarly to the the non-nested case, we can use
 :func:`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
@@ -1068,8 +1068,8 @@ evidence efficiently, as we show below, using
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -575.889667037 (mean field), -794.733483508 (Bethe)
-   Model evidence for deg_corr = False: -618.120673252 (mean field), -729.104723167 (Bethe)
+   Model evidence for deg_corr = True: -572.438723317 (mean field), -817.711546614 (Bethe)
+   Model evidence for deg_corr = False: -595.279671328 (mean field), -721.324905971 (Bethe)
 
 If we consider the more accurate approximation, the outcome shows a
 preference for the non-degree-corrected model.
@@ -1133,8 +1133,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -333.948404832 (mean field), -651.91054824 (Bethe)
-   Model evidence for deg_corr = False: -360.235692786 (mean field), -549.293909028 (Bethe)
+   Model evidence for deg_corr = True: -376.050449701 (mean field), -569.119296537 (Bethe)
+   Model evidence for deg_corr = False: -395.475065061 (mean field), -555.449191199 (Bethe)
 
 The results are similar: If we consider the most accurate approximation,
 the non-degree-corrected model possesses the largest evidence. Note also

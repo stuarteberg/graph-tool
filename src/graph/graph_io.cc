@@ -275,58 +275,6 @@ struct create_dynamic_map
     EdgeIndexMap _edge_map;
 };
 
-
-// this graph wraps an UndirectedAdaptor, but overrides the underlying
-// edge_descriptor type with the original type. This will make the edge property
-// maps compatible with the original graph, but will break some things which
-// are not relevant here
-
-template <class Graph>
-struct FakeUndirGraph: public UndirectedAdaptor<Graph>
-{
-    FakeUndirGraph(const Graph &g): UndirectedAdaptor<Graph>(g) {}
-    FakeUndirGraph(UndirectedAdaptor<Graph> &g): UndirectedAdaptor<Graph>(g) {}
-};
-
-template <class Graph>
-struct FakeEdgeIterator:
-    public graph_traits<UndirectedAdaptor<Graph> >::edge_iterator
-{
-    typedef typename graph_traits<FakeUndirGraph<Graph> >::edge_descriptor
-        edge_descriptor;
-    typedef typename graph_traits<UndirectedAdaptor<Graph> >::edge_iterator
-        edge_iterator;
-    FakeEdgeIterator(){}
-    FakeEdgeIterator(edge_iterator e): edge_iterator(e) {}
-    edge_descriptor operator*() const
-    {
-        return edge_descriptor(*edge_iterator(*this));
-    }
-
-};
-
-
-namespace boost {
-template <class Graph>
-struct graph_traits<FakeUndirGraph<Graph> >
-    : public graph_traits<UndirectedAdaptor<Graph> >
-{
-    typedef typename graph_traits<Graph>::edge_descriptor edge_descriptor;
-    typedef FakeEdgeIterator<Graph> edge_iterator;
-};
-
-template <class Graph>
-std::pair<FakeEdgeIterator<Graph>,
-          FakeEdgeIterator<Graph>> edges(const FakeUndirGraph<Graph>& g)
-{
-    auto e = edges(UndirectedAdaptor<Graph>(g));
-    return std::make_pair(FakeEdgeIterator<Graph>(e.first),
-                          FakeEdgeIterator<Graph>(e.second));
-}
-
-}
-
-
 //==============================================================================
 // read_from_file(file, pfile, format)
 //==============================================================================
@@ -488,18 +436,6 @@ struct do_write_to_file
     }
 };
 
-struct do_write_to_file_fake_undir: public do_write_to_file
-{
-    template <class Graph, class IndexMap>
-    void operator()(ostream& stream, Graph& g, IndexMap index_map,
-                    dynamic_properties& dp, const string& format) const
-    {
-        typedef typename Graph::original_graph_t graph_t;
-        FakeUndirGraph<graph_t> ug(g);
-        do_write_to_file(*this)(stream, ug, index_map, dp, format);
-    }
-};
-
 struct do_write_to_binary_file
 {
     template <class Graph, class IndexMap>
@@ -633,35 +569,22 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
                 if (format == "dot")
                     graphviz_insert_index(dp, index_map);
 
-                if (get_directed())
-                    run_action<detail::always_directed>()
-                        (*this, boost::bind<void>(do_write_to_file(),
-                                                  boost::ref(stream), _1,
-                                                  index_map, boost::ref(dp),
-                                                  format))();
-                else
-                    run_action<detail::never_directed>()
-                        (*this,boost::bind<void>(do_write_to_file_fake_undir(),
-                                                 boost::ref(stream), _1, index_map,
-                                                 boost::ref(dp), format))();
+                run_action<>()
+                    (*this, boost::bind<void>(do_write_to_file(),
+                                              boost::ref(stream), _1,
+                                              index_map, boost::ref(dp),
+                                              format))();
             }
             else
             {
                 if (format == "dot")
                     graphviz_insert_index(dp, _vertex_index);
 
-                if (get_directed())
-                    run_action<detail::always_directed>()
-                        (*this, boost::bind<void>(do_write_to_file(),
-                                                  boost::ref(stream), _1,
-                                                  _vertex_index,  boost::ref(dp),
-                                                  format))();
-                else
-                    run_action<detail::never_directed>()
-                        (*this,boost::bind<void>(do_write_to_file_fake_undir(),
-                                                 boost::ref(stream), _1,
-                                                 _vertex_index, boost::ref(dp),
-                                                 format))();
+                run_action<>()
+                    (*this, boost::bind<void>(do_write_to_file(),
+                                              boost::ref(stream), _1,
+                                              _vertex_index,  boost::ref(dp),
+                                              format))();
             }
         }
         stream.reset();

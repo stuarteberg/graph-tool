@@ -58,6 +58,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_adjacency.hh \
     graph_adaptor.hh \
     graph_exceptions.hh \
+    graph_filtered.hh \
     graph_filtering.hh \
     graph_io_binary.hh \
     graph_properties.hh \
@@ -65,6 +66,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_properties_group.hh \
     graph_properties_map_values.hh \
     graph_python_interface.hh \
+    graph_reverse.hh \
     graph_selectors.hh \
     graph_tool.hh \
     graph_util.hh \
@@ -81,7 +83,6 @@ libgraph_tool_core_la_workarounddir = $(MOD_DIR)/include/boost-workaround/boost/
 libgraph_tool_core_la_workaround_HEADERS = \
     ../boost-workaround/boost/graph/betweenness_centrality.hpp \
     ../boost-workaround/boost/graph/detail/read_graphviz_new.hpp \
-    ../boost-workaround/boost/graph/filtered_graph.hpp \
     ../boost-workaround/boost/graph/graphml.hpp \
     ../boost-workaround/boost/graph/graphviz.hpp \
     ../boost-workaround/boost/graph/isomorphism.hpp \
@@ -91,7 +92,6 @@ libgraph_tool_core_la_workaround_HEADERS = \
     ../boost-workaround/boost/graph/overloading.hpp \
     ../boost-workaround/boost/graph/push_relabel_max_flow.hpp \
     ../boost-workaround/boost/graph/copy_alt.hpp \
-    ../boost-workaround/boost/graph/reverse_graph_alt.hpp \
     ../boost-workaround/boost/graph/stoer_wagner_min_cut.hpp
 
 libgraph_tool_core_la_LIBADD = $(MOD_LIBADD)

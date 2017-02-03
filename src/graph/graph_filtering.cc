@@ -50,40 +50,6 @@ graph_tool::ActionNotFound::ActionNotFound(const type_info& action,
     }
 }
 
-// this will check whether a graph is reversed and return the proper view
-// encapsulated
-template <class Graph>
-boost::any check_reverse(const Graph& g, bool reverse, GraphInterface& gi)
-{
-    if (reverse)
-    {
-        typedef typename boost::mpl::if_<std::is_const<Graph>,
-                                         const reverse_graph<typename std::remove_const<Graph>::type>,
-                                         reverse_graph<Graph> >::type
-            reverse_graph_t;
-
-        reverse_graph_t rg(g);
-        return std::ref(*retrieve_graph_view(gi, rg));
-    }
-
-    return boost::any(std::ref(const_cast<Graph&>(g)));
-};
-
-// this will check whether a graph is directed and return the proper view
-// encapsulated
-template <class Graph>
-boost::any check_directed(const Graph &g, bool reverse, bool directed,
-                          GraphInterface& gi)
-{
-    if (directed)
-    {
-        return check_reverse(g, reverse, gi);
-    }
-
-    typedef UndirectedAdaptor<Graph> ug_t;
-    ug_t ug(g);
-    return std::ref(*retrieve_graph_view(gi, ug));
-};
 
 // this will check whether a graph is filtered and return the proper view
 // encapsulated
@@ -94,37 +60,71 @@ check_filtered(const Graph& g, const EdgeFilter& edge_filter,
                const VertexFilter& vertex_filter, const bool& v_invert,
                bool v_active, GraphInterface& gi, bool reverse, bool directed)
 {
+
+    auto check_filt = [&](auto&& u) -> boost::any
+        {
+            typedef typename std::remove_const<
+                typename std::remove_reference<decltype(u)>::type>::type g_t;
 #ifndef NO_GRAPH_FILTERING
-    if (e_active || v_active)
-    {
-        MaskFilter<EdgeFilter>
-            e_filter(const_cast<EdgeFilter&>(edge_filter),
-                     const_cast<bool&>(e_invert));
-        MaskFilter<VertexFilter>
-            v_filter(const_cast<VertexFilter&>(vertex_filter),
-                     const_cast<bool&>(v_invert));
+            if (e_active || v_active)
+            {
+                MaskFilter<EdgeFilter>
+                    e_filter(const_cast<EdgeFilter&>(edge_filter),
+                             const_cast<bool&>(e_invert));
+                MaskFilter<VertexFilter>
+                    v_filter(const_cast<VertexFilter&>(vertex_filter),
+                             const_cast<bool&>(v_invert));
+                if (max_eindex > 0)
+                    edge_filter.reserve(max_eindex);
+                if (num_vertices(g) > 0)
+                    vertex_filter.reserve(num_vertices(g));
 
-        if (max_eindex > 0)
-            edge_filter.reserve(max_eindex);
-        if (num_vertices(g) > 0)
-            vertex_filter.reserve(num_vertices(g));
+                typedef filt_graph<g_t,
+                                       MaskFilter<EdgeFilter>,
+                                       MaskFilter<VertexFilter>> fg_t;
 
-        typedef filtered_graph<Graph, MaskFilter<EdgeFilter>,
-                               MaskFilter<VertexFilter> > fg_t;
-
-        fg_t init(g, e_filter, v_filter);
-
-        fg_t& fg = *retrieve_graph_view(gi, init);
-
-        return check_directed(fg, reverse, directed, gi);
-    }
-    else
-    {
-        return check_directed(g, reverse, directed, gi);
-    }
+                fg_t init(u, e_filter, v_filter);
+                fg_t& fg = *retrieve_graph_view(gi, init);
+                return std::ref(fg);
+            }
+            else
+            {
+                return std::ref(const_cast<g_t&>(u));
+            }
 #else
-    return check_directed(g, reverse, directed, gi);
+            return std::ref(const_cast<g_t&>(u));
 #endif
+        };
+
+    auto check_reverse = [&](auto&& u) -> boost::any
+        {
+            typedef typename std::remove_const<
+                typename std::remove_reference<decltype(u)>::type>::type g_t;
+            if (reverse)
+            {
+                typedef typename
+                    std::conditional<std::is_const<g_t>::value,
+                                     const reversed_graph<typename std::remove_const<g_t>::type>,
+                                     reversed_graph<g_t> >::type
+                    reversed_graph_t;
+                reversed_graph_t rg(u);
+                return check_filt(*retrieve_graph_view(gi, rg));
+            }
+            return check_filt(u);
+        };
+
+    auto check_directed = [&](auto&& u) -> boost::any
+        {
+            typedef typename std::remove_const<
+                typename std::remove_reference<decltype(u)>::type>::type g_t;
+            if (directed)
+                return check_reverse(u);
+            typedef undirected_adaptor<g_t> ug_t;
+            ug_t ug(u);
+            return check_filt(*retrieve_graph_view(gi, ug));
+        };
+
+    return check_directed(g);
 }
 
 // gets the correct graph view at run time
@@ -212,10 +212,8 @@ void GraphInterface::purge_vertices(boost::any aold_index)
     }
 
     N = old_indexes.size();
-    for (int i = N-1; i >= 0; --i)
-    {
+    for (int64_t i = N-1; i >= 0; --i)
         old_index[vertex((N - 1) - i, *_mg)] = old_indexes[i];
-    }
 }
 
 void GraphInterface::set_vertex_filter_property(boost::any property, bool invert)

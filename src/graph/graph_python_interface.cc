@@ -272,8 +272,8 @@ struct get_edge_dispatch
                     source(e, g) : target(e, g);
                 if (w == vertex(s, g))
                 {
-                    if (!is_directed::apply<Graph>::type::value)
-                        e.inv ^= true;
+                    if (!is_directed::apply<Graph>::type::value && e.s != s)
+                        std::swap(e.s, e.t);
                     es.append(PythonEdge<Graph>(gp, e));
                     if (!all_edges)
                         break;

@@ -174,7 +174,7 @@ void graph_path(Graph& g, size_t s, size_t t, vector<size_t>& path)
         cpred;
     auto pred = cpred.get_unchecked(num_vertices(g));
 
-    UndirectedAdaptor<Graph> ug(g);
+    undirected_adaptor<Graph> ug(g);
 
     boost::breadth_first_search(ug, s,
                                 boost::visitor(

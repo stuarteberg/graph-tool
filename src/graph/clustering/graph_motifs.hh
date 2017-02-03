@@ -252,14 +252,14 @@ bool graph_cmp(Graph& g1, Graph& g2)
 // short hand for subgraph types
 typedef boost::adj_list<size_t> d_graph_t;
 
-// we need this wrap to use the UndirectedAdaptor only on directed graphs
+// we need this wrap to use the undirected_adaptor only on directed graphs
 struct wrap_undirected
 {
     template <class Graph>
     struct apply
     {
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
-                                  boost::UndirectedAdaptor<Graph>,
+                                  boost::undirected_adaptor<Graph>,
                                   Graph&>::type type;
     };
 };
@@ -271,7 +271,7 @@ struct wrap_directed
     {
         typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
                                   Sub&,
-                                  boost::UndirectedAdaptor<Sub>>::type type;
+                                  boost::undirected_adaptor<Sub>>::type type;
     };
 };
 

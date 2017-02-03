@@ -119,7 +119,7 @@ struct get_extended_clustering
              {
                  // We must disconsider paths through the original vertex
                  typedef single_vertex_filter<vertex_t> filter_t;
-                 typedef filtered_graph<Graph, keep_all, filter_t> fg_t;
+                 typedef filt_graph<Graph, keep_all, filter_t> fg_t;
                  fg_t fg(g, keep_all(), filter_t(v));
 
                  typedef DescriptorHash<IndexMap> hasher_t;

@@ -130,7 +130,7 @@ struct get_trust_transitivity
                 source_map[boost::source(*e,g)] = true;
 
             // filter vertex w out of the graph
-            typedef filtered_graph<Graph, boost::keep_all, filter_vertex_pred>
+            typedef filt_graph<Graph, boost::keep_all, filter_vertex_pred>
                 fg_t;
             fg_t fg(g, boost::keep_all(), filter_vertex_pred(tgt));
 
@@ -183,7 +183,7 @@ struct get_trust_transitivity
             {
                 typedef typename
                     mpl::if_<typename is_directed::apply<Graph>::type,
-                             reverse_graph<fg_t>,
+                             reversed_graph<fg_t>,
                              fg_t>::type rg_t;
                 rg_t rg(fg);
                 dist_map_t sum_w(vertex_index, num_vertices(g));

@@ -396,14 +396,14 @@ struct get_all_edges
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    typedef typename boost::graph_traits<boost::UndirectedAdaptor<Graph> >::out_edge_iterator
+    typedef typename boost::graph_traits<boost::undirected_adaptor<Graph> >::out_edge_iterator
         type;
     inline __attribute__((always_inline))
     static std::pair<type,type> get_edges(vertex_descriptor v,
                                           const Graph& g)
     {
         using namespace boost;
-        const boost::UndirectedAdaptor<Graph> ug(g);
+        const boost::undirected_adaptor<Graph> ug(g);
         return out_edges(v, ug);
     }
 };
@@ -568,14 +568,14 @@ struct get_all_neighbours
                       boost::directed_tag>));
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
-    typedef typename boost::graph_traits<boost::UndirectedAdaptor<Graph> >::adjacency_iterator
+    typedef typename boost::graph_traits<boost::undirected_adaptor<Graph> >::adjacency_iterator
         type;
     inline __attribute__((always_inline))
     static std::pair<type,type> get_neighbours(vertex_descriptor v,
                                                const Graph& g)
     {
         using namespace boost;
-        const boost::UndirectedAdaptor<Graph> ug(g);
+        const boost::undirected_adaptor<Graph> ug(g);
         return out_neighbours(v, ug);
     }
 };

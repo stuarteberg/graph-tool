@@ -150,7 +150,7 @@ struct set_clustering_to_property
         typedef typename mpl::if_
            <std::is_convertible<typename graph_traits<Graph>::directed_category,
                                 directed_tag>,
-            const UndirectedAdaptor<Graph>,
+            const undirected_adaptor<Graph>,
             const Graph& >::type type;
     };
 };

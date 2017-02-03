@@ -56,7 +56,7 @@ double min_cut(GraphInterface& gi, boost::any weight, boost::any part_map)
         weight_maps;
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, std::bind(get_min_cut(),  std::placeholders::_1,  std::placeholders::_2,
+        (gi, std::bind(get_min_cut(), std::placeholders::_1, std::placeholders::_2,
                        std::placeholders::_3, std::ref(mc)),
          weight_maps(), writable_vertex_scalar_properties())(weight, part_map);
     return mc;

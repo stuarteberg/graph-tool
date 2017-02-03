@@ -31,8 +31,6 @@ namespace boost { namespace python { namespace detail {
 } } }
 
 #include <boost/graph/graph_traits.hpp>
-#include <boost/graph/filtered_graph.hpp>
-#include <boost/graph/reverse_graph_alt.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -48,6 +46,8 @@ namespace boost { namespace python { namespace detail {
 #include <random>
 
 #include "graph_selectors.hh"
+#include "graph_reverse.hh"
+#include "graph_filtered.hh"
 
 namespace graph_tool
 {
@@ -209,10 +209,21 @@ template <class Graph>
 const auto& get_dir(const Graph& g, std::false_type)
 { return g.original_graph(); }
 
+template <class Graph, class EPred, class VPred>
+auto get_dir(const boost::filt_graph<Graph, EPred, VPred>& g,
+             std::false_type)
+{
+    typedef typename
+        std::remove_reference<decltype(g._g.original_graph())>::type g_t;
+    return boost::filt_graph<g_t, EPred, VPred>(g._g.original_graph(),
+                                                g._edge_pred,
+                                                g._vertex_pred);
+}
+
 template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
 void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
 {
-    auto& u = get_dir(g, typename is_directed::apply<Graph>::type());
+    auto&& u = get_dir(g, typename is_directed::apply<Graph>::type());
     typedef typename std::remove_const
         <typename std::remove_reference<decltype(u)>::type>::type graph_t;
     static_assert(is_directed::apply<graph_t>::type::value,
@@ -256,221 +267,6 @@ void parallel_loop(Container&& v, F&& f)
 }
 
 } // namespace graph_tool
-
-// some additional functions for filtered graphs, which don't exist by default
-namespace boost
-{
-//==============================================================================
-// vertex(i, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-typename boost::graph_traits<filtered_graph<Graph,
-                                            EdgePredicate,
-                                            VertexPredicate>>::vertex_descriptor
-vertex(size_t i, const filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    typename boost::graph_traits<Graph>::vertex_descriptor v = vertex(i, g.m_g);
-    if (g.m_vertex_pred(v))
-        return v;
-    else
-        return graph_traits<Graph>::null_vertex();
-}
-
-//==============================================================================
-// vertex(i, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor
-vertex(size_t i, const reverse_graph<Graph>& g)
-{
-    return vertex(i, g.m_g);
-}
-
-//==============================================================================
-// add_edge(u, v, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-std::pair<typename boost::graph_traits
-              <filtered_graph<Graph,EdgePredicate,
-                              VertexPredicate>>::edge_descriptor, bool>
-add_edge(typename boost::graph_traits
-              <filtered_graph<Graph,EdgePredicate,
-                              VertexPredicate>>::vertex_descriptor u,
-         typename boost::graph_traits
-              <filtered_graph<Graph,EdgePredicate,
-                              VertexPredicate>>::vertex_descriptor v,
-         filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    auto ret = add_edge(u, v, const_cast<Graph&>(g.m_g));
-    auto filt = g.m_edge_pred.get_filter().get_checked();
-    filt[ret.first] = !g.m_edge_pred.is_inverted();
-    return ret;
-}
-
-//==============================================================================
-// clear_vertex(v, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline void
-clear_vertex(typename boost::graph_traits
-             <filtered_graph<Graph,EdgePredicate,VertexPredicate>>::vertex_descriptor v,
-             filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    clear_vertex(v, const_cast<Graph&>(g.m_g),
-                 [&](auto&& e){ return (g.m_edge_pred(e) &&
-                                        g.m_vertex_pred(source(e, g.m_g)) &&
-                                        g.m_vertex_pred(target(e, g.m_g))); });
-}
-
-//==============================================================================
-// get(vertex_index_t, filtered_graph<G>)
-//==============================================================================
-
-// template <class Graph, class EdgePredicate, class VertexPredicate>
-// typename property_map<Graph, vertex_index_t>::type
-// get(vertex_index_t, const filtered_graph<Graph,EdgePredicate,
-//                                          VertexPredicate>& g)
-// {
-//     return get(vertex_index_t(), g.m_g);
-// }
-
-
-//==============================================================================
-// add_edge(u, v, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-std::pair<typename boost::graph_traits<reverse_graph<Graph>>::edge_descriptor,bool>
-add_edge(typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor u,
-         typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor v,
-         reverse_graph<Graph>& g)
-{
-    typedef typename boost::graph_traits<reverse_graph<Graph>>::edge_descriptor e_t;
-    std::pair<typename boost::graph_traits<Graph>::edge_descriptor,bool> ret =
-        add_edge(v, u, const_cast<Graph&>(g.m_g)); // insert reversed
-    return std::make_pair(e_t(ret.first), ret.second);
-}
-
-//==============================================================================
-//remove_edge(e, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-void remove_edge(typename boost::graph_traits
-                     <filtered_graph<Graph,EdgePredicate,
-                                     VertexPredicate>>::edge_descriptor e,
-                 filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    return remove_edge(e,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//remove_vertex(v, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-void remove_vertex(typename boost::graph_traits
-                     <filtered_graph<Graph,EdgePredicate,
-                                     VertexPredicate>>::vertex_descriptor v,
-                 filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    auto& filt = g.m_vertex_pred.get_filter();
-    for (size_t i = v; i < num_vertices(g) - 1; ++i)
-        filt[i] = filt[i + 1];
-    return remove_vertex(v,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//remove_vertex_fast(v, filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-void remove_vertex_fast(typename boost::graph_traits
-                        <filtered_graph<Graph,EdgePredicate,
-                                        VertexPredicate>>::vertex_descriptor v,
-                        filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    size_t back = num_vertices(g) - 1;
-    auto& filt = g.m_vertex_pred.get_filter();
-    filt[v] = filt[back];
-    return remove_vertex_fast(v,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//remove_edge(e, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-void remove_edge(typename boost::graph_traits<reverse_graph<Graph>>::edge_descriptor e,
-                 reverse_graph<Graph>& g)
-{
-    return remove_edge(e,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//remove_vertex(v, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-void remove_vertex(typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor v,
-                   reverse_graph<Graph>& g)
-{
-    return remove_vertex(v,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//remove_vertex_fast(v, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-void remove_vertex_fast(typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor v,
-                        reverse_graph<Graph>& g)
-{
-    return remove_vertex_fast(v,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-//clear_vertex(v, reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-void clear_vertex(typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor v,
-                  reverse_graph<Graph>& g)
-{
-    return clear_vertex(v,const_cast<Graph&>(g.m_g));
-}
-
-//==============================================================================
-// add_vertex(filtered_graph<G>)
-//==============================================================================
-template <class Graph, class EdgePredicate, class VertexPredicate>
-inline
-typename boost::graph_traits
-    <filtered_graph<Graph,EdgePredicate,VertexPredicate>>::vertex_descriptor
-add_vertex(filtered_graph<Graph,EdgePredicate,VertexPredicate>& g)
-{
-    auto filt = g.m_vertex_pred.get_filter().get_checked();
-    auto v = add_vertex(const_cast<Graph&>(g.m_g));
-    filt[v] = !g.m_vertex_pred.is_inverted();
-    return v;
-}
-
-//==============================================================================
-// add_vertex(reverse_graph<G>)
-//==============================================================================
-template <class Graph>
-inline
-typename boost::graph_traits<reverse_graph<Graph>>::vertex_descriptor
-add_vertex(reverse_graph<Graph>& g)
-{
-    return add_vertex(const_cast<Graph&>(g.m_g));
-}
-
-} // namespace boost
-
 
 namespace std
 {

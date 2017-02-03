@@ -78,7 +78,7 @@ using namespace graph_tool;
 void triangulation(GraphInterface& gi, boost::python::object points,
                    boost::any pos, string type, bool periodic)
 {
-    UndirectedAdaptor<GraphInterface::multigraph_t> g(gi.get_graph());
+    undirected_adaptor<GraphInterface::multigraph_t> g(gi.get_graph());
     multi_array_ref<double,2> points_array = get_array<double,2>(points);
     typedef property_map_type::apply
         <vector<double>, GraphInterface::vertex_index_map_t>::type pos_type_t;

@@ -21,8 +21,6 @@
 #include "graph.hh"
 #include <boost/version.hpp>
 #include <boost/graph/graph_traits.hpp>
-#include <boost/graph/filtered_graph.hpp>
-#include <boost/graph/reverse_graph_alt.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/erase.hpp>
 #include <boost/mpl/clear.hpp>
@@ -46,6 +44,8 @@
 #include <boost/mpl/print.hpp>
 
 #include "graph_adaptor.hh"
+#include "graph_filtered.hh"
+#include "graph_reverse.hh"
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 #include "mpl_nested_loop.hh"
@@ -188,9 +188,9 @@ struct graph_filter
         typedef typename get_predicate<EdgeProperty>::type edge_predicate;
         typedef typename get_predicate<VertexProperty>::type vertex_predicate;
 
-        typedef boost::filtered_graph<Graph,
-                                      edge_predicate,
-                                      vertex_predicate> filtered_graph_t;
+        typedef boost::filt_graph<Graph,
+                                  edge_predicate,
+                                  vertex_predicate> filtered_graph_t;
 
         // If both predicates are keep_all, then return the original graph
         // type. Otherwise return the filtered_graph type.
@@ -212,7 +212,7 @@ struct graph_undirect
     template <class Graph>
     struct apply
     {
-        typedef boost::UndirectedAdaptor<Graph> type;
+        typedef boost::undirected_adaptor<Graph> type;
     };
 };
 
@@ -222,7 +222,7 @@ struct graph_reverse
     template <class Graph>
     struct apply
     {
-        typedef boost::reverse_graph<Graph> type;
+        typedef boost::reversed_graph<Graph> type;
     };
 };
 
@@ -241,24 +241,23 @@ struct get_property_map_type<boost::keep_all, IndexMap>
     typedef boost::keep_all type;
 };
 
-// this metafunction returns a filtered graph type, given the scalar types to be
-// used in the property maps
+// this metafunction returns a filtered graph type
 struct get_graph_filtered
 {
-    template <class Scalar>
+    template <class Graph>
     struct apply
     {
         // if the 'scalar' is the index map itself, use simply that, otherwise
         // get the specific property map
         typedef typename get_property_map_type<
-            Scalar,
+            uint8_t,
             GraphInterface::edge_index_map_t>::type edge_property_map;
 
         typedef typename get_property_map_type<
-            Scalar,
+            uint8_t,
             GraphInterface::vertex_index_map_t>::type vertex_property_map;
 
-        typedef typename graph_filter::apply<GraphInterface::multigraph_t,
+        typedef typename graph_filter::apply<Graph,
                                              edge_property_map,
                                              vertex_property_map>::type type;
     };
@@ -275,46 +274,56 @@ struct get_all_graph_views
               class NeverFiltered = boost::mpl::bool_<false> >
     struct apply
     {
-        // filtered graphs
-        struct filtered_graphs:
-            boost::mpl::if_<NeverFiltered,
-                            boost::mpl::vector1<GraphInterface::multigraph_t>,
-                            boost::mpl::vector2<GraphInterface::multigraph_t,
-                                                typename get_graph_filtered::apply<FiltType>::type>
-                            >::type {};
 
-        // filtered + reversed graphs
+        struct base_graphs:
+            boost::mpl::vector1<GraphInterface::multigraph_t> {};
+
+        // reversed graphs
         struct reversed_graphs:
             boost::mpl::if_<AlwaysReversed,
-                            typename boost::mpl::transform<filtered_graphs,
+                            typename boost::mpl::transform<base_graphs,
                                                            graph_reverse>::type,
                             typename boost::mpl::if_<
                                 NeverReversed,
-                                filtered_graphs,
+                                base_graphs,
                                 typename boost::mpl::transform<
-                                    filtered_graphs,
+                                    base_graphs,
                                     graph_reverse,
-                                    boost::mpl::back_inserter<filtered_graphs>
+                                    boost::mpl::back_inserter<base_graphs>
                                     >::type
                                 >::type
                             >::type {};
 
-        // undirected + filtereed + reversed graphs
+        // undirected graphs
         struct undirected_graphs:
             boost::mpl::if_<AlwaysDirected,
                             reversed_graphs,
                             typename boost::mpl::if_<
                                 NeverDirected,
-                                typename boost::mpl::transform<filtered_graphs,
-                                                               graph_undirect>::type,
                                 typename boost::mpl::transform<
-                                    filtered_graphs,
+                                    base_graphs,
+                                    graph_undirect,
+                                    boost::mpl::back_inserter<boost::mpl::vector0<>>
+                                    >::type,
+                                typename boost::mpl::transform<
+                                    base_graphs,
                                     graph_undirect,
                                     boost::mpl::back_inserter<reversed_graphs>
                                     >::type
                                 >::type
                             >::type {};
-        typedef undirected_graphs type;
+
+        // filtered graphs
+        struct filtered_graphs:
+            boost::mpl::if_<NeverFiltered,
+                            undirected_graphs,
+                            typename boost::mpl::transform<
+                                undirected_graphs,
+                                get_graph_filtered,
+                                boost::mpl::back_inserter<undirected_graphs>>::type
+                            >::type {};
+
+        typedef filtered_graphs type;
     };
 };
 
@@ -540,59 +549,55 @@ retrieve_graph_view(GraphInterface& gi, Graph& init)
 namespace boost
 {
 template <class Graph, class EdgeProperty, class VertexProperty>
-typename graph_traits<filtered_graph<Graph,
-                                     graph_tool::detail::MaskFilter<EdgeProperty>,
-                                     graph_tool::detail::MaskFilter<VertexProperty>>>::vertex_descriptor
-add_vertex(boost::filtered_graph<Graph,
-                                 graph_tool::detail::MaskFilter<EdgeProperty>,
-                                 graph_tool::detail::MaskFilter<VertexProperty>>& g)
+auto
+add_vertex(boost::filt_graph<Graph,
+                             graph_tool::detail::MaskFilter<EdgeProperty>,
+                             graph_tool::detail::MaskFilter<VertexProperty>>& g)
 {
-    auto v = add_vertex(const_cast<Graph&>(g.m_g));
-    auto& filt = g.m_vertex_pred.get_filter();
+    auto v = add_vertex(const_cast<Graph&>(g._g));
+    auto& filt = g._vertex_pred.get_filter();
     auto cfilt = filt.get_checked();
-    cfilt[v] = !g.m_vertex_pred.is_inverted();
+    cfilt[v] = !g._vertex_pred.is_inverted();
     return v;
 }
 
 template <class Graph, class EdgeProperty, class VertexProperty, class Vertex>
-std::pair<typename graph_traits<filtered_graph<Graph,
-                                               graph_tool::detail::MaskFilter<EdgeProperty>,
-                                               graph_tool::detail::MaskFilter<VertexProperty>>>::edge_descriptor, bool>
-add_edge(Vertex s, Vertex t, filtered_graph<Graph,
-                                            graph_tool::detail::MaskFilter<EdgeProperty>,
-                                            graph_tool::detail::MaskFilter<VertexProperty>>& g)
+auto
+add_edge(Vertex s, Vertex t, filt_graph<Graph,
+                                        graph_tool::detail::MaskFilter<EdgeProperty>,
+                                        graph_tool::detail::MaskFilter<VertexProperty>>& g)
 {
-    auto e = add_edge(s, t, const_cast<Graph&>(g.m_g));
-    auto& filt = g.m_edge_pred.get_filter();
+    auto e = add_edge(s, t, const_cast<Graph&>(g._g));
+    auto& filt = g._edge_pred.get_filter();
     auto cfilt = filt.get_checked();
-    cfilt[e.first] = !g.m_edge_pred.is_inverted();
+    cfilt[e.first] = !g._edge_pred.is_inverted();
     return e;
 }
 
 // Used to skip filtered vertices
 
-template <class Graph, class EdgePred, class VertexPred, class Vertex>
-bool is_valid_vertex(Vertex v, const boost::filtered_graph<Graph,EdgePred,VertexPred>&)
+template <class Graph, class EP, class VP, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::filt_graph<Graph,EP,VP>&)
 {
-    return v != graph_traits<boost::filtered_graph<Graph,EdgePred, VertexPred>>::null_vertex();
+    return v != graph_traits<boost::filt_graph<Graph,EP,VP>>::null_vertex();
+}
+
+template <class Graph, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::reversed_graph<Graph>& g)
+{
+    return is_valid_vertex(v, g._g);
+}
+
+template <class Graph, class Vertex>
+bool is_valid_vertex(Vertex v, const boost::undirected_adaptor<Graph>& g)
+{
+    return is_valid_vertex(v, g.original_graph());
 }
 
 template <class Graph, class Vertex>
 bool is_valid_vertex(Vertex, const Graph&)
 {
     return true;
-}
-
-template <class Graph, class Vertex>
-bool is_valid_vertex(Vertex v, const boost::reverse_graph<Graph>& g)
-{
-    return is_valid_vertex(v, g.m_g);
-}
-
-template <class Graph, class Vertex>
-bool is_valid_vertex(Vertex v, const boost::UndirectedAdaptor<Graph>& g)
-{
-    return is_valid_vertex(v, g.original_graph());
 }
 
 

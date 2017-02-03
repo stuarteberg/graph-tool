@@ -314,15 +314,6 @@ and :meth:`~graph_tool.Vertex.in_neighbours` methods, respectively.
 The code above will print the out-edges and out-neighbours of all
 vertices in the graph.
 
-.. note::
-
-   The ordering of the vertices and edges visited by the iterators is
-   always the same as the order in which they were added to the graph
-   (with the exception of the iterator returned by
-   :meth:`~graph_tool.Graph.edges`). Usually, algorithms do not care
-   about this order, but if it is ever needed, this inherent ordering
-   can be relied upon.
-
 .. warning::
 
    You should never remove vertex or edge descriptors when iterating
