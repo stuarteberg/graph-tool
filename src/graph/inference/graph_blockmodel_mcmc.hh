@@ -111,7 +111,7 @@ struct MCMC
             double dS = _state.virtual_move(v, r, nr, _entropy_args,
                                             _m_entries);
             double a = 0;
-            if (!std::isinf(_c))
+            if (!std::isinf(_c) && !std::isinf(_beta))
             {
                 double pf = _state.get_move_prob(v, r, nr, _c, false,
                                                  _m_entries);

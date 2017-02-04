@@ -420,6 +420,25 @@ struct Layers
             return virtual_move(v, r, s, ea, _m_entries);
         }
 
+        template <class MEntries>
+        double get_move_prob(size_t v, size_t r, size_t s, double c,
+                             bool reverse, MEntries& m_entries)
+        {
+            // m_entries may include entries from different levels
+            if (!reverse)
+            {
+                m_entries.clear();
+                BaseState::get_move_entries(v, r, s, m_entries);
+            }
+            return BaseState::get_move_prob(v, r, s, c, reverse, m_entries);
+        }
+
+        double get_move_prob(size_t v, size_t r, size_t s, double c,
+                             bool reverse)
+        {
+            return BaseState::get_move_prob(v, r, s, c, reverse);
+        }
+
         void merge_vertices(size_t u, size_t v)
         {
             std::set<size_t> ls;

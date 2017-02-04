@@ -1080,6 +1080,36 @@ public:
             disable_partition_stats();
     }
 
+    bool check_edge_counts()
+    {
+        gt_hash_map<std::pair<size_t, size_t>, size_t> mrs;
+        for (auto e : edges_range(_g))
+        {
+            size_t r = _b[source(e, _g)];
+            size_t s = _b[target(e, _g)];
+            if (!is_directed::apply<g_t>::type::value && s < r)
+                std::swap(r, s);
+            mrs[std::make_pair(r, s)] += _eweight[e];
+        }
+
+        for (auto& rs_m : mrs)
+        {
+            auto r = rs_m.first.first;
+            auto s = rs_m.first.second;
+            auto me = _emat.get_me(r, s);
+            if (me == _emat.get_null_edge())
+            {
+                assert(false);
+                return false;
+            }
+            if (size_t(_mrs[me]) != rs_m.second)
+            {
+                assert(false);
+                return false;
+            }
+        }
+        return true;
+    }
 
 //private:
     typedef typename

@@ -1703,6 +1703,8 @@ public:
         {
             auto r = rs_m.first.first;
             auto s = rs_m.first.second;
+            if (rs_m.second == 0)
+                continue;
             auto me = _emat.get_me(r, s);
             if (me == _emat.get_null_edge())
             {
