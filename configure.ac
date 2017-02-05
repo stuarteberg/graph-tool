@@ -167,14 +167,11 @@ dnl python
 echo "================"
 echo "Detecting python"
 echo "================"
-AM_PATH_PYTHON([2.6])
+AM_PATH_PYTHON([2.7])
 AC_SUBST(PYTHON_VERSION)
 PYTHON_FULL_VERSION=[`${PYTHON} -c "import sys; print(sys.version.split()[0])"`]
 AC_SUBST(PYTHON_FULL_VERSION)
-[TEMP_CPPFLAGS="${CPPFLAGS}"]
 AC_PYTHON_DEVEL([== '${PYTHON_FULL_VERSION}'])
-[CPPFLAGS="${PYTHON_CPPFLAGS} ${CPPFLAGS}"]
-[LDFLAGS="${PYTHON_LDFLAGS} ${LDFLAGS}"]
 
 # default directory for submodules
 [MOD_DIR="${PYTHON_SITE_PKG}"]
@@ -216,8 +213,6 @@ if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
 fi
 
-[CPPFLAGS="${BOOST_CPPFLAGS} ${CPPFLAGS}"]
-
 dnl CGAL
 AC_CHECK_LIB(CGAL,main)
 [CGAL_LIBADD="-lCGAL -lgmp"]
@@ -240,27 +235,22 @@ dnl Checks for header files.
 
 dnl numpy
 AX_PYTHON_MODULE(numpy, fatal)
-dnl [NUMPY_DIR="${PYTHON_SITE_PKG}/numpy"]
 [NUMPY_DIR=`$PYTHON -c "import numpy; print(numpy.get_include())"`]
 AC_ARG_WITH([numpy], [AS_HELP_STRING([--with-numpy=DIR],[directory where numpy is installed
                       [default=auto-detected] ])],
             NUMPY_DIR=$withval)
+
+[CPPFLAGS_TEMP=${CPPFLAGS}]
+[CPPFLAGS=${PYTHON_CPPFLAGS} ${CPPFLAGS}]
 AC_CHECK_HEADER([${NUMPY_DIR}/numpy/arrayobject.h],
-                [CPPFLAGS="-I${NUMPY_DIR} ${CPPFLAGS}"],
+                [],
                 [AC_MSG_ERROR([Numpy extension header not found])],
                 [#include "Python.h"])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h" #include "${NUMPY_DIR}/numpy/arrayobject.h" #if NPY_API_VERSION < 0x00000007 #error #endif]])],
                   [],
                   [AC_MSG_ERROR([Numpy is too old. Version 1.7 or above is required.])])
+[CPPFLAGS=${CPPFLAGS_TEMP}]
   
-dnl scipy
-AX_PYTHON_MODULE(scipy, fatal)
-dnl [SCIPY_DIR="${PYTHON_SITE_PKG}/scipy"]
-[SCIPY_DIR=`$PYTHON -c "import os, scipy; print(os.path.dirname(scipy.__file__))"`]
-AC_ARG_WITH([scipy], [AS_HELP_STRING([--with-scipy=DIR],[scipy install directory
-                      [default=auto-detected] ])],
-            [SCIPY_DIR=$withval])
-
 dnl expat
 AC_CHECK_HEADER([expat.h],
                 [],
@@ -279,21 +269,19 @@ if test "$USING_CAIRO" = "yes"; then
    AC_SUBST(CAIROMM_CFLAGS)
    AC_SUBST(CAIROMM_LIBS)
    AX_PYTHON_MODULE(cairo)
-   [OLD_CXXFLAGS="${CXXFLAGS}"]
-   [OLD_CPPFLAGS="${CPPFLAGS}"]
-   [CXXFLAGS="${CAIROMM_CFLAGS} ${CXXFLAGS}"]
-   [CPPFLAGS="${CAIROMM_CFLAGS} ${CPPFLAGS}"]
    PYTHON_VERSION_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
    if test "$PYTHON_VERSION_MAJOR" = "3"; then
       [PYCAIRO_HEADER=pycairo/py3cairo.h]
    else
       [PYCAIRO_HEADER=pycairo/pycairo.h]
    fi
+   [CPPFLAGS_TEMP=${CPPFLAGS}]
+   [CPPFLAGS="${CAIROMM_CPPFLAGS} ${CAIROMM_CFLAGS} ${PYTHON_CPPFLAGS} ${CPPFLAGS}"]
    AC_DEFINE_UNQUOTED([PYCAIRO_HEADER], <${PYCAIRO_HEADER}>, [pycairo header file])
-   AC_CHECK_HEADER(${PYCAIRO_HEADER}, [],
+   AC_CHECK_HEADER(${PYCAIRO_HEADER},
+                   [],
                    [AC_MSG_ERROR([pycairo headers not found])])
-   [CXXFLAGS="${OLD_CXXFLAGS}"]
-   [CPPFLAGS="${OLD_CPPFLAGS}"]
+   [CPPFLAGS=${CPPFLAGS_TEMP}]
 fi
 
 dnl sparsehash
@@ -305,16 +293,15 @@ AC_ARG_WITH([sparsehash-prefix], [AS_HELP_STRING([--with-sparsehash-prefix=prefi
 
 [USING_SPARSEHASH=yes]
 AC_MSG_CHECKING(whether to enable sparsehash)
-AC_ARG_ENABLE([sparsehash], [AS_HELP_STRING([--disable-sparsehash],[disable use of google's sparsehash [default=enabled] ])],
-        if test $enableval = no; then
-           [USING_SPARSEHASH=no]
-           [AC_MSG_RESULT(no)]
-        else
-           [AC_MSG_RESULT(yes)]
-        fi
-        ,
-        [AC_MSG_RESULT(yes)]
-        )
+AC_ARG_ENABLE([sparsehash],
+              [AS_HELP_STRING([--disable-sparsehash],[disable use of google's sparsehash [default=enabled] ])],
+              if test $enableval = no; then
+                  [USING_SPARSEHASH=no]
+                  [AC_MSG_RESULT(no)]
+              else
+                  [AC_MSG_RESULT(yes)]
+              fi,
+              [AC_MSG_RESULT(yes)])
 
 if test "$USING_SPARSEHASH" = "yes"; then
    PKG_CHECK_MODULES(SPARSEHASH, [libsparsehash],
@@ -407,13 +394,11 @@ AC_SUBST(CPPFLAGS)
 AC_SUBST(CXXFLAGS)
 
 # CPP flags for submodules
-[MOD_CPPFLAGS="-I\$(srcdir) -I\$(srcdir)/.. -I\$(srcdir)/../../boost-workaround \
--DHAVE_CONFIG_H"]
+[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} -I\$(srcdir) -I\$(srcdir)/.. -I\$(srcdir)/../../boost-workaround -DHAVE_CONFIG_H"]
 AC_SUBST(MOD_CPPFLAGS)
 
 # default LIBADD flags for submodules
-[MOD_LIBADD="${PYTHON_LDFLAGS} ${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} \
-${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB} ${OPENMP_LDFLAGS} -lexpat"]
+[MOD_LIBADD="${PYTHON_LIBS} ${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB} ${OPENMP_LDFLAGS} -lexpat"]
 AC_SUBST(MOD_LIBADD)
 
 # needed for typeinfo objects to work across DSO boundaries.
@@ -428,9 +413,9 @@ fi
 AC_SUBST(MOD_LDFLAGS)
 
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
-                         [${PYTHON_LDFLAGS} -l${BOOST_PYTHON_LIB}],
+                         [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-ftemplate-depth-250 ${SPARSEHASH_CFLAGS} ${PYTHON_CPPFLAGS} -I${NUMPY_DIR} ${BOOST_CPPFLAGS} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
+                         [-ftemplate-depth-250 ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} -I${NUMPY_DIR} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
                          [])
 
 AC_CONFIG_FILES([
