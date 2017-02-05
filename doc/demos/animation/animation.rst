@@ -208,7 +208,7 @@ file, so we can encode the animation with the `WebM format
 
 .. code-block:: bash
 
-   $ mencoder mf://frames/bfs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o bfs.yuy
+   $ mencoder mf://frames/bfs*.png -mf w=type=png -ovc raw -of rawvideo -vf format=i420,scale=500:400 -nosound -o bfs.yuy
    $ vpxenc bfs.yuy -o bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=5000 --good --threads=4
 
 
@@ -216,7 +216,7 @@ file, so we can encode the animation with the `WebM format
    :hide:
 
    >>> import subprocess
-   >>> subprocess.call("mencoder mf://frames/bfs*.png -mf w=500:h=400:type=png -ovc raw -of rawvideo -vf format=i420 -nosound -o demos/animation/bfs.yuy".split())
+   >>> subprocess.call("mencoder mf://frames/bfs*.png -mf type=png -ovc raw -of rawvideo -vf format=i420,scale=500:400 -nosound -o demos/animation/bfs.yuy".split())
    0
    >>> subprocess.call("vpxenc demos/animation/bfs.yuy -o demos/animation/bfs.webm -w 500 -h 400 --fps=5/1 --target-bitrate=2000 --good --threads=4".split())
    0

@@ -77,6 +77,8 @@ if not offscreen:
                       vertex_anchor=0,
                       edge_color=[0.6, 0.6, 0.6, 1],
                       edge_sloppy=True,
+                      vertex_color=[1.,1.,1.,0.],
+                      vertex_fill_color=[1.,1.,1.,0.],
                       vertex_surface=vertex_sfcs,
                       vertex_halo=newly_infected,
                       vertex_halo_size=1.2,
@@ -90,11 +92,12 @@ else:
                             vertex_anchor=0,
                             edge_sloppy=True,
                             edge_color=[0.6, 0.6, 0.6, 1],
+                            vertex_color=[1.,1.,1.,0.],
+                            vertex_fill_color=[1.,1.,1.,0.],
                             vertex_surface=vertex_sfcs,
                             vertex_halo=newly_infected,
                             vertex_halo_color=[0.8, 0, 0, 0.6])
     win.add(win.graph)
-
 
 # This function will be called repeatedly by the GTK+ main loop, and we use it
 # to update the state according to the SIRS dynamics.
