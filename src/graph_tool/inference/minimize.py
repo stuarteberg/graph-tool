@@ -47,10 +47,10 @@ def default_args(mcmc_args={}, anneal_args={}, mcmc_equilibrate_args={},
                                **shrink_args.get("entropy_args", {}))
     if not shrink_entropy_args.get("dense", False):
          shrink_entropy_args["multigraph"] = False
-    shrink_args = dict(dict(entropy_args=shrink_entropy_args, niter=10),
+    shrink_args = dict(dict(entropy_args=shrink_entropy_args, niter=20),
                        **dmask(shrink_args, ["entropy_args"]))
     mcmc_multilevel_args = \
-            dict(dict(r=1.5, anneal=False,
+            dict(dict(r=1.3, anneal=False,
                       shrink_args=shrink_args,
                       mcmc_equilibrate_args=mcmc_equilibrate_args,
                       anneal_args=anneal_args),
