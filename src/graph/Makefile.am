@@ -2,20 +2,15 @@
 
 SUBDIRS = centrality clustering correlations draw flow generation inference layout search spectral stats topology util
 
-AM_CPPFLAGS =\
-    -I$(srcdir)/.. \
-    -I$(srcdir)/../boost-workaround \
-    -DHAVE_CONFIG_H
-
-AM_CXXFLAGS =\
-    -Wall \
-    $(PYTHON_CPPFLAGS) \
-    $(BOOST_CPPFLAGS)
+AM_CPPFLAGS = $(MOD_CPPFLAGS)
 
 AM_CFLAGS = $(AM_CXXFLAGS)
 
 libgraph_tool_coredir = $(MOD_DIR)
 libgraph_tool_core_LTLIBRARIES = libgraph_tool_core.la
+
+libgraph_tool_core_la_LIBADD = $(MOD_LIBADD)
+libgraph_tool_core_la_LDFLAGS = $(MOD_LDFLAGS)
 
 libgraph_tool_core_la_SOURCES = \
     base64.cc \
@@ -93,7 +88,4 @@ libgraph_tool_core_la_workaround_HEADERS = \
     ../boost-workaround/boost/graph/push_relabel_max_flow.hpp \
     ../boost-workaround/boost/graph/copy_alt.hpp \
     ../boost-workaround/boost/graph/stoer_wagner_min_cut.hpp
-
-libgraph_tool_core_la_LIBADD = $(MOD_LIBADD)
-libgraph_tool_core_la_LDFLAGS = $(MOD_LDFLAGS)
 

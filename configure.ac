@@ -48,125 +48,79 @@ dnl Checks for options
 dnl Turn debugging on or off
 AC_MSG_CHECKING(whether to enable debug info)
 
-AC_ARG_ENABLE([debug], [AS_HELP_STRING([--enable-debug],[compile debug information [default=disabled] ])],
-        if test $enableval = yes; then
-           [AC_DEFINE([DEBUG], 1, [compile debug info])]
-           [CXXFLAGS="-ggdb3 ${CXXFLAGS}"]
-           [AC_MSG_RESULT(yes)] 
-        else
-           [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
-           [AC_MSG_RESULT(no)]
-        fi
-        ,
-        [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
-        [AC_MSG_RESULT(no)]
-        )
+AC_ARG_ENABLE([debug],
+              [AS_HELP_STRING([--enable-debug],[compile debug information [default=disabled] ])],
+              if test $enableval = yes; then
+                  [AC_DEFINE([DEBUG], 1, [compile debug info])]
+                  [CXXFLAGS="-g ${CXXFLAGS}"]
+                  [AC_MSG_RESULT(yes)]
+              else
+                  [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
+                  [AC_MSG_RESULT(no)]
+              fi,
+              [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
+              [AC_MSG_RESULT(no)])
 
 dnl set template depth
-[CXXFLAGS="-ftemplate-depth-250 ${CXXFLAGS}"]
+[CXXFLAGS="-ftemplate-depth-250  ${CXXFLAGS}"]
 
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
-[CXXFLAGS="-Wno-deprecated -Wno-unknown-pragmas ${CXXFLAGS}"]
+[CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]
 
-AC_MSG_CHECKING(whether to enable optimizations)
+dnl set default visibility
+[CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
 
-AC_ARG_ENABLE([optimization], [AS_HELP_STRING([--disable-optimization],[disable optimization [default=enabled] ])],
-        if test $enableval = no; then
-           [AC_MSG_RESULT(no)]
-        else
-           [CXXFLAGS="-O3 ${CXXFLAGS}"]
-           [AC_MSG_RESULT(yes)]
-        fi
-        ,
-        [CXXFLAGS="-O3 ${CXXFLAGS}"]
-        [AC_MSG_RESULT(yes)]
-        )
+dnl set default optimizations
+[CXXFLAGS="-O3 ${CXXFLAGS}"]
 
-AC_MSG_CHECKING(whether to enable symbol visibility manipulation)
-
-AC_ARG_ENABLE([visibility], [AS_HELP_STRING([--disable-visibility],[disable symbol visibility manipulation [default=enabled] ])],
-        if test $enableval = yes; then
-           [CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
-           [AC_MSG_RESULT(yes)]
-        else
-           [AC_MSG_RESULT(no)]
-        fi
-        ,
-        [CXXFLAGS="-fvisibility=default -fvisibility-inlines-hidden ${CXXFLAGS}"]
-        [AC_MSG_RESULT(yes)]
-        )
-
-
-[NO_GRAPH_FILTERING=no]
-# AC_MSG_CHECKING(whether to enable graph filtering...)
-# AC_ARG_ENABLE([graph-filtering], [AS_HELP_STRING([--disable-graph-filtering],[disable graph filtering [default=enabled] ])],
-#         if test $enableval = no; then
-#            [AC_DEFINE([NO_GRAPH_FILTERING], 1, [disable graph filtering])]
-#            [NO_GRAPH_FILTERING=yes]
-#            [AC_MSG_RESULT(no)]
-#         else
-#            [AC_MSG_RESULT(yes)]
-#         fi
-#         ,
-#         [AC_MSG_RESULT(yes)]
-#         )
-
-[USING_OPENMP=yes]
-[OPENMP_LDFLAGS=""]
+dnl OpenMP
 AC_DEFINE([OPENMP_MIN_THRESH], 300, [default minimum number of vertices for parallel loops])
 AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
-AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--enable-openmp],[enable openmp [default=disabled] ])],
-        if test $enableval = yes; then
-           [AC_MSG_RESULT(yes)]
-           [AC_DEFINE([USING_OPENMP], 1, [using openmp])]
-           [CXXFLAGS="-fopenmp ${CXXFLAGS}"]
-           [OPENMP_LDFLAGS="-lgomp"]
-        else
-           [USING_OPENMP=no]
-           [CXXFLAGS="${CXXFLAGS} -Wno-unknown-pragmas"]
-           [AC_MSG_RESULT(no)]    
-        fi
-        ,
-        [CXXFLAGS="${CXXFLAGS} -Wno-unknown-pragmas"]
-        [AC_MSG_RESULT(no)]
-        )
-AC_SUBST(OPENMP_LDFLAGS)
+AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[disable openmp [default=enabled] ])],
+              if test $enableval = yes; then
+                  [AC_MSG_RESULT(yes)]
+                  [USING_OPENMP=yes]
+                  [AX_OPENMP([], [USING_OPENMP=no]
+                                 [OPENMP_CXXFLAGS="-Wno-unknown-pragmas"])]
+              else
+                  [AC_MSG_RESULT(no)]              
+                  [USING_OPENMP=no]
+                  [OPENMP_CXXFLAGS="-Wno-unknown-pragmas"]
+              fi,
+              [USING_OPENMP=yes]
+              [AX_OPENMP([], [USING_OPENMP=no]
+                             [OPENMP_CXXFLAGS="-Wno-unknown-pragmas"])])
+if test ${USING_OPENMP} = yes; then
+    AC_DEFINE([USING_OPENMP], 1, [using openmp])
+fi
+[CXXFLAGS="${OPENMP_CXXFLAGS} ${CXXFLAGS}"]
 
 [USING_CAIRO=yes]
 AC_MSG_CHECKING(whether to enable cairo drawing)
 AC_ARG_ENABLE([cairo], [AS_HELP_STRING([--disable-cairo],[disable cairo drawing [default=enabled] ])],
-        if test $enableval = no; then
-           [USING_CAIRO=no]
-           [AC_MSG_RESULT(no)]
-        else
-           [AC_MSG_RESULT(yes)]
-        fi
-        ,
-        [AC_MSG_RESULT(yes)]
-        )
+              if test $enableval = no; then
+                 [USING_CAIRO=no]
+                 [AC_MSG_RESULT(no)]
+              else
+                 [AC_MSG_RESULT(yes)]
+              fi,
+              [AC_MSG_RESULT(yes)])
 
 dnl Override prefix with default value if not set
 if test "x${prefix}" = "xNONE"; then
-  prefix=${ac_default_prefix}
+   prefix=${ac_default_prefix}
 fi
 
 dnl Checks for programs.
 
 dnl Checks for libraries.
-
-dnl math library
-AC_CHECK_LIB(m,main)
-
-dnl bzip2 compression library
-AC_CHECK_LIB(bz2,main)
-
 dnl expat
-AC_CHECK_LIB(expat,main)
+AX_LIB_EXPAT()
+if test "$HAVE_EXPAT" = "no"; then
+    AC_MSG_ERROR([expat library not found])
+fi
 
 dnl python
-echo "================"
-echo "Detecting python"
-echo "================"
 AM_PATH_PYTHON([2.7])
 AC_SUBST(PYTHON_VERSION)
 PYTHON_FULL_VERSION=[`${PYTHON} -c "import sys; print(sys.version.split()[0])"`]
@@ -180,15 +134,9 @@ AC_ARG_WITH([python-module-path],
                             [directory where python module will be installed
                              [default=auto-detected]])],
             MOD_DIR=$withval)
-echo "graph-tool will be installed at: ${MOD_DIR}"
 
 [MOD_DIR="${MOD_DIR}/graph_tool"]
 AC_SUBST(MOD_DIR)
-
-echo "==========================="
-echo "Using python version: ${PYTHON_FULL_VERSION}"
-echo "==========================="
-
 
 dnl boost
 AX_BOOST_BASE([[1.54.0]])
@@ -213,22 +161,23 @@ if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
 fi
 
+[BOOST_LIBS="${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB}"]
+
+dnl GNU MP library (needed by CGAL)
+AC_CHECK_LIB(gmp, __gmpz_init, ,
+             [AC_MSG_ERROR([GNU MP not found (CGAL dependency), see https://gmplib.org/])])
 dnl CGAL
-AC_CHECK_LIB(CGAL,main)
-[CGAL_LIBADD="-lCGAL -lgmp"]
-AC_SUBST(CGAL_LIBADD)
+AX_LIB_CGAL_CORE([], AC_MSG_ERROR([CGAL library not found.]))
 [CGAL_FLAGS="-frounding-math"]
 AC_MSG_CHECKING(whether to enable cgal debbuging with valgrind)
 AC_ARG_ENABLE([cgal-valgrind], [AS_HELP_STRING([--enable-cgal-valgrind],[enable CGAL valgrind debugging [default=disabled] ])],
-        if test $enableval = yes; then
-           [AC_MSG_RESULT(yes)]
-           [CGAL_FLAGS="${CGAL_FLAGS} -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON"]
-        else
-           [AC_MSG_RESULT(no)]    
-        fi
-        ,
-        [AC_MSG_RESULT(no)]
-        )
+              if test $enableval = yes; then
+                 [AC_MSG_RESULT(yes)]
+                 [CGAL_FLAGS="${CGAL_FLAGS} -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON"]
+              else
+                 [AC_MSG_RESULT(no)]    
+              fi,
+              [AC_MSG_RESULT(no)])
 AC_SUBST(CGAL_FLAGS)
 
 dnl Checks for header files.
@@ -239,6 +188,7 @@ AX_PYTHON_MODULE(numpy, fatal)
 AC_ARG_WITH([numpy], [AS_HELP_STRING([--with-numpy=DIR],[directory where numpy is installed
                       [default=auto-detected] ])],
             NUMPY_DIR=$withval)
+[NUMPY_CPPFLAGS="-I${NUMPY_DIR}"]
 
 [CPPFLAGS_TEMP=${CPPFLAGS}]
 [CPPFLAGS=${PYTHON_CPPFLAGS} ${CPPFLAGS}]
@@ -250,17 +200,6 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h" #include "${NUMPY_DIR}/n
                   [],
                   [AC_MSG_ERROR([Numpy is too old. Version 1.7 or above is required.])])
 [CPPFLAGS=${CPPFLAGS_TEMP}]
-  
-dnl expat
-AC_CHECK_HEADER([expat.h],
-                [],
-                [AC_MSG_ERROR([Expat header not found])])
-
-dnl cgal
-AC_CHECK_HEADER([CGAL/version.h],
-                [],
-                [AC_MSG_ERROR([CGAL headers not found])])
-
 
 dnl cairo
 if test "$USING_CAIRO" = "yes"; then
@@ -323,9 +262,9 @@ dnl Checks for Additional stuff.
 
 dnl Set PACKAGE PREFIX
 if test "x${prefix}" = "xNONE"; then
-  packageprefix=${ac_default_prefix}
+   packageprefix=${ac_default_prefix}
 else
-  packageprefix=${prefix}
+   packageprefix=${prefix}
 fi
 
 dnl Set PACKAGE DATA & DOC DIR
@@ -385,7 +324,7 @@ AC_DEFINE([GIT_COMMIT_DATE], "esyscmd(git log -1 | head -n 3 | grep 'Date:' | se
 # GCC version
 AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)], [GCC version value])
 
-# set some automake variables
+# set automake variables
 
 # global CPP flags
 AC_SUBST(CPPFLAGS)
@@ -393,12 +332,12 @@ AC_SUBST(CPPFLAGS)
 # global CXX flags
 AC_SUBST(CXXFLAGS)
 
-# CPP flags for submodules
-[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} -I\$(srcdir) -I\$(srcdir)/.. -I\$(srcdir)/../../boost-workaround -DHAVE_CONFIG_H"]
+# extra CPP flags for submodules
+[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS} -I\$(top_srcdir)/src/boost-workaround -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir)"]
 AC_SUBST(MOD_CPPFLAGS)
 
-# default LIBADD flags for submodules
-[MOD_LIBADD="${PYTHON_LIBS} ${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB} ${OPENMP_LDFLAGS} -lexpat"]
+# extra LIBADD flags for submodules
+[MOD_LIBADD="${PYTHON_LIBS} ${BOOST_LIBS} ${EXPAT_LIBS} ${EXPAT_LDFLAGS}"]
 AC_SUBST(MOD_LIBADD)
 
 # needed for typeinfo objects to work across DSO boundaries.
@@ -415,7 +354,7 @@ AC_SUBST(MOD_LDFLAGS)
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-ftemplate-depth-250 ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} -I${NUMPY_DIR} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
+                         [-ftemplate-depth-250 ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
                          [])
 
 AC_CONFIG_FILES([
@@ -438,3 +377,51 @@ src/graph/util/Makefile
 src/graph_tool/Makefile
 ])
 AC_OUTPUT
+
+echo "$(tput setaf 2)================================================================================$(tput sgr0)"
+echo "$(tput setaf 2)                             CONFIGURATION SUMMARY                              $(tput sgr0)"
+echo "$(tput setaf 2)================================================================================$(tput sgr0)"
+echo -e "$(tput setaf 3)Using python version:           $(tput setaf 4)${PYTHON_FULL_VERSION}$(tput sgr0)"
+echo -e "$(tput setaf 3)Python interpreter:             $(tput setaf 4)${PYTHON}$(tput sgr0)"
+echo -e "$(tput setaf 3)Installation path:              $(tput setaf 4)${MOD_DIR}$(tput sgr0)\n"
+
+echo -e "$(tput setaf 3)C++ compiler (CXX):             $(tput setaf 4)${CXX}$(tput sgr0)"
+echo -e "$(tput setaf 3)C++ compiler version:           $(tput setaf 4)`${CXX} -dumpversion`$(tput sgr0)\n"
+
+echo -e "$(tput setaf 3)Prefix:                         $(tput setaf 4)${prefix}$(tput sgr0)"
+echo -e "$(tput setaf 3)Pkgconfigdir:                   $(tput setaf 4)${pkgconfigdir}$(tput sgr0)\n"
+
+echo -e "$(tput setaf 3)Python preprocessor flags:      $(tput setaf 4)${PYTHON_CPPFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Python linker flags:            $(tput setaf 4)${PYTHON_LIBS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Boost preprocessor flags:       $(tput setaf 4)${BOOST_CPPFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Boost linker flags:             $(tput setaf 4)${BOOST_LIBS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Numpy preprocessor flags:       $(tput setaf 4)${NUMPY_CPPFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Sparsehash preprocessor flags:  $(tput setaf 4)${SPARSEHASH_CFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)CGAL preprocessor flags:        $(tput setaf 4)${CGAL_CPPFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)CGAL linker flags:              $(tput setaf 4)${CGAL_LDFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Expat preprocessor flags:       $(tput setaf 4)${EXPAT_CFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Expat linker flags:             $(tput setaf 4)${EXPAT_LDFLAGS} ${EXPAT_LIBS}$(tput sgr0)"
+echo -e "$(tput setaf 3)OpenMP compiler flags:          $(tput setaf 4)${OPENMP_CXXFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Extra CPPFLAGS:                 $(tput setaf 4)${CPPFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Extra CXXFLAGS:                 $(tput setaf 4)${CXXFLAGS}$(tput sgr0)"
+echo -e "$(tput setaf 3)Extra LDFLAGS:                  $(tput setaf 4)${LDFLAGS}$(tput sgr0)\n"
+echo -n -e "$(tput setaf 3)Using OpenMP:                   "
+if test ${USING_OPENMP} = yes; then
+   echo "$(tput setaf 5)yes$(tput sgr0)"
+else
+   echo "$(tput setaf 1)no$(tput sgr0)"
+fi
+echo -n -e "$(tput setaf 3)Using sparsehash:               "
+if test ${USING_SPARSEHASH} = yes; then
+   echo "$(tput setaf 5)yes$(tput sgr0)"
+else
+   echo "$(tput setaf 1)no$(tput sgr0)"
+fi
+echo -n -e "$(tput setaf 3)Using cairo:                    "
+if test ${USING_CAIRO} = yes; then
+   echo "$(tput setaf 5)yes$(tput sgr0)"
+else
+   echo "$(tput setaf 1)no$(tput sgr0)"
+fi
+echo -e "$(tput setaf 2)================================================================================$(tput sgr0)"
+

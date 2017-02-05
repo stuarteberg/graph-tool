@@ -25,11 +25,7 @@ using namespace std;
 
 bool graph_tool::graph_filtering_enabled()
 {
-#ifndef NO_GRAPH_FILTERING
     return true;
-#else
-    return false;
-#endif
 }
 
 // Whenever no implementation is called, the following exception is thrown
@@ -65,7 +61,6 @@ check_filtered(const Graph& g, const EdgeFilter& edge_filter,
         {
             typedef typename std::remove_const<
                 typename std::remove_reference<decltype(u)>::type>::type g_t;
-#ifndef NO_GRAPH_FILTERING
             if (e_active || v_active)
             {
                 MaskFilter<EdgeFilter>
@@ -91,9 +86,6 @@ check_filtered(const Graph& g, const EdgeFilter& edge_filter,
             {
                 return std::ref(const_cast<g_t&>(u));
             }
-#else
-            return std::ref(const_cast<g_t&>(u));
-#endif
         };
 
     auto check_reverse = [&](auto&& u) -> boost::any
@@ -218,10 +210,6 @@ void GraphInterface::purge_vertices(boost::any aold_index)
 
 void GraphInterface::set_vertex_filter_property(boost::any property, bool invert)
 {
-#ifdef NO_GRAPH_FILTERING
-    throw GraphException("graph filtering was not enabled at compile time");
-#endif
-
     try
     {
         _vertex_filter_map =
@@ -239,10 +227,6 @@ void GraphInterface::set_vertex_filter_property(boost::any property, bool invert
 
 void GraphInterface::set_edge_filter_property(boost::any property, bool invert)
 {
-#ifdef NO_GRAPH_FILTERING
-    throw GraphException("graph filtering was not enabled at compile time");
-#endif
-
     try
     {
         _edge_filter_map =

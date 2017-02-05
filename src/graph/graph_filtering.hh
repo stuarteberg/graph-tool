@@ -367,11 +367,7 @@ struct never_filtered_never_reversed:
 
 // sanity check
 typedef boost::mpl::size<all_graph_views>::type n_views;
-#ifndef NO_GRAPH_FILTERING
 BOOST_MPL_ASSERT_RELATION(n_views::value, == , boost::mpl::int_<6>::value);
-#else
-BOOST_MPL_ASSERT_RELATION(n_views::value, == , boost::mpl::int_<3>::value);
-#endif
 
 // run_action() and gt_dispatch() implementation
 // =============================================
