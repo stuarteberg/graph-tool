@@ -92,6 +92,10 @@ AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[disable openmp [defa
                              [OPENMP_CXXFLAGS="-Wno-unknown-pragmas"])])
 if test ${USING_OPENMP} = yes; then
     AC_DEFINE([USING_OPENMP], 1, [using openmp])
+    dnl clang is retarded
+    if test "$(${CXX} --version | grep clang)x" != "x"; then
+        [OPENMP_CXXFLAGS="${OPENMP_CXXFLAGS} -lomp"]
+    fi
 fi
 [CXXFLAGS="${OPENMP_CXXFLAGS} ${CXXFLAGS}"]
 
