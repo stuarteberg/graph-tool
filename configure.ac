@@ -94,7 +94,7 @@ if test ${USING_OPENMP} = yes; then
     AC_DEFINE([USING_OPENMP], 1, [using openmp])
     dnl clang is retarded
     if test "$(${CXX} --version | grep clang)x" != "x"; then
-        [OPENMP_CXXFLAGS="${OPENMP_CXXFLAGS} -lomp"]
+        [OPENMP_LDFLAGS="-lomp ${OPENMP_LDFLAGS}"]
     fi
 fi
 [CXXFLAGS="${OPENMP_CXXFLAGS} ${CXXFLAGS}"]
@@ -341,7 +341,7 @@ AC_SUBST(CXXFLAGS)
 AC_SUBST(MOD_CPPFLAGS)
 
 # extra LIBADD flags for submodules
-[MOD_LIBADD="${PYTHON_LIBS} ${BOOST_LIBS} ${EXPAT_LIBS} ${EXPAT_LDFLAGS}"]
+[MOD_LIBADD="${PYTHON_LIBS} ${BOOST_LIBS} ${EXPAT_LIBS} ${EXPAT_LDFLAGS} ${OPENMP_LDFLAGS}"]
 AC_SUBST(MOD_LIBADD)
 
 # needed for typeinfo objects to work across DSO boundaries.
@@ -422,6 +422,7 @@ echo -e "$(color 3)CGAL linker flags:              $(color 4)${CGAL_LDFLAGS}$(re
 echo -e "$(color 3)Expat preprocessor flags:       $(color 4)${EXPAT_CFLAGS}$(reset)"
 echo -e "$(color 3)Expat linker flags:             $(color 4)${EXPAT_LDFLAGS} ${EXPAT_LIBS}$(reset)"
 echo -e "$(color 3)OpenMP compiler flags:          $(color 4)${OPENMP_CXXFLAGS}$(reset)"
+echo -e "$(color 3)OpenMP linker flags:            $(color 4)${OPENMP_LDFLAGS}$(reset)"
 echo -e "$(color 3)Extra CPPFLAGS:                 $(color 4)${CPPFLAGS}$(reset)"
 echo -e "$(color 3)Extra CXXFLAGS:                 $(color 4)${CXXFLAGS}$(reset)"
 echo -e "$(color 3)Extra LDFLAGS:                  $(color 4)${LDFLAGS}$(reset)\n"
