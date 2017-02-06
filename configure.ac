@@ -378,50 +378,66 @@ src/graph_tool/Makefile
 ])
 AC_OUTPUT
 
-echo "$(tput setaf 2)================================================================================$(tput sgr0)"
-echo "$(tput setaf 2)                             CONFIGURATION SUMMARY                              $(tput sgr0)"
-echo "$(tput setaf 2)================================================================================$(tput sgr0)"
-echo -e "$(tput setaf 3)Using python version:           $(tput setaf 4)${PYTHON_FULL_VERSION}$(tput sgr0)"
-echo -e "$(tput setaf 3)Python interpreter:             $(tput setaf 4)${PYTHON}$(tput sgr0)"
-echo -e "$(tput setaf 3)Installation path:              $(tput setaf 4)${MOD_DIR}$(tput sgr0)\n"
+if test ${TERM}x != x -a ${TERM} != dumb; then
+    color () {
+        tput setaf $1
+    }
+    reset () {
+        tput sgr0
+    }
+else
+    color () {
+        :
+    }
+    reset () {
+        :
+    }
+fi
 
-echo -e "$(tput setaf 3)C++ compiler (CXX):             $(tput setaf 4)${CXX}$(tput sgr0)"
-echo -e "$(tput setaf 3)C++ compiler version:           $(tput setaf 4)`${CXX} -dumpversion`$(tput sgr0)\n"
+echo "$(color 2)================================================================================$(reset)"
+echo "$(color 2)                             CONFIGURATION SUMMARY                              $(reset)"
+echo "$(color 2)================================================================================$(reset)"
+echo -e "$(color 3)Using python version:           $(color 4)${PYTHON_FULL_VERSION}$(reset)"
+echo -e "$(color 3)Python interpreter:             $(color 4)${PYTHON}$(reset)"
+echo -e "$(color 3)Installation path:              $(color 4)${MOD_DIR}$(reset)\n"
 
-echo -e "$(tput setaf 3)Prefix:                         $(tput setaf 4)${prefix}$(tput sgr0)"
-echo -e "$(tput setaf 3)Pkgconfigdir:                   $(tput setaf 4)${pkgconfigdir}$(tput sgr0)\n"
+echo -e "$(color 3)C++ compiler (CXX):             $(color 4)${CXX}$(reset)"
+echo -e "$(color 3)C++ compiler version:           $(color 4)`${CXX} -dumpversion`$(reset)\n"
 
-echo -e "$(tput setaf 3)Python preprocessor flags:      $(tput setaf 4)${PYTHON_CPPFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Python linker flags:            $(tput setaf 4)${PYTHON_LIBS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Boost preprocessor flags:       $(tput setaf 4)${BOOST_CPPFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Boost linker flags:             $(tput setaf 4)${BOOST_LIBS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Numpy preprocessor flags:       $(tput setaf 4)${NUMPY_CPPFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Sparsehash preprocessor flags:  $(tput setaf 4)${SPARSEHASH_CFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)CGAL preprocessor flags:        $(tput setaf 4)${CGAL_CPPFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)CGAL linker flags:              $(tput setaf 4)${CGAL_LDFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Expat preprocessor flags:       $(tput setaf 4)${EXPAT_CFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Expat linker flags:             $(tput setaf 4)${EXPAT_LDFLAGS} ${EXPAT_LIBS}$(tput sgr0)"
-echo -e "$(tput setaf 3)OpenMP compiler flags:          $(tput setaf 4)${OPENMP_CXXFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Extra CPPFLAGS:                 $(tput setaf 4)${CPPFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Extra CXXFLAGS:                 $(tput setaf 4)${CXXFLAGS}$(tput sgr0)"
-echo -e "$(tput setaf 3)Extra LDFLAGS:                  $(tput setaf 4)${LDFLAGS}$(tput sgr0)\n"
-echo -n -e "$(tput setaf 3)Using OpenMP:                   "
+echo -e "$(color 3)Prefix:                         $(color 4)${prefix}$(reset)"
+echo -e "$(color 3)Pkgconfigdir:                   $(color 4)${pkgconfigdir}$(reset)\n"
+
+echo -e "$(color 3)Python preprocessor flags:      $(color 4)${PYTHON_CPPFLAGS}$(reset)"
+echo -e "$(color 3)Python linker flags:            $(color 4)${PYTHON_LIBS}$(reset)"
+echo -e "$(color 3)Boost preprocessor flags:       $(color 4)${BOOST_CPPFLAGS}$(reset)"
+echo -e "$(color 3)Boost linker flags:             $(color 4)${BOOST_LIBS}$(reset)"
+echo -e "$(color 3)Numpy preprocessor flags:       $(color 4)${NUMPY_CPPFLAGS}$(reset)"
+echo -e "$(color 3)Sparsehash preprocessor flags:  $(color 4)${SPARSEHASH_CFLAGS}$(reset)"
+echo -e "$(color 3)CGAL preprocessor flags:        $(color 4)${CGAL_CPPFLAGS}$(reset)"
+echo -e "$(color 3)CGAL linker flags:              $(color 4)${CGAL_LDFLAGS}$(reset)"
+echo -e "$(color 3)Expat preprocessor flags:       $(color 4)${EXPAT_CFLAGS}$(reset)"
+echo -e "$(color 3)Expat linker flags:             $(color 4)${EXPAT_LDFLAGS} ${EXPAT_LIBS}$(reset)"
+echo -e "$(color 3)OpenMP compiler flags:          $(color 4)${OPENMP_CXXFLAGS}$(reset)"
+echo -e "$(color 3)Extra CPPFLAGS:                 $(color 4)${CPPFLAGS}$(reset)"
+echo -e "$(color 3)Extra CXXFLAGS:                 $(color 4)${CXXFLAGS}$(reset)"
+echo -e "$(color 3)Extra LDFLAGS:                  $(color 4)${LDFLAGS}$(reset)\n"
+echo -n -e "$(color 3)Using OpenMP:                   "
 if test ${USING_OPENMP} = yes; then
-   echo "$(tput setaf 5)yes$(tput sgr0)"
+   echo "$(color 5)yes$(reset)"
 else
-   echo "$(tput setaf 1)no$(tput sgr0)"
+   echo "$(color 1)no$(reset)"
 fi
-echo -n -e "$(tput setaf 3)Using sparsehash:               "
+echo -n -e "$(color 3)Using sparsehash:               "
 if test ${USING_SPARSEHASH} = yes; then
-   echo "$(tput setaf 5)yes$(tput sgr0)"
+   echo "$(color 5)yes$(reset)"
 else
-   echo "$(tput setaf 1)no$(tput sgr0)"
+   echo "$(color 1)no$(reset)"
 fi
-echo -n -e "$(tput setaf 3)Using cairo:                    "
+echo -n -e "$(color 3)Using cairo:                    "
 if test ${USING_CAIRO} = yes; then
-   echo "$(tput setaf 5)yes$(tput sgr0)"
+   echo "$(color 5)yes$(reset)"
 else
-   echo "$(tput setaf 1)no$(tput sgr0)"
+   echo "$(color 1)no$(reset)"
 fi
-echo -e "$(tput setaf 2)================================================================================$(tput sgr0)"
+echo -e "$(color 2)================================================================================$(reset)"
 

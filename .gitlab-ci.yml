@@ -1,32 +1,27 @@
 job_gcc_amd64:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
-    - export TERM=dumb
     - cd doc; python3 /usr/bin/sphinx-build -b doctest . build *.rst demos/inference/inference.rst
   tags:
     - amd64
 
 job_clang_amd64:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
     - make install
     - export PYTHONPATH=$PWD/install/site-packages
-    - export TERM=dumb
     - cd doc; python3 /usr/bin/sphinx-build -b doctest . build *.rst demos/inference/inference.rst
   tags:
     - amd64
 
 job_gcc_py2_amd64:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
@@ -38,7 +33,6 @@ job_gcc_py2_amd64:
 
 job_clang_py2_amd64:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python2 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
@@ -50,7 +44,6 @@ job_clang_py2_amd64:
 
 job_gcc_amd64_nosh:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache g++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --disable-sparsehash
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
@@ -62,7 +55,6 @@ job_gcc_amd64_nosh:
 
 job_clang_amd64_nosh:
   script:
-    - export TERM=dumb
     - ./autogen.sh
     - ./configure CXX="ccache clang++" PYTHON=python3 --prefix=$PWD/install --with-python-module-path=$PWD/install/site-packages --disable-sparsehash
     - CCACHE_BASEDIR=$PWD make $MAKEOPTS
