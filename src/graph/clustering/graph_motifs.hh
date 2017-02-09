@@ -372,72 +372,76 @@ struct get_all_motifs
             typename wrap_undirected::apply<Graph>::type ug(g);
             get_subgraphs(ug, v, k, subgraphs, sampler);
 
-            #pragma omp critical (gather)
+            for (size_t j = 0; j < subgraphs.size(); ++j)
             {
-                for (size_t j = 0; j < subgraphs.size(); ++j)
-                {
-                    d_graph_t sub;
-                    typename wrap_directed::apply<Graph,d_graph_t>::type
-                        usub(sub);
-                    make_subgraph(subgraphs[j], g, usub);
-                    get_sig(usub, sig);
+                d_graph_t sub;
+                typename wrap_directed::apply<Graph,d_graph_t>::type
+                    usub(sub);
+                make_subgraph(subgraphs[j], g, usub);
+                get_sig(usub, sig);
 
+                #pragma omp critical (gather)
+                {
+                    bool skip = false;
                     auto iter = sub_list.find(sig);
                     if(iter == sub_list.end())
                     {
                         if (!fill_list)
-                            continue; // avoid inserting an element in sub_list
+                            skip = true; // avoid inserting an element in sub_list
                         sub_list[sig].clear();
                     }
 
-                    bool found = false;
-                    size_t pos;
-                    auto sl = sub_list.find(sig);
-                    if (sl != sub_list.end())
+                    if (!skip)
                     {
-                        for (auto& mpos : sl->second)
+                        bool found = false;
+                        size_t pos;
+                        auto sl = sub_list.find(sig);
+                        if (sl != sub_list.end())
                         {
-                            d_graph_t& motif = mpos.second;
-                            typename wrap_directed::apply<Graph,d_graph_t>::type
-                                umotif(motif);
-                            if (comp_iso)
+                            for (auto& mpos : sl->second)
                             {
-                                if (isomorphism(umotif, usub,
-                                                vertex_index1_map(get(boost::vertex_index, umotif)).
-                                                vertex_index2_map(get(boost::vertex_index, usub))))
-                                    found = true;
-                            }
-                            else
-                            {
-                                if (graph_cmp(umotif, usub))
-                                    found = true;
-                            }
-                            if (found)
-                            {
-                                pos = mpos.first;
-                                hist[pos]++;
-                                break;
+                                d_graph_t& motif = mpos.second;
+                                typename wrap_directed::apply<Graph,d_graph_t>::type
+                                    umotif(motif);
+                                if (comp_iso)
+                                {
+                                    if (isomorphism(umotif, usub,
+                                                    vertex_index1_map(get(boost::vertex_index, umotif)).
+                                                    vertex_index2_map(get(boost::vertex_index, usub))))
+                                        found = true;
+                                }
+                                else
+                                {
+                                    if (graph_cmp(umotif, usub))
+                                        found = true;
+                                }
+                                if (found)
+                                {
+                                    pos = mpos.first;
+                                    hist[pos]++;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if (found == false && fill_list)
-                    {
-                        subgraph_list.push_back(sub);
-                        sub_list[sig].emplace_back(subgraph_list.size() - 1,
-                                                   sub);
-                        hist.push_back(1);
-                        pos = hist.size() - 1;
-                        found = true;
-                    }
+                        if (found == false && fill_list)
+                        {
+                            subgraph_list.push_back(sub);
+                            sub_list[sig].emplace_back(subgraph_list.size() - 1,
+                                                       sub);
+                            hist.push_back(1);
+                            pos = hist.size() - 1;
+                            found = true;
+                        }
 
-                    if (found && collect_vmaps)
-                    {
-                        if (pos >= vmaps.size())
-                            vmaps.resize(pos + 1);
-                        vmaps[pos].push_back(VMap(get(boost::vertex_index,sub)));
-                        for (size_t vi = 0; vi < num_vertices(sub); ++vi)
-                            vmaps[pos].back()[vertex(vi, sub)] = subgraphs[j][vi];
+                        if (found && collect_vmaps)
+                        {
+                            if (pos >= vmaps.size())
+                                vmaps.resize(pos + 1);
+                            vmaps[pos].push_back(VMap(get(boost::vertex_index,sub)));
+                            for (size_t vi = 0; vi < num_vertices(sub); ++vi)
+                                vmaps[pos].back()[vertex(vi, sub)] = subgraphs[j][vi];
+                        }
                     }
                 }
             }
