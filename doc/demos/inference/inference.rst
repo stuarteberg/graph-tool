@@ -1084,14 +1084,14 @@ approach for the same network, using the nested model.
 
    g = gt.collection.data["lesmis"]
 
-   L = 10
+   nL = 10
 
    for deg_corr in [True, False]:
        state = gt.minimize_nested_blockmodel_dl(g, deg_corr=deg_corr)     # Initialize the Markov
                                                                           # chain from the "ground
                                                                           # state"
        bs = state.get_bs()                     # Get hierarchical partition.
-       bs += [np.zeros(1)] * (L - len(bs))     # Augment it to L = 10 with
+       bs += [np.zeros(1)] * (nL - len(bs))    # Augment it to L = 10 with
                                                # single-group levels.
 
        state = state.copy(bs=bs, sampling=True)
