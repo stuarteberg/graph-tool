@@ -2,6 +2,10 @@
    :no-members:
    :no-undoc-members:
 
+   .. container:: sec_title
+
+      Basic classes
+
    .. autoclass:: Graph
     :no-members:
     :no-undoc-members:
@@ -189,7 +193,6 @@
     .. automethod:: save
 
 
-
    .. autoclass:: GraphView
        :show-inheritance:
    .. autoclass:: Vertex
@@ -199,8 +202,18 @@
        :show-inheritance:
        :no-members:
        :members: prop_map
+
+   .. container:: sec_title
+
+      I/O functions
+                 
    .. autofunction:: load_graph
    .. autofunction:: load_graph_from_csv
+
+   .. container:: sec_title
+
+      Property map operations
+
    .. autofunction:: group_vector_property
    .. autofunction:: ungroup_vector_property
    .. autofunction:: map_property_values
@@ -209,8 +222,23 @@
    .. autofunction:: incident_edges_op
    .. autofunction:: perfect_prop_hash
    .. autofunction:: value_types
-   .. autofunction:: show_config
 
+   .. container:: sec_title
+
+      OpenMP control
+
+   .. autofunction:: openmp_enabled
+   .. autofunction:: openmp_get_num_threads
+   .. autofunction:: openmp_set_num_threads
+   .. autofunction:: openmp_get_schedule
+   .. autofunction:: openmp_set_schedule
+
+
+   .. container:: sec_title
+
+      Misc
+
+   .. autofunction:: show_config
 
 Available subpackages
 =====================
