@@ -576,4 +576,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         .add_property("gcc_version", &LibInfo::GetGCCVersion);
 
     def("get_graph_type", &get_graph_type);
+
+    def("get_null_vertex",
+        +[](){ return graph_traits<GraphInterface::multigraph_t>::null_vertex();});
 }

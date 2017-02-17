@@ -3261,6 +3261,7 @@ VertexBase.is_valid = Vertex.is_valid
 Vertex = VertexBase
 Vertex.__name__ = "Vertex"
 
+_get_null_vertex = libcore.get_null_vertex
 
 # Add convenience function to vector classes
 def _get_array_view(self):

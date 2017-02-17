@@ -140,11 +140,33 @@ struct do_djk_search
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         DynamicPropertyMapWrap<dtype_t, edge_t> weight(aweight,
                                                        edge_properties());
-        dijkstra_shortest_paths_no_color_map
-            (g, vertex(s, g), visitor(vis).weight_map(weight).
-             predecessor_map(pred_map).
-             distance_map(dist).distance_compare(cmp).
-             distance_combine(cmb).distance_inf(i).distance_zero(z));
+
+        if (vertex(s, g) == graph_traits<Graph>::null_vertex())
+        {
+            for (auto u : vertices_range(g))
+            {
+                vis.initialize_vertex(u, g);
+                put(dist, u, i);
+                put(pred_map, u, u);
+            }
+            for (auto u : vertices_range(g))
+            {
+                if (dist[u] != i)
+                    continue;
+                dist[u] = z;
+                dijkstra_shortest_paths_no_color_map_no_init
+                    (g, u, pred_map, dist, weight, get(vertex_index_t(), g),
+                     cmp, cmb, i, z, vis);
+            }
+        }
+        else
+        {
+            dijkstra_shortest_paths_no_color_map
+                (g, vertex(s, g), visitor(vis).weight_map(weight).
+                 predecessor_map(pred_map).
+                 distance_map(dist).distance_compare(cmp).
+                 distance_combine(cmb).distance_inf(i).distance_zero(z));
+        }
     }
 };
 
@@ -158,9 +180,31 @@ struct do_djk_search_fast
         typedef typename property_traits<DistanceMap>::value_type dtype_t;
         dtype_t z = python::extract<dtype_t>(range.first);
         dtype_t i = python::extract<dtype_t>(range.second);
-        dijkstra_shortest_paths_no_color_map
-            (g, vertex(s, g), visitor(vis).weight_map(weight).
-             distance_map(dist).distance_inf(i).distance_zero(z));
+
+        if (vertex(s, g) == graph_traits<Graph>::null_vertex())
+        {
+            for (auto u : vertices_range(g))
+            {
+                vis.initialize_vertex(u, g);
+                put(dist, u, i);
+            }
+            for (auto u : vertices_range(g))
+            {
+                if (dist[u] != i)
+                    continue;
+                dist[u] = z;
+                dijkstra_shortest_paths_no_color_map_no_init
+                    (g, u, dummy_property_map(), dist, weight,
+                     get(vertex_index_t(), g), std::less<dtype_t>(),
+                     boost::closed_plus<dtype_t>(), i, z, vis);
+            }
+        }
+        else
+        {
+            dijkstra_shortest_paths_no_color_map
+                (g, vertex(s, g), visitor(vis).weight_map(weight).
+                 distance_map(dist).distance_inf(i).distance_zero(z));
+        }
     }
 };
 

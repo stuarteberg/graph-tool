@@ -106,20 +106,28 @@ private:
     boost::python::object _vis;
 };
 
-struct do_bfs
-{
-    template <class Graph, class Visitor>
-    void operator()(Graph& g, size_t s, Visitor vis) const
-    {
-        breadth_first_search(g, vertex(s, g), visitor(vis));
-    }
-};
 
-void bfs_search(GraphInterface& g, size_t s, python::object vis)
+void bfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
     run_action<graph_tool::all_graph_views,mpl::true_>()
-        (g, std::bind(do_bfs(), std::placeholders::_1, s,
-                      BFSVisitorWrapper(g, vis)))();
+        (gi,
+         [&](auto &g)
+         {
+             typedef typename std::remove_reference<decltype(g)>::type g_t;
+             typename vprop_map_t<default_color_type>::type
+                 color(get(vertex_index_t(), g));
+             auto visw = BFSVisitorWrapper(gi, vis);
+             auto v = vertex(s, g);
+             if (v == graph_traits<g_t>::null_vertex())
+             {
+                 for (auto u : vertices_range(g))
+                     breadth_first_search(g, u, visitor(visw).color_map(color));
+             }
+             else
+             {
+                 breadth_first_visit(g, v, visitor(visw).color_map(color));
+             }
+         })();
 }
 
 #ifdef HAVE_BOOST_COROUTINE
@@ -152,7 +160,28 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
         {
             BFSGeneratorVisitor vis(g, yield);
             run_action<graph_tool::all_graph_views,mpl::true_>()
-                (g, std::bind(do_bfs(), std::placeholders::_1, s, vis))();
+                (g,
+                 [&](auto &g)
+                 {
+                     typedef typename std::remove_reference<decltype(g)>::type g_t;
+                     typename vprop_map_t<default_color_type>::type
+                         color(get(vertex_index_t(), g));
+
+                     auto v = vertex(s, g);
+                     if (v == graph_traits<g_t>::null_vertex())
+                     {
+                         for (auto u : vertices_range(g))
+                         {
+                             if (color[u] == color_traits<default_color_type>::black())
+                                 continue;
+                             breadth_first_visit(g, u, visitor(vis).color_map(color));
+                         }
+                     }
+                     else
+                     {
+                         breadth_first_visit(g, v, visitor(vis).color_map(color));
+                     }
+                 })();
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else

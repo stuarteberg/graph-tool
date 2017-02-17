@@ -90,25 +90,22 @@ private:
     python::object _vis;
 };
 
-struct do_dfs
+void dfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
-    template <class Graph, class VertexIndexMap, class Visitor>
-    void operator()(Graph& g, VertexIndexMap vertex_index, size_t s,
-                    Visitor vis) const
-    {
-        typename property_map_type::apply<default_color_type,
-                                          VertexIndexMap>::type
-            color(vertex_index);
-        depth_first_visit(g, vertex(s, g), vis, color);
-    }
-};
-
-
-void dfs_search(GraphInterface& g, size_t s, python::object vis)
-{
-    run_action<graph_tool::all_graph_views,mpl::true_>()
-        (g, std::bind(do_dfs(), std::placeholders::_1, g.get_vertex_index(),
-                      s, DFSVisitorWrapper(g, vis)))();
+    run_action<graph_tool::all_graph_views, mpl::true_>()
+        (gi,
+         [&](auto &g)
+         {
+             typedef typename std::remove_reference<decltype(g)>::type g_t;
+             typename vprop_map_t<default_color_type>::type
+                 color(get(vertex_index_t(), g));
+             auto visw = DFSVisitorWrapper(gi, vis);
+             auto v = vertex(s, g);
+             if (v == graph_traits<g_t>::null_vertex())
+                 depth_first_search(g, visw, color);
+             else
+                 depth_first_visit(g, v, visw, color);
+         })();
 }
 
 #ifdef HAVE_BOOST_COROUTINE
@@ -142,8 +139,18 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
         {
             DFSGeneratorVisitor vis(g, yield);
             run_action<graph_tool::all_graph_views,mpl::true_>()
-                (g, std::bind(do_dfs(), std::placeholders::_1,
-                              g.get_vertex_index(), s, vis))();
+                (g,
+                 [&](auto &g)
+                 {
+                     typedef typename std::remove_reference<decltype(g)>::type g_t;
+                     typename vprop_map_t<default_color_type>::type
+                         color(get(vertex_index_t(), g));
+                     auto v = vertex(s, g);
+                     if (v == graph_traits<g_t>::null_vertex())
+                         depth_first_search(g, vis, color);
+                     else
+                         depth_first_visit(g, v, vis, color);
+                 })();
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else

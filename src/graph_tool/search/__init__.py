@@ -92,7 +92,7 @@ if sys.version_info < (3,):
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_search")
 
-from .. import _prop, _python_type
+from .. import _prop, _python_type, _get_null_vertex
 import weakref
 import numpy
 
@@ -157,15 +157,17 @@ class BFSVisitor(object):
         return
 
 
-def bfs_search(g, source, visitor=BFSVisitor()):
+def bfs_search(g, source=None, visitor=BFSVisitor()):
     r"""Breadth-first traversal of a directed or undirected graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
     visitor : :class:`~graph_tool.search.BFSVisitor` (optional, default: ``BFSVisitor()``)
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
@@ -284,12 +286,16 @@ def bfs_search(g, source, visitor=BFSVisitor()):
     """
 
     try:
+        if source is None:
+            source = _get_null_vertex()
+        else:
+            source = int(source)
         libgraph_tool_search.bfs_search(g._Graph__graph,
-                                        int(source), visitor)
+                                        source, visitor)
     except StopSearch:
         pass
 
-def bfs_iterator(g, source):
+def bfs_iterator(g, source=None):
     r"""Return an iterator of the edges corresponding to a breath-first traversal of
     the graph.
 
@@ -297,8 +303,10 @@ def bfs_iterator(g, source):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
 
     Returns
     -------
@@ -341,8 +349,11 @@ def bfs_iterator(g, source):
     .. [bfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/breadth_first_search.html
     .. [bfs-wikipedia] http://en.wikipedia.org/wiki/Breadth-first_search
     """
-
-    return libgraph_tool_search.bfs_search_generator(g._Graph__graph, int(source))
+    if source is None:
+        source = _get_null_vertex()
+    else:
+        source = int(source)
+    return libgraph_tool_search.bfs_search_generator(g._Graph__graph, source)
 
 
 class DFSVisitor(object):
@@ -415,15 +426,17 @@ class DFSVisitor(object):
         return
 
 
-def dfs_search(g, source, visitor=DFSVisitor()):
+def dfs_search(g, source=None, visitor=DFSVisitor()):
     r"""Depth-first traversal of a directed or undirected graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
     visitor : :class:`~graph_tool.search.DFSVisitor` (optional, default: ``DFSVisitor()``)
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
@@ -563,15 +576,20 @@ def dfs_search(g, source, visitor=DFSVisitor()):
     ----------
     .. [dfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/depth_first_search.html
     .. [dfs-wikipedia] http://en.wikipedia.org/wiki/Depth-first_search
+
     """
 
     try:
+        if source is None:
+            source = _get_null_vertex()
+        else:
+            source = int(source)
         libgraph_tool_search.dfs_search(g._Graph__graph,
-                                        int(source), visitor)
+                                        source, visitor)
     except StopSearch:
         pass
 
-def dfs_iterator(g, source):
+def dfs_iterator(g, source=None):
     r"""Return an iterator of the edges corresponding to a depth-first traversal of
     the graph.
 
@@ -579,8 +597,10 @@ def dfs_iterator(g, source):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
 
     Returns
     -------
@@ -622,7 +642,11 @@ def dfs_iterator(g, source):
     .. [dfs-wikipedia] http://en.wikipedia.org/wiki/Depth-first_search
     """
 
-    return libgraph_tool_search.dfs_search_generator(g._Graph__graph, int(source))
+    if source is None:
+        source = _get_null_vertex()
+    else:
+        source = int(source)
+    return libgraph_tool_search.dfs_search_generator(g._Graph__graph, source)
 
 class DijkstraVisitor(object):
     r"""A visitor object that is invoked at the event-points inside the
@@ -686,7 +710,7 @@ class DijkstraVisitor(object):
         return
 
 
-def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
+def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=None,
                     pred_map=None, combine=lambda a, b: a + b,
                     compare=lambda a, b: a < b, zero=0, infinity=numpy.inf):
     r"""Dijsktra traversal of a directed or undirected graph, with non-negative weights.
@@ -695,10 +719,12 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
     weight : :class:`~graph_tool.PropertyMap`
         Edge property map with weight values.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
     visitor : :class:`~graph_tool.search.DijkstraVisitor` (optional, default: ``DijkstraVisitor()``)
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
@@ -815,7 +841,7 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
     With the above class defined, we can perform the Dijkstra search as follows.
 
     >>> time = g.new_vertex_property("int")
-    >>> dist, pred = gt.dijkstra_search(g, g.vertex(0), weight, VisitorExample(name, time))
+    >>> dist, pred = gt.dijkstra_search(g, weight, g.vertex(0), VisitorExample(name, time))
     --> Bob has been discovered!
     edge (Bob, Eve) has been examined...
     edge (Bob, Eve) has been relaxed...
@@ -910,8 +936,12 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
         infinity = _python_type(dist_map.value_type())(infinity)
 
     try:
+        if source is None:
+            source = _get_null_vertex()
+        else:
+            source = int(source)
         libgraph_tool_search.dijkstra_search(g._Graph__graph,
-                                             int(source),
+                                             source,
                                              _prop("v", g, dist_map),
                                              _prop("v", g, pred_map),
                                              _prop("e", g, weight), visitor,
@@ -921,7 +951,7 @@ def dijkstra_search(g, source, weight, visitor=DijkstraVisitor(), dist_map=None,
 
     return dist_map, pred_map
 
-def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
+def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
                       compare=None, zero=0, infinity=numpy.inf):
     r"""Return an iterator of the edges corresponding to a Dijkstra traversal of
     the graph.
@@ -930,10 +960,12 @@ def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    source : :class:`~graph_tool.Vertex`
-        Source vertex.
     weight : :class:`~graph_tool.PropertyMap`
         Edge property map with weight values.
+    source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
+        Source vertex. If unspecified, all vertices will be traversed, by
+        iterating over starting vertices according to their index in increasing
+        order.
     dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
@@ -972,7 +1004,7 @@ def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
     Examples
     --------
 
-    >>> for e in gt.dijkstra_iterator(g, g.vertex(0), weight):
+    >>> for e in gt.dijkstra_iterator(g, weight, g.vertex(0)):
     ...    print(name[e.source()], "->", name[e.target()])
     Bob -> Eve
     Bob -> Chuck
@@ -1009,9 +1041,13 @@ def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
         infinity = (weight.a.max() + 1) * g.num_vertices()
         infinity = _python_type(dist_map.value_type())(infinity)
 
+    if source is None:
+        source = _get_null_vertex()
+    else:
+        source = int(source)
     if compare is None and combine is None:
         return libgraph_tool_search.dijkstra_generator_fast(g._Graph__graph,
-                                                            int(source),
+                                                            source,
                                                             _prop("v", g, dist_map),
                                                             _prop("e", g, weight),
                                                             zero, infinity)
@@ -1021,7 +1057,7 @@ def dijkstra_iterator(g, source, weight, dist_map=None, combine=None,
         if combine is None:
             combine = lambda a, b: a + b
         return libgraph_tool_search.dijkstra_generator(g._Graph__graph,
-                                                       int(source),
+                                                       source,
                                                        _prop("v", g, dist_map),
                                                        _prop("e", g, weight),
                                                        compare, combine,
