@@ -546,14 +546,6 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
         ("shared_ptr<multigraph_t>", no_init)
         .def("get", &get_ptr);
 
-#ifdef HAVE_SCIPY
-    to_python_converter<py::object, scxx_to_python<py::object> >();
-    to_python_converter<py::tuple, scxx_to_python<py::tuple> >();
-    to_python_converter<py::list, scxx_to_python<py::list> >();
-    to_python_converter<py::dict, scxx_to_python<py::dict> >();
-    to_python_converter<py::str, scxx_to_python<py::str> >();
-#endif
-
     class_<IStream>("IStream", no_init).def("read", &IStream::read);
     class_<OStream>("OStream", no_init).def("write", &OStream::write).
         def("flush", &OStream::flush);
