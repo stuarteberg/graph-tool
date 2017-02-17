@@ -295,7 +295,7 @@ def bfs_search(g, source=None, visitor=BFSVisitor()):
     except StopSearch:
         pass
 
-def bfs_iterator(g, source=None):
+def bfs_iterator(g, source=None, array=False):
     r"""Return an iterator of the edges corresponding to a breath-first traversal of
     the graph.
 
@@ -307,10 +307,16 @@ def bfs_iterator(g, source=None):
         Source vertex. If unspecified, all vertices will be traversed, by
         iterating over starting vertices according to their index in increasing
         order.
+    array : ``bool`` (optional, default: ``False``)
+        If ``True``, a :class:`numpy.ndarray` will the edge endpoints be
+        returned instead.
 
     Returns
     -------
-    bfs_iterator : An iterator over the edges in breath-first order.
+    bfs_iterator : Iterator or :class:`numpy.ndarray`
+        An iterator over the edges in breath-first order. If ``array == True``,
+        this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
+        containing the edge endpoints.
 
     See Also
     --------
@@ -348,12 +354,16 @@ def bfs_iterator(g, source=None):
              Symposium on the Theory of Switching, 1959
     .. [bfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/breadth_first_search.html
     .. [bfs-wikipedia] http://en.wikipedia.org/wiki/Breadth-first_search
+
     """
     if source is None:
         source = _get_null_vertex()
     else:
         source = int(source)
-    return libgraph_tool_search.bfs_search_generator(g._Graph__graph, source)
+    if not array:
+        return libgraph_tool_search.bfs_search_generator(g._Graph__graph, source)
+    else:
+        return libgraph_tool_search.bfs_search_array(g._Graph__graph, source)
 
 
 class DFSVisitor(object):
@@ -589,7 +599,7 @@ def dfs_search(g, source=None, visitor=DFSVisitor()):
     except StopSearch:
         pass
 
-def dfs_iterator(g, source=None):
+def dfs_iterator(g, source=None, array=False):
     r"""Return an iterator of the edges corresponding to a depth-first traversal of
     the graph.
 
@@ -601,10 +611,16 @@ def dfs_iterator(g, source=None):
         Source vertex. If unspecified, all vertices will be traversed, by
         iterating over starting vertices according to their index in increasing
         order.
+    array : ``bool`` (optional, default: ``False``)
+        If ``True``, a :class:`numpy.ndarray` will the edge endpoints be
+        returned instead.
 
     Returns
     -------
-    dfs_iterator : An iterator over the edges in detpth-first order.
+    dfs_iterator : Iterator or :class:`numpy.ndarray`
+        An iterator over the edges in depth-first order. If ``array == True``,
+        this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
+        containing the edge endpoints.
 
     See Also
     --------
@@ -640,13 +656,17 @@ def dfs_iterator(g, source=None):
     ----------
     .. [dfs-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/depth_first_search.html
     .. [dfs-wikipedia] http://en.wikipedia.org/wiki/Depth-first_search
+
     """
 
     if source is None:
         source = _get_null_vertex()
     else:
         source = int(source)
-    return libgraph_tool_search.dfs_search_generator(g._Graph__graph, source)
+    if not array:
+        return libgraph_tool_search.dfs_search_generator(g._Graph__graph, source)
+    else:
+        return libgraph_tool_search.dfs_search_array(g._Graph__graph, source)
 
 class DijkstraVisitor(object):
     r"""A visitor object that is invoked at the event-points inside the
@@ -952,7 +972,7 @@ def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=
     return dist_map, pred_map
 
 def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
-                      compare=None, zero=0, infinity=numpy.inf):
+                      compare=None, zero=0, infinity=numpy.inf, array=False):
     r"""Return an iterator of the edges corresponding to a Dijkstra traversal of
     the graph.
 
@@ -979,12 +999,18 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
          Value assumed to correspond to a distance of zero by the combine and
          compare functions.
     infinity : int or float (optional, default: ``numpy.inf``)
-         Value assumed to correspond to a distance of infinity by the combine and
-         compare functions.
+         Value assumed to correspond to a distance of infinity by the combine
+         and compare functions.
+    array : ``bool`` (optional, default: ``False``)
+        If ``True``, a :class:`numpy.ndarray` will the edge endpoints be
+        returned instead.
 
     Returns
     -------
-    djk_iterator : An iterator over the edges in Dijkstra order.
+    dfs_iterator : Iterator or :class:`numpy.ndarray`
+        An iterator over the edges in Dijkstra order. If ``array == True``,
+        this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
+        containing the edge endpoints.
 
     See Also
     --------
@@ -1022,6 +1048,7 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
         graphs", Numerische Mathematik, 1:269-271, 1959.
     .. [dijkstra-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/dijkstra_shortest_paths_no_color_map.html
     .. [dijkstra-wikipedia] http://en.wikipedia.org/wiki/Dijkstra's_algorithm
+
     """
 
     if dist_map is None:
@@ -1046,7 +1073,14 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
     else:
         source = int(source)
     if compare is None and combine is None:
-        return libgraph_tool_search.dijkstra_generator_fast(g._Graph__graph,
+        if not array:
+            return libgraph_tool_search.dijkstra_generator_fast(g._Graph__graph,
+                                                                source,
+                                                                _prop("v", g, dist_map),
+                                                                _prop("e", g, weight),
+                                                                zero, infinity)
+        else:
+            return libgraph_tool_search.dijkstra_array_fast(g._Graph__graph,
                                                             source,
                                                             _prop("v", g, dist_map),
                                                             _prop("e", g, weight),
@@ -1056,7 +1090,15 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
             compare = lambda a, b: a < b
         if combine is None:
             combine = lambda a, b: a + b
-        return libgraph_tool_search.dijkstra_generator(g._Graph__graph,
+        if not array:
+            return libgraph_tool_search.dijkstra_generator(g._Graph__graph,
+                                                           source,
+                                                           _prop("v", g, dist_map),
+                                                           _prop("e", g, weight),
+                                                           compare, combine,
+                                                           zero, infinity)
+        else:
+            return libgraph_tool_search.dijkstra_array(g._Graph__graph,
                                                        source,
                                                        _prop("v", g, dist_map),
                                                        _prop("e", g, weight),
@@ -1800,7 +1842,8 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
 
 
 def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
-                   combine=None, compare=None, zero=0, infinity=numpy.inf):
+                   combine=None, compare=None, zero=0, infinity=numpy.inf,
+                   array=False):
     r"""Return an iterator of the edges corresponding to an :math:`A^*` traversal of
     the graph.
 
@@ -1829,12 +1872,18 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
          Value assumed to correspond to a distance of zero by the combine and
          compare functions.
     infinity : int or float (optional, default: ``numpy.inf``)
-         Value assumed to correspond to a distance of infinity by the combine and
-         compare functions.
+         Value assumed to correspond to a distance of infinity by the combine
+         and compare functions.
+    array : ``bool`` (optional, default: ``False``)
+        If ``True``, a :class:`numpy.ndarray` will the edge endpoints be
+        returned instead.
 
     Returns
     -------
-    astar_iterator : An iterator over the edges in :math:`A^*` order.
+    astar_iterator : Iterator or :class:`numpy.ndarray`
+        An iterator over the edges in :math:`A^*` order. If ``array == True``,
+        this will be a :class:`numpy.ndarray` instead, of shape ``(E,2)``,
+        containing the edge endpoints.
 
     See Also
     --------
@@ -1877,6 +1926,7 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
        :doi:`10.1109/TSSC.1968.300136`
     .. [astar-bgl] http://www.boost.org/doc/libs/release/libs/graph/doc/astar_search.html
     .. [astar-wikipedia] http://en.wikipedia.org/wiki/A*_search_algorithm
+
     """
 
     if dist_map is None:
@@ -1897,7 +1947,14 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
         infinity = _python_type(dist_map.value_type())(infinity)
 
     if compare is None and combine is None:
-        return libgraph_tool_search.astar_generator_fast(g._Graph__graph,
+        if not array:
+            return libgraph_tool_search.astar_generator_fast(g._Graph__graph,
+                                                             int(source),
+                                                             _prop("v", g, dist_map),
+                                                             _prop("e", g, weight),
+                                                             zero, infinity, heuristic)
+        else:
+            return libgraph_tool_search.astar_array_fast(g._Graph__graph,
                                                          int(source),
                                                          _prop("v", g, dist_map),
                                                          _prop("e", g, weight),
@@ -1907,14 +1964,20 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
             compare = lambda a, b: a < b
         if combine is None:
             combine = lambda a, b: a + b
-        return libgraph_tool_search.astar_generator(g._Graph__graph,
+        if not array:
+            return libgraph_tool_search.astar_generator(g._Graph__graph,
+                                                        int(source),
+                                                        _prop("v", g, dist_map),
+                                                        _prop("e", g, weight),
+                                                        compare, combine,
+                                                        zero, infinity, heuristic)
+        else:
+            return libgraph_tool_search.astar_array(g._Graph__graph,
                                                     int(source),
                                                     _prop("v", g, dist_map),
                                                     _prop("e", g, weight),
                                                     compare, combine,
                                                     zero, infinity, heuristic)
-
-
 
 class StopSearch(Exception):
     """If this exception is raised from inside any search visitor object, the search is aborted."""

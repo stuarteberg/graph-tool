@@ -297,10 +297,67 @@ boost::python::object dijkstra_search_generator_fast(GraphInterface& g,
 #endif
 }
 
+class DJKArrayVisitor: public dijkstra_visitor<>
+{
+public:
+    DJKArrayVisitor(std::vector<std::array<size_t, 2>>& edges)
+        : _edges(edges) {}
+
+    template <class Edge, class Graph>
+    void edge_relaxed(const Edge& e, Graph& g)
+    {
+        _edges.push_back({source(e, g), target(e,g)});
+    }
+
+private:
+    std::vector<std::array<size_t, 2>>& _edges;
+};
+
+
+boost::python::object dijkstra_search_array(GraphInterface& g,
+                                            size_t source,
+                                            boost::any dist_map,
+                                            boost::any weight,
+                                            python::object cmp,
+                                            python::object cmb,
+                                            python::object zero,
+                                            python::object inf)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    DJKArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views, mpl::true_>()
+        (g, std::bind(do_djk_search(), std::placeholders::_1, source,
+                      std::placeholders::_2, dummy_property_map(), weight,
+                      vis, DJKCmp(cmp), DJKCmb(cmb),
+                      make_pair(zero, inf)),
+         writable_vertex_properties())(dist_map);
+    return wrap_vector_owned<size_t,2>(edges);
+}
+
+boost::python::object dijkstra_search_array_fast(GraphInterface& g,
+                                                 size_t source,
+                                                 boost::any dist_map,
+                                                 boost::any weight,
+                                                 python::object zero,
+                                                 python::object inf)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    DJKArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views, mpl::true_>()
+        (g, std::bind(do_djk_search_fast(), std::placeholders::_1, source,
+                      std::placeholders::_2, std::placeholders::_3,
+                      vis, make_pair(zero, inf)),
+         writable_vertex_scalar_properties(),
+         edge_scalar_properties())(dist_map, weight);
+    return wrap_vector_owned<size_t,2>(edges);
+}
+
 void export_dijkstra()
 {
     using namespace boost::python;
     def("dijkstra_search", &dijkstra_search);
     def("dijkstra_generator", &dijkstra_search_generator);
     def("dijkstra_generator_fast", &dijkstra_search_generator_fast);
+    def("dijkstra_array", &dijkstra_search_array);
+    def("dijkstra_array_fast", &dijkstra_search_array_fast);
 }

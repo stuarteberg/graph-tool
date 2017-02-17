@@ -177,6 +177,61 @@ boost::python::object astar_search_generator_fast(GraphInterface& g,
 #endif
 }
 
+class AStarArrayVisitor: public astar_visitor<>
+{
+public:
+    AStarArrayVisitor(std::vector<std::array<size_t, 2>>& edges)
+        : _edges(edges) {}
+
+    template <class Edge, class Graph>
+    void edge_relaxed(const Edge& e, Graph& g)
+    {
+        _edges.push_back({source(e, g), target(e,g)});
+    }
+
+private:
+    std::vector<std::array<size_t, 2>>& _edges;
+};
+
+boost::python::object astar_search_array(GraphInterface& g,
+                                         size_t source,
+                                         boost::any dist_map,
+                                         boost::any weight,
+                                         python::object cmp,
+                                         python::object cmb,
+                                         python::object zero,
+                                         python::object inf,
+                                         python::object h)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    AStarArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views,mpl::true_>()
+        (g, std::bind(do_astar_search(),  std::placeholders::_1, source,
+                      std::placeholders::_2, dummy_property_map(), weight,
+                      vis, make_pair(AStarCmp(cmp), AStarCmb(cmb)),
+                      make_pair(zero, inf), h, std::ref(g)),
+         writable_vertex_properties())(dist_map);
+    return wrap_vector_owned<size_t,2>(edges);
+}
+
+boost::python::object astar_search_array_fast(GraphInterface& g,
+                                              size_t source,
+                                              boost::any dist_map,
+                                              boost::any weight,
+                                              python::object zero,
+                                              python::object inf,
+                                              python::object h)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    AStarArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views,mpl::true_>()
+        (g, std::bind(do_astar_search_fast(),  std::placeholders::_1, source,
+                      std::placeholders::_2, std::placeholders::_3,
+                      vis, make_pair(zero, inf), h, std::ref(g)),
+         writable_vertex_scalar_properties(),
+         edge_scalar_properties())(dist_map, weight);
+    return wrap_vector_owned<size_t,2>(edges);
+}
 
 void export_astar()
 {
@@ -184,4 +239,6 @@ void export_astar()
     def("astar_search", &a_star_search);
     def("astar_generator", &astar_search_generator);
     def("astar_generator_fast", &astar_search_generator_fast);
+    def("astar_array", &astar_search_array);
+    def("astar_array_fast", &astar_search_array_fast);
 }

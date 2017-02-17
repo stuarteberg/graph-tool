@@ -90,22 +90,22 @@ private:
     python::object _vis;
 };
 
+template <class Graph, class Visitor>
+void do_dfs(Graph& g, size_t s, Visitor&& vis)
+{
+    typename vprop_map_t<default_color_type>::type
+        color(get(vertex_index_t(), g));
+    auto v = vertex(s, g);
+    if (v == graph_traits<Graph>::null_vertex())
+        depth_first_search(g, vis, color);
+    else
+        depth_first_visit(g, v, vis, color);
+}
+
 void dfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
     run_action<graph_tool::all_graph_views, mpl::true_>()
-        (gi,
-         [&](auto &g)
-         {
-             typedef typename std::remove_reference<decltype(g)>::type g_t;
-             typename vprop_map_t<default_color_type>::type
-                 color(get(vertex_index_t(), g));
-             auto visw = DFSVisitorWrapper(gi, vis);
-             auto v = vertex(s, g);
-             if (v == graph_traits<g_t>::null_vertex())
-                 depth_first_search(g, visw, color);
-             else
-                 depth_first_visit(g, v, visw, color);
-         })();
+        (gi, [&](auto &g) { do_dfs(g, s, DFSVisitorWrapper(gi, vis));})();
 }
 
 #ifdef HAVE_BOOST_COROUTINE
@@ -139,18 +139,7 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
         {
             DFSGeneratorVisitor vis(g, yield);
             run_action<graph_tool::all_graph_views,mpl::true_>()
-                (g,
-                 [&](auto &g)
-                 {
-                     typedef typename std::remove_reference<decltype(g)>::type g_t;
-                     typename vprop_map_t<default_color_type>::type
-                         color(get(vertex_index_t(), g));
-                     auto v = vertex(s, g);
-                     if (v == graph_traits<g_t>::null_vertex())
-                         depth_first_search(g, vis, color);
-                     else
-                         depth_first_visit(g, v, vis, color);
-                 })();
+                (g, [&](auto &g) { do_dfs(g, s, vis);})();
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -158,9 +147,35 @@ boost::python::object dfs_search_generator(GraphInterface& g, size_t s)
 #endif
 }
 
+class DFSArrayVisitor: public dfs_visitor<>
+{
+public:
+    DFSArrayVisitor(std::vector<std::array<size_t, 2>>& edges)
+        : _edges(edges) {}
+
+    template <class Edge, class Graph>
+    void tree_edge(const Edge& e, Graph& g)
+    {
+        _edges.push_back({source(e, g), target(e,g)});
+    }
+
+private:
+    std::vector<std::array<size_t, 2>>& _edges;
+};
+
+boost::python::object dfs_search_array(GraphInterface& g, size_t s)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    DFSArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views,mpl::true_>()
+        (g, [&](auto &g){ do_dfs(g, s, vis); })();
+    return wrap_vector_owned<size_t,2>(edges);
+}
+
 void export_dfs()
 {
     using namespace boost::python;
     def("dfs_search", &dfs_search);
     def("dfs_search_generator", &dfs_search_generator);
+    def("dfs_search_array", &dfs_search_array);
 }

@@ -106,28 +106,32 @@ private:
     boost::python::object _vis;
 };
 
+template <class Graph, class Visitor>
+void do_bfs(Graph& g, size_t s, Visitor&& vis)
+{
+    typename vprop_map_t<default_color_type>::type
+        color(get(vertex_index_t(), g));
+
+    auto v = vertex(s, g);
+    if (v == graph_traits<Graph>::null_vertex())
+    {
+        for (auto u : vertices_range(g))
+        {
+            if (color[u] == color_traits<default_color_type>::black())
+                continue;
+            breadth_first_visit(g, u, visitor(vis).color_map(color));
+        }
+    }
+    else
+    {
+        breadth_first_visit(g, v, visitor(vis).color_map(color));
+    }
+}
 
 void bfs_search(GraphInterface& gi, size_t s, python::object vis)
 {
     run_action<graph_tool::all_graph_views,mpl::true_>()
-        (gi,
-         [&](auto &g)
-         {
-             typedef typename std::remove_reference<decltype(g)>::type g_t;
-             typename vprop_map_t<default_color_type>::type
-                 color(get(vertex_index_t(), g));
-             auto visw = BFSVisitorWrapper(gi, vis);
-             auto v = vertex(s, g);
-             if (v == graph_traits<g_t>::null_vertex())
-             {
-                 for (auto u : vertices_range(g))
-                     breadth_first_search(g, u, visitor(visw).color_map(color));
-             }
-             else
-             {
-                 breadth_first_visit(g, v, visitor(visw).color_map(color));
-             }
-         })();
+        (gi, [&](auto &g){ do_bfs(g, s, BFSVisitorWrapper(gi, vis)); })();
 }
 
 #ifdef HAVE_BOOST_COROUTINE
@@ -160,28 +164,7 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
         {
             BFSGeneratorVisitor vis(g, yield);
             run_action<graph_tool::all_graph_views,mpl::true_>()
-                (g,
-                 [&](auto &g)
-                 {
-                     typedef typename std::remove_reference<decltype(g)>::type g_t;
-                     typename vprop_map_t<default_color_type>::type
-                         color(get(vertex_index_t(), g));
-
-                     auto v = vertex(s, g);
-                     if (v == graph_traits<g_t>::null_vertex())
-                     {
-                         for (auto u : vertices_range(g))
-                         {
-                             if (color[u] == color_traits<default_color_type>::black())
-                                 continue;
-                             breadth_first_visit(g, u, visitor(vis).color_map(color));
-                         }
-                     }
-                     else
-                     {
-                         breadth_first_visit(g, v, visitor(vis).color_map(color));
-                     }
-                 })();
+                (g, [&](auto &g){ do_bfs(g, s, vis); })();
         };
     return boost::python::object(CoroGenerator(dispatch));
 #else
@@ -189,9 +172,36 @@ boost::python::object bfs_search_generator(GraphInterface& g, size_t s)
 #endif
 }
 
+class BFSArrayVisitor : public bfs_visitor<>
+{
+public:
+    BFSArrayVisitor(std::vector<std::array<size_t, 2>>& edges)
+        : _edges(edges) {}
+
+    template <class Edge, class Graph>
+    void tree_edge(const Edge& e, Graph& g)
+    {
+        _edges.push_back({source(e, g), target(e,g)});
+    }
+
+private:
+    std::vector<std::array<size_t, 2>>& _edges;
+};
+
+boost::python::object bfs_search_array(GraphInterface& g, size_t s)
+{
+    std::vector<std::array<size_t, 2>> edges;
+    BFSArrayVisitor vis(edges);
+    run_action<graph_tool::all_graph_views,mpl::true_>()
+        (g, [&](auto &g){ do_bfs(g, s, vis); })();
+    return wrap_vector_owned<size_t,2>(edges);
+}
+
+
 void export_bfs()
 {
     using namespace boost::python;
     def("bfs_search", &bfs_search);
     def("bfs_search_generator", &bfs_search_generator);
+    def("bfs_search_array", &bfs_search_array);
 }
