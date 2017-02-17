@@ -978,6 +978,9 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
         s = s[idx]
     p = numpy.squeeze(numpy.array(probs[r, s]))
 
+    if len(p.shape) == 0: # B == 1 special case
+        p = numpy.array([p])
+
     g.set_directed(directed)
 
     libgraph_tool_generation.gen_sbm(g._Graph__graph,
