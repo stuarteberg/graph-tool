@@ -448,9 +448,10 @@ class BlockState(object):
         self.wparams = libcore.Vector_Vector_double()
         for i, rt in enumerate(self.rec_types):
             ps = Vector_double()
-            if rt == libinference.rec_type.real_exponential:
-                defaults = OrderedDict([("r", 1),
-                                        ("theta", self.recs[i].fa.mean())])
+            if rt in [libinference.rec_type.real_exponential,
+                      libinference.rec_type.discrete_poisson]:
+                defaults = OrderedDict([("alpha", 1),
+                                        ("beta", self.recs[i].fa.mean())])
             elif rt == libinference.rec_type.real_normal:
                 defaults = OrderedDict([("m0", self.recs[i].fa.mean()),
                                         ("k0", 1),
@@ -459,9 +460,6 @@ class BlockState(object):
             elif rt == libinference.rec_type.discrete_geometric:
                 defaults = OrderedDict([("alpha",1),
                                         ("beta",1)])
-            elif rt == libinference.rec_type.discrete_poisson:
-                defaults = OrderedDict([("r", 1),
-                                        ("theta", self.recs[i].fa.mean())])
             elif rt == libinference.rec_type.discrete_binomial:
                 defaults = OrderedDict([("N", self.recs[i].fa.max()),
                                         ("alpha", 1),

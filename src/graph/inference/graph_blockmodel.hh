@@ -1089,7 +1089,7 @@ public:
                                                          wparams[2],
                                                          wparams[3]);
                                });
-                break;
+                    break;
                 case weight_type::DELTA_T: // waiting times
                     if ((r != nr) && _ignore_degrees[v] > 0)
                     {
