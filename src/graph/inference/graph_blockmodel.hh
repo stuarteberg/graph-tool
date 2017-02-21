@@ -1024,40 +1024,35 @@ public:
 
             for (size_t i = 0; i < _rec_types.size(); ++i)
             {
-                auto& wparams = _wparams[i];
+                auto& wp = _wparams[i];
                 switch (_rec_types[i])
                 {
                 case weight_type::REAL_EXPONENTIAL:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
-                                        { return positive_w_log_P(N, x,
-                                                                  wparams[0],
-                                                                  wparams[1]);
+                                        { return positive_w_log_P(N, x, wp[0],
+                                                                  wp[1]);
                                         });
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
-                                        { return geometric_w_log_P(N, x,
-                                                                   wparams[0],
-                                                                   wparams[1]);
+                                        { return geometric_w_log_P(N, x, wp[0],
+                                                                   wp[1]);
                                         });
                     break;
                 case weight_type::DISCRETE_POISSON:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
-                                        { return poisson_w_log_P(N, x,
-                                                                 wparams[0],
-                                                                 wparams[1]);
+                                        { return poisson_w_log_P(N, x, wp[0],
+                                                                 wp[1]);
                                         });
                     break;
                 case weight_type::DISCRETE_BINOMIAL:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
-                                        { return binomial_w_log_P(N, x,
-                                                                  wparams[0],
-                                                                  wparams[1],
-                                                                  wparams[2]);
+                                        { return binomial_w_log_P(N, x, wp[0],
+                                                                  wp[1], wp[2]);
                                         });
                     break;
                 case weight_type::REAL_NORMAL:
@@ -1076,18 +1071,14 @@ public:
                                    auto dx = get<1>(delta)[i];
                                    auto dx2 = get<2>(delta)[i];
                                    auto sigma1 = x2rs - xrs * (xrs / ers);
-                                   auto sigma2 = x2rs + dx2 - (xrs + dx) * ((xrs + dx) / (ers + d));
+                                   auto sigma2 = (x2rs + dx2 - (xrs + dx) *
+                                                  ((xrs + dx) / (ers + d)));
                                    dS -= -signed_w_log_P(ers, xrs, sigma1,
-                                                         wparams[0],
-                                                         wparams[1],
-                                                         wparams[2],
-                                                         wparams[3]);
+                                                         wp[0], wp[1], wp[2],
+                                                         wp[3]);
                                    dS += -signed_w_log_P(ers + d, xrs + dx,
-                                                         sigma2,
-                                                         wparams[0],
-                                                         wparams[1],
-                                                         wparams[2],
-                                                         wparams[3]);
+                                                         sigma2, wp[0], wp[1],
+                                                         wp[2], wp[3]);
                                });
                     break;
                 case weight_type::DELTA_T: // waiting times
@@ -1098,16 +1089,18 @@ public:
                         if (r != null_group)
                         {
                             dS -= -positive_w_log_P(_mrp[r], _brecsum[r],
-                                                    _wparams[i][0], _wparams[i][1]);
-                            dS += -positive_w_log_P(_mrp[r] - k, _brecsum[r] - dt[0],
-                                                    _wparams[i][0], _wparams[i][1]);
+                                                    wp[0], wp[1]);
+                            dS += -positive_w_log_P(_mrp[r] - k,
+                                                    _brecsum[r] - dt[0],
+                                                    wp[0], wp[1]);
                         }
                         if (nr != null_group)
                         {
                             dS -= -positive_w_log_P(_mrp[nr], _brecsum[nr],
-                                                    _wparams[i][0], _wparams[i][1]);
-                            dS += -positive_w_log_P(_mrp[nr] + k, _brecsum[nr] + dt[0],
-                                                    _wparams[i][0], _wparams[i][1]);
+                                                    wp[0], wp[1]);
+                            dS += -positive_w_log_P(_mrp[nr] + k,
+                                                    _brecsum[nr] + dt[0],
+                                                    wp[0], wp[1]);
                         }
                     }
                     break;
@@ -1457,6 +1450,7 @@ public:
         {
             for (size_t i = 0; i < _rec_types.size(); ++i)
             {
+                auto& wp = _wparams[i];
                 switch (_rec_types[i])
                 {
                 case weight_type::REAL_EXPONENTIAL:
@@ -1464,9 +1458,7 @@ public:
                     {
                         auto ers = _mrs[me];
                         auto xrs = _brec[me][i];
-                        S += -positive_w_log_P(ers, xrs,
-                                               _wparams[i][0],
-                                               _wparams[i][1]);
+                        S += -positive_w_log_P(ers, xrs, wp[0], wp[1]);
                     }
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
@@ -1474,9 +1466,7 @@ public:
                     {
                         auto ers = _mrs[me];
                         auto xrs = _brec[me][i];
-                        S += -geometric_w_log_P(ers, xrs,
-                                                _wparams[i][0],
-                                                _wparams[i][1]);
+                        S += -geometric_w_log_P(ers, xrs, wp[0], wp[1]);
                     }
                     break;
                 case weight_type::DISCRETE_POISSON:
@@ -1484,25 +1474,20 @@ public:
                     {
                         auto ers = _mrs[me];
                         auto xrs = _brec[me][i];
-                        S += -poisson_w_log_P(ers, xrs,
-                                              _wparams[i][0],
-                                              _wparams[i][1]);
+                        S += -poisson_w_log_P(ers, xrs, wp[0], wp[1]);
                     }
                     for (auto e : edges_range(_g))
-                        S += boost::math::lgamma(_rec[e][i] + 1);
+                        S += lgamma(_rec[e][i] + 1);
                     break;
                 case weight_type::DISCRETE_BINOMIAL:
                     for (auto me : edges_range(_bg))
                     {
                         auto ers = _mrs[me];
                         auto xrs = _brec[me][i];
-                        S += -binomial_w_log_P(ers, xrs,
-                                               _wparams[i][0],
-                                               _wparams[i][1],
-                                               _wparams[i][2]);
+                        S += -binomial_w_log_P(ers, xrs, wp[0], wp[1], wp[2]);
                     }
                     for (auto e : edges_range(_g))
-                        S -= lbinom(_wparams[i][0], _rec[e][i]);
+                        S -= lbinom(wp[0], _rec[e][i]);
                     break;
                 case weight_type::REAL_NORMAL:
                     for (auto me : edges_range(_bg))
@@ -1511,21 +1496,16 @@ public:
                         auto xrs = _brec[me][i];
                         auto x2rs = _bdrec[me][i];
                         auto sigma = x2rs - xrs * (xrs / ers);
-                        S += -signed_w_log_P(ers, xrs, sigma,
-                                             _wparams[i][0],
-                                             _wparams[i][1],
-                                             _wparams[i][2],
-                                             _wparams[i][3]);
+                        S += -signed_w_log_P(ers, xrs, sigma, wp[0], wp[1],
+                                             wp[2], wp[3]);
                     }
                     break;
                 case weight_type::DELTA_T: // waiting times
                     for (auto r : vertices_range(_bg))
                     {
                         if (_bignore_degrees[r] > 0)
-                            S += -positive_w_log_P(_mrp[r],
-                                                   _brecsum[r],
-                                                   _wparams[i][0],
-                                                   _wparams[i][1]);
+                            S += -positive_w_log_P(_mrp[r], _brecsum[r], wp[0],
+                                                   wp[1]);
                     }
                     break;
                 }
