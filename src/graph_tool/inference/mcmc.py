@@ -63,8 +63,9 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to ``state.mcmc_sweep`` (or ``state.gibbs_sweep``).
     history : ``bool`` (optional, default: ``False``)
-        If ``True``, a list of tuples of the form ``(iteration, entropy)`` will
-        be kept and returned.
+        If ``True``, a list of tuples of the form ``(entropy, nmoves)`` will
+        be kept and returned, where ``entropy`` is the current entropy and
+        ``nmoves`` is the number of vertices moved.
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current state as an argument, and its return
@@ -93,7 +94,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     Returns
     -------
 
-    history : list of tuples of the form ``(iteration, entropy)``
+    history : list of tuples of the form ``(entropy, nmoves)``
         Summary of the MCMC run. This is returned only if ``history == True``.
     entropy : ``float``
         Current entropy value after run. This is returned only if ``history ==
@@ -181,7 +182,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
                     str(extra) if len(extra) > 0 else ""))
 
         if history:
-            hist.append([S, nmoves] + extra)
+            hist.append(tuple([S, nmoves] + extra))
 
         if niter >= max_niter:
             break
