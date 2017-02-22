@@ -84,7 +84,7 @@ enum weight_type
     ((brec,, eprop_map_t<std::vector<double>>::type, 0))                       \
     ((bdrec,, eprop_map_t<std::vector<double>>::type, 0))                      \
     ((brecsum,, vprop_map_t<double>::type, 0))                                 \
-    ((wparams,, std::vector<std::vector<double>>, 0))                          \
+    ((wparams, &, std::vector<std::vector<double>>&, 0))                       \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
     ((bignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))               \
     ((allow_empty,, bool, 0))

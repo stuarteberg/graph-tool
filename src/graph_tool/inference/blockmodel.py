@@ -470,7 +470,7 @@ class BlockState(object):
 
             ks = list(defaults.keys())
             defaults.update(rec_params[i])
-            rec_params[i] = dict(**defaults)
+            rec_params[i] = defaults.copy()
             for k in ks:
                 ps.append(defaults.pop(k))
             if len(defaults) > 0:
