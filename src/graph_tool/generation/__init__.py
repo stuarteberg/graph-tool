@@ -1186,13 +1186,13 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
         emask_flipped = False
         if emask is not None and not emask_flip:
             emask.a = numpy.logical_not(emask.a)
-            emask_flipped = True
             g1.set_edge_filter(emask, True)
+            emask_flipped = True
 
         vmask, vmask_flip = g1.get_vertex_filter()
         vmask_flipped = False
         if vmask is not None and not vmask_flip:
-            vmask.a = not vmask.a
+            vmask.a = numpy.logical_not(vmask.a)
             g1.set_vertex_filter(vmask, True)
             vmask_flipped = True
 
