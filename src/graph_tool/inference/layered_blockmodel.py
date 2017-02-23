@@ -662,7 +662,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         .. math::
 
-            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+            \ln \frac{P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)}{P(\boldsymbol G| \boldsymbol b)}
 
         where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
         (with missing edges added and spurious edges deleted).
@@ -671,6 +671,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         :meth:`graph_tool.BlockState.entropy()` to calculate the
         log-probability.
         """
+
+        Si = self.entropy(**dict(dict(partition_dl=False), **entropy_args))
+
+
         pos = {}
         nes = []
         for e in itertools.chain(missing, spurious):
@@ -764,7 +768,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                         self.ec[e] = l[0]
             self.add_vertex(pos.keys(), pos.values())
 
-        L = -Sf
+        L = Si - Sf
 
         if _bm_test():
             state = self.copy()

@@ -1224,30 +1224,37 @@ situation, the fit we make of the observed network can help us
 predict missing or spurious edges in the network
 [clauset-hierarchical-2008]_ [guimera-missing-2009]_.
 
-We do so by dividing the edges into two sets :math:`\boldsymbol G` and :math:`\delta
-\boldsymbol G`, where the former corresponds to the observed network and the latter
-either to the missing or spurious edges. In the case of missing edges,
-we may compute the posterior of :math:`\delta \boldsymbol G` as
+We do so by dividing the edges into two sets :math:`\boldsymbol G` and
+:math:`\delta \boldsymbol G`, where the former corresponds to the
+observed network and the latter either to the missing or spurious
+edges. We may compute the posterior of :math:`\delta \boldsymbol G` as
 
 .. math::
    :label: posterior-missing
 
-   P(\delta \boldsymbol G | \boldsymbol G) = \frac{\sum_{\boldsymbol b}P(\boldsymbol G+\delta \boldsymbol G | \boldsymbol b)P(\boldsymbol b | \boldsymbol G)}{P_{\delta}(\boldsymbol G)}
+   P(\delta \boldsymbol G | \boldsymbol G) = \frac{\sum_{\boldsymbol b}P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)P(\boldsymbol b | \boldsymbol G)}{P_{\delta}(\boldsymbol G)}
 
 where
 
 .. math::
+   :label: posterior-missing
 
-   P_{\delta}(\boldsymbol G) = \sum_{\delta \boldsymbol G}\sum_{\boldsymbol b}P(\boldsymbol G+\delta \boldsymbol G | \boldsymbol b)P(\boldsymbol b | \boldsymbol G)
+   P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b) = \frac{P(\boldsymbol G + \delta \boldsymbol G| \boldsymbol b)}{P(\boldsymbol G | \boldsymbol b)}
 
-is a normalization constant. Although the value of :math:`P_{\delta}(\boldsymbol G)` is
-difficult to obtain in general (since we need to perform a sum over all
-possible spurious/missing edges), the numerator of
-Eq. :eq:`posterior-missing` can be computed by sampling partitions from
-the posterior, and then inserting or deleting edges from the graph and
-computing the new likelihood. This means that we can easily compare
-alternative predictive hypotheses :math:`\{\delta \boldsymbol G_i\}` via their
-likelihood ratios
+and
+
+.. math::
+
+   P_{\delta}(\boldsymbol G) = \sum_{\delta \boldsymbol G}\sum_{\boldsymbol b}P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)P(\boldsymbol b | \boldsymbol G)
+
+is a normalization constant. Although the value of
+:math:`P_{\delta}(\boldsymbol G)` is difficult to obtain in general
+(since we need to perform a sum over all possible spurious/missing
+edges), the numerator of Eq. :eq:`posterior-missing` can be computed by
+sampling partitions from the posterior, and then inserting or deleting
+edges from the graph and computing the new likelihood. This means that
+we can easily compare alternative predictive hypotheses :math:`\{\delta
+\boldsymbol G_i\}` via their likelihood ratios
 
 .. math::
 
@@ -1257,7 +1264,7 @@ likelihood ratios
 
 which do not depend on the value of :math:`P_{\delta}(\boldsymbol G)`.
 
-The values :math:`P(\boldsymbol G+\delta \boldsymbol G | \boldsymbol b)`
+The values :math:`P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)`
 can be computed with
 :meth:`~graph_tool.inference.BlockState.get_edges_prob`. Hence, we can
 compute spurious/missing edge probabilities just as if we were

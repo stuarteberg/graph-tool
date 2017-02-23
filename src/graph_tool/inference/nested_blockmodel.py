@@ -327,7 +327,7 @@ class NestedBlockState(object):
 
         .. math::
 
-            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+            \ln \frac{P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)}{P(\boldsymbol G| \boldsymbol b)}
 
         where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
         (with missing edges added and spurious edges deleted).

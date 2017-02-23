@@ -1109,7 +1109,7 @@ class BlockState(object):
 
         .. math::
 
-            \ln P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)
+            \ln \frac{P(\boldsymbol G + \delta \boldsymbol G | \boldsymbol b)}{P(\boldsymbol G| \boldsymbol b)}
 
         where :math:`\boldsymbol G + \delta \boldsymbol G` is the modified graph
         (with missing edges added and spurious edges deleted).
@@ -1118,6 +1118,11 @@ class BlockState(object):
         :meth:`graph_tool.BlockState.entropy()` to calculate the
         log-probability.
         """
+
+
+        Si = self.entropy(**dict(dict(partition_dl=False),
+                                 **entropy_args))
+
         pos = {}
         for u, v in itertools.chain(missing, spurious):
             pos[u] = self.b[u]
@@ -1183,7 +1188,7 @@ class BlockState(object):
 
             self.add_vertex(pos.keys(), pos.values())
 
-        L = -Sf
+        L = Si - Sf
 
         if _bm_test():
             state = self.copy()
