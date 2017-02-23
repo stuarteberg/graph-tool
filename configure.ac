@@ -199,8 +199,17 @@ AC_ARG_WITH([numpy], [AS_HELP_STRING([--with-numpy=DIR],[directory where numpy i
 AC_CHECK_HEADER([${NUMPY_DIR}/numpy/arrayobject.h],
                 [],
                 [AC_MSG_ERROR([Numpy extension header not found])],
-                [#include "Python.h"])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h" #include "${NUMPY_DIR}/numpy/arrayobject.h" #if NPY_API_VERSION < 0x00000007 #error #endif]])],
+                [[#include "Python.h"]]
+                [[#define NO_IMPORT_ARRAY]]
+                [[#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION]])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h"]]
+                                  [[// numpy unique symbol weirdness]]
+                                  [[#define NO_IMPORT_ARRAY]]
+                                  [[#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION]]
+                                  [[#include "numpy/arrayobject.h"]]
+                                  [[#if NPY_API_VERSION < 0x00000007]]
+                                  [[   #error]]
+                                  [[#endif]])],
                   [],
                   [AC_MSG_ERROR([Numpy is too old. Version 1.7 or above is required.])])
 [CPPFLAGS=${CPPFLAGS_TEMP}]
