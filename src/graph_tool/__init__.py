@@ -2244,7 +2244,7 @@ class Graph(object):
         range. The index ordering will be compatible with the sequence returned
         by the :meth:`~graph_tool.Graph.edges` function.
 
-        .. WARNING::
+        .. warning::
 
            Calling this function will invalidate all existing edge property
            maps, if the index ordering is modified! The property maps will still
@@ -2546,7 +2546,19 @@ class Graph(object):
     # ============
 
     def set_directed(self, is_directed):
-        """Set the directedness of the graph."""
+        """Set the directedness of the graph.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Changing directedness will invalidate existing vertex and edge
+           descriptors, which will still point to the original graph.
+
+        """
         self.__graph.set_directed(is_directed)
 
     def is_directed(self):
@@ -2558,7 +2570,18 @@ class Graph(object):
 
     def set_reversed(self, is_reversed):
         """Reverse the direction of the edges, if ``is_reversed`` is ``True``,
-        or maintain the original direction otherwise."""
+        or maintain the original direction otherwise.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Reversing the graph will invalidate existing vertex and edge
+           descriptors, which will still point to the original graph.
+        """
         self.__graph.set_reversed(is_reversed)
 
     def is_reversed(self):
@@ -2577,6 +2600,16 @@ class Graph(object):
         the edges or vertices with value ``False`` are kept. If any of the
         supplied property is ``None``, an empty filter is constructed which
         allows all edges or vertices.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Setting vertex or edge filters will invalidate existing vertex and
+           edge descriptors, which will still point to the unfiltered graph.
 
         """
 
@@ -2608,7 +2641,19 @@ class Graph(object):
         different than ``False`` are kept in the filtered graph. If the ``inverted``
         option is supplied with value ``True``, only the vertices with value
         ``False`` are kept. If the supplied property is ``None``, the filter is
-        replaced by an uniform filter allowing all vertices."""
+        replaced by an uniform filter allowing all vertices.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Setting vertex filters will invalidate existing vertex and edge
+           descriptors, which will still point to the unfiltered graph.
+
+        """
 
         if prop is not None and prop.value_type() != "bool":
             raise ValueError("filter property map must have 'bool' type")
@@ -2641,7 +2686,19 @@ class Graph(object):
         different than ``False`` are kept in the filtered graph. If the ``inverted``
         option is supplied with value ``True``, only the edges with value ``False``
         are kept. If the supplied property is ``None``, the filter is
-        replaced by an uniform filter allowing all edges."""
+        replaced by an uniform filter allowing all edges.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Setting edge filters will invalidate existing vertex and edge
+           descriptors, which will still point to the unfiltered graph.
+
+        """
 
         if prop is not None and prop.value_type() != "bool":
             raise ValueError("filter property map must have 'bool' type")
@@ -2669,7 +2726,19 @@ class Graph(object):
 
     def clear_filters(self):
         """Remove vertex and edge filters, and set the graph to the unfiltered
-        state."""
+        state.
+
+        .. note::
+
+           This is a :math:`O(1)` operation that does not modify the storage of
+           the graph.
+
+        .. warning::
+
+           Clearing vertex and edge filters will invalidate existing vertex and
+           edge descriptors.
+
+        """
         self.__graph.set_vertex_filter_property(_prop("v", self, None), False)
         self.__filter_state["vertex_filter"] = (None, False)
         self.__graph.set_edge_filter_property(_prop("e", self, None), False)
