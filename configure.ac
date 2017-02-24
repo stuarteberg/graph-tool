@@ -180,7 +180,7 @@ AC_ARG_ENABLE([cgal-valgrind], [AS_HELP_STRING([--enable-cgal-valgrind],[enable 
                  [CGAL_FLAGS="${CGAL_FLAGS} -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON"]
               else
                  [AC_MSG_RESULT(no)]    
-              fi,                       
+              fi,
               [AC_MSG_RESULT(no)])
 AC_SUBST(CGAL_FLAGS)
 
@@ -194,8 +194,8 @@ AC_ARG_WITH([numpy], [AS_HELP_STRING([--with-numpy=DIR],[directory where numpy i
             NUMPY_DIR=$withval)
 [NUMPY_CPPFLAGS="-I${NUMPY_DIR}"]
 
-[CPPFLAGS_TEMP=${CPPFLAGS}]
-[CPPFLAGS=${PYTHON_CPPFLAGS} ${NUMPY_CPPFLAGS} ${CPPFLAGS}]
+[CPPFLAGS_TEMP="${CPPFLAGS}"]
+[CPPFLAGS="${PYTHON_CPPFLAGS} ${NUMPY_CPPFLAGS} ${CPPFLAGS}"]
 AC_CHECK_HEADER([numpy/arrayobject.h],
                 [],
                 [AC_MSG_ERROR([Numpy extension header not found])],
@@ -212,7 +212,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include "Python.h"]]
                                   [[#endif]])],
                   [],
                   [AC_MSG_ERROR([Numpy is too old. Version 1.7 or above is required.])])
-[CPPFLAGS=${CPPFLAGS_TEMP}]
+[CPPFLAGS="${CPPFLAGS_TEMP}"]
 
 dnl cairo
 if test "$USING_CAIRO" = "yes"; then
@@ -227,13 +227,13 @@ if test "$USING_CAIRO" = "yes"; then
    else
       [PYCAIRO_HEADER=pycairo/pycairo.h]
    fi
-   [CPPFLAGS_TEMP=${CPPFLAGS}]
+   [CPPFLAGS_TEMP="${CPPFLAGS}"]
    [CPPFLAGS="${CAIROMM_CPPFLAGS} ${CAIROMM_CFLAGS} ${PYTHON_CPPFLAGS} ${CPPFLAGS}"]
    AC_DEFINE_UNQUOTED([PYCAIRO_HEADER], <${PYCAIRO_HEADER}>, [pycairo header file])
    AC_CHECK_HEADER(${PYCAIRO_HEADER},
                    [],
                    [AC_MSG_ERROR([pycairo headers not found])])
-   [CPPFLAGS=${CPPFLAGS_TEMP}]
+   [CPPFLAGS="${CPPFLAGS_TEMP}"]
 fi
 
 dnl sparsehash
