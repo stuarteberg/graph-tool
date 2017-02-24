@@ -56,8 +56,62 @@ python::object do_multiflip_mcmc_sweep(python::object omcmc_state,
     return ret;
 }
 
+
+void get_worder(GraphInterface& gi, boost::any abs, boost::any aorder)
+{
+    typedef vprop_map_t<int64_t>::type vmap_t;
+
+    vmap_t& order = any_cast<vmap_t&>(aorder);
+
+    run_action<>()(gi,
+                   [&](auto& g, auto& bs)
+                   {
+                       std::vector<size_t> vs;
+                       vs.reserve(num_vertices(g));
+                       for (auto v : vertices_range(g))
+                           vs.push_back(v);
+                       std::sort(vs.begin(), vs.end(),
+                                 [&](auto u, auto v)
+                                 { return bs[u] < bs[v]; });
+                       for (size_t i = 0; i < vs.size(); ++i)
+                           order[vs[i]] = i;
+                   },
+                   vertex_scalar_vector_properties())(abs);
+}
+
+
+void shuffle_labels(GraphInterface& gi, boost::any ab, rng_t& rng)
+{
+    run_action<>()(gi,
+                   [&](auto& g, auto& b)
+                   {
+                       typedef typename property_traits
+                           <typename std::remove_reference<decltype(b)>::type>
+                           ::value_type val_t;
+
+                       std::unordered_set<val_t> vals;
+                       for (auto v : vertices_range(g))
+                           vals.insert(b[v]);
+
+                       std::vector<val_t> nvals(vals.begin(), vals.end());
+                       std::shuffle(nvals.begin(), nvals.end(), rng);
+
+                       std::unordered_map<val_t, val_t> val_map;
+                       auto iter = nvals.begin();
+                       for (auto r : vals)
+                           val_map[r] = *iter++;
+
+                       for (auto v : vertices_range(g))
+                           b[v] = val_map[b[v]];
+                   },
+                   writable_vertex_scalar_properties())(ab);
+}
+
+
 void export_blockmodel_multiflip_mcmc()
 {
     using namespace boost::python;
     def("multiflip_mcmc_sweep", &do_multiflip_mcmc_sweep);
+    def("get_worder", &get_worder);
+    def("shuffle_labels", &shuffle_labels);
 }

@@ -53,7 +53,8 @@ python::object gibbs_overlap_sweep(python::object ogibbs_state,
             [&](auto& s)
             {
                 auto ret_ = gibbs_sweep(s, rng);
-                ret = python::make_tuple(ret_.first, ret_.second);
+                ret = python::make_tuple(get<0>(ret_), get<1>(ret_),
+                                         get<2>(ret_));
             });
     };
     overlap_block_state::dispatch(oblock_state, dispatch);

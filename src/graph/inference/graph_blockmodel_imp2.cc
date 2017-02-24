@@ -52,12 +52,12 @@ void export_sbm_state()
              double (state_t::*virtual_move)(size_t, size_t, size_t,
                                              entropy_args_t) =
                  &state_t::virtual_move;
-             size_t (state_t::*sample_block)(size_t, double, rng_t&) =
+             size_t (state_t::*sample_block)(size_t, double, double, rng_t&) =
                  &state_t::sample_block;
              size_t (state_t::*random_neighbour)(size_t, rng_t&) =
                  &state_t::random_neighbour;
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                              bool) =
+                                              double, bool) =
                  &state_t::get_move_prob;
              void (state_t::*merge_vertices)(size_t, size_t) =
                  &state_t::merge_vertices;

@@ -158,10 +158,10 @@ void export_overlap_blockmodel_state()
              double (state_t::*virtual_move)(size_t, size_t, size_t,
                                              entropy_args_t) =
                  &state_t::virtual_move;
-             size_t (state_t::*sample_block)(size_t, double, rng_t&)
+             size_t (state_t::*sample_block)(size_t, double, double, rng_t&)
                  = &state_t::sample_block;
              double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                              bool)
+                                              double, bool)
                  = &state_t::get_move_prob;
              void (state_t::*set_partition)(boost::any&)
                  = &state_t::set_partition;

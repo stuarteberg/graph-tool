@@ -69,7 +69,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
-        if (state._sequential)
+        if (state._sequential && !state._deterministic)
             std::shuffle(vlist.begin(), vlist.end(), rng);
 
         for (size_t vi = 0; vi < vlist.size(); ++vi)
@@ -80,13 +80,13 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
             else
                 v = uniform_sample(vlist, rng);
 
-            if (state.node_weight(v) == 0)
+            if (state.skip_node(v))
                 continue;
 
             auto r = state.node_state(v);
             auto s = state.move_proposal(v, rng);
 
-            if (s == r)
+            if (s == null_group)
                 continue;
 
             double dS, mP;

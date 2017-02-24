@@ -1152,21 +1152,21 @@ public:
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, RNG& rng)
+    size_t sample_block(size_t v, double c, double d, RNG& rng)
     {
+        std::uniform_real_distribution<> rdist;
+
         // attempt random block
         size_t s;
-        if (_empty_blocks.empty())
+        if (!_empty_blocks.empty() && rdist(rng) < d)
+        {
+            return uniform_sample(_empty_blocks, rng);
+        }
+        else
         {
             s = uniform_sample(_candidate_blocks.begin() + 1,
                                _candidate_blocks.end(),
                                rng);
-        }
-        else
-        {
-            s = uniform_sample(_candidate_blocks, rng);
-            if (s == null_group)
-                s = uniform_sample(_empty_blocks, rng);
         }
 
         if (!std::isinf(c) && !_neighbour_sampler.empty(v))
@@ -1176,16 +1176,14 @@ public:
             double p_rand = 0;
             if (c > 0)
             {
-                size_t B = (_empty_blocks.empty()) ?
-                    _candidate_blocks.size() - 1 : _candidate_blocks.size();
+                size_t B = _candidate_blocks.size() - 1;
                 if (is_directed::apply<g_t>::type::value)
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
             }
 
-            typedef std::uniform_real_distribution<> rdist_t;
-            if (c == 0 || rdist_t()(rng) >= p_rand)
+            if (c == 0 || rdist(rng) >= p_rand)
             {
                 if (_egroups.empty())
                     _egroups.init(_b, _eweight, _g, _bg);
@@ -1201,9 +1199,9 @@ public:
         return s;
     }
 
-    size_t sample_block(size_t v, double c, rng_t& rng)
+    size_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
-        return sample_block<rng_t>(v, c, rng);
+        return sample_block<rng_t>(v, c, d, rng);
     }
 
     size_t random_neighbour(size_t v, rng_t& rng)
@@ -1215,12 +1213,32 @@ public:
 
     // Computes the move proposal probability
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse,
-                         MEntries& m_entries)
+    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+                         bool reverse, MEntries& m_entries)
     {
-        typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        size_t B = (_empty_blocks.empty()) ?
-            _candidate_blocks.size() - 1 : _candidate_blocks.size();
+        size_t B = _candidate_blocks.size() - 1;
+
+        if (reverse)
+        {
+            if (_wr[s] == _vweight[v])
+                return d;
+            if (_wr[r] == 0)
+                B++;
+            // if (_wr[s] == _vweight[v])
+            //     B--;
+        }
+        else
+        {
+            if (_wr[s] == 0)
+                return d;
+        }
+
+        if (B == num_vertices(_bg))
+            d = 0;
+
+        if (std::isinf(c))
+            return (1. - d) / B;
+
         double p = 0;
         size_t w = 0;
 
@@ -1232,7 +1250,7 @@ public:
 
         auto sum_prob = [&](auto& e, auto u)
             {
-                vertex_t t = _b[u];
+                size_t t = _b[u];
                 if (u == v)
                     t = r;
                 size_t ew = _eweight[e];
@@ -1306,15 +1324,16 @@ public:
         }
 
         if (w > 0)
-            return p / w;
+            return (1. - d) * p / w;
         else
-            return 1. / B;
+            return (1. - d) / B;
     }
 
-    double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse)
+    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+                         bool reverse)
     {
         get_move_entries(v, _b[v], (reverse) ? r : s, _m_entries);
-        return get_move_prob(v, r, s, c, reverse, _m_entries);
+        return get_move_prob(v, r, s, c, d, reverse, _m_entries);
     }
 
     bool is_last(size_t v)

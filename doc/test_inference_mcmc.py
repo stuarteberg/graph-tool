@@ -117,8 +117,11 @@ for directed in [True, False]:
     for i, c in enumerate(cs):
         if c != "gibbs":
             mcmc_args=dict(beta=1, c=abs(c), niter=40)
+            if c < 0:
+                mcmc_args["w"] = g.vertex_index.copy()
         else:
             mcmc_args=dict(beta=1, niter=40)
+
         if i == 0:
             mcmc_equilibrate(state,
                              mcmc_args=mcmc_args,

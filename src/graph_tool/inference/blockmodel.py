@@ -1079,25 +1079,26 @@ class BlockState(object):
         self.move_vertex(u, self.b[v])
         self._state.merge_vertices(int(u), int(v))
 
-    def sample_vertex_move(self, v, c=1.):
+    def sample_vertex_move(self, v, c=1., d=.1):
         r"""Sample block membership proposal of vertex ``v`` according to real-valued
-        sampling parameter ``c``: For :math:`c\to 0` the blocks are sampled
+        sampling parameters ``c`` and ``d``: For :math:`c\to 0` the blocks are sampled
         according to the local neighbourhood and their connections; for
-        :math:`c\to\infty` the blocks are sampled randomly.
+        :math:`c\to\infty` the blocks are sampled randomly. With a probability
+        ``d``, a new (empty) group is sampled.
         """
-        return self._state.sample_block(int(v), c, _get_rng())
+        return self._state.sample_block(int(v), c, d, _get_rng())
 
-    def get_move_prob(self, v, s, c=1., reverse=False):
+    def get_move_prob(self, v, s, c=1., d=.1, reverse=False):
         r"""Compute the probability of a move proposal for vertex ``v`` to block ``s``
-        according to sampling parameter ``c``, as obtained with
-        :meth:`graph_tool.inference.BlockState.sample_vertex_move`. If
-        ``reverse == True``, the reverse probability of moving the node back
-        from block ``s`` to its current one is obtained.
+        according to sampling parameters ``c`` and ``d``, as obtained with
+        :meth:`graph_tool.inference.BlockState.sample_vertex_move`. If ``reverse
+        == True``, the reverse probability of moving the node back from block
+        ``s`` to its current one is obtained.
         """
         if not reverse:
-            return self._state.get_move_prob(int(v), self.b[v], s, c, False)
+            return self._state.get_move_prob(int(v), self.b[v], s, c, d, False)
         else:
-            return self._state.get_move_prob(int(v), s, self.b[v], c, True)
+            return self._state.get_move_prob(int(v), s, self.b[v], c, d, True)
 
     def get_edges_prob(self, missing, spurious=[], entropy_args={}):
         r"""Compute the joint log-probability of the missing and spurious edges given by
@@ -1206,9 +1207,9 @@ class BlockState(object):
         return libinference.mcmc_sweep(mcmc_state, self._state,
                                        _get_rng())
 
-    def mcmc_sweep(self, beta=1., c=1., niter=1, entropy_args={},
-                   allow_vacate=True, sequential=True, parallel=False,
-                   vertices=None, verbose=False, **kwargs):
+    def mcmc_sweep(self, beta=1., c=1., d=.1, niter=1, entropy_args={},
+                   allow_vacate=True, sequential=True, deterministic=False,
+                   parallel=False, vertices=None, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC to sample network partitions.
 
@@ -1222,6 +1223,8 @@ class BlockState(object):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
+        d : ``float`` (optional, default: ``.1``)
+            Probability of selecting a new (i.e. empty) group for a given move.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
             made for each node.
@@ -1320,25 +1323,32 @@ class BlockState(object):
                                                  _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, beta=1., a=1, c=1., niter=1, entropy_args={},
-                             allow_vacate=True, verbose=False, **kwargs):
+    def multiflip_mcmc_sweep(self, w, a=1., beta=1., c=1., d=.1, niter=1,
+                             entropy_args={}, allow_vacate=True,
+                             sequential=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
-        sampling MCMC with multiple moves to sample network partitions.
+        sampling MCMC with multiple simultaneous moves to sample network
+        partitions.
 
         Parameters
         ----------
+        w : :class:`~graph_tool.PropertyMap`
+            A vertex property map with the ordering used to propose
+            sub-partitions.
+        a : ``float`` (optional, default: ``1.``)
+            Parameter controlling the number of multiple moves. The number
+            :math:`m` of nodes that will be moved together is sampled with
+            probability proportional to :math:`1/m^a`.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature.
-        a : ``float`` (optional, default: ``1.``)
-            Parameter for the number of multiple moves. The number :math:`m` of
-            nodes that will be moved together is sampled with probability
-            proportional to :math:`1/m^a`.
         c : ``float`` (optional, default: ``1.``)
             Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
             blocks are sampled according to the local neighbourhood of a given
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
+        d : ``float`` (optional, default: ``.1``)
+            Probability of selecting a new (i.e. empty) group for a given move.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
             made for each node.
@@ -1361,7 +1371,17 @@ class BlockState(object):
         -----
         This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
         number of edges (independent of the number of blocks).
+
         """
+
+        if w.value_type().startswith("vector"):
+            order = self.g.new_vp("int64_t")
+            libinference.get_worder(self.g._Graph__graph,
+                                    _prop("v", self.g, w),
+                                    _prop("v", self.g, order))
+            w = order
+        if w.value_type() != "int64_t":
+            w = w.copy("int64_t")
 
         mcmc_state = DictState(locals())
         entropy_args = dict(self._entropy_args, **entropy_args)
@@ -1424,8 +1444,8 @@ class BlockState(object):
                                         _get_rng())
 
     def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_vacate=True,
-                    sequential=True, parallel=False, vertices=None,
-                    verbose=False, **kwargs):
+                    sequential=True, deterministic=False, parallel=False,
+                    vertices=None, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs sampling MCMC
         to sample network partitions.
 
@@ -1466,6 +1486,8 @@ class BlockState(object):
             Entropy difference after the sweeps.
         nmoves : ``int``
             Number of vertices moved.
+        nattempts : ``int``
+            Number of attempted moves.
 
         Notes
         -----
@@ -1497,7 +1519,7 @@ class BlockState(object):
             else:
                 Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
+        dS, nmoves, nattempts = self._gibbs_sweep_dispatch(gibbs_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1513,7 +1535,7 @@ class BlockState(object):
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
 
-        return dS, nmoves
+        return dS, nmoves, nattempts
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
         return libinference.multicanonical_sweep(multicanonical_state,

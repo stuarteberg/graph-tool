@@ -557,7 +557,7 @@ public:
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, RNG& rng)
+    size_t sample_block(size_t v, double c, double, RNG& rng)
     {
         // attempt random block
         size_t s = uniform_sample(_candidate_blocks, rng);
@@ -596,9 +596,9 @@ public:
         return s;
     }
 
-    size_t sample_block(size_t v, double c, rng_t& rng)
+    size_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
-        return sample_block<rng_t>(v, c, rng);
+        return sample_block<rng_t>(v, c, d, rng);
     }
 
     template <class RNG>
@@ -622,8 +622,8 @@ public:
 
     // Computes the move proposal probability
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse,
-                         MEntries& m_entries)
+    double get_move_prob(size_t v, size_t r, size_t s, double c, double,
+                         bool reverse, MEntries& m_entries)
     {
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
         size_t B = num_vertices(_bg);
@@ -709,9 +709,10 @@ public:
             return 1. / B;
     }
 
-    double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse)
+    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
+                         bool reverse)
     {
-        return get_move_prob(v, r, s, c, reverse, _m_entries);
+        return get_move_prob(v, r, s, c, d, reverse, _m_entries);
     }
 
     bool is_last(size_t v)

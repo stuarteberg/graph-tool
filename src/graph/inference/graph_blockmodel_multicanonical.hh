@@ -46,10 +46,11 @@ using namespace std;
     ((E,, size_t, 0))                                                          \
     ((vlist,&, std::vector<size_t>&, 0))                                       \
     ((c,, double, 0))                                                          \
+    ((d,, double, 0))                                                          \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
     ((verbose,, bool, 0))                                                      \
-    ((target_bin,, int, 0))                                                 \
+    ((target_bin,, int, 0))                                                    \
     ((niter,, size_t, 0))
 
 
@@ -104,7 +105,7 @@ struct Multicanonical
         {
             auto r = _state._b[v];
 
-            size_t s = _state.sample_block(v, _c, rng);
+            size_t s = _state.sample_block(v, _c, _d, rng);
 
             if (!_state.allow_move(r, s))
                 return r;
@@ -119,14 +120,10 @@ struct Multicanonical
         {
             double dS = _state.virtual_move(v, _state._b[v], nr, _entropy_args);
 
-            double a = 0;
-            if (!std::isinf(_c))
-            {
-                size_t r = _state._b[v];
-                double pf = _state.get_move_prob(v, r, nr, _c, false);
-                double pb = _state.get_move_prob(v, nr, r, _c, true);
-                a = log(pb) - log(pf);
-            }
+            size_t r = _state._b[v];
+            double pf = _state.get_move_prob(v, r, nr, _c, _d, false);
+            double pb = _state.get_move_prob(v, nr, r, _c, _d, true);
+            double a = log(pb) - log(pf);
             return make_pair(dS, a);
         }
 

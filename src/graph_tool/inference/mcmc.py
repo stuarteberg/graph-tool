@@ -121,7 +121,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     hist = []
     while count < wait:
         if gibbs:
-            delta, nmoves = state.gibbs_sweep(**mcmc_args)
+            delta, nmoves = state.gibbs_sweep(**mcmc_args)[:2]
         elif multiflip:
             delta, nmoves = state.multiflip_mcmc_sweep(**mcmc_args)
         else:

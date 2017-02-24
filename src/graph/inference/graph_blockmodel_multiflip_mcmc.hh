@@ -33,13 +33,17 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
+typedef vprop_map_t<int64_t>::type wmap_t;
+
 #define MCMC_BLOCK_STATE_params(State)                                         \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((state, &, State&, 0))                                                    \
     ((E,, size_t, 0))                                                          \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
+    ((d,, double, 0))                                                          \
     ((a,, double, 0))                                                          \
+    ((w,, wmap_t, 0))                                                          \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((mproposals, & ,std::vector<size_t>&, 0))                                 \
     ((maccept, & ,std::vector<size_t>&, 0))                                    \
@@ -68,159 +72,231 @@ struct MCMC
         MCMCBlockState(ATs&&... as)
            : MCMCBlockStateBase<Ts...>(as...),
             _g(_state._g),
-            _groups(num_vertices(_state._bg)),
-            _vpos(get(vertex_index_t(), _state._g),
-                  num_vertices(_state._g)),
+            _vpos(num_vertices(_g)),
             _mprobs(num_vertices(_state._g) + 1),
-            _sequential(false)
+            _sequential(false),
+            _deterministic(false)
         {
             _state.init_mcmc(_c,
                              (_entropy_args.partition_dl ||
                               _entropy_args.degree_dl ||
                               _entropy_args.edges_dl));
+
             for (auto v : vertices_range(_state._g))
             {
                 if (_state._vweight[v] > 0)
-                    add_element(_groups[_state._b[v]], _vpos, v);
+                    _vlist.push_back(v);
             }
-            for (auto r : vertices_range(_state._bg))
-                _vlist.push_back(r);
+
+            std::sort(_vlist.begin(), _vlist.end(),
+                      [&](auto u, auto v){ return this->_w[u] < this->_w[v]; });
+
+            size_t i = 0;
+            for (auto v : _vlist)
+                _vpos[v] = i++;
+
+            _v = _vlist.front();
+            _m = 1;
+
+            std::vector<size_t> ms;
+            std::vector<double> probs;
             for (size_t m = 1; m < _mprobs.size(); ++m)
-                _mprobs[m] = _mprobs[m-1] + std::pow(m, -_a);
+            {
+                ms.push_back(m);
+                probs.push_back(std::pow(m, -_a));
+                _mprobs[m] = _mprobs[m - 1] + probs.back();
+            }
+            _msampler = Sampler<size_t, mpl::false_>(ms, probs);
         }
 
         typename state_t::g_t& _g;
 
-        std::vector<std::vector<size_t>> _groups;
-        typename vprop_map_t<size_t>::type::unchecked_t _vpos;
-
         std::vector<size_t> _vlist;
-        std::vector<size_t> _vs;
+        std::vector<size_t> _vpos;
+
         std::vector<double> _mprobs;
+        Sampler<size_t, mpl::false_> _msampler;
+
+        size_t _v;
+        size_t _m;
 
         bool _sequential;
+        bool _deterministic;
 
-        size_t node_state(size_t r)
+        size_t node_state(size_t v)
         {
-            return r;
+            return _state._b[v];
         }
 
-        size_t node_weight(size_t r)
+        bool skip_node(size_t)
         {
-            return _groups[r].size();
+            _m--;
+            return _m > 0;
         }
 
-        template <class RNG>
-        size_t sample_m(size_t n, RNG& rng)
+        size_t node_weight(size_t)
         {
-            double M = _mprobs[n];
-            std::uniform_real_distribution<> u_sample(0, M);
-            auto u = u_sample(rng);
-            auto iter = std::lower_bound(_mprobs.begin(),
-                                         _mprobs.begin() + n + 1, u);
-            return iter - _mprobs.begin();
+            return _m;
         }
 
-        double log_pm(size_t m, size_t n)
+
+        template <class F>
+        void iter_vs(size_t v, size_t m, F&& f)
         {
-            return - _a * log(m) - log(_mprobs[n]);
-        }
-
-        template <class RNG>
-        size_t move_proposal(size_t r, RNG& rng)
-        {
-            if (!_allow_vacate && _groups[r].size() == 1)
-                return r;
-
-            size_t m = sample_m(_groups[r].size(), rng);
-
-            assert(m <= _groups[r].size());
-
-            _vs.clear();
-
-            while (_vs.size() < m)
+            auto iter = _vlist.begin() + _vpos[v];
+            auto end = iter + m;
+            for (; iter != end; ++iter)
             {
-                size_t v = uniform_sample(_groups[r], rng);
-                _vs.push_back(v);
-                remove_element(_groups[r], _vpos, v);
+                if (!f(*iter))
+                    break;
             }
+        }
 
-            for (auto v : _vs)
-                add_element(_groups[r], _vpos, v);
+        template <class RNG>
+        size_t move_proposal(size_t v, RNG& rng)
+        {
+            _v = v;
 
-            size_t v = uniform_sample(_vs, rng);
-            size_t s = _state.sample_block(v, _c, rng);
+            size_t r = _state._b[v];
+
+            auto m = std::min(_msampler.sample(rng),
+                              _vlist.size() - _vpos[v]);
+
+            _m = 0;
+            iter_vs(v, m,
+                    [&](auto u)
+                    {
+                        size_t r_u = this->_state._b[u];
+                        if (r_u != r)
+                            return false;
+                        this->_m++;
+                        return true;
+                    });
+
+            std::uniform_int_distribution<size_t> dis(0, _m - 1);
+            size_t u = _vlist[_vpos[v] + dis(rng)];
+            size_t s = _state.sample_block(u, _c, _d, rng);
+
+            if (r == s)
+                return null_group;
 
             if (!_state.allow_move(r, s))
-                return r;
+                return null_group;
 
-            if (_groups[s].size() == 0)
+            if (!_allow_vacate)
+            {
+                size_t vw = 0;
+                iter_vs(v, _m,
+                        [&](auto u)
+                        {
+                            vw += this->_state._vweight[u];
+                            return true;
+                        });
+                if (vw == size_t(_state._wr[r]))
+                    return null_group;
+            }
+
+            if (_state._wr[s] == 0)
                 _state._bclabel[s] = _state._bclabel[r];
 
-            _mproposals[m]++;
+            _mproposals[_m]++;
+
             return s;
         }
 
+        double log_pm(size_t m)
+        {
+            return - _a * log(m) - log(_mprobs.back());
+        }
+
+        double log_pm_cum(size_t m)
+        {
+            assert(m >= 1);
+            return log(_mprobs.back() - _mprobs[m - 1]) - log(_mprobs.back());
+        }
+
+
+        double proposal_prob(size_t v, size_t m, size_t s)
+        {
+            if (std::isinf(_beta))
+                return 0;
+
+            auto end = _vpos[v] + m;
+            double L = ((end < _vlist.size()) &&
+                        (_state._b[v] == _state._b[_vlist[end]])) ?
+                log_pm(m) : log_pm_cum(m);
+
+            double p = 0;
+            iter_vs(v, m,
+                    [&](auto u)
+                    {
+                        p += _state.get_move_prob(u, this->_state._b[u], s,
+                                                  this->_c, this->_d, false);
+                        return true;
+                    });
+            L += log(p) - log(m);
+            return L;
+        }
+
         std::tuple<double, double>
-        virtual_move_dS(size_t r, size_t nr)
+        virtual_move_dS(size_t v, size_t nr)
         {
             double dS = 0, a = 0;
-            size_t m = _vs.size();
+            double pf = 0, pb = 0;
 
-            a -= log_pm(m, _groups[r].size());
-            a += log_pm(m, _groups[nr].size() + m);
-            a -= -lbinom(_groups[r].size(), m);
-            a += -lbinom(_groups[nr].size() + m, m);
+            assert(v == _v);
 
-            if (m == 1)
+            size_t r = _state._b[v];
+
+            if (_m == 1)
             {
-                auto v = _vs.front();
                 dS = _state.virtual_move(v, r, nr, _entropy_args);
-                if (!std::isinf(_c))
-                {
-                    double pf = _state.get_move_prob(v, r, nr, _c, false);
-                    double pb = _state.get_move_prob(v, nr, r, _c, true);
-                    a += log(pb) - log(pf);
-                }
+                pf += log(_state.get_move_prob(v, r, nr, _c, _d, false));
+                pb += log(_state.get_move_prob(v, nr, r, _c, _d, true));
             }
             else
             {
                 _state._egroups_enabled = false;
-                double pf = 0, pb = 0;
-                if (!std::isinf(_c))
-                {
-                    for (auto v : _vs)
-                        pf += _state.get_move_prob(v, r, nr, _c, false);
-                    pf /= m;
-                }
-                for (auto v : _vs)
-                {
-                    dS += _state.virtual_move(v, r, nr, _entropy_args);
-                    _state.move_vertex(v, nr);
-                }
-                if (!std::isinf(_c))
-                {
-                    for (auto v : _vs)
-                        pb += _state.get_move_prob(v, nr, r, _c, false);
-                    pb /= m;
-                    a += log(pb) - log(pf);
-                }
-                for (auto v : _vs)
-                    _state.move_vertex(v, r);
+
+                pf += proposal_prob(v, _m, nr);
+
+                iter_vs(v, _m,
+                        [&](auto u)
+                        {
+                            dS += this->_state.virtual_move(u, r, nr,
+                                                            this->_entropy_args);
+                            this->_state.move_vertex(u, nr);
+                            return true;
+                        });
+
+                pb += proposal_prob(v, _m, r);
+
+                iter_vs(v, _m,
+                        [&](auto u)
+                        {
+                            this->_state.move_vertex(u, r);
+                            return true;
+                        });
+
                 _state._egroups_enabled = true;
             }
+
+            a -= pf;
+            a += pb;
+
             return std::make_tuple(dS, a);
         }
 
-        void perform_move(size_t r, size_t nr)
+        void perform_move(size_t v, size_t nr)
         {
-            for (auto v : _vs)
-            {
-                _state.move_vertex(v, nr);
-                remove_element(_groups[r], _vpos, v);
-                add_element(_groups[nr], _vpos, v);
-            }
-            _maccept[_vs.size()]++;
+            assert(v == _v);
+            iter_vs(v, _m,
+                    [&](auto u)
+                    {
+                        this->_state.move_vertex(u, nr);
+                        return true;
+                    });
+            _maccept[_m]++;
         }
     };
 };

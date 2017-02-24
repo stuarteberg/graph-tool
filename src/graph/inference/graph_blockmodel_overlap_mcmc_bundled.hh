@@ -39,9 +39,11 @@ using namespace std;
     ((vlist,, std::vector<size_t>, 0))                                         \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
+    ((d,, double, 0))                                                          \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
     ((sequential,, bool, 0))                                                   \
+    ((deterministic,, bool, 0))                                                \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
@@ -110,6 +112,11 @@ struct MCMC
             return _state._b[v];
         }
 
+        size_t skip_node(size_t v)
+        {
+            return _state.node_weight(v) == 0;
+        }
+
         size_t node_weight(size_t v)
         {
             return _state.node_weight(v);
@@ -121,10 +128,10 @@ struct MCMC
             auto v = _bundles[i][0];
             auto r = _state._b[v];
 
-            size_t s = _state.sample_block(v, _c, rng);
+            size_t s = _state.sample_block(v, _c, _d, rng);
 
             if (_state._bclabel[s] != _state._bclabel[r])
-                return r;
+                return null_group;
 
             return s;
         }

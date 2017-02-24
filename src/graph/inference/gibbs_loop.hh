@@ -58,14 +58,11 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
 
     double S = 0;
     size_t nmoves = 0;
+    size_t nattempts = 0;
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
-        if (!state._parallel)
-        {
-            std::shuffle(vlist.begin(), vlist.end(), rng_);
-        }
-        else
+        if (state._parallel)
         {
             parallel_loop(vlist,
                           [&](size_t, auto v)
@@ -75,9 +72,14 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                                                  numeric_limits<double>::max());
                           });
         }
+        else
+        {
+            if (!state._deterministic)
+                std::shuffle(vlist.begin(), vlist.end(), rng_);
+        }
 
         #pragma omp parallel firstprivate(state, probs, deltas, idx) \
-            if (state._parallel)
+            reduction(+: S, nmoves, nattempts) if (state._parallel)
         parallel_loop_no_spawn
             (vlist,
              [&](size_t, auto v)
@@ -91,6 +93,8 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                      return;
 
                  auto& moves = state.get_moves(v);
+
+                 nattempts += moves.size();
 
                  probs.resize(moves.size());
                  deltas.resize(moves.size());
@@ -167,7 +171,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
             }
         }
     }
-    return make_pair(S, nmoves);
+    return std::make_tuple(S, nmoves, nattempts);
 }
 
 } // graph_tool namespace

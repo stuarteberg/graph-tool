@@ -70,17 +70,20 @@ void export_layered_overlap_blockmodel_state()
              layered_block_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
+                      typedef typename std::remove_reference<decltype(*s)>::type
+                          state_t;
 
                       double (state_t::*virtual_move)(size_t, size_t, size_t,
                                                       entropy_args_t) =
                           &state_t::virtual_move;
-                      size_t (state_t::*sample_block)(size_t, double, rng_t&)
+                      size_t (state_t::*sample_block)(size_t, double, double,
+                                                      rng_t&)
                           = &state_t::sample_block;
-                      double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                                       bool)
+                      double (state_t::*get_move_prob)(size_t, size_t, size_t,
+                                                       double, double, bool)
                           = &state_t::get_move_prob;
-                      void (state_t::*move_vertices)(python::object, python::object) =
+                      void (state_t::*move_vertices)(python::object,
+                                                     python::object) =
                           &state_t::move_vertices;
 
                       class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),

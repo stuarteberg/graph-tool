@@ -121,7 +121,7 @@ struct Merge
             else
             {
                 auto v = uniform_sample(bundle, rng);
-                s = _state.sample_block(v, 0, rng);
+                s = _state.sample_block(v, 0, 0, rng);
             }
 
             if (s == r || _state._bclabel[r] != _state._bclabel[s])

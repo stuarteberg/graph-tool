@@ -39,10 +39,12 @@ using namespace std;
     ((vlist,&, std::vector<size_t>&, 0))                                       \
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
+    ((d,, double, 0))                                                          \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
     ((parallel,, bool, 0))                                                     \
     ((sequential,, bool, 0))                                                   \
+    ((deterministic,, bool, 0))                                                \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
@@ -83,6 +85,11 @@ struct MCMC
             return _state._b[v];
         }
 
+        bool skip_node(size_t v)
+        {
+            return _state.node_weight(v) == 0;
+        }
+
         size_t node_weight(size_t v)
         {
             return _state.node_weight(v);
@@ -94,12 +101,12 @@ struct MCMC
             auto r = _state._b[v];
 
             if (!_allow_vacate && _state.is_last(v))
-                return r;
+                return null_group;
 
-            size_t s = _state.sample_block(v, _c, rng);
+            size_t s = _state.sample_block(v, _c, _d, rng);
 
             if (!_state.allow_move(r, s))
-                return r;
+                return null_group;
 
             return s;
         }
@@ -111,11 +118,11 @@ struct MCMC
             double dS = _state.virtual_move(v, r, nr, _entropy_args,
                                             _m_entries);
             double a = 0;
-            if (!std::isinf(_c) && !std::isinf(_beta))
+            if (!std::isinf(_beta))
             {
-                double pf = _state.get_move_prob(v, r, nr, _c, false,
+                double pf = _state.get_move_prob(v, r, nr, _c, _d, false,
                                                  _m_entries);
-                double pb = _state.get_move_prob(v, nr, r, _c, true,
+                double pb = _state.get_move_prob(v, nr, r, _c, _d, true,
                                                  _m_entries);
                 a = log(pb) - log(pf);
             }
