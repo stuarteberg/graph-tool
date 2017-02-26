@@ -423,7 +423,6 @@ public:
         if (!allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
-        m_entries.clear();
         get_move_entries(v, r, nr, m_entries);
 
         double dS = 0;

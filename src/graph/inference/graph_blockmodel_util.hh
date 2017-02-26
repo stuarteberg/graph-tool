@@ -1050,130 +1050,63 @@ public:
     typedef typename graph_traits<BGraph>::edge_descriptor bedge_t;
 
     EntrySet(size_t B)
+        : _dummy(_null)
     {
-        _r_field_t.resize(B, _null);
-        _nr_field_t.resize(B, _null);
-
-        if (is_directed::apply<Graph>::type::value)
-        {
-            _r_field_s.resize(B, _null);
-            _nr_field_s.resize(B, _null);
-        }
+        _r_out_field.resize(B, _null);
+        _nr_out_field.resize(B, _null);
+        _r_in_field.resize(B, _null);
+        _nr_in_field.resize(B, _null);
     }
 
     void set_move(size_t r, size_t nr)
     {
+        clear();
         _rnr = make_pair(r, nr);
     }
 
-    template <class... DVals>
+    size_t& get_field(size_t s, size_t t)
+    {
+        if (!is_directed::apply<Graph>::type::value && s > t)
+            std::swap(s, t);
+
+        if (s == _rnr.first)
+            return _r_out_field[t];
+        else if (s == _rnr.second)
+            return _nr_out_field[t];
+        else if (t == _rnr.first)
+            return _r_in_field[s];
+        else if (t == _rnr.second)
+            return _nr_in_field[s];
+        else
+            return _dummy;
+    }
+
+    template <bool Add, class... DVals>
     __attribute__((flatten))
-    void insert_delta(bool add, size_t t, size_t s, DVals&&... delta)
+    void insert_delta(size_t s, size_t t, DVals&&... delta)
     {
-        insert_delta_imp(add, t, s, typename is_directed::apply<Graph>::type(),
-                         std::forward<DVals>(delta)...);
-    }
-
-    template <class... DVals>
-    void insert_delta_imp(bool add, size_t t, size_t s, std::true_type,
-                          DVals&&... delta)
-    {
-        bool src = false;
-        if (t != _rnr.first && t != _rnr.second)
+        auto& f = get_field(s, t);
+        if (f == _null)
         {
-            std::swap(t, s);
-            src = true;
-        }
-
-        assert(t == _rnr.first || t == _rnr.second);
-
-        auto& r_field = (src) ? _r_field_s : _r_field_t;
-        auto& nr_field = (src) ? _nr_field_s : _nr_field_t;
-
-        auto& field = (_rnr.first == t) ? r_field : nr_field;
-        if (field[s] == _null)
-        {
-            field[s] = _entries.size();
-            if (src)
-                _entries.emplace_back(s, t);
-            else
-                _entries.emplace_back(t, s);
+            f = _entries.size();
+            _entries.emplace_back(s, t);
             _delta.emplace_back();
         }
-        if (add)
-            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r += v; },
+
+        if (Add)
+            tuple_op(_delta[f], [&](auto& r, auto& v){ r += v; },
                      delta...);
         else
-            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r -= v; },
+            tuple_op(_delta[f], [&](auto& r, auto& v){ r -= v; },
                      delta...);
-    }
-
-    template <class... DVals>
-    void insert_delta_imp(bool add, size_t t, size_t s, std::false_type,
-                          DVals&&... delta)
-    {
-        if (t > s)
-            std::swap(t, s);
-        if (t != _rnr.first && t != _rnr.second)
-            std::swap(t, s);
-
-        assert(t == _rnr.first || t == _rnr.second);
-
-        auto& r_field = _r_field_t;
-        auto& nr_field = _nr_field_t;
-
-        auto& field = (_rnr.first == t) ? r_field : nr_field;
-        if (field[s] == _null)
-        {
-            field[s] = _entries.size();
-            _entries.emplace_back(t, s);
-            _delta.emplace_back();
-        }
-        if (add)
-            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r += v; },
-                     delta...);
-        else
-            tuple_op(_delta[field[s]], [&](auto& r, auto& v){ r -= v; },
-                     delta...);
-    }
-
-    size_t get_field(size_t r, size_t s)
-    {
-        if (is_directed::apply<Graph>::type::value)
-        {
-            if (r == _rnr.first || r == _rnr.second)
-            {
-                vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
-                return field[s];
-            }
-            if (s == _rnr.first || s == _rnr.second)
-            {
-                vector<size_t>& field = (_rnr.first == s) ? _r_field_s : _nr_field_s;
-                return field[r];
-            }
-            return _null;
-        }
-        else
-        {
-            if (r > s)
-                std::swap(r, s);
-            if (r != _rnr.first && r != _rnr.second)
-                std::swap(r, s);
-            if (r == _rnr.first || r == _rnr.second)
-            {
-                vector<size_t>& field = (_rnr.first == r) ? _r_field_t : _nr_field_t;
-                return field[s];
-            }
-            return _null;
-        }
     }
 
     const auto& get_delta(size_t r, size_t s)
     {
-        size_t field = get_field(r, s);
-        if (field == _null)
+        size_t f = get_field(r, s);
+        if (f == _null)
             return _null_delta;
-        return _delta[field];
+        return _delta[f];
     }
 
     void clear()
@@ -1182,13 +1115,8 @@ public:
         {
             size_t r = rs.first;
             size_t s = rs.second;
-            _r_field_t[r] = _nr_field_t[r] = _null;
-            _r_field_t[s] = _nr_field_t[s] = _null;
-            if (is_directed::apply<Graph>::type::value)
-            {
-                _r_field_s[r] = _nr_field_s[r] = _null;
-                _r_field_s[s] = _nr_field_s[s] = _null;
-            }
+            auto& f = get_field(r, s);
+            f = _null;
         }
         _entries.clear();
         _delta.clear();
@@ -1227,13 +1155,14 @@ private:
     static const std::tuple<EVals...> _null_delta;
 
     pair<size_t, size_t> _rnr;
-    vector<size_t> _r_field_t;
-    vector<size_t> _nr_field_t;
-    vector<size_t> _r_field_s;
-    vector<size_t> _nr_field_s;
+    vector<size_t> _r_out_field;
+    vector<size_t> _r_in_field;
+    vector<size_t> _nr_out_field;
+    vector<size_t> _nr_in_field;
     vector<pair<size_t, size_t>> _entries;
     vector<std::tuple<EVals...>> _delta;
     vector<bedge_t> _mes;
+    size_t _dummy;
 };
 
 template <class Graph, class BGraph, class... EVals>
@@ -1249,6 +1178,7 @@ struct is_loop_nop
 
 template <bool Add, class Vertex, class Graph, class Vprop,
           class Eprop, class MEntries, class Efilt, class IL, class... Eprops>
+__attribute__((flatten))
 void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
                     MEntries& m_entries, Efilt&& efilt, IL&& is_loop,
                     Eprops&... eprops)
@@ -1277,7 +1207,7 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         if (Add && u == v)
             s = r;
 
-        m_entries.insert_delta(Add, r, s, ew, eprops[e]...);
+        m_entries.template insert_delta<Add>(r, s, ew, eprops[e]...);
 
         if ((u == v || is_loop(v)) && !is_directed::apply<Graph>::type::value)
             tuple_op(self_weight, [&](auto& r, auto& v){ r += v; },
@@ -1290,7 +1220,7 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         tuple_apply([&](auto&&... vals)
                     {
                         auto op = [](auto& x) -> auto& { x /= 2; return x; };
-                        m_entries.insert_delta(!Add, r, r, op(vals)...);
+                        m_entries.template insert_delta<!Add>(r, r, op(vals)...);
                     }, self_weight);
     }
 
@@ -1304,7 +1234,7 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         vertex_t s = _b[u];
         int ew = eweights[e];
 
-        m_entries.insert_delta(Add, s, r, ew, eprops[e]...);
+        m_entries.template insert_delta<Add>(s, r, ew, eprops[e]...);
     }
 }
 

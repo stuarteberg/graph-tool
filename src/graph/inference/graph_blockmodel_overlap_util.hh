@@ -1245,15 +1245,15 @@ public:
     SingleEntrySet() : _pos(0), _mes_pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
-    void set_move(size_t, size_t) {}
+    void set_move(size_t, size_t) { clear(); }
 
-    template <class... DVals>
-    void insert_delta(bool add, size_t t, size_t s, DVals... delta)
+    template <bool Add, class... DVals>
+    void insert_delta(size_t t, size_t s, DVals... delta)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
-        if (add)
+        if (Add)
             tuple_op(_delta[_pos], [&](auto& r, auto& v){ r += v; },
                      delta...);
         else

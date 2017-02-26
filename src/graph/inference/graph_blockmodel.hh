@@ -195,7 +195,6 @@ public:
     template <bool Add, class EFilt>
     void modify_vertex(size_t v, size_t r, EFilt&& efilt)
     {
-        _m_entries.clear();
         if (Add)
             get_move_entries(v, null_group, r, _m_entries,
                              std::forward<EFilt>(efilt));
@@ -963,7 +962,6 @@ public:
         if (r != null_group && nr != null_group && !allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
-        m_entries.clear();
         get_move_entries(v, r, nr, m_entries, [](auto) { return false; });
 
         double dS = 0;
@@ -1315,7 +1313,6 @@ public:
 
     double get_move_prob(size_t v, size_t r, size_t s, double c, bool reverse)
     {
-        _m_entries.clear();
         get_move_entries(v, _b[v], (reverse) ? r : s, _m_entries);
         return get_move_prob(v, r, s, c, reverse, _m_entries);
     }
