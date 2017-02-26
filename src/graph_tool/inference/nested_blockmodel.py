@@ -197,10 +197,6 @@ class NestedBlockState(object):
             clabel.fa += (clabel.fa.max() + 1) * b.fa
         return clabel
 
-    def impose_bclabels(self):
-        for l in range(len(self.levels) - 1):
-            self.levels[l].bclabel.a = self.levels[l + 1].b.a
-
     def _consistency_check(self):
         for l in range(1, len(self.levels)):
             b = self.levels[l].b.fa.copy()
@@ -490,6 +486,10 @@ class NestedBlockState(object):
         return state
 
     def _h_sweep(self, algo, **kwargs):
+
+        if not self.sampling:
+            raise ValueError("NestedBlockState must be constructed with 'sampling=True'")
+
         verbose = kwargs.get("verbose", False)
         entropy_args = kwargs.get("entropy_args", {})
 
@@ -498,17 +498,15 @@ class NestedBlockState(object):
                          edges_dl=(l + 1 == len(self.levels) - 1))
             self.levels[l]._couple_state(self.levels[l + 1],
                                          get_entropy_args(eargs))
-            self.levels[l + 1]._state.clear_egroups()
-            self.levels[l + 1]._state.sync_emat()
-
-        self.impose_bclabels()
 
         dS = 0
         nmoves = 0
 
         c = kwargs.get("c", None)
 
-        for l in range(len(self.levels)):
+        lrange = list(range(len(self.levels)))
+        numpy.random.shuffle(lrange)
+        for l in lrange:
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
             if l > 0:
@@ -528,12 +526,13 @@ class NestedBlockState(object):
                     return S
                 eargs = dict(eargs, callback=callback)
 
+            if l < len(self.levels) - 1:
+                self.levels[l].bclabel.a = self.levels[l + 1].b.a
+
+            self.levels[l]._state.sync_emat()
             if l > 0:
-                self.levels[l]._state.sync_emat()
                 self.levels[l]._state.clear_egroups()
                 self.levels[l]._state.rebuild_neighbour_sampler()
-            if l < len(self.levels) - 1:
-                self.levels[l + 1]._state.sync_emat()
 
             if c is None:
                 args = dict(kwargs, entropy_args=eargs)
