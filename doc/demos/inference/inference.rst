@@ -790,8 +790,8 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: 11.627008...
-   Number of accepted vertex moves: 7390
+   Change in description length: 37.046981...
+   Number of accepted vertex moves: 7900
 
 Similarly to the the non-nested case, we can use
 :func:`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
@@ -1121,8 +1121,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -353.976... (mean field), -627.360... (Bethe)
-   Model evidence for deg_corr = False: -340.063... (mean field), -511.833... (Bethe)
+   Model evidence for deg_corr = True: -373.221899017 (mean field), -583.090286823 (Bethe)
+   Model evidence for deg_corr = False: -344.081973912 (mean field), -500.750271684 (Bethe)
 
 The results are similar: If we consider the most accurate approximation,
 the non-degree-corrected model possesses the largest evidence. Note also
@@ -1362,8 +1362,8 @@ above).
 
 .. testoutput:: missing-edges
 
-   likelihood-ratio for (101, 102): 0.37...
-   likelihood-ratio for (17, 56): 0.62...
+   likelihood-ratio for (101, 102): 0.36...
+   likelihood-ratio for (17, 56): 0.63...
 
 From which we can conclude that edge :math:`(17, 56)` is more likely
 than :math:`(101, 102)` to be a missing edge.
