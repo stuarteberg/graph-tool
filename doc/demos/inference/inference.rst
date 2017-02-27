@@ -729,7 +729,7 @@ itself, as follows.
    figure()
    Bs = np.arange(len(h))
    idx = h > 0
-   bar(Bs[idx] - .5, h[idx] / h.sum(), width=1, color="#ccb974")
+   bar(Bs[idx], h[idx] / h.sum(), width=1, color="#ccb974")
    gca().set_xticks([6,7,8,9])
    xlabel("$B$")
    ylabel(r"$P(B|\boldsymbol G)$")
@@ -853,7 +853,7 @@ itself, as follows.
    for i, h_ in enumerate(h[:5]):
        Bs = np.arange(len(h_))
        idx = h_ > 0
-       ax[i].bar(Bs[idx] - .5, h_[idx] / h_.sum(), width=1, color="#ccb974")
+       ax[i].bar(Bs[idx], h_[idx] / h_.sum(), width=1, color="#ccb974")
        ax[i].set_xticks(Bs[idx])
        ax[i].set_xlabel("$B_{%d}$" % i)
        ax[i].set_ylabel(r"$P(B_{%d}|\boldsymbol G)$" % i)
