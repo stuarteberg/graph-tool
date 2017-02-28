@@ -69,7 +69,8 @@ struct get_hits
         {
             x_norm = 0, y_norm=0;
 
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) reduction(+:x_norm, y_norm)
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+                reduction(+:x_norm, y_norm)
             parallel_vertex_loop_no_spawn
                 (g,
                  [&](auto v)
