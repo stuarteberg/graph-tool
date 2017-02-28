@@ -208,6 +208,15 @@ out_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
     return _all_edges_out(u, g.original_graph());
 }
 
+template <class Graph>
+inline __attribute__((always_inline)) __attribute__((flatten))
+auto
+_all_edges_out(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
+               const undirected_adaptor<Graph>& g)
+{
+    return out_edges(u, g);
+}
+
 //==============================================================================
 // in_edges(u,g)
 //==============================================================================

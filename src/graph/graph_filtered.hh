@@ -436,6 +436,20 @@ template <typename G, typename EP, typename VP>
 inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename filt_graph<G, EP, VP>::adjacency_iterator,
           typename filt_graph<G, EP, VP>::adjacency_iterator>
+all_neighbours(typename filt_graph<G, EP, VP>::vertex_descriptor u,
+               const filt_graph<G, EP, VP>& g)
+{
+    typedef filt_graph<G, EP, VP> Graph;
+    typedef typename Graph::adjacency_iterator adjacency_iterator;
+    auto range = _all_edges_out(u, g);
+    return std::make_pair(adjacency_iterator(range.first, const_cast<Graph*>(&g)),
+                          adjacency_iterator(range.second, const_cast<Graph*>(&g)));
+}
+
+template <typename G, typename EP, typename VP>
+inline __attribute__((always_inline)) __attribute__((flatten))
+std::pair<typename filt_graph<G, EP, VP>::adjacency_iterator,
+          typename filt_graph<G, EP, VP>::adjacency_iterator>
 adjacent_vertices(typename filt_graph<G, EP, VP>::vertex_descriptor u,
                   const filt_graph<G, EP, VP>& g)
 {

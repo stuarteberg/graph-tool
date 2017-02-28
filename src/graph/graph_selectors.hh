@@ -557,47 +557,6 @@ struct out_neighbour_iteratorS
     }
 };
 
-
-// helper types for all_neighbours_iteratorS
-template <class Graph, class IsDirected>
-struct get_all_neighbours
-{
-    BOOST_MPL_ASSERT((std::is_same<IsDirected,std::true_type>));
-    BOOST_MPL_ASSERT((std::is_convertible
-                      <typename boost::graph_traits<Graph>::directed_category,
-                      boost::directed_tag>));
-    typedef typename boost::graph_traits<Graph>::vertex_descriptor
-        vertex_descriptor;
-    typedef typename boost::graph_traits<boost::undirected_adaptor<Graph> >::adjacency_iterator
-        type;
-    inline __attribute__((always_inline))
-    static std::pair<type,type> get_neighbours(vertex_descriptor v,
-                                               const Graph& g)
-    {
-        using namespace boost;
-        const boost::undirected_adaptor<Graph> ug(g);
-        return out_neighbours(v, ug);
-    }
-};
-
-template <class Graph>
-struct get_all_neighbours<Graph,std::false_type>
-{
-    BOOST_MPL_ASSERT((std::is_convertible
-                      <typename boost::graph_traits<Graph>::directed_category,
-                      boost::undirected_tag>));
-    typedef typename boost::graph_traits<Graph>::vertex_descriptor
-        vertex_descriptor;
-    typedef typename boost::graph_traits<Graph>::out_neighbours_iterator type;
-    inline __attribute__((always_inline))
-    static std::pair<type,type> get_neighbours(vertex_descriptor v,
-                                               const Graph& g)
-    {
-        using namespace boost;
-        return out_neighbours(v, g);
-    }
-};
-
 // this "all neighbours" iterator selector returns the in-neighbours +
 // out-neighbours ranges for directed graphs and the out-neighbours range for
 // undirected graphs. The iterator type is given by
@@ -605,31 +564,26 @@ struct get_all_neighbours<Graph,std::false_type>
 template <class Graph>
 struct all_neighbours_iteratorS
 {
-    typedef typename boost::graph_traits<Graph>::directed_category
-        directed_category;
-    typedef typename std::is_convertible<directed_category,
-                                         boost::directed_tag>::type is_directed;
-    typedef typename get_all_edges<Graph,is_directed>::type type;
-
+    typedef typename boost::graph_traits<Graph>::adjacency_iterator type;
     typedef typename boost::graph_traits<Graph>::vertex_descriptor
         vertex_descriptor;
     inline __attribute__((always_inline))
     static std::pair<type,type> get_neighbours(vertex_descriptor v,
                                                const Graph& g)
     {
-        return get_all_neighbours<Graph,is_directed>::get_edges(v, g);
+        return all_neighbours(v, g);
     }
 };
 
 // helper types for in_or_out_neighbours_iteratorS
 template <class Graph, class IsDirected>
 struct get_in_or_out_neighbours
-    : public get_in_neighbours<Graph,IsDirected>
+    : public in_neighbour_iteratorS<Graph>
 {};
 
 template <class Graph>
-struct get_in_or_out_neighbours<Graph,std::false_type>
-    : public get_all_neighbours<Graph,std::false_type>
+struct get_in_or_out_neighbours<Graph, std::false_type>
+    : public out_neighbour_iteratorS<Graph>
 {};
 
 // this "in or out" iterator selector returns the in-neighbour range for
