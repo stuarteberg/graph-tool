@@ -1422,17 +1422,13 @@ def edge_percolation(g, edges):
                        edges, max_size)
     return max_size, tree
 
-def kcore_decomposition(g, deg="out", vprop=None):
-    """
-    Perform a k-core decomposition of the given graph.
+def kcore_decomposition(g, vprop=None):
+    """Perform a k-core decomposition of the given graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : string
-        Degree to be used for the decomposition. It can be either "in", "out" or
-        "total", for in-, out-, or total degree of the vertices.
     vprop : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex property to store the decomposition. If ``None`` is supplied,
         one is created.
@@ -1448,6 +1444,12 @@ def kcore_decomposition(g, deg="out", vprop=None):
 
     The k-core is a maximal set of vertices such that its induced subgraph only
     contains vertices with degree larger than or equal to k.
+
+    For directed graphs, the degree is assumed to be the total (in + out)
+    degree.
+
+    The algorithm accepts graphs with parallel edges and self loops, in which
+    case these edges contribute to the degree in the usual fashion.
 
     This algorithm is described in [batagelk-algorithm]_ and runs in :math:`O(V + E)`
     time.
@@ -1487,12 +1489,10 @@ def kcore_decomposition(g, deg="out", vprop=None):
 
     _check_prop_writable(vprop, name="vprop")
     _check_prop_scalar(vprop, name="vprop")
-    if deg not in ["in", "out", "total"]:
-        raise ValueError("invalid degree: " + str(deg))
 
     libgraph_tool_topology.\
-               kcore_decomposition(g._Graph__graph, _prop("v", g, vprop),
-                                   _degree(g, deg))
+               kcore_decomposition(g._Graph__graph, _prop("v", g, vprop))
+
     return vprop
 
 

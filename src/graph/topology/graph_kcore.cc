@@ -28,17 +28,15 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void do_kcore_decomposition(GraphInterface& gi, boost::any prop,
-                            GraphInterface::deg_t deg)
+void do_kcore_decomposition(GraphInterface& gi, boost::any prop)
 {
     gt_dispatch<>()
-        ([](auto& g, auto core, auto d)
+        ([](auto& g, auto core)
          {
-             kcore_decomposition(g, core, d);
+             kcore_decomposition(g, core);
          },
-         all_graph_views(), writable_vertex_scalar_properties(),
-         degree_selectors())(gi.get_graph_view(), prop,
-                             degree_selector(deg));
+         all_graph_views(), writable_vertex_scalar_properties())
+        (gi.get_graph_view(), prop);
 }
 
 void export_kcore()

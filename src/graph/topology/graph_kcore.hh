@@ -23,14 +23,12 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-template <class Graph, class CoreMap, class DegSelector>
-void kcore_decomposition(Graph& g, CoreMap core_map, DegSelector degS)
+template <class Graph, class CoreMap>
+void kcore_decomposition(Graph& g, CoreMap core_map)
 {
-    typedef typename property_map<Graph, vertex_index_t>::type
-        vertex_index_map_t;
-    vertex_index_map_t vertex_index = get(vertex_index_t(), g);
+    auto vertex_index = get(vertex_index_t(), g);
 
-    typedef unchecked_vector_property_map<size_t, vertex_index_map_t> vmap_t;
+    typedef typename vprop_map_t<size_t>::type::unchecked_t vmap_t;
 
     vmap_t deg(vertex_index, num_vertices(g));  // Remaining degree
     vmap_t pos(vertex_index, num_vertices(g));  // Position in bin (core)
@@ -43,7 +41,7 @@ void kcore_decomposition(Graph& g, CoreMap core_map, DegSelector degS)
     // Put each vertex to the bin corresponding to its degree
     for (auto v : vertices_range(g))
     {
-        size_t k = degS(v, g);
+        size_t k = degree(v, g);
         deg[v] = k;
         if (k >= bins.size())
             bins.resize(k + 1);
@@ -62,9 +60,8 @@ void kcore_decomposition(Graph& g, CoreMap core_map, DegSelector degS)
             auto v = bins_k.back();
             bins_k.pop_back();
             core_map[v] = k;
-            for (auto e : out_edges_range(v, g))
+            for (auto u : all_neighbours_range(v, g))
             {
-                auto u = target(e, g);
                 auto& ku = deg[u];
                 if (ku > deg[v])
                 {
@@ -73,10 +70,10 @@ void kcore_decomposition(Graph& g, CoreMap core_map, DegSelector degS)
                     auto pos_w = pos[w] = pos[u];
                     bins_ku[pos_w] = w;
                     bins_ku.pop_back();
-                    auto& bins_ku_m = bins[ku - 1];
+                    --ku;
+                    auto& bins_ku_m = bins[ku];
                     bins_ku_m.push_back(u);
                     pos[u] = bins_ku_m.size() - 1;
-                    --ku;
                 }
             }
         }
