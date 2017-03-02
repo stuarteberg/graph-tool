@@ -340,14 +340,13 @@ AC_DEFINE([GCC_VERSION], [(__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATC
 # set automake variables
 
 # global CPP flags
-[CPPFLAGS="$CPPFLAGS -I\$(top_srcdir)/src/boost-workaround -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir)"]
 AC_SUBST(CPPFLAGS)
 
 # global CXX flags
 AC_SUBST(CXXFLAGS)
 
 # extra CPP flags for submodules
-[MOD_CPPFLAGS="${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
+[MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
 AC_SUBST(MOD_CPPFLAGS)
 
 # extra LIBADD flags for submodules
