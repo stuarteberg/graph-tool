@@ -172,6 +172,14 @@ public:
         InEdgePred, typename Traits::in_edge_iterator
         > in_edge_iterator;
 
+    typedef filter_iterator<
+        EdgePred, typename Graph::all_edge_iterator
+        > all_edge_iterator;
+
+    typedef filter_iterator<
+        EdgePred, typename Graph::all_edge_iterator_reversed
+        > all_edge_iterator_reversed;
+
     typedef typename adjacency_iterator_generator<self,
                                                   vertex_descriptor,
                                                   in_edge_iterator>::type
@@ -496,6 +504,20 @@ in_degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
         ++n;
     return n;
 }
+
+template <typename G, typename EP, typename VP>
+inline __attribute__((always_inline)) __attribute__((flatten))
+std::pair<typename filt_graph<G, EP, VP>::all_edge_iterator,
+          typename filt_graph<G, EP, VP>::all_edge_iterator>
+all_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
+          const filt_graph<G, EP, VP>& g)
+{
+    typedef typename filt_graph<G, EP, VP>::all_edge_iterator iter;
+    auto range = all_edges(u, g._g);
+    return std::make_pair(iter(g._all_edge_pred, range.first, range.second),
+                          iter(g._all_edge_pred, range.second, range.second));
+}
+
 
 template <typename G, typename EP, typename VP>
 inline

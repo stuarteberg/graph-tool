@@ -90,6 +90,16 @@ std::pair<typename adj_list<Vertex>::in_edge_iterator,
 _all_edges_in(Vertex v, const adj_list<Vertex>& g);
 
 template <class Vertex>
+std::pair<typename adj_list<Vertex>::all_edge_iterator,
+          typename adj_list<Vertex>::all_edge_iterator>
+all_edges(Vertex v, const adj_list<Vertex>& g);
+
+template <class Vertex>
+std::pair<typename adj_list<Vertex>::all_edge_iterator_reversed,
+          typename adj_list<Vertex>::all_edge_iterator_reversed>
+_all_edges_reversed(Vertex v, const adj_list<Vertex>& g);
+
+template <class Vertex>
 std::pair<typename adj_list<Vertex>::adjacency_iterator,
           typename adj_list<Vertex>::adjacency_iterator>
 adjacent_vertices(Vertex v, const adj_list<Vertex>& g);
@@ -250,29 +260,83 @@ public:
         __attribute__((always_inline)) __attribute__((flatten))
         edge_descriptor dereference() const
         {
-            return Deference::def(_v, *_iter);
+            return Deference::def(_v, *_iter, *this);
         }
 
+    protected:
         vertex_t _v;
         typename edge_list_t::const_iterator _iter;
     };
 
     struct make_out_edge
     {
+        template <class Iter>
+        static edge_descriptor def(vertex_t src,
+                                   const std::pair<vertex_t, vertex_t>& v,
+                                   Iter&&)
+        { return edge_descriptor(src, v.first, v.second); }
+
         static edge_descriptor def(vertex_t src,
                                    const std::pair<vertex_t, vertex_t>& v)
-        { return edge_descriptor(src, v.first, v.second); }
+        { return def(src, v, nullptr); }
     };
 
     struct make_in_edge
     {
+        template <class Iter>
+        static edge_descriptor def(vertex_t tgt,
+                                   const std::pair<vertex_t, vertex_t>& v,
+                                   Iter&&)
+        { return edge_descriptor(v.first, tgt, v.second); }
+
         static edge_descriptor def(vertex_t tgt,
                                    const std::pair<vertex_t, vertex_t>& v)
-        { return edge_descriptor(v.first, tgt, v.second); }
+        { return def(tgt, v, nullptr); }
     };
 
     typedef base_edge_iterator<make_out_edge> out_edge_iterator;
     typedef base_edge_iterator<make_in_edge> in_edge_iterator;
+
+
+    template <class Iter, bool reversed>
+    struct make_in_or_out_edge
+    {
+        template <class I>
+        static edge_descriptor def(vertex_t u,
+                                   const std::pair<vertex_t, vertex_t>& v,
+                                   const I& i)
+        {
+            const Iter& iter = reinterpret_cast<const Iter&>(i);
+            if ((iter._iter < iter._pos) != reversed)
+                return edge_descriptor(u, v.first, v.second);
+            else
+                return edge_descriptor(v.first, u, v.second);
+        }
+    };
+
+    template <bool reversed>
+    struct all_edge_iterator_base:
+        public base_edge_iterator<make_in_or_out_edge<all_edge_iterator_base<reversed>,
+                                                      reversed>>
+    {
+        all_edge_iterator_base() {}
+        all_edge_iterator_base(vertex_t v,
+                               typename edge_list_t::const_iterator&& iter,
+                               const typename edge_list_t::const_iterator& pos)
+            : base_edge_iterator<make_in_or_out_edge<all_edge_iterator_base,
+                                                     reversed>>
+                  (v, std::forward<typename edge_list_t::const_iterator>(iter)),
+              _pos(pos)
+        {}
+
+    private:
+        friend struct make_in_or_out_edge<all_edge_iterator_base<reversed>,
+                                          reversed>;
+        typename edge_list_t::const_iterator _pos;
+    };
+
+    typedef all_edge_iterator_base<false> all_edge_iterator;
+    typedef all_edge_iterator_base<true>  all_edge_iterator_reversed;
 
     class edge_iterator:
         public boost::iterator_facade<edge_iterator,
@@ -479,6 +543,12 @@ private:
 
     friend std::pair<in_edge_iterator, in_edge_iterator>
     _all_edges_in<>(Vertex v, const adj_list<Vertex>& g);
+
+    friend std::pair<all_edge_iterator, all_edge_iterator>
+    all_edges<>(Vertex v, const adj_list<Vertex>& g);
+
+    friend std::pair<all_edge_iterator_reversed, all_edge_iterator_reversed>
+    _all_edges_reversed<>(Vertex v, const adj_list<Vertex>& g);
 
     friend std::pair<adjacency_iterator, adjacency_iterator>
     adjacent_vertices<>(Vertex v, const adj_list<Vertex>& g);
@@ -724,6 +794,32 @@ _all_edges_in(Vertex v, const adj_list<Vertex>& g)
     const auto& pes = g._edges[v];
     auto& es = pes.second;
     return {ei_t(v, es.begin()), ei_t(v, es.end())};
+}
+
+template <class Vertex>
+inline __attribute__((always_inline)) __attribute__((flatten))
+std::pair<typename adj_list<Vertex>::all_edge_iterator,
+          typename adj_list<Vertex>::all_edge_iterator>
+all_edges(Vertex v, const adj_list<Vertex>& g)
+{
+    typedef typename adj_list<Vertex>::all_edge_iterator ei_t;
+    const auto& pes = g._edges[v];
+    auto& es = pes.second;
+    auto pos = es.begin() + pes.first;
+    return {ei_t(v, es.begin(), pos), ei_t(v, es.end(), pos)};
+}
+
+template <class Vertex>
+inline __attribute__((always_inline)) __attribute__((flatten))
+std::pair<typename adj_list<Vertex>::all_edge_iterator_reversed,
+          typename adj_list<Vertex>::all_edge_iterator_reversed>
+_all_edges_reversed(Vertex v, const adj_list<Vertex>& g)
+{
+    typedef typename adj_list<Vertex>::all_edge_iterator_reversed ei_t;
+    const auto& pes = g._edges[v];
+    auto& es = pes.second;
+    auto pos = es.begin() + pes.first;
+    return {ei_t(v, es.begin(), pos), ei_t(v, es.end(), pos)};
 }
 
 template <class Vertex>

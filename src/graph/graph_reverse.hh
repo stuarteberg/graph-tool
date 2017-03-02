@@ -64,6 +64,9 @@ class reversed_graph {
     // BidirectionalGraph requirements
     typedef typename Traits::out_edge_iterator in_edge_iterator;
 
+    typedef typename BidirectionalGraph::all_edge_iterator_reversed all_edge_iterator;
+    typedef typename BidirectionalGraph::all_edge_iterator all_edge_iterator_reversed;
+
     // AdjacencyGraph requirements
     typedef typename BidirectionalGraph::in_adjacency_iterator adjacency_iterator;
     typedef typename graph_traits<BidirectionalGraph>::adjacency_iterator in_adjacency_iterator;
@@ -189,6 +192,15 @@ in_edges(const typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
          const reversed_graph<BidirectionalGraph,GRef>& g)
 {
     return out_edges(u, g._g);
+}
+
+template <class BidirectionalGraph, class GRef>
+inline std::pair<typename reversed_graph<BidirectionalGraph>::all_edge_iterator,
+                 typename reversed_graph<BidirectionalGraph>::all_edge_iterator>
+all_edges(const typename graph_traits<BidirectionalGraph>::vertex_descriptor u,
+          const reversed_graph<BidirectionalGraph,GRef>& g)
+{
+    return _all_edges_reversed(u, g._g);
 }
 
 template <class BidirectionalGraph, class GRef>

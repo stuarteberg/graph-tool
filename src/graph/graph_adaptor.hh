@@ -55,6 +55,9 @@ public:
     typedef allow_parallel_edge_tag edge_parallel_category;
     typedef typename graph_traits<Graph>::traversal_category traversal_category;
 
+    typedef typename Graph::out_edge_iterator all_edge_iterator;
+    typedef typename Graph::out_edge_iterator all_edge_iterator_reversed;
+
     const Graph& original_graph() const {return _g;}
     Graph& original_graph() {return _g;}
 
@@ -227,6 +230,15 @@ in_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
          const undirected_adaptor<Graph>& g)
 {
     return _all_edges_in(u, g.original_graph());
+}
+
+template <class Graph>
+inline __attribute__((always_inline)) __attribute__((flatten))
+auto
+all_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
+          const undirected_adaptor<Graph>& g)
+{
+    return out_edges(u, g);
 }
 
 //==============================================================================
