@@ -18,10 +18,12 @@ libgraph_tool_inference_la_SOURCES = \
     cache.cc \
     graph_blockmodel.cc \
     graph_blockmodel_imp.cc \
+    graph_blockmodel_imp2.cc \
     graph_blockmodel_em.cc \
     graph_blockmodel_exhaustive.cc \
     graph_blockmodel_gibbs.cc \
     graph_blockmodel_layers.cc \
+    graph_blockmodel_layers_imp.cc \
     graph_blockmodel_layers_exhaustive.cc \
     graph_blockmodel_layers_gibbs.cc \
     graph_blockmodel_layers_mcmc.cc \

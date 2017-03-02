@@ -435,63 +435,13 @@ ldegs_map_t ldegs_map_copy(ldegs_map_t& ldegs)
     return ldegs;
 }
 
+void export_lsbm();
 
 void export_layered_blockmodel_state()
 {
     using namespace boost::python;
 
-    block_state::dispatch
-        ([&](auto* bs)
-         {
-             typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
-
-             layered_block_state<block_state_t>::dispatch
-                 ([&](auto* s)
-                  {
-                      typedef typename std::remove_reference<decltype(*s)>::type state_t;
-
-                      double (state_t::*virtual_move)(size_t, size_t, size_t, entropy_args_t) =
-                          &state_t::virtual_move;
-                      size_t (state_t::*sample_block)(size_t, double, rng_t&)
-                          = &state_t::sample_block;
-                      double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                                       bool)
-                          = &state_t::get_move_prob;
-                      void (state_t::*merge_vertices)(size_t, size_t)
-                          = &state_t::merge_vertices;
-                      void (state_t::*set_partition)(boost::any&)
-                          = &state_t::set_partition;
-                      void (state_t::*move_vertices)(python::object, python::object) =
-                          &state_t::move_vertices;
-                      void (state_t::*remove_vertices)(python::object) =
-                          &state_t::remove_vertices;
-                      void (state_t::*add_vertices)(python::object, python::object) =
-                          &state_t::add_vertices;
-
-                      class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
-                                        no_init);
-                      c.def("remove_vertex", &state_t::remove_vertex)
-                          .def("add_vertex", &state_t::add_vertex)
-                          .def("move_vertex", &state_t::move_vertex)
-                          .def("add_vertices", add_vertices)
-                          .def("remove_vertices", remove_vertices)
-                          .def("move_vertices", move_vertices)
-                          .def("set_partition", set_partition)
-                          .def("virtual_move", virtual_move)
-                          .def("merge_vertices", merge_vertices)
-                          .def("sample_block", sample_block)
-                          .def("entropy", &state_t::entropy)
-                          .def("get_partition_dl", &state_t::get_partition_dl)
-                          .def("get_deg_dl", &state_t::get_deg_dl)
-                          .def("get_move_prob", get_move_prob)
-                          .def("enable_partition_stats",
-                               &state_t::enable_partition_stats)
-                          .def("disable_partition_stats",
-                               &state_t::disable_partition_stats)
-                          .def("is_partition_stats_enabled",
-                               &state_t::is_partition_stats_enabled);
-                  });
-         });
+    export_lsbm();
 
     def("make_layered_block_state", &make_layered_block_state);
     def("split_layers", &split_layers);

@@ -142,75 +142,13 @@ simple_degs_t copy_simple_degs(simple_degs_t& degs)
     return degs;
 }
 
+void export_sbm_state();
+
 void export_blockmodel_state()
 {
     using namespace boost::python;
 
-    block_state::dispatch
-        ([&](auto* s)
-         {
-             typedef typename std::remove_reference<decltype(*s)>::type state_t;
-             void (state_t::*remove_vertex)(size_t) =
-                 &state_t::remove_vertex;
-             void (state_t::*add_vertex)(size_t, size_t) =
-                 &state_t::add_vertex;
-             void (state_t::*move_vertex)(size_t, size_t) =
-                 &state_t::move_vertex;
-             void (state_t::*remove_vertices)(python::object) =
-                 &state_t::remove_vertices;
-             void (state_t::*add_vertices)(python::object, python::object) =
-                 &state_t::add_vertices;
-             void (state_t::*move_vertices)(python::object, python::object) =
-                 &state_t::move_vertices;
-             double (state_t::*virtual_move)(size_t, size_t, size_t,
-                                             entropy_args_t) =
-                 &state_t::virtual_move;
-             size_t (state_t::*sample_block)(size_t, double, rng_t&) =
-                 &state_t::sample_block;
-             size_t (state_t::*random_neighbour)(size_t, rng_t&) =
-                 &state_t::random_neighbour;
-             double (state_t::*get_move_prob)(size_t, size_t, size_t, double,
-                                              bool) =
-                 &state_t::get_move_prob;
-             void (state_t::*merge_vertices)(size_t, size_t) =
-                 &state_t::merge_vertices;
-             void (state_t::*set_partition)(boost::any&) =
-                 &state_t::set_partition;
-
-             class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
-                               no_init);
-             c.def("remove_vertex", remove_vertex)
-                 .def("add_vertex", add_vertex)
-                 .def("remove_vertices", remove_vertices)
-                 .def("add_vertices", add_vertices)
-                 .def("move_vertex", move_vertex)
-                 .def("move_vertices", move_vertices)
-                 .def("set_partition", set_partition)
-                 .def("virtual_move", virtual_move)
-                 .def("merge_vertices", merge_vertices)
-                 .def("sample_block", sample_block)
-                 .def("sample_neighbour", random_neighbour)
-                 .def("entropy", &state_t::entropy)
-                 .def("get_partition_dl", &state_t::get_partition_dl)
-                 .def("get_deg_dl", &state_t::get_deg_dl)
-                 .def("get_move_prob", get_move_prob)
-                 .def("enable_partition_stats",
-                      &state_t::enable_partition_stats)
-                 .def("disable_partition_stats",
-                      &state_t::disable_partition_stats)
-                 .def("is_partition_stats_enabled",
-                      &state_t::is_partition_stats_enabled)
-                 .def("couple_state",
-                      &state_t::couple_state)
-                 .def("decouple_state",
-                      &state_t::decouple_state)
-                 .def("clear_egroups",
-                      &state_t::clear_egroups)
-                 .def("rebuild_neighbour_sampler",
-                      &state_t::rebuild_neighbour_sampler)
-                 .def("sync_emat",
-                      &state_t::sync_emat);
-         });
+    export_sbm_state();
 
     class_<vcmap_t>("unity_vprop_t").def("_get_any", &get_any<vcmap_t>);
     class_<ecmap_t>("unity_eprop_t").def("_get_any", &get_any<ecmap_t>);
