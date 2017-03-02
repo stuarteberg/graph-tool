@@ -55,14 +55,14 @@ AC_ARG_ENABLE([debug],
                   [CXXFLAGS="-g ${CXXFLAGS}"]
                   [AC_MSG_RESULT(yes)]
               else
-                  [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
+                  [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
                   [AC_MSG_RESULT(no)]
               fi,
-              [CXXFLAGS="-DNDEBUG ${CXXFLAGS}"]
+              [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
               [AC_MSG_RESULT(no)])
 
 dnl set template depth
-[CXXFLAGS="-ftemplate-depth-250  ${CXXFLAGS}"]
+[CXXFLAGS="-ftemplate-depth-250 ${CXXFLAGS}"]
 
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
 [CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]
