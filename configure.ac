@@ -61,9 +61,6 @@ AC_ARG_ENABLE([debug],
               [CPPFLAGS="-DNDEBUG ${CPPFLAGS}"]
               [AC_MSG_RESULT(no)])
 
-dnl set template depth
-[CXXFLAGS="-ftemplate-depth-250 ${CXXFLAGS}"]
-
 dnl disable deprecation warning, to silence some harmless BGL-related warnings
 [CXXFLAGS="-Wno-deprecated ${CXXFLAGS}"]
 
@@ -367,7 +364,7 @@ AC_SUBST(MOD_LDFLAGS)
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-ftemplate-depth-250 ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS} -I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround],
+                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS}],
                          [])
 
 AC_CONFIG_FILES([
