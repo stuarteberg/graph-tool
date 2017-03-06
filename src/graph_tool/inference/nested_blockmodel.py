@@ -526,13 +526,17 @@ class NestedBlockState(object):
                     return S
                 eargs = dict(eargs, callback=callback)
 
-            if l < len(self.levels) - 1:
                 self.levels[l].bclabel.a = self.levels[l + 1].b.a
 
             self.levels[l]._state.sync_emat()
             if l > 0:
                 self.levels[l]._state.clear_egroups()
                 self.levels[l]._state.rebuild_neighbour_sampler()
+
+                # edge filters may become de-synchronized at upper layers
+                filt = self.levels[l].g.get_edge_filter()
+                if filt[0] is not None:
+                    filt[0].a = not filt[1]
 
             if c is None:
                 args = dict(kwargs, entropy_args=eargs)
