@@ -75,8 +75,8 @@ check_filtered(const Graph& g, const EdgeFilter& edge_filter,
                     vertex_filter.reserve(num_vertices(g));
 
                 typedef filt_graph<g_t,
-                                       MaskFilter<EdgeFilter>,
-                                       MaskFilter<VertexFilter>> fg_t;
+                                   MaskFilter<EdgeFilter>,
+                                   MaskFilter<VertexFilter>> fg_t;
 
                 fg_t init(u, e_filter, v_filter);
                 fg_t& fg = *retrieve_graph_view(gi, init);
