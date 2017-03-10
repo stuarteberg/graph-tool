@@ -155,26 +155,33 @@ struct MCMC
         template <class RNG>
         size_t move_proposal(size_t v, RNG& rng)
         {
-            _v = v;
+            auto& b = _state._b;
+            size_t r = b[v];
 
-            size_t r = _state._b[v];
+            auto m = _msampler.sample(rng);
 
-            auto m = std::min(_msampler.sample(rng),
-                              _vlist.size() - _vpos[v]);
+            size_t x1 = _vpos[v];
+            size_t x2 = x1;
+            for (; x2 < _vlist.size() - 1; ++x2)
+            {
+                if (size_t(b[_vlist[x2 + 1]]) != r)
+                    break;
+                if (x2 - x1 + 1 == m)
+                    break;
+            }
+            for (; x1 > 0; --x1)
+            {
+                if (size_t(b[_vlist[x1 - 1]]) != r)
+                    break;
+                if (x2 - x1 + 1 == m)
+                    break;
+            }
 
-            _m = 0;
-            iter_vs(v, m,
-                    [&](auto u)
-                    {
-                        size_t r_u = this->_state._b[u];
-                        if (r_u != r)
-                            return false;
-                        this->_m++;
-                        return true;
-                    });
+            _v = _vlist[x1];
+            _m = x2 - x1 + 1;
 
             std::uniform_int_distribution<size_t> dis(0, _m - 1);
-            size_t u = _vlist[_vpos[v] + dis(rng)];
+            size_t u = _vlist[_vpos[_v] + dis(rng)];
             size_t s = _state.sample_block(u, _c, _d, rng);
 
             if (r == s)
@@ -186,7 +193,7 @@ struct MCMC
             if (!_allow_vacate)
             {
                 size_t vw = 0;
-                iter_vs(v, _m,
+                iter_vs(_v, _m,
                         [&](auto u)
                         {
                             vw += this->_state._vweight[u];
@@ -198,8 +205,8 @@ struct MCMC
 
             if (_state._wr[s] == 0)
                 _state._bclabel[s] = _state._bclabel[r];
-
-            _mproposals[_m]++;
+            else
+                _mproposals[_m]++;
 
             return s;
         }
@@ -221,10 +228,24 @@ struct MCMC
             if (std::isinf(_beta))
                 return 0;
 
-            auto end = _vpos[v] + m;
-            double L = ((end < _vlist.size()) &&
-                        (_state._b[v] == _state._b[_vlist[end]])) ?
-                log_pm(m) : log_pm_cum(m);
+            double L = 0;
+
+            auto begin = _vpos[v];
+            auto end = begin + m;
+
+            auto& b = _state._b;
+
+            if (end == _vlist.size() || b[v] != b[_vlist[end]])
+            {
+                if (begin == 0 || b[v] != b[_vlist[begin - 1]])
+                    L = log_pm_cum(m) + log(m);
+                else
+                    L = log_pm(m) + log(m);
+            }
+            else
+            {
+                L = log_pm(m);
+            }
 
             double p = 0;
             iter_vs(v, m,
@@ -239,28 +260,26 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t v, size_t nr)
+        virtual_move_dS(size_t, size_t nr)
         {
             double dS = 0, a = 0;
             double pf = 0, pb = 0;
 
-            assert(v == _v);
-
-            size_t r = _state._b[v];
+            size_t r = _state._b[_v];
 
             if (_m == 1)
             {
-                dS = _state.virtual_move(v, r, nr, _entropy_args);
-                pf += log(_state.get_move_prob(v, r, nr, _c, _d, false));
-                pb += log(_state.get_move_prob(v, nr, r, _c, _d, true));
+                dS = _state.virtual_move(_v, r, nr, _entropy_args);
+                pf += log(_state.get_move_prob(_v, r, nr, _c, _d, false));
+                pb += log(_state.get_move_prob(_v, nr, r, _c, _d, true));
             }
             else
             {
                 _state._egroups_enabled = false;
 
-                pf += proposal_prob(v, _m, nr);
+                pf += proposal_prob(_v, _m, nr);
 
-                iter_vs(v, _m,
+                iter_vs(_v, _m,
                         [&](auto u)
                         {
                             dS += this->_state.virtual_move(u, r, nr,
@@ -269,9 +288,9 @@ struct MCMC
                             return true;
                         });
 
-                pb += proposal_prob(v, _m, r);
+                pb += proposal_prob(_v, _m, r);
 
-                iter_vs(v, _m,
+                iter_vs(_v, _m,
                         [&](auto u)
                         {
                             this->_state.move_vertex(u, r);
@@ -287,16 +306,17 @@ struct MCMC
             return std::make_tuple(dS, a);
         }
 
-        void perform_move(size_t v, size_t nr)
+        void perform_move(size_t, size_t nr)
         {
-            assert(v == _v);
-            iter_vs(v, _m,
+            if (_state._wr[nr] > 0)
+                _maccept[_m]++;
+
+            iter_vs(_v, _m,
                     [&](auto u)
                     {
                         this->_state.move_vertex(u, nr);
                         return true;
                     });
-            _maccept[_m]++;
         }
     };
 };
