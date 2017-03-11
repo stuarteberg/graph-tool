@@ -1323,8 +1323,8 @@ class BlockState(object):
                                                  _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, w, a=1., beta=1., c=1., d=.1, niter=1,
-                             entropy_args={}, allow_vacate=True,
+    def multiflip_mcmc_sweep(self, w, a=1., beta=1., c=1., d=.1, q=.001,
+                             niter=1, entropy_args={}, allow_vacate=True,
                              sequential=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC with multiple simultaneous moves to sample network
