@@ -587,8 +587,9 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
 
         if check_verbose(verbose):
             print(verbose_pad(verbose) +
-                  "count: %d  time: %#8.8g  f: %#8.8g  flatness: %#8.8g  S: %#8.8g" % \
+                  "count: %d  time: %#8.8g  f: %#8.8g  flatness: %#8.8g  nonempty bins: %d  S: %#8.8g" % \
                   (count, m_state._time, m_state._f, hf,
+                   (m_state._hist.a > 0).sum(),
                    state.entropy(**multicanonical_args.get("entropy_args", {}))))
 
         if not m_state._refine:

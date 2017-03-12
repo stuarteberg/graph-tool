@@ -1541,7 +1541,7 @@ class BlockState(object):
         return libinference.multicanonical_sweep(multicanonical_state,
                                                  self._state, _get_rng())
 
-    def multicanonical_sweep(self, m_state, c=numpy.inf, niter=1,
+    def multicanonical_sweep(self, m_state, c=numpy.inf, d=.1, niter=1,
                              entropy_args={}, allow_vacate=True, vertices=None,
                              target_bin=-1, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
@@ -1558,6 +1558,8 @@ class BlockState(object):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
+        d : ``float`` (optional, default: ``.1``)
+            Probability of selecting a new (i.e. empty) group for a given move.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
             made for each node.
@@ -1626,6 +1628,13 @@ class BlockState(object):
         multi_state.hist = m_state._hist
         multi_state.dens = m_state._density
         multi_state.target_bin = target_bin
+
+
+        if (multi_state.S < multi_state.S_min or
+            multi_state.S > multi_state.S_max):
+            raise ValueError("initial entropy %g out of bounds (%g, %g)" %
+                             (multi_state.S, multi_state.S_min,
+                              multi_state.S_max))
 
         S, nmoves, f, time = \
                 self._multicanonical_sweep_dispatch(multi_state)

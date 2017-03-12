@@ -48,10 +48,12 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
     auto& dens = state._dens;
     int M = hist.size();
 
-    int i = state.get_bin(S);
-
-    if (i < 0 || i >= M)
+    if (S < state._S_min || S >= state._S_max)
         throw ValueException("current state lies outside the allowed entropy range");
+
+    std::uniform_real_distribution<> a_sample;
+
+    int i = state.get_bin(S);
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
@@ -64,10 +66,11 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
 
         std::pair<double, double> dS = state.virtual_move_dS(v, s);
 
+        double nS = S + dS.first;
         int j = state.get_bin(S + dS.first);
 
         bool accept;
-        if (j < 0 || j >= M)
+        if (nS < state._S_min || nS >= state._S_max)
         {
             accept = false;
         }
@@ -80,8 +83,7 @@ auto multicanonical_sweep(MulticanonicalState& state, RNG& rng)
             }
             else
             {
-                typedef std::uniform_real_distribution<> rdist_t;
-                double sample = rdist_t()(rng);
+                double sample = a_sample(rng);
                 accept = sample < exp(a);
             }
         }

@@ -86,8 +86,8 @@ struct Multicanonical
 
         int get_bin(double S)
         {
-            return round((_hist.size() - 1) *
-                         ((S - _S_min) / (_S_max - _S_min)));
+            return std::floor((_hist.size() - 1) *
+                              ((S - _S_min) / (_S_max - _S_min)));
         };
 
         size_t node_state(size_t v)
