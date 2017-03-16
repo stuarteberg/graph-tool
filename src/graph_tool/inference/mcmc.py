@@ -669,38 +669,41 @@ class TemperingState(object):
                           (i, b1, i + 1, b2, a))
         return dS, nswaps
 
-    def states_move(self, gibbs=False, **kwargs):
+    def states_move(self, sweep_algo, **kwargs):
         """Perform a full sweep of the parallel states, where state moves are
-        attempted. All keyword arguments are propagated to the individual
-        states' `mcmc_sweep()` method. If the option `gibbs=True` is passed,
-        `gibbs_sweep` is used instead()."""
-
+        attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
         dS = 0
         nmoves = 0
         for state, beta in zip(self.states, self.betas):
-            if gibbs:
-                ret = state.gibbs_sweep(beta=beta, **kwargs)
-            else:
-                ret = state.mcmc_sweep(beta=beta, **kwargs)
+            ret = sweep_algo(state, beta=beta, **kwargs)
             dS += ret[0] * beta
             nmoves += ret[1]
         return dS, nmoves
+
+    def _sweep(self, algo, **kwargs):
+        if numpy.random.random() < .5:
+            return self.states_swap(**kwargs)
+        else:
+            return self.states_move(algo, **kwargs)
 
     def mcmc_sweep(self, **kwargs):
         """Perform a full mcmc sweep of the parallel states, where swap or moves are
         chosen randomly. All keyword arguments are propagated to the individual
         states' `mcmc_sweep()` method."""
-        if numpy.random.random() < .5:
-            return self.states_move(**kwargs)
-        else:
-            return self.states_swap(**kwargs)
+        algo = lambda s, **kw: s.mcmc_sweep(**kw)
+        return self._sweep(algo, **kwargs)
+
+    def multiflip_mcmc_sweep(self, **kwargs):
+        """Perform a full mcmc sweep of the parallel states, where swap or moves are
+        chosen randomly. All keyword arguments are propagated to the individual
+        states' `mcmc_sweep()` method."""
+        algo = lambda s, **kw: s.multiflip_mcmc_sweep(**kw)
+        return self._sweep(algo, **kwargs)
 
     def gibbs_sweep(self, **kwargs):
         """Perform a full Gibbs mcmc sweep of the parallel states, where swap or moves
         are chosen randomly. All keyword arguments are propagated to the
         individual states' `gibbs_sweep()` method.
         """
-        if numpy.random.random() < .5:
-            return self.states_move(gibbs=True, **kwargs)
-        else:
-            return self.states_swap(**kwargs)
+        algo = lambda s, **kw: s.gibbs_sweep(**kw)
+        return self._sweep(algo, **kwargs)
