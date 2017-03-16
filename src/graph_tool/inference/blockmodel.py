@@ -1323,8 +1323,8 @@ class BlockState(object):
                                                  _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, w, a=1., beta=1., c=1., d=.1, q=.001,
-                             niter=1, entropy_args={}, allow_vacate=True,
+    def multiflip_mcmc_sweep(self, a=1., beta=1., c=1., d=.1, niter=1,
+                             entropy_args={}, allow_vacate=True,
                              sequential=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC with multiple simultaneous moves to sample network
@@ -1332,9 +1332,6 @@ class BlockState(object):
 
         Parameters
         ----------
-        w : :class:`~graph_tool.PropertyMap`
-            A vertex property map with the ordering used to propose
-            sub-partitions.
         a : ``float`` (optional, default: ``1.``)
             Parameter controlling the number of multiple moves. The number
             :math:`m` of nodes that will be moved together is sampled with
@@ -1373,15 +1370,6 @@ class BlockState(object):
         number of edges (independent of the number of blocks).
 
         """
-
-        if w.value_type().startswith("vector"):
-            order = self.g.new_vp("int64_t")
-            libinference.get_worder(self.g._Graph__graph,
-                                    _prop("v", self.g, w),
-                                    _prop("v", self.g, order))
-            w = order
-        if w.value_type() != "int64_t":
-            w = w.copy("int64_t")
 
         mcmc_state = DictState(locals())
         entropy_args = dict(self._entropy_args, **entropy_args)
