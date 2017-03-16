@@ -1239,6 +1239,9 @@ class BlockState(object):
             the moves are attempted by sampling vertices randomly, so that the
             same vertex can be moved more than once, before other vertices had
             the chance to move.
+        deterministic : ``bool`` (optional, default: ``False``)
+            If ``sequential == True`` and ``deterministic == True`` the
+            vertices will be visited in deterministic order.
         parallel : ``bool`` (optional, default: ``False``)
             If ``parallel == True``, vertex movements are attempted in parallel.
 
@@ -1455,6 +1458,9 @@ class BlockState(object):
             the moves are attempted by sampling vertices randomly, so that the
             same vertex can be moved more than once, before other vertices had
             the chance to move.
+        deterministic : ``bool`` (optional, default: ``False``)
+            If ``sequential == True`` and ``deterministic == True`` the
+            vertices will be visited in deterministic order.
         parallel : ``bool`` (optional, default: ``False``)
             If ``parallel == True``, vertex movements are attempted in parallel.
 
