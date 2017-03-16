@@ -657,7 +657,7 @@ class TemperingState(object):
         dS = 0
         nmoves = 0
         for state, beta in zip(self.states, self.betas):
-            ret = sweep_algo(state, beta=beta, **kwargs)
+            ret = sweep_algo(state, beta=beta, **kwargs)[:2]
             dS += ret[0] * beta
             nmoves += ret[1]
         return dS, nmoves
