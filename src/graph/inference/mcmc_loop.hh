@@ -102,6 +102,9 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
             if (state._verbose)
                 cout << v << ": " << r << " -> " << s << " " << S << endl;
         }
+
+        if (state._sequential && state._deterministic)
+            std::reverse(vlist.begin(), vlist.end());
     }
     return make_pair(S, nmoves);
 }

@@ -170,6 +170,10 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
                 }
             }
         }
+
+        if (state._sequential && state._deterministic)
+            std::reverse(vlist.begin(), vlist.end());
+
     }
     return std::make_tuple(S, nmoves, nattempts);
 }
