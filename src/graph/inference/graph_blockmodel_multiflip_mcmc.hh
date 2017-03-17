@@ -245,12 +245,16 @@ struct MCMC
         {
             if (!_groups[nr].empty() || _groups[r].size() > _vs.size())
                 _maccept[_vs.size()]++;
+            if (_state._wr[nr] == 0)
+                add_element(_vlist, _rpos, nr);
             for (auto v : _vs)
             {
                 _state.move_vertex(v, nr);
                 remove_element(_groups[r], _vpos, v);
                 add_element(_groups[nr], _vpos, v);
             }
+            if (_state._wr[r] == 0)
+                remove_element(_vlist, _rpos, r);
         }
     };
 };
