@@ -840,6 +840,12 @@ public:
         return _actual_B;
     }
 
+    void add_block()
+    {
+        _total_B++;
+    }
+
+
 private:
     vector<size_t>& _bmap;
     size_t _N;
@@ -1058,10 +1064,17 @@ public:
         _nr_in_field.resize(B, _null);
     }
 
-    void set_move(size_t r, size_t nr)
+    void set_move(size_t r, size_t nr, size_t B)
     {
         clear();
         _rnr = make_pair(r, nr);
+        if (B > _r_out_field.size())
+        {
+            _r_out_field.resize(B, _null);
+            _nr_out_field.resize(B, _null);
+            _r_in_field.resize(B, _null);
+            _nr_in_field.resize(B, _null);
+        }
     }
 
     size_t& get_field(size_t s, size_t t)
@@ -1243,10 +1256,10 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
 template <class Graph, class Vertex, class VProp, class Eprop,
           class MEntries, class EFilt, class IL, class... Eprops>
 void move_entries(Vertex v, size_t r, size_t nr, VProp& _b, Graph& g,
-                  Eprop& eweights, MEntries& m_entries, EFilt&& efilt,
-                  IL&& is_loop, Eprops&... eprops)
+                  Eprop& eweights, size_t B, MEntries& m_entries,
+                  EFilt&& efilt, IL&& is_loop, Eprops&... eprops)
 {
-    m_entries.set_move(r, nr);
+    m_entries.set_move(r, nr, B);
 
     if (r != null_group)
         modify_entries<false>(v, r, _b, g, eweights, m_entries,

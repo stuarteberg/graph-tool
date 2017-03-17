@@ -78,18 +78,11 @@ class NestedBlockState(object):
         self.sampling = sampling
         if sampling:
             self.hstate_args = dict(self.hstate_args, vweight="nonempty",
-                                    copy_bg=False, B=g.num_vertices())
-            self.state_args = dict(self.state_args, B=g.num_vertices())
+                                    copy_bg=False)
             if self.state_args.get("vweight", None) is None:
                 self.state_args["vweight"] = "unity"
             if self.state_args.get("eweight", None) is None:
                 self.state_args["eweight"] = "unity"
-            nbs = []
-            for b in bs:
-                nb = numpy.zeros(g.num_vertices(), dtype="int")
-                nb[:len(b)] = b
-                nbs.append(nb)
-            bs = nbs
         self.hentropy_args = dict(dict(adjacency=True,
                                        dense=True,
                                        multigraph=True,

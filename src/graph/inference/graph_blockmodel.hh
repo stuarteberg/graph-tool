@@ -155,8 +155,9 @@ public:
     {
         auto mv_entries = [&](auto&&... args)
             {
-                move_entries(v, r, nr, _b, _g, _eweight, m_entries,
-                             std::forward<EFilt>(efilt), is_loop_nop(),
+                move_entries(v, r, nr, _b, _g, _eweight, num_vertices(_bg),
+                             m_entries, std::forward<EFilt>(efilt),
+                             is_loop_nop(),
                              std::forward<decltype(args)>(args)...);
             };
 
@@ -541,6 +542,22 @@ public:
         vweight[v] = w;
     }
 
+    void init_vertex_weight(size_t v)
+    {
+        init_vertex_weight(v, _vweight);
+    }
+
+    void init_vertex_weight(size_t, vcmap_t&)
+    {
+    }
+
+    template <class VMap>
+    void init_vertex_weight(size_t v, VMap&& vweight)
+    {
+        vweight.resize(num_vertices(_g));
+        vweight[v] = 1;
+    }
+
     template <class Vec>
     void move_vertices(Vec& v, Vec& nr)
     {
@@ -745,6 +762,31 @@ public:
         auto& d = degs[v];
         for (auto& kn : hist)
             d.emplace_back(get<0>(kn.first), get<1>(kn.first), kn.second);
+    }
+
+    size_t add_block()
+    {
+        size_t r = boost::add_vertex(_bg);
+        _wr.resize(num_vertices(_bg));
+        _mrm.resize(num_vertices(_bg));
+        _mrp.resize(num_vertices(_bg));
+        _wr[r] = _mrm[r] = _mrp[r] = 0;
+        _bclabel.resize(num_vertices(_bg));
+        _brecsum.resize(num_vertices(_bg));
+        _empty_pos.resize(num_vertices(_bg));
+        _candidate_pos.resize(num_vertices(_bg));
+        for (auto& p : _partition_stats)
+            p.add_block();
+        _emat.sync(_bg);
+        if (!_egroups.empty())
+            _egroups.init(_b, _eweight, _g, _bg);
+        if (_coupled_state != nullptr)
+        {
+            _coupled_state->_b.resize(num_vertices(_coupled_state->_g));
+            _coupled_state->init_vertex_weight(r);
+            _coupled_state->_pclabel.resize(num_vertices(_coupled_state->_g));
+        }
+        return r;
     }
 
     // =========================================================================
@@ -1158,8 +1200,11 @@ public:
 
         // attempt random block
         size_t s;
-        if (!_empty_blocks.empty() && rdist(rng) < d)
+        if (rdist(rng) < d &&
+            _candidate_blocks.size() - 1 < num_vertices(_g))
         {
+            if (_empty_blocks.empty())
+                add_element(_empty_blocks, _empty_pos, add_block());
             return uniform_sample(_empty_blocks, rng);
         }
         else
@@ -1233,7 +1278,7 @@ public:
                 return d;
         }
 
-        if (B == num_vertices(_bg))
+        if (B == num_vertices(_g))
             d = 0;
 
         if (std::isinf(c))

@@ -1245,7 +1245,7 @@ public:
     SingleEntrySet() : _pos(0), _mes_pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
-    void set_move(size_t, size_t) { clear(); }
+    void set_move(size_t, size_t, size_t) { clear(); }
 
     template <bool Add, class... DVals>
     void insert_delta(size_t t, size_t s, DVals... delta)

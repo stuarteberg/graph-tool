@@ -330,11 +330,17 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
     if "mcmc_equilibrate_args" in anneal_args:
         raise ValueError("'mcmc_equilibrate_args' should be passed directly " +
                          "to mcmc_multilevel(), not via 'anneal_args'")
+
+    if not mcmc_equilibrate_args.get("gibbs", False):
+        mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
+        mcmc_args["d"] = 0
+        mcmc_equilibrate_args["mcmc_args"] = mcmc_args
+
     while state.B > B:
         B_next = max(min(int(round(state.B / r)), state.B - 1), B)
 
         if b_cache is not None and B_next in b_cache:
-            state = b_cache[B_next]
+            state = b_cache[B_next][1]
             if check_verbose(verbose):
                 print(verbose_pad(verbose) +
                       "shrinking %d -> %d (cached)" % (state.B, B_next))

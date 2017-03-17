@@ -1303,7 +1303,10 @@ class BlockState(object):
             else:
                 Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
+        try:
+            dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
+        finally:
+            self.B = max(int(self.b.fa.max()) + 1, self.B)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1383,13 +1386,14 @@ class BlockState(object):
             entropy_args["multigraph"] = False
         mcmc_state.entropy_args = get_entropy_args(entropy_args)
         mcmc_state.mproposals = Vector_size_t()
-        mcmc_state.mproposals.resize(self.g.num_vertices() + 1)
+        M = self.g.num_vertices() + 1
+        mcmc_state.mproposals.resize(M)
         if "mproposals" in kwargs:
-            mcmc_state.mproposals.a = kwargs["mproposals"]
+            mcmc_state.mproposals.a = kwargs["mproposals"][:M]
         mcmc_state.maccept = Vector_size_t()
-        mcmc_state.maccept.resize(self.g.num_vertices() + 1)
+        mcmc_state.maccept.resize(M)
         if "maccept" in kwargs:
-            mcmc_state.maccept.a = kwargs["maccept"]
+            mcmc_state.maccept.a = kwargs["maccept"][:M]
         mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
@@ -1403,15 +1407,18 @@ class BlockState(object):
 
         nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
-        dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+        try:
+            dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+        finally:
+            self.B = max(int(self.b.fa.max()) + 1, self.B)
 
         nmoves += (mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
         if "mproposals" in kwargs:
-            kwargs["mproposals"][:] = mcmc_state.mproposals.a
+            kwargs["mproposals"][:M] = mcmc_state.mproposals.a
             del kwargs["mproposals"]
         if "maccept" in kwargs:
-            kwargs["maccept"][:] = mcmc_state.maccept.a
+            kwargs["maccept"][:M] = mcmc_state.maccept.a
             del kwargs["maccept"]
 
         if _bm_test():
@@ -1513,7 +1520,10 @@ class BlockState(object):
             else:
                 Si = self.entropy(**entropy_args)
 
-        dS, nmoves, nattempts = self._gibbs_sweep_dispatch(gibbs_state)
+        try:
+            dS, nmoves, nattempts = self._gibbs_sweep_dispatch(gibbs_state)
+        finally:
+            self.B = max(int(self.b.fa.max()) + 1, self.B)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1630,11 +1640,13 @@ class BlockState(object):
                              (multi_state.S, multi_state.S_min,
                               multi_state.S_max))
 
-        S, nmoves, f, time = \
-                self._multicanonical_sweep_dispatch(multi_state)
-
-        m_state._f = f
-        m_state._time = time
+        try:
+            S, nmoves, f, time = \
+                    self._multicanonical_sweep_dispatch(multi_state)
+        finally:
+            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            m_state._f = f
+            m_state._time = time
 
         disable_callback_test = kwargs.pop("disable_callback_test", False)
 
@@ -1745,8 +1757,11 @@ class BlockState(object):
             _callback = lambda S, S_min: callback(S, S_min, b_min)
         else:
             _callback = None
-        ret = self._exhaustive_sweep_dispatch(exhaustive_state, _callback,
-                                              density)
+        try:
+            ret = self._exhaustive_sweep_dispatch(exhaustive_state, _callback,
+                                                  density)
+        finally:
+            self.B = max(int(self.b.fa.max()) + 1, self.B)
         if _callback is None:
             if density is None:
                 return ((S, S_min, b_min) for S, S_min in ret)

@@ -165,7 +165,13 @@ struct MCMC
             size_t v = uniform_sample(_vs, rng);
             size_t s = _state.sample_block(v, _c, _d, rng);
 
-            if (!_state.allow_move(r, s))
+            if (s >= _groups.size())
+            {
+                _groups.resize(s + 1);
+                _rpos.resize(s + 1);
+            }
+
+            if (!_state.allow_move(r, s) || s == r)
                 return null_group;
 
             if (_groups[s].empty())
