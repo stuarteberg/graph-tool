@@ -40,6 +40,7 @@ using namespace std;
     ((beta,, double, 0))                                                       \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((allow_vacate,, bool, 0))                                                 \
+    ((allow_new_group,, bool, 0))                                              \
     ((parallel,, bool, 0))                                                     \
     ((sequential,, bool, 0))                                                   \
     ((deterministic,, bool, 0))                                                \
@@ -94,10 +95,11 @@ struct Gibbs
         {
             if (nr == null_group)
             {
-                if (_state._empty_blocks.empty())
+                if (!_allow_new_group)
                     return numeric_limits<double>::infinity();
-                else
-                    nr = _state._empty_blocks.front();
+                if (_state._empty_blocks.empty())
+                    _state.add_block();
+                nr = _state._empty_blocks.front();
             }
             size_t r = _state._b[v];
             if (!_state.allow_move(r, nr))

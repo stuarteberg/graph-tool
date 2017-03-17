@@ -331,10 +331,12 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
         raise ValueError("'mcmc_equilibrate_args' should be passed directly " +
                          "to mcmc_multilevel(), not via 'anneal_args'")
 
+    mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     if not mcmc_equilibrate_args.get("gibbs", False):
-        mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
         mcmc_args["d"] = 0
-        mcmc_equilibrate_args["mcmc_args"] = mcmc_args
+    else:
+        mcmc_args["allow_new_group"] = False
+    mcmc_equilibrate_args["mcmc_args"] = mcmc_args
 
     while state.B > B:
         B_next = max(min(int(round(state.B / r)), state.B - 1), B)

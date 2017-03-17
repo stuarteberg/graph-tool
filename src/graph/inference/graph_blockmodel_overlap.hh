@@ -1062,6 +1062,10 @@ public:
         }
     }
 
+    size_t add_block()
+    {
+        return null_group;
+    }
 
     void init_mcmc(double c, double dl)
     {

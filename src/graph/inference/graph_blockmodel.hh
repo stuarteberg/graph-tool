@@ -775,6 +775,7 @@ public:
         _brecsum.resize(num_vertices(_bg));
         _empty_pos.resize(num_vertices(_bg));
         _candidate_pos.resize(num_vertices(_bg));
+        add_element(_empty_blocks, _empty_pos, r);
         for (auto& p : _partition_stats)
             p.add_block();
         _emat.sync(_bg);
@@ -1204,7 +1205,7 @@ public:
             _candidate_blocks.size() - 1 < num_vertices(_g))
         {
             if (_empty_blocks.empty())
-                add_element(_empty_blocks, _empty_pos, add_block());
+                add_block();
             return uniform_sample(_empty_blocks, rng);
         }
         else
