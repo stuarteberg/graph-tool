@@ -604,7 +604,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, exact=True,
-                **kwargs):
+                dl_beta=1., **kwargs):
         r"""Calculate the entropy associated with the current block partition. The
         meaning of the parameters are the same as in
         :meth:`graph_tool.inference.BlockState.entropy`.
@@ -621,7 +621,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                degree_dl_kind=degree_dl_kind, edges_dl=False,
                                dense=dense, multigraph=multigraph,
                                deg_entropy=deg_entropy, exact=exact,
-                               **dict(kwargs, test=False))
+                               dl_beta=dl_beta, **dict(kwargs, test=False))
 
         if dl and edges_dl:
             if self.allow_empty:
@@ -629,11 +629,12 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 actual_B = (self.wr.a > 0).sum()
             for state in self.layer_states:
-                S += model_entropy(actual_B, 0, state.get_E(),
-                                   directed=self.g.is_directed(), nr=False)
+                S += dl_beta * model_entropy(actual_B, 0, state.get_E(),
+                                             directed=self.g.is_directed(),
+                                             nr=False)
 
         if dl:
-            S += self.__get_layer_entropy()
+            S += dl_beta * self.__get_layer_entropy()
 
         if _bm_test() and kwargs.get("test", True):
             assert not isnan(S) and not isinf(S), \

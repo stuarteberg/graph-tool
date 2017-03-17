@@ -426,7 +426,7 @@ public:
 
         get_move_entries(v, r, nr, m_entries);
 
-        double dS = 0;
+        double dS = 0, dl_dS = 0;
         if (ea.adjacency)
         {
             if (ea.exact)
@@ -440,15 +440,15 @@ public:
             enable_partition_stats();
             auto& ps = get_partition_stats(v);
             if (ea.partition_dl)
-                dS += ps.get_delta_partition_dl(v, r, nr, _g);
+                dl_dS += ps.get_delta_partition_dl(v, r, nr, _g);
             if (_deg_corr && ea.degree_dl)
-                dS += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
+                dl_dS += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
             if (ea.edges_dl)
             {
                 size_t actual_B = 0;
                 for (auto& ps : _partition_stats)
                     actual_B += ps.get_actual_B();
-                dS += ps.get_delta_edges_dl(v, r, nr, actual_B, _g);
+                dl_dS += ps.get_delta_edges_dl(v, r, nr, actual_B, _g);
             }
         }
 
@@ -542,7 +542,7 @@ public:
             break;
             }
         }
-        return dS;
+        return dS + ea.dl_beta * dl_dS;
     }
 
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)

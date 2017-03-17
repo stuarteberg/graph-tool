@@ -377,12 +377,12 @@ struct Layers
                 if (ea.partition_dl)
                 {
                     enable_partition_stats();
-                    dS += BaseState::get_delta_partition_dl(v, r, s);
+                    dS += ea.dl_beta * BaseState::get_delta_partition_dl(v, r, s);
                 }
             }
 
             if (ea.edges_dl)
-                dS += get_delta_edges_dl(v, r, s);
+                dS += ea.dl_beta * get_delta_edges_dl(v, r, s);
 
             if (ea.adjacency)
             {

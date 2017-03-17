@@ -246,7 +246,7 @@ class OverlapBlockState(BlockState):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True)
+                                  exact=True, recs=True, dl_beta=1.)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -432,7 +432,7 @@ class OverlapBlockState(BlockState):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
-                exact=True, **kwargs):
+                exact=True, dl_beta=1., **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -468,6 +468,8 @@ class OverlapBlockState(BlockState):
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
+        dl_beta : ``float`` (optional, default: ``1.``)
+            Inverse temperature for the model priors.
 
         Notes
         -----
@@ -572,7 +574,7 @@ class OverlapBlockState(BlockState):
                                   edges_dl=edges_dl, dense=dense,
                                   multigraph=multigraph,
                                   deg_entropy=deg_entropy, recs=recs,
-                                  exact=exact, **kwargs)
+                                  exact=exact, dl_beta=dl_beta, **kwargs)
 
 
     def _mcmc_sweep_dispatch(self, mcmc_state):

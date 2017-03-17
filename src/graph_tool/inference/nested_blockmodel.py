@@ -92,7 +92,8 @@ class NestedBlockState(object):
                                        degree_dl_kind="distributed",
                                        edges_dl=True,
                                        exact=True,
-                                       recs=False),
+                                       recs=False,
+                                       dl_beta=1.),
                                   **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for i, b in enumerate(bs[1:]):
@@ -270,8 +271,13 @@ class NestedBlockState(object):
         :class:`graph_tool.inference.OverlapBlockState.entropy`, or
         :class:`graph_tool.inference.LayeredBlockState.entropy`).  """
         S = 0
+        dl_beta = kwargs.get("dl_beta", 1.)
+        lkwargs = dict(kwargs, dl_beta=1.)
         for l in range(len(self.levels)):
-            S += self.level_entropy(l, **kwargs)
+            if l == 0:
+                S += self.level_entropy(l, **kwargs)
+            else:
+                S += self.level_entropy(l, **lkwargs) * dl_beta
         return S
 
     def move_vertex(self, v, s):
@@ -326,6 +332,8 @@ class NestedBlockState(object):
         log-probability.
         """
 
+        dl_beta = entropy_args.get("dl_beta", 1.)
+
         L = 0
         for l, lstate in enumerate(self.levels):
             if l > 0:
@@ -342,7 +350,11 @@ class NestedBlockState(object):
                     lstate._state.sync_emat()
                     lstate._state.clear_egroups()
 
-            L += lstate.get_edges_prob(missing, spurious, entropy_args=eargs)
+            Ll = lstate.get_edges_prob(missing, spurious, entropy_args=eargs)
+            if l == 0:
+                L += Ll
+            else:
+                L += dl_beta * Ll
             if isinstance(self.levels[0], LayeredBlockState):
                 missing = [(lstate.b[u], lstate.b[v], l_) for u, v, l_ in missing]
                 spurious = [(lstate.b[u], lstate.b[v], l_) for u, v, l_ in spurious]
@@ -351,7 +363,6 @@ class NestedBlockState(object):
                 spurious = [(lstate.b[u], lstate.b[v]) for u, v in spurious]
 
         return L
-
 
     def get_bstack(self):
         """Return the nested levels as individual graphs.
@@ -485,6 +496,7 @@ class NestedBlockState(object):
 
         verbose = kwargs.get("verbose", False)
         entropy_args = kwargs.get("entropy_args", {})
+        dl_beta = entropy_args.get("dl_beta", 1.)
 
         for l in range(len(self.levels) - 1):
             eargs = dict(self.hentropy_args,
@@ -503,8 +515,7 @@ class NestedBlockState(object):
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
             if l > 0:
-                eargs = dict(self.hentropy_args,
-                             **dict(entropy_args, multigraph=True))
+                eargs = self.hentropy_args
             else:
                 eargs = entropy_args
 
@@ -549,7 +560,10 @@ class NestedBlockState(object):
 
             ret = algo(self.levels[l], **args)
 
-            dS += ret[0]
+            if l == 0:
+                dS += ret[0]
+            else:
+                dS += ret[0] * dl_beta
             nmoves += ret[1]
 
         return dS, nmoves

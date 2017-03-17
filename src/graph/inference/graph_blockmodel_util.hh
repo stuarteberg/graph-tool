@@ -135,6 +135,7 @@ struct entropy_args_t
     bool degree_dl;
     deg_dl_kind  degree_dl_kind;
     bool edges_dl;
+    double dl_beta;
 };
 
 // Sparse entropy terms

@@ -1007,7 +1007,7 @@ public:
 
         get_move_entries(v, r, nr, m_entries, [](auto) { return false; });
 
-        double dS = 0;
+        double dS = 0, dl_dS = 0;
         if (ea.adjacency)
         {
             if (ea.dense)
@@ -1028,17 +1028,17 @@ public:
             enable_partition_stats();
             auto& ps = get_partition_stats(v);
             if (ea.partition_dl)
-                dS += ps.get_delta_partition_dl(v, r, nr, _vweight);
+                dl_dS += ps.get_delta_partition_dl(v, r, nr, _vweight);
             if (_deg_corr && ea.degree_dl)
-                dS += ps.get_delta_deg_dl(v, r, nr, _vweight, _eweight,
-                                          _degs, _g, ea.degree_dl_kind);
+                dl_dS += ps.get_delta_deg_dl(v, r, nr, _vweight, _eweight,
+                                             _degs, _g, ea.degree_dl_kind);
             if (ea.edges_dl)
             {
                 size_t actual_B = 0;
                 for (auto& ps : _partition_stats)
                     actual_B += ps.get_actual_B();
-                dS += ps.get_delta_edges_dl(v, r, nr, _vweight, actual_B,
-                                            _g);
+                dl_dS += ps.get_delta_edges_dl(v, r, nr, _vweight, actual_B,
+                                               _g);
             }
         }
 
@@ -1158,23 +1158,23 @@ public:
             {
                 if (r_vacate)
                 {
-                    dS += _coupled_state->virtual_move(r,
-                                                       _bclabel[r],
-                                                       null_group,
-                                                       _coupled_entropy_args);
+                    dl_dS += _coupled_state->virtual_move(r,
+                                                          _bclabel[r],
+                                                          null_group,
+                                                          _coupled_entropy_args);
                 }
 
                 if (nr_occupy)
                 {
                     assert(_coupled_state->_vweight[nr] == 0);
-                    dS += _coupled_state->virtual_move(nr,
-                                                       null_group,
-                                                       _bclabel[r],
-                                                       _coupled_entropy_args);
+                    dl_dS += _coupled_state->virtual_move(nr,
+                                                          null_group,
+                                                          _bclabel[r],
+                                                          _coupled_entropy_args);
                 }
             }
         }
-        return dS;
+        return dS + ea.dl_beta * dl_dS;
     }
 
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)
