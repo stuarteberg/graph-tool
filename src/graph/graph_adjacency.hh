@@ -1096,6 +1096,7 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
                            {
                                return pred(mk_in_edge.def(v, e));
                            });
+        size_t k = es.end() - iter;
         es.erase(iter, es.end());
         iter =
             std::remove_if(es.begin(), es.begin() + pos,
@@ -1103,8 +1104,11 @@ void clear_vertex(Vertex v, adj_list<Vertex>& g, Pred&& pred)
                            {
                                return pred(mk_out_edge.def(v, e));
                            });
+        k += std::count_if(iter, es.begin() + pos,
+                           [&](auto& e){ return e.first != v; });
         es.erase(iter, es.begin() + pos);
         pos = iter - es.begin();
+        g._n_edges -= k;
     }
     else
     {
