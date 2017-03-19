@@ -555,7 +555,7 @@ public:
     void init_vertex_weight(size_t v, VMap&& vweight)
     {
         vweight.resize(num_vertices(_g));
-        vweight[v] = 1;
+        vweight[v] = 0;
     }
 
     template <class Vec>
@@ -778,6 +778,7 @@ public:
         add_element(_empty_blocks, _empty_pos, r);
         for (auto& p : _partition_stats)
             p.add_block();
+        _bignore_degrees.resize(num_vertices(_bg));
         _emat.sync(_bg);
         if (!_egroups.empty())
             _egroups.init(_b, _eweight, _g, _bg);
@@ -786,6 +787,7 @@ public:
             _coupled_state->_b.resize(num_vertices(_coupled_state->_g));
             _coupled_state->init_vertex_weight(r);
             _coupled_state->_pclabel.resize(num_vertices(_coupled_state->_g));
+            _coupled_state->_ignore_degrees.resize(num_vertices(_coupled_state->_g));
         }
         return r;
     }
