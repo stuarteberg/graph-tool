@@ -156,7 +156,7 @@ public:
     template <class Edge, class Graph>
     void tree_edge(const Edge& e, Graph& g)
     {
-        _edges.push_back({source(e, g), target(e,g)});
+        _edges.push_back({{source(e, g), target(e,g)}});
     }
 
 private:
