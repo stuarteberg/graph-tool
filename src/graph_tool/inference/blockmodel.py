@@ -480,6 +480,21 @@ class BlockState(object):
                                  str(list(defaults.keys())))
             self.wparams.append(ps)
 
+    def get_rec_params(self):
+        """Get model hyperparameters for edge covariates."""
+        params = []
+        for ps in self.rec_params:
+            p = dict(ps)
+            params.append(p)
+        return params
+
+    def set_rec_params(self, params):
+        """Update model hyperparameters for edge covariates."""
+        for ps, ws, nps in zip(self.rec_params, self.wparams, params):
+            ps.update(nps)
+            for i, (k, v) in enumerate(ps.items()):
+                ws[i] = v
+
     def __repr__(self):
         return "<BlockState object with %d blocks (%d nonempty),%s%s for graph %s, at 0x%x>" % \
             (self.B, self.get_nonempty_B(),
