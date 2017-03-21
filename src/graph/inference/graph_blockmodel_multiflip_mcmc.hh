@@ -143,10 +143,10 @@ struct MCMC
         template <class RNG>
         size_t move_proposal(size_t r, RNG& rng)
         {
-            if (!_allow_vacate && _groups[r].size() == 1)
-                return r;
-
             size_t m = sample_m(_groups[r].size(), rng);
+
+            if (!_allow_vacate && _groups[r].size() == m)
+                return null_group;
 
             assert(m <= _groups[r].size());
 
