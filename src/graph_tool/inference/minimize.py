@@ -96,7 +96,7 @@ def get_states(g, B_min=None, B_max=None, b_min=None, b_max=None, deg_corr=True,
         max_state = State(g, B=_B_max, deg_corr=deg_corr, clabel=clabel,
                           **dmask(state_args,["B", "b", "deg_corr", "clabel"]))
 
-    if max_state.B > B_max:
+    if max_state.get_nonempty_B() > B_max:
         max_state = mcmc_multilevel(max_state, B=B_max, **mcmc_multilevel_args)
 
     if b_min is not None:
@@ -108,7 +108,7 @@ def get_states(g, B_min=None, B_max=None, b_min=None, b_max=None, deg_corr=True,
     else:
         min_state = max_state.copy()
 
-    if min_state.B > B_min:
+    if min_state.get_nonempty_B() > B_min:
         min_state = mcmc_multilevel(min_state, B=B_min, **mcmc_multilevel_args)
 
     return min_state, max_state

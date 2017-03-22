@@ -137,9 +137,9 @@ def bisection_minimize(init_states, random_bisection=False,
 
     b_cache = {}
     for state in init_states:
-        b_cache[state.B] = (get_ent(state, mcmc_multilevel_args,
-                                    extra_entropy_args),
-                            state.copy())
+        b_cache[state.get_nonempty_B()] = (get_ent(state, mcmc_multilevel_args,
+                                                   extra_entropy_args),
+                                           state.copy())
 
     max_B = max(b_cache.keys())
     min_B = min(b_cache.keys())
