@@ -649,7 +649,7 @@ class OverlapBlockState(BlockState):
             (self.get_nonempty_B(), bstate.get_nonempty_B())
 
         if bstate.get_nonempty_B() < B:
-            raise ValueError("cannot shrink state to a smaller number" +
+            raise ValueError("cannot shrink state to a larger number" +
                              " of groups: %d -> %d (total: %d)" %
                              (bstate.get_nonempty_B(), B, self.B))
 
