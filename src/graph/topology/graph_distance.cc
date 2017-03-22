@@ -273,6 +273,14 @@ struct do_bfs_search
 
         }
         catch (stop_search&) {}
+
+        parallel_vertex_loop(g,
+                             [&](auto v)
+                             {
+                                 auto& d = dist_map[v];
+                                 if (d > max_dist)
+                                     d = inf;
+                             });
     }
 };
 
@@ -286,24 +294,19 @@ struct do_djk_search
                     PredMap pred_map, WeightMap weight, long double max_dist) const
     {
         auto target_list = get_array<int64_t, 1>(otarget_list);
+
         typedef typename property_traits<DistMap>::value_type dist_t;
-        dist_t max_d = (max_dist > 0) ?
-            max_dist : (std::is_floating_point<dist_t>::value ?
-                        numeric_limits<dist_t>::infinity() :
-                        numeric_limits<dist_t>::max());
+
+        constexpr dist_t inf = (std::is_floating_point<dist_t>::value) ?
+            numeric_limits<dist_t>::infinity() :
+            numeric_limits<dist_t>::max();
+
+        dist_t max_d = (max_dist > 0) ? max_dist : inf;
 
         gt_hash_set<std::size_t> tgt(target_list.begin(),
                                      target_list.end());
 
-        dist_t inf = (std::is_floating_point<dist_t>::value) ?
-            numeric_limits<dist_t>::infinity() :
-            numeric_limits<dist_t>::max();
-
-        int i, N = num_vertices(g);
-        #pragma omp parallel for default(shared) private(i) \
-            schedule(runtime) if (N > 100)
-        for (i = 0; i < N; ++i)
-            dist_map[i] = inf;
+        parallel_vertex_loop(g, [&](auto v) { dist_map[v] = inf; });
         dist_map[source] = 0;
 
         try
@@ -338,6 +341,14 @@ struct do_djk_search
 
         }
         catch (stop_search&) {}
+
+        parallel_vertex_loop(g,
+                             [&](auto v)
+                             {
+                                 auto& d = dist_map[v];
+                                 if (d > max_dist)
+                                     d = inf;
+                             });
     }
 };
 

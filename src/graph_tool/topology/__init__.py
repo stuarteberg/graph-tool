@@ -1556,7 +1556,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
     Johnson's algorithm [johnson-apsp]_. If dense=True, the Floyd-Warshall
     algorithm [floyd-warshall-apsp]_ is used instead.
 
-    If there is not path between two vertices, the computed distance will
+    If there is no path between two vertices, the computed distance will
     correspond to the maximum value allowed by the value type of ``dist_map``,
     or ``inf`` in case of floating point types.
 
