@@ -274,13 +274,16 @@ struct do_bfs_search
         }
         catch (stop_search&) {}
 
-        parallel_vertex_loop(g,
-                             [&](auto v)
-                             {
-                                 auto& d = dist_map[v];
-                                 if (d > max_dist)
-                                     d = inf;
-                             });
+        if (max_dist > 0)
+        {
+            parallel_vertex_loop(g,
+                                 [&](auto v)
+                                 {
+                                     auto& d = dist_map[v];
+                                     if (d > max_dist)
+                                         d = inf;
+                                 });
+        }
     }
 };
 
@@ -342,13 +345,16 @@ struct do_djk_search
         }
         catch (stop_search&) {}
 
-        parallel_vertex_loop(g,
-                             [&](auto v)
-                             {
-                                 auto& d = dist_map[v];
-                                 if (d > max_dist)
-                                     d = inf;
-                             });
+        if (max_dist > 0)
+        {
+            parallel_vertex_loop(g,
+                                 [&](auto v)
+                                 {
+                                     auto& d = dist_map[v];
+                                     if (d > max_dist)
+                                         d = inf;
+                                 });
+        }
     }
 };
 
