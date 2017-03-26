@@ -633,8 +633,10 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         output_size = (extents[2] - extents[0], extents[3] - extents[1])
         try:
             x, y, w, h = fit_view
-            cr.scale(output_size[0] / w, output_size[1] / h)
-            cr.translate(-x, -y)
+            zoom = min(output_size[0] / w, output_size[1] / h)
+            offset = (x * zoom, y * zoom)
+            cr.translate(x, y)
+            cr.scale(zoom, zoom)
         except TypeError:
             pad = fit_view if fit_view != True else 0.95
             offset, zoom = fit_to_view(g, pos, output_size,
@@ -647,8 +649,6 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                                                   _vdefaults["font_size"]),
                                        pad, cr)
             cr.translate(offset[0], offset[1])
-            if not isinstance(fit_view, bool):
-                zoom /= fit_view
             cr.scale(zoom, zoom)
 
     if "control_points" not in eprops:
@@ -1102,10 +1102,9 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         output = io.BytesIO()
 
     if output is None:
-        fit_area = fit_view if fit_view != True else 0.95
         return interactive_window(g, pos, vprops, eprops, vorder, eorder,
                                   nodesfirst, geometry=output_size,
-                                  fit_area=fit_area, **kwargs)
+                                  fit_view=fit_view, **kwargs)
     else:
         if isinstance(output, (str, unicode)):
             out, auto_fmt = open_file(output, mode="wb")
@@ -1137,7 +1136,8 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         if fit_view != False:
             try:
                 x, y, w, h = fit_view
-                offset, zoom = [0, 0], 1
+                zoom = min(output_size[0] / w, output_size[1] / h)
+                offset = (x * zoom, y * zoom)
             except TypeError:
                 pad = fit_view if fit_view != True else 0.95
                 offset, zoom = fit_to_view(g, pos, output_size, vprops["size"],
@@ -1148,7 +1148,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                                            vprops.get("font_size",
                                                       _vdefaults["font_size"]),
                                            pad, cr)
-                fit_view = False
+            fit_view = False
         else:
             offset, zoom = [0, 0], 1
 

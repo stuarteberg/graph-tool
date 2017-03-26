@@ -133,7 +133,7 @@ class GraphWidget(Gtk.DrawingArea):
     def __init__(self, g, pos, vprops=None, eprops=None, vorder=None,
                  eorder=None, nodesfirst=False, update_layout=False,
                  layout_K=1., multilevel=False, display_props=None,
-                 display_props_size=11, fit_area=0.95, bg_color=None,
+                 display_props_size=11, fit_view=True, bg_color=None,
                  max_render_time=300, layout_callback=None,
                  key_press_callback=None, highlight_color=None, **kwargs):
         r"""Interactive GTK+ widget displaying a given graph.
@@ -169,8 +169,12 @@ class GraphWidget(Gtk.DrawingArea):
             List of properties to be displayed when the mouse passes over a vertex.
         display_props_size : float (optional, default: ``11.``)
             Font size used to display the vertex properties.
-        fit_area : float  (optional, default: ``.95``)
-            Fraction of the drawing area to fit the graph initially.
+        fit_view : bool, float or tuple (optional, default: ``True``)
+            If ``True``, the layout will be scaled to fit the entire clip region.
+            If a float value is given, it will be interpreted as ``True``, and in
+            addition the viewport will be scaled out by that factor. If a tuple
+            value is given, it should have four values ``(x, y, w, h)`` that
+            specify the view in user coordinates.
         bg_color : str or sequence (optional, default: ``None``)
             Background color. The default is white.
         max_render_time : int (optional, default: ``300``)
@@ -274,7 +278,7 @@ class GraphWidget(Gtk.DrawingArea):
         self.drag_begin = None
         self.moved_picked = False
         self.vertex_matrix = None
-        self.pad = fit_area
+        self.fit_view = fit_view
 
         self.display_prop = g.vertex_index if display_props is None \
                             else display_props
@@ -476,8 +480,8 @@ class GraphWidget(Gtk.DrawingArea):
             m = cairo.Matrix()
             m.translate(self.get_allocated_width(),
                         self.get_allocated_height())
-            self.smatrix = self.smatrix * m
-            self.tmatrix = self.tmatrix * self.smatrix
+            self.smatrix = self.smatrix.multiply(m)
+            self.tmatrix = self.tmatrix.multiply(self.smatrix)
             self.smatrix = cairo.Matrix()
             self.smatrix.translate(-self.get_allocated_width(),
                                    -self.get_allocated_height())
@@ -607,7 +611,7 @@ class GraphWidget(Gtk.DrawingArea):
                     eprops["pen_width"] *= 1.1
 
                 cr.save()
-                cr.set_matrix(self.tmatrix * self.smatrix)
+                cr.set_matrix(self.tmatrix.multiply(self.smatrix))
                 cairo_draw(u, self.pos, cr, vprops, eprops, self.vorder,
                            self.eorder, self.nodesfirst)
                 cr.restore()
@@ -622,7 +626,7 @@ class GraphWidget(Gtk.DrawingArea):
                           efilt=self.sel_edge_filt)
 
             cr.save()
-            cr.set_matrix(self.tmatrix * self.smatrix)
+            cr.set_matrix(self.tmatrix.multiply(self.smatrix))
             cairo_draw(u, self.pos, cr, vprops, eprops, self.vorder,
                        self.eorder, self.nodesfirst)
             cr.restore()
@@ -677,7 +681,7 @@ class GraphWidget(Gtk.DrawingArea):
             if surface:
                 cr.set_matrix(self.smatrix)
             else:
-                cr.set_matrix(self.tmatrix * self.smatrix)
+                cr.set_matrix(self.tmatrix.multiply(self.smatrix))
         if dist:
             return cr.user_to_device_distance(pos[0], pos[1])
         else:
@@ -692,7 +696,7 @@ class GraphWidget(Gtk.DrawingArea):
             if surface:
                 cr.set_matrix(self.smatrix)
             else:
-                cr.set_matrix(self.tmatrix * self.smatrix)
+                cr.set_matrix(self.tmatrix.multiply(self.smatrix))
         if dist:
             return cr.device_to_user_distance(pos[0], pos[1])
         else:
@@ -701,11 +705,11 @@ class GraphWidget(Gtk.DrawingArea):
     def apply_transform(self):
         r"""Apply current transform matrix to vertex coordinates."""
         zoom = self.pos_from_device((1, 0), dist=True)[0]
-        apply_transforms(self.g, self.pos, self.smatrix * self.tmatrix)
+        apply_transforms(self.g, self.pos, self.smatrix.multiply(self.tmatrix))
         self.tmatrix = cairo.Matrix()
         self.tmatrix.scale(zoom, zoom)
         self.smatrix = cairo.Matrix()
-        apply_transforms(self.g, self.pos, self.smatrix * self.tmatrix)
+        apply_transforms(self.g, self.pos, self.smatrix.multiply(self.tmatrix))
         self.tmatrix = cairo.Matrix()
         self.tmatrix.scale(1. / zoom, 1. / zoom)
         if self.vertex_matrix is not None:
@@ -722,21 +726,30 @@ class GraphWidget(Gtk.DrawingArea):
             g = self.g
         pos = g.own_property(self.pos)
         cr = self.get_window().cairo_create()
-        offset, zoom = fit_to_view(g, pos, geometry,
-                                   self.vprops.get("size", 0),
-                                   self.vprops.get("pen_width", 0),
-                                   self.tmatrix * self.smatrix,
-                                   self.vprops.get("text", None),
-                                   self.vprops.get("font_family",
-                                                   _vdefaults["font_family"]),
-                                   self.vprops.get("font_size",
-                                                   _vdefaults["font_size"]),
-                                   self.pad,
-                                   cr)
+        if self.fit_view != False:
+            try:
+                x, y, w, h = self.fit_view
+                zoom = min(geometry[0] / w, geometry[1] / h)
+                offset = (x * zoom, y * zoom)
+            except TypeError:
+                pad = self.fit_view if self.fit_view != True else 0.95
+                offset, zoom = fit_to_view(g, pos, geometry,
+                                           self.vprops.get("size", 0),
+                                           self.vprops.get("pen_width", 0),
+                                           self.tmatrix.multiply(self.smatrix),
+                                           self.vprops.get("text", None),
+                                           self.vprops.get("font_family",
+                                                           _vdefaults["font_family"]),
+                                           self.vprops.get("font_size",
+                                                           _vdefaults["font_size"]),
+                                           pad,
+                                           cr)
+        else:
+            offset, zoom = (0,0), 1
         m = cairo.Matrix()
         m.translate(offset[0] + ox, offset[1] + oy)
         m.scale(zoom, zoom)
-        self.tmatrix = self.tmatrix * self.smatrix * m
+        self.tmatrix = self.tmatrix.multiply(self.smatrix.multiply(m))
         self.smatrix = cairo.Matrix()
         if ink:
             scale_ink(zoom, self.vprops, self.eprops)
