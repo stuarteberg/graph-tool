@@ -487,6 +487,9 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
             aset(ge, "arrowsize", "0.3")
             if g.is_directed():
                 aset(ge, "arrowhead", "vee")
+                aset(ge, "dir", "forward")
+            else:
+                aset(ge, "dir", "none")
 
             # apply color
             if isinstance(ecolor, (str, unicode)):
