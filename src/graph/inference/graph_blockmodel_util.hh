@@ -259,8 +259,6 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
-    if (alpha == 0 && beta == 0) // Jeffreys
-        return lgamma(N) - N * log(x);
     return lgamma(N + alpha) - lgamma(alpha) + alpha * log(beta) -
         (alpha + N) * log(beta + x);
 }
@@ -272,15 +270,6 @@ double signed_w_log_P(DT N, double x, double v, double m0, double k0, double v0,
 {
     if (N == 0)
         return 0.;
-    if (v0 == 0 && k0 == 0) // Jeffreys
-    {
-        if (N > 1)
-            return lgamma(N/2.) - log(N)/2 - N * log(v) / 2  - (N / 2.) *
-                log(M_PI);
-        else
-            return -log(pow(x - m0, 2) + v0)/2;
-    }
-
     auto k_n = k0 + N;
     auto nu_n = nu0 + N;
     auto v_n = (v0 * nu0 + v + ((N * k0)/(k0 + N)) * pow(m0 - x/N, 2)) / nu_n;
@@ -295,8 +284,6 @@ double geometric_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
-    if (alpha == 0 && beta == .5) // Jeffreys
-        return lbeta(N, x + .5);
     return lbeta(N + alpha, x + beta) - lbeta(alpha, beta);
 }
 
@@ -315,8 +302,6 @@ double poisson_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
-    if (alpha == .5 && beta == 0) // Jeffreys
-        return lgamma(x + .5) - (x + .5) * log(N) - lgamma(.5);
     return lgamma(x + alpha) - (x + alpha) * log(N + beta) - lgamma(alpha) +
         alpha * log(beta);
 }
