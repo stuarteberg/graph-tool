@@ -150,9 +150,14 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
                      return;
 
                  auto r = state.node_state(v);
-                 auto s = state.move_proposal(v, rng);
 
-                 if (s == r)
+                 decltype(r) s;
+                 #pragma omp critical (mcmc_move_proposal)
+                 {
+                      s = state.move_proposal(v, rng);
+                 }
+
+                 if (s == null_group)
                      return;
 
                  double dS, mP;
