@@ -248,6 +248,14 @@ class OverlapBlockState(BlockState):
                                   edges_dl=True, dense=False, multigraph=True,
                                   exact=True, recs=True, dl_beta=1.)
 
+        vweight = kwargs.pop("vweight", "unity")
+        eweight = kwargs.pop("eweight", "unity")
+
+        if vweight != "unity":
+            kwargs["vweight"] = vweight
+        if eweight != "unity":
+            kwargs["eweight"] = eweight
+
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
                           str(list(kwargs.keys())))
@@ -326,9 +334,17 @@ class OverlapBlockState(BlockState):
         block graph. The parameters have the same meaning as the in the
         constructor."""
 
-        bg = self.bg.copy()
-        mrs = bg.own_property(self.mrs.copy())
-        wr = bg.own_property(self.wr.copy())
+        copy_bg = kwargs.pop("copy_bg", True)
+
+        if copy_bg:
+            bg = self.bg.copy()
+            mrs = bg.own_property(self.mrs.copy())
+            wr = bg.own_property(self.wr.copy())
+        else:
+            bg = self.bg
+            mrs = self.mrs
+            wr = self.wr
+
         state = BlockState(bg, eweight=mrs,
                            vweight=wr if vweight else None,
                            b=bg.vertex_index.copy("int") if b is None else b,

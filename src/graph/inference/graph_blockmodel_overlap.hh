@@ -63,42 +63,44 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((wparams,, std::vector<std::vector<double>>, 0))                          \
     ((allow_empty,, bool, 0))
 
-GEN_STATE_BASE(OverlapBlockStateBase, OVERLAP_BLOCK_STATE_params)
+GEN_STATE_BASE(OverlapBlockStateVirtualBase, OVERLAP_BLOCK_STATE_params)
 
 template <class... Ts>
 class OverlapBlockState
-    : public OverlapBlockStateBase<Ts...>
+    : public OverlapBlockStateVirtualBase<Ts...>
 {
 public:
-    GET_PARAMS_USING(OverlapBlockStateBase<Ts...>, OVERLAP_BLOCK_STATE_params)
+    GET_PARAMS_USING(OverlapBlockStateVirtualBase<Ts...>, OVERLAP_BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, OVERLAP_BLOCK_STATE_params)
 
     template <class RNG, class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
     OverlapBlockState(RNG& rng, ATs&&... args)
-        : OverlapBlockStateBase<Ts...>(std::forward<ATs>(args)...),
+        : OverlapBlockStateVirtualBase<Ts...>(std::forward<ATs>(args)...),
           _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
           _c_brec(_brec.get_checked()),
           _c_bdrec(_bdrec.get_checked()),
           _emat(_bg, rng),
           _egroups_enabled(true),
-          _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg))
+          _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg)),
+          _coupled_state(nullptr)
     {
         for (auto r : vertices_range(_bg))
             _wr[r] = _overlap_stats.get_block_size(r);
     }
 
     OverlapBlockState(const OverlapBlockState& other)
-        : OverlapBlockStateBase<Ts...>
-             (static_cast<const OverlapBlockStateBase<Ts...>&>(other)),
+        : OverlapBlockStateVirtualBase<Ts...>
+             (static_cast<const OverlapBlockStateVirtualBase<Ts...>&>(other)),
           _bg(other._bg),
           _c_mrs(other._c_mrs),
           _c_brec(_brec.get_checked()),
           _c_bdrec(_bdrec.get_checked()),
           _emat(other._emat),
           _egroups_enabled(other._egroups_enabled),
-          _overlap_stats(other._overlap_stats)
+          _overlap_stats(other._overlap_stats),
+          _coupled_state(nullptr)
     {
         if (other.is_partition_stats_enabled())
             enable_partition_stats();
@@ -284,6 +286,22 @@ public:
 
         remove_vertex(v);
         add_vertex(v, nr);
+
+        if (_coupled_state != nullptr && _vweight[v] > 0)
+        {
+            if (_wr[r] == 0)
+            {
+                _coupled_state->remove_partition_node(r, _bclabel[r]);
+                _coupled_state->set_vertex_weight(r, 0);
+            }
+
+            if (_wr[nr] == _vweight[v])
+            {
+                _coupled_state->set_vertex_weight(nr, 1);
+                _coupled_state->add_partition_node(nr, _bclabel[r]);
+                _bclabel[nr] = _bclabel[r];
+            }
+        }
     }
 
     template <class Vec>
@@ -452,7 +470,6 @@ public:
             }
         }
 
-
         auto positive_entries_op = [&](size_t i, auto&& w_log_P)
             {
                 entries_op(m_entries, this->_emat,
@@ -542,6 +559,33 @@ public:
             break;
             }
         }
+
+        if (_coupled_state != nullptr)
+        {
+            bool r_vacate = (r != null_group) &&
+                ( _overlap_stats.virtual_remove_size(v, r) == 0);
+            bool nr_occupy = (nr != null_group) && (_wr[nr] == 0);
+            if (r_vacate != nr_occupy)
+            {
+                if (r_vacate)
+                {
+                    dl_dS += _coupled_state->virtual_move(r,
+                                                          _bclabel[r],
+                                                          null_group,
+                                                          _coupled_entropy_args);
+                }
+
+                if (nr_occupy)
+                {
+                    assert(_coupled_state->_vweight[nr] == 0);
+                    dl_dS += _coupled_state->virtual_move(nr,
+                                                          null_group,
+                                                          _bclabel[r],
+                                                          _coupled_entropy_args);
+                }
+            }
+        }
+
         return dS + ea.dl_beta * dl_dS;
     }
 
@@ -953,6 +997,31 @@ public:
         return _partition_stats[_pclabel[v]];
     }
 
+    void couple_state(BlockStateVirtualBase& s, entropy_args_t ea)
+    {
+        _coupled_state = &s;
+        _coupled_entropy_args = ea;
+    }
+
+    void decouple_state()
+    {
+        _coupled_state = nullptr;
+    }
+
+    void clear_egroups()
+    {
+        _egroups.clear();
+    }
+
+    void rebuild_neighbour_sampler()
+    {
+    }
+
+    void sync_emat()
+    {
+        _emat.sync(_bg);
+    }
+
     template <class Graph, class EMap>
     void get_be_overlap(Graph& g, EMap be)
     {
@@ -1151,6 +1220,8 @@ public:
 
     std::array<size_t, 0> _empty_blocks;
 
+    BlockStateVirtualBase* _coupled_state;
+    entropy_args_t _coupled_entropy_args;
 };
 
 } // namespace graph_tool

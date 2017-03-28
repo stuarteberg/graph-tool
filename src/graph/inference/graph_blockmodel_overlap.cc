@@ -189,6 +189,16 @@ void export_overlap_blockmodel_state()
                       &state_t::disable_partition_stats)
                  .def("is_partition_stats_enabled",
                       &state_t::is_partition_stats_enabled)
+                 .def("couple_state",
+                      &state_t::couple_state)
+                 .def("decouple_state",
+                      &state_t::decouple_state)
+                 .def("clear_egroups",
+                      &state_t::clear_egroups)
+                 .def("rebuild_neighbour_sampler",
+                      &state_t::rebuild_neighbour_sampler)
+                 .def("sync_emat",
+                      &state_t::sync_emat)
                  .def("get_be_overlap",
                       +[](state_t& state, GraphInterface& gi,
                           boost::any obe)

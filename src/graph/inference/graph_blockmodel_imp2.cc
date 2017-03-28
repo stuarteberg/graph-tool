@@ -33,6 +33,9 @@ using namespace boost::python;
 
 void export_sbm_state()
 {
+    class_<BlockStateVirtualBase, boost::noncopyable>
+        ("BlockStateVirtualBase", no_init);
+
     block_state::dispatch
         ([&](auto* s)
          {
@@ -64,8 +67,9 @@ void export_sbm_state()
              void (state_t::*set_partition)(boost::any&) =
                  &state_t::set_partition;
 
-             class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
-                               no_init);
+             class_<state_t, bases<BlockStateVirtualBase>>
+                 c(name_demangle(typeid(state_t).name()).c_str(),
+                   no_init);
              c.def("remove_vertex", remove_vertex)
                  .def("add_vertex", add_vertex)
                  .def("remove_vertices", remove_vertices)

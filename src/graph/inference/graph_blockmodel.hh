@@ -93,7 +93,7 @@ GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
 
 template <class... Ts>
 class BlockState
-    : public BlockStateBase<Ts...>
+    : public BlockStateBase<Ts...>, public BlockStateVirtualBase
 {
 public:
     GET_PARAMS_USING(BlockStateBase<Ts...>, BLOCK_STATE_params)
@@ -263,14 +263,9 @@ public:
         }
 
         if (Add)
-        {
-            _b[v] = r;
             add_partition_node(v, r);
-        }
         else
-        {
             remove_partition_node(v, r);
-        }
     }
 
     void remove_partition_node(size_t v, size_t r)
@@ -294,6 +289,8 @@ public:
 
     void add_partition_node(size_t v, size_t r)
     {
+        _b[v] = r;
+
         _wr[r] += _vweight[v];
 
         if (!_egroups.empty() && _egroups_enabled)
@@ -514,7 +511,6 @@ public:
             {
                 _coupled_state->set_vertex_weight(nr, 1);
                 _coupled_state->add_partition_node(nr, _bclabel[r]);
-                _coupled_state->_b[nr] = _bclabel[r];
                 _bclabel[nr] = _bclabel[r];
             }
         }
