@@ -1562,7 +1562,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                    vprops=None, eprops=None, hvprops=None, heprops=None,
                    subsample_edges=None, deg_order=True, deg_size=True,
                    vsize_scale=1, hsize_scale=1, hshortcuts=0, hide=0,
-                   bip_aspect=1., empty_branches=True, **kwargs):
+                   bip_aspect=1., empty_branches=False, **kwargs):
     r"""Draw a nested block model state in a circular hierarchy layout with edge
     bundling.
 
