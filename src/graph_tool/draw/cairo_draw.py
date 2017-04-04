@@ -1904,6 +1904,11 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     props.append((pos, tpos))
     props.append((g.vertex_index, tb))
     props.append((b, None))
+    if "eorder" in kwargs:
+        eorder = kwargs["eorder"]
+        props.append((eorder,
+                      t.new_ep(eorder.value_type(),
+                               eorder.fa.max() + 1)))
 
     u, props = graph_union(g, t, props=props)
 
@@ -1914,6 +1919,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     pos = props.pop(0)
     tb = props.pop(0)
     b = props.pop(0)
+    if "eorder" in kwargs:
+        eorder = props.pop(0)
 
     def update_cts(widget, gg, picked, pos, vprops, eprops):
         vmask = gg.vertex_index.copy("int")
@@ -1993,9 +2000,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
             widget.regenerate_surface(reset=True)
             widget.queue_draw()
 
-    if kwargs.get("output", None) is None:
+    if "output" not in kwargs:
         kwargs["layout_callback"] = update_cts
         kwargs["key_press_callback"] = draw_branch
+
+    if "eorder" in kwargs:
+        kwargs["eorder"] = eorder
 
     pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=vorder,
                      **kwargs)
