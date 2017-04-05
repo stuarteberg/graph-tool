@@ -162,8 +162,7 @@ void export_blockmodel_state()
         .def_readwrite("partition_dl", &entropy_args_t::partition_dl)
         .def_readwrite("degree_dl", &entropy_args_t::degree_dl)
         .def_readwrite("degree_dl_kind", &entropy_args_t::degree_dl_kind)
-        .def_readwrite("edges_dl", &entropy_args_t::edges_dl)
-        .def_readwrite("dl_beta", &entropy_args_t::dl_beta);
+        .def_readwrite("edges_dl", &entropy_args_t::edges_dl);
 
     enum_<deg_dl_kind>("deg_dl_kind")
         .value("ent", deg_dl_kind::ENT)

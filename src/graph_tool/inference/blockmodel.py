@@ -118,7 +118,6 @@ def get_entropy_args(kargs):
     ea.multigraph = args.multigraph
     ea.adjacency = args.adjacency
     ea.recs = args.recs
-    ea.dl_beta = args.dl_beta
     del kargs["exact"]
     del kargs["dense"]
     del kargs["multigraph"]
@@ -137,7 +136,6 @@ def get_entropy_args(kargs):
     del kargs["partition_dl"]
     del kargs["degree_dl"]
     del kargs["edges_dl"]
-    del kargs["dl_beta"]
     kargs.pop("callback", None)
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
@@ -403,7 +401,7 @@ class BlockState(object):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True, dl_beta=1.)
+                                  exact=True, recs=True)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -752,7 +750,7 @@ class BlockState(object):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
-                exact=True, dl_beta=1., **kwargs):
+                exact=True, **kwargs):
         r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
         with the current block partition.
 
@@ -789,8 +787,6 @@ class BlockState(object):
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
-        dl_beta : ``float`` (optional, default: ``1.``)
-            Inverse temperature for the model priors.
 
         Notes
         -----
@@ -970,7 +966,7 @@ class BlockState(object):
         if callback is not None:
             dl_S += callback(self)
 
-        S += dl_beta * dl_S
+        S += dl_S
 
         if kwargs.pop("test", True) and _bm_test():
             assert not isnan(S) and not isinf(S), \

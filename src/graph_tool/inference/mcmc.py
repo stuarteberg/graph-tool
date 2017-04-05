@@ -608,26 +608,21 @@ class TemperingState(object):
         Initial parallel states.
     betas : list of floats
         Inverse temperature values.
-    dl_betas : list of floats
-        Inverse temperature values for priors.
     """
 
-    def __init__(self, states, betas, dl_betas):
-        if not (len(states) == len(betas) == len(dl_betas)):
+    def __init__(self, states, betas):
+        if not (len(states) == len(betas)):
             raise ValueError("states and betas must be of the same size")
         self.states = states
         self.betas = betas
-        self.dl_betas = dl_betas
 
     def entropy(self, **kwargs):
         """Returns the weighted sum of the entropy of the parallel states. All keyword
         arguments are propagated to the individual states' `entropy()`
         method.
         """
-        return sum(beta * s.entropy(**dict(kwargs, dl_beta=dl_beta)) for
-                   s, beta, dl_beta in zip(self.states,
-                                           self.betas,
-                                           self.dl_betas))
+        return sum(beta * s.entropy(**kwargs) for
+                   s, beta in zip(self.states, self.betas))
 
     def states_swap(self, **kwargs):
         """Perform a full sweep of the parallel states, where swaps are attempted. All
@@ -646,14 +641,12 @@ class TemperingState(object):
             s2 = self.states[i + 1]
             b1 = self.betas[i]
             b2 = self.betas[i + 1]
-            db1 = self.dl_betas[i]
-            db2 = self.dl_betas[i + 1]
 
-            P1_f = -b2 * s1.entropy(**dict(eargs, dl_beta=db2))
-            P2_f = -b1 * s2.entropy(**dict(eargs, dl_beta=db1))
+            P1_f = -b2 * s1.entropy(**eargs)
+            P2_f = -b1 * s2.entropy(**eargs)
 
-            P1_b = -b1 * s1.entropy(**dict(eargs, dl_beta=db1))
-            P2_b = -b2 * s2.entropy(**dict(eargs, dl_beta=db2))
+            P1_b = -b1 * s1.entropy(**eargs)
+            P2_b = -b2 * s2.entropy(**eargs)
 
             ddS = -(P1_f + P2_f - P1_b - P2_b)
             a = exp(-ddS)
@@ -674,8 +667,8 @@ class TemperingState(object):
         attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
         dS = 0
         nmoves = 0
-        for state, beta, dl_beta in zip(self.states, self.betas, self.dl_betas):
-            entropy_args = dict(kwargs.get("entropy_args", {}), dl_beta=dl_beta)
+        for state, beta in zip(self.states, self.betas):
+            entropy_args = dict(kwargs.get("entropy_args", {}))
             ret = sweep_algo(state, beta=beta,
                              **dict(kwargs, entropy_args=entropy_args))[:2]
             dS += ret[0] * beta
