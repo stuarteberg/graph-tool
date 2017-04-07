@@ -830,13 +830,23 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
     def _multicanonical_sweep_dispatch(self, mcmc_state):
         if not self.overlap:
-            return libinference.multicanonical_layered_sweep(mcmc_state,
-                                                             self._state,
-                                                             _get_rng())
+            if mcmc_state.multiflip:
+                return libinference.multicanonical_layered_multiflip_sweep(mcmc_state,
+                                                                           self._state,
+                                                                           _get_rng())
+            else:
+                return libinference.multicanonical_layered_sweep(mcmc_state,
+                                                                 self._state,
+                                                                 _get_rng())
         else:
-            return libinference.multicanonical_layered_overlap_sweep(mcmc_state,
-                                                                     self._state,
-                                                                     _get_rng())
+            if mcmc_state.multiflip:
+                return libinference.multicanonical_layered_overlap_multiflip_sweep(mcmc_state,
+                                                                                   self._state,
+                                                                                   _get_rng())
+            else:
+                return libinference.multicanonical_layered_overlap_sweep(mcmc_state,
+                                                                         self._state,
+                                                                         _get_rng())
 
     def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
         if not self.overlap:

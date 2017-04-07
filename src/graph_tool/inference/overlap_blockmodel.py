@@ -618,9 +618,14 @@ class OverlapBlockState(BlockState):
                                                          _get_rng())
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
-        return libinference.multicanonical_overlap_sweep(multicanonical_state,
-                                                         self._state,
-                                                         _get_rng())
+        if multicanonical_state.multiflip:
+            return libinference.multicanonical_overlap_sweep(multicanonical_state,
+                                                             self._state,
+                                                             _get_rng())
+        else:
+            return libinference.multicanonical_overlap_multiflip_sweep(multicanonical_state,
+                                                                       self._state,
+                                                                       _get_rng())
 
     def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
         if callback is not None:

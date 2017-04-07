@@ -20,16 +20,16 @@
 
 #include <boost/python.hpp>
 
-#include "graph_blockmodel_overlap_util.hh"
-#include "graph_blockmodel_overlap.hh"
-#include "graph_blockmodel_mcmc.hh"
+#include "graph_blockmodel_util.hh"
+#include "graph_blockmodel.hh"
+#include "graph_blockmodel_multiflip_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
 #include "mcmc_loop.hh"
 
 using namespace boost;
 using namespace graph_tool;
 
-GEN_DISPATCH(overlap_block_state, OverlapBlockState, OVERLAP_BLOCK_STATE_params)
+GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 template <class State>
 GEN_DISPATCH(mcmc_block_state, MCMC<State>::template MCMCBlockState,
@@ -40,9 +40,9 @@ GEN_DISPATCH(multicanonical_block_state,
              Multicanonical<State>::template MulticanonicalBlockState,
              MULTICANONICAL_BLOCK_STATE_params(State))
 
-python::object multicanonical_overlap_sweep(python::object omulticanonical_state,
-                                            python::object oblock_state,
-                                            rng_t& rng)
+python::object do_multicanonical_multiflip_sweep(python::object omulticanonical_state,
+                                                 python::object oblock_state,
+                                                 rng_t& rng)
 {
     python::object ret;
     auto dispatch = [&](auto& block_state)
@@ -52,28 +52,28 @@ python::object multicanonical_overlap_sweep(python::object omulticanonical_state
 
         mcmc_block_state<state_t>::make_dispatch
             (omulticanonical_state,
-                 [&](auto& mcmc_state)
-                 {
-                     typedef typename std::remove_reference<decltype(mcmc_state)>::type
-                         mcmc_state_t;
+             [&](auto& mcmc_state)
+             {
+                 typedef typename std::remove_reference<decltype(mcmc_state)>::type
+                     mcmc_state_t;
 
-                     omulticanonical_state.attr("state") = boost::any(mcmc_state);
+                 omulticanonical_state.attr("state") = boost::any(mcmc_state);
 
-                     multicanonical_block_state<mcmc_state_t>::make_dispatch
-                         (omulticanonical_state,
-                          [&](auto& mc_state)
-                          {
-                              auto ret_ = mcmc_sweep(mc_state, rng);
-                              ret = python::make_tuple(ret_.first, ret_.second);
-                          });
-                 });
+                 multicanonical_block_state<mcmc_state_t>::make_dispatch
+                     (omulticanonical_state,
+                      [&](auto& mc_state)
+                      {
+                          auto ret_ = mcmc_sweep(mc_state, rng);
+                          ret = python::make_tuple(ret_.first, ret_.second);
+                      });
+             });
     };
-    overlap_block_state::dispatch(oblock_state, dispatch);
+    block_state::dispatch(oblock_state, dispatch);
     return ret;
 }
 
-void export_overlap_blockmodel_multicanonical()
+void export_blockmodel_multicanonical_multiflip()
 {
     using namespace boost::python;
-    def("multicanonical_overlap_sweep", &multicanonical_overlap_sweep);
+    def("multicanonical_multiflip_sweep", &do_multicanonical_multiflip_sweep);
 }

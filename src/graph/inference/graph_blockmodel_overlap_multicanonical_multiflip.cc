@@ -22,7 +22,7 @@
 
 #include "graph_blockmodel_overlap_util.hh"
 #include "graph_blockmodel_overlap.hh"
-#include "graph_blockmodel_mcmc.hh"
+#include "graph_blockmodel_multiflip_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
 #include "mcmc_loop.hh"
 
@@ -40,9 +40,9 @@ GEN_DISPATCH(multicanonical_block_state,
              Multicanonical<State>::template MulticanonicalBlockState,
              MULTICANONICAL_BLOCK_STATE_params(State))
 
-python::object multicanonical_overlap_sweep(python::object omulticanonical_state,
-                                            python::object oblock_state,
-                                            rng_t& rng)
+python::object multicanonical_overlap_multiflip_sweep(python::object omulticanonical_state,
+                                                      python::object oblock_state,
+                                                      rng_t& rng)
 {
     python::object ret;
     auto dispatch = [&](auto& block_state)
@@ -72,8 +72,9 @@ python::object multicanonical_overlap_sweep(python::object omulticanonical_state
     return ret;
 }
 
-void export_overlap_blockmodel_multicanonical()
+void export_overlap_blockmodel_multicanonical_multiflip()
 {
     using namespace boost::python;
-    def("multicanonical_overlap_sweep", &multicanonical_overlap_sweep);
+    def("multicanonical_overlap_multiflip_sweep",
+        &multicanonical_overlap_multiflip_sweep);
 }

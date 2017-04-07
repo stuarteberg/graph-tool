@@ -24,7 +24,7 @@
 #include "graph_blockmodel_overlap.hh"
 #define BASE_STATE_params OVERLAP_BLOCK_STATE_params ((eweight,,,0))
 #include "graph_blockmodel_layers.hh"
-#include "graph_blockmodel_mcmc.hh"
+#include "graph_blockmodel_multiflip_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
 #include "mcmc_loop.hh"
 
@@ -47,9 +47,9 @@ GEN_DISPATCH(multicanonical_block_state,
              MULTICANONICAL_BLOCK_STATE_params(State))
 
 python::object
-multicanonical_layered_overlap_sweep(python::object omulticanonical_state,
-                                     python::object olayered_state,
-                                     rng_t& rng)
+multicanonical_layered_overlap_multiflip_sweep(python::object omulticanonical_state,
+                                               python::object olayered_state,
+                                               rng_t& rng)
 {
     python::object ret;
     auto dispatch = [&](auto* block_state)
@@ -88,9 +88,9 @@ multicanonical_layered_overlap_sweep(python::object omulticanonical_state,
     return ret;
 }
 
-void export_layered_overlap_blockmodel_multicanonical()
+void export_layered_overlap_blockmodel_multicanonical_multiflip()
 {
     using namespace boost::python;
-    def("multicanonical_layered_overlap_sweep",
-        &multicanonical_layered_overlap_sweep);
+    def("multicanonical_layered_overlap_multiflip_sweep",
+        &multicanonical_layered_overlap_multiflip_sweep);
 }

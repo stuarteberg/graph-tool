@@ -133,6 +133,35 @@ struct MCMC
         {
             _state.move_vertex(v, nr);
         }
+
+        bool is_deterministic()
+        {
+            return _deterministic;
+        }
+
+        bool is_sequential()
+        {
+            return _sequential;
+        }
+
+        auto& get_vlist()
+        {
+            return _vlist;
+        }
+
+        double get_beta()
+        {
+            return _beta;
+        }
+
+        size_t get_niter()
+        {
+            return _niter;
+        }
+
+        void step(size_t, size_t)
+        {
+        }
     };
 };
 

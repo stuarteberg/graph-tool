@@ -24,17 +24,23 @@
 #include "graph_blockmodel.hh"
 #define BASE_STATE_params BLOCK_STATE_params
 #include "graph_blockmodel_layers.hh"
+#include "graph_blockmodel_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
-#include "multicanonical_loop.hh"
+#include "mcmc_loop.hh"
 
 using namespace boost;
 using namespace graph_tool;
+
 
 GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 template <class BaseState>
 GEN_DISPATCH(layered_block_state, Layers<BaseState>::template LayeredBlockState,
              LAYERED_BLOCK_STATE_params)
+
+template <class State>
+GEN_DISPATCH(mcmc_block_state, MCMC<State>::template MCMCBlockState,
+             MCMC_BLOCK_STATE_params(State))
 
 template <class State>
 GEN_DISPATCH(multicanonical_block_state,
@@ -58,13 +64,22 @@ python::object multicanonical_layered_sweep(python::object omulticanonical_state
                  typedef typename std::remove_reference<decltype(ls)>::type
                      layered_state_t;
 
-                 multicanonical_block_state<layered_state_t>::make_dispatch
+                 mcmc_block_state<layered_state_t>::make_dispatch
                      (omulticanonical_state,
-                      [&](auto& s)
+                      [&](auto& mcmc_state)
                       {
-                          auto ret_ = multicanonical_sweep(s, rng);
-                          ret = python::make_tuple(ret_.first, ret_.second,
-                                                   s._f, s._time, s._refine);
+                          typedef typename std::remove_reference<decltype(mcmc_state)>::type
+                              mcmc_state_t;
+
+                          omulticanonical_state.attr("state") = boost::any(mcmc_state);
+
+                          multicanonical_block_state<mcmc_state_t>::make_dispatch
+                              (omulticanonical_state,
+                               [&](auto& mc_state)
+                               {
+                                   auto ret_ = mcmc_sweep(mc_state, rng);
+                                   ret = python::make_tuple(ret_.first, ret_.second);
+                               });
                       });
              },
              false);

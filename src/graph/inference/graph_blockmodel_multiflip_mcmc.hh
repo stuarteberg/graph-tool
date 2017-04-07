@@ -256,6 +256,35 @@ struct MCMC
             if (_state._wr[r] == 0)
                 remove_element(_vlist, _rpos, r);
         }
+
+        bool is_deterministic()
+        {
+            return _deterministic;
+        }
+
+        bool is_sequential()
+        {
+            return _sequential;
+        }
+
+        auto& get_vlist()
+        {
+            return _vlist;
+        }
+
+        double get_beta()
+        {
+            return _beta;
+        }
+
+        size_t get_niter()
+        {
+            return _niter;
+        }
+
+        void step(size_t, size_t)
+        {
+        }
     };
 };
 

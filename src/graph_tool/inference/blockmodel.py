@@ -1313,32 +1313,37 @@ class BlockState(object):
         mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
-        disable_callback_test = kwargs.pop("disable_callback_test", False)
-        if _bm_test():
-            assert self._check_clabel(), "invalid clabel before sweep"
-            if disable_callback_test:
-                Si = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Si = self.entropy(**entropy_args)
+        dispatch = kwargs.pop("dispatch", True)
+        if dispatch:
+            disable_callback_test = kwargs.pop("disable_callback_test", False)
+            if _bm_test():
+                assert self._check_clabel(), "invalid clabel before sweep"
+                if disable_callback_test:
+                    Si = self.entropy(**dmask(entropy_args, ["callback"]))
+                else:
+                    Si = self.entropy(**entropy_args)
 
-        try:
-            dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
-        finally:
-            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            try:
+                dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
+            finally:
+                self.B = max(int(self.b.fa.max()) + 1, self.B)
 
-        if _bm_test():
-            assert self._check_clabel(), "invalid clabel after sweep"
-            if disable_callback_test:
-                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Sf = self.entropy(**entropy_args)
-            assert abs(dS - (Sf - Si)) < 1e-6, \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
+            if _bm_test():
+                assert self._check_clabel(), "invalid clabel after sweep"
+                if disable_callback_test:
+                    Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+                else:
+                    Sf = self.entropy(**entropy_args)
+                assert abs(dS - (Sf - Si)) < 1e-6, \
+                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                str(entropy_args))
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
+
+        if not dispatch:
+            return mcmc_state
 
         return dS, nmoves
 
@@ -1415,43 +1420,48 @@ class BlockState(object):
         mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
-        disable_callback_test = kwargs.pop("disable_callback_test", False)
-        if _bm_test():
-            assert self._check_clabel(), "invalid clabel before sweep"
-            if disable_callback_test:
-                Si = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Si = self.entropy(**entropy_args)
+        dispatch = kwargs.pop("dispatch", True)
+        if dispatch:
+            disable_callback_test = kwargs.pop("disable_callback_test", False)
+            if _bm_test():
+                assert self._check_clabel(), "invalid clabel before sweep"
+                if disable_callback_test:
+                    Si = self.entropy(**dmask(entropy_args, ["callback"]))
+                else:
+                    Si = self.entropy(**entropy_args)
 
-        nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
+            nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
-        try:
-            dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
-        finally:
-            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            try:
+                dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+            finally:
+                self.B = max(int(self.b.fa.max()) + 1, self.B)
 
-        nmoves += (mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
+            nmoves += (mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
-        if "mproposals" in kwargs:
-            kwargs["mproposals"][:M] = mcmc_state.mproposals.a
-            del kwargs["mproposals"]
-        if "maccept" in kwargs:
-            kwargs["maccept"][:M] = mcmc_state.maccept.a
-            del kwargs["maccept"]
+            if "mproposals" in kwargs:
+                kwargs["mproposals"][:M] = mcmc_state.mproposals.a
+                del kwargs["mproposals"]
+            if "maccept" in kwargs:
+                kwargs["maccept"][:M] = mcmc_state.maccept.a
+                del kwargs["maccept"]
 
-        if _bm_test():
-            assert self._check_clabel(), "invalid clabel after sweep"
-            if disable_callback_test:
-                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Sf = self.entropy(**entropy_args)
-            assert abs(dS - (Sf - Si)) < 1e-6, \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
+            if _bm_test():
+                assert self._check_clabel(), "invalid clabel after sweep"
+                if disable_callback_test:
+                    Sf = self.entropy(**dmask(entropy_args, ["callback"]))
+                else:
+                    Sf = self.entropy(**entropy_args)
+                assert abs(dS - (Sf - Si)) < 1e-6, \
+                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                str(entropy_args))
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
+
+        if not dispatch:
+            return mcmc_state
 
         return dS, nmoves
 
@@ -1562,12 +1572,15 @@ class BlockState(object):
         return dS, nmoves, nattempts
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
-        return libinference.multicanonical_sweep(multicanonical_state,
-                                                 self._state, _get_rng())
+        if multicanonical_state.multiflip:
+            return libinference.multicanonical_multiflip_sweep(multicanonical_state,
+                                                               self._state,
+                                                               _get_rng())
+        else:
+            return libinference.multicanonical_sweep(multicanonical_state,
+                                                     self._state, _get_rng())
 
-    def multicanonical_sweep(self, m_state, c=numpy.inf, d=.1, niter=1,
-                             entropy_args={}, allow_vacate=True, vertices=None,
-                             target_bin=-1, verbose=False, **kwargs):
+    def multicanonical_sweep(self, m_state, multiflip=False, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
         Wang-Landau algorithm.
 
@@ -1576,29 +1589,12 @@ class BlockState(object):
         m_state : :class:`~graph_tool.inference.MulticanonicalState`
             :class:`~graph_tool.inference.MulticanonicalState` instance
             containing the current state of the Wang-Landau run.
-        c : ``float`` (optional, default: ``numpy.inf``)
-            Sampling parameter ``c`` for move proposals: For :math:`c\to 0` the
-            blocks are sampled according to the local neighbourhood of a given
-            node and their block connections; for :math:`c\to\infty` the blocks
-            are sampled randomly. Note that only for :math:`c > 0` the MCMC is
-            guaranteed to be ergodic.
-        d : ``float`` (optional, default: ``.1``)
-            Probability of selecting a new (i.e. empty) group for a given move.
-        niter : ``int`` (optional, default: ``1``)
-            Number of sweeps to perform. During each sweep, a move attempt is
-            made for each node.
-        entropy_args : ``dict`` (optional, default: ``{}``)
-            Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
-        allow_vacate : ``bool`` (optional, default: ``True``)
-            Allow groups to be vacated.
-        vertices : ``list`` of ints (optional, default: ``None``)
-            If provided, this should be a list of vertices which will be
-            moved. Otherwise, all vertices will.
-        target_bin : ``int`` (optional, default: ``-1``)
-            If this energy bin is reached, stop sweep prematurely.
-        verbose : ``bool`` (optional, default: ``False``)
-            If ``verbose == True``, detailed information will be displayed.
+        multiflip : ``bool`` (optional, default: ``False``)
+            If ``True``, ``multiflip_mcmc_sweep()`` will be used, otherwise
+            ``mcmc_sweep()``.
+        **kwargs : Keyword parameter list
+            The remaining parameters will be passed to
+            ``multiflip_mcmc_sweep()`` or ``mcmc_sweep()``.
 
         Returns
         -------
@@ -1618,41 +1614,32 @@ class BlockState(object):
            range random walk algorithm to calculate the density of states", Phys.
            Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
            :arxiv:`cond-mat/0011174`
-
-        .. [belardinelli-wang-2007] R. E. Belardinelli, V. D. Pereyra,
-           "Wang-Landau algorithm: A theoretical analysis of the saturation of
-           the error", J. Chem. Phys. 127, 184105 (2007),
-           :doi:`10.1063/1.2803061`, :arxiv:`cond-mat/0702414`
         """
 
-        niter *= self.g.num_vertices()
-        args = dmask(locals(), ["self"])
+        kwargs["sequential"] = False
+        kwargs["beta"] = 1
+
+        args = dmask(locals(), ["self", "kwargs"])
         multi_state = DictState(args)
-        entropy_args = dict(self._entropy_args, **entropy_args)
-        multi_state.entropy_args = get_entropy_args(entropy_args)
-        multi_state.update(entropy_args)
-        multi_state.vlist = Vector_size_t()
-        if vertices is None:
-            vertices = self.g.vertex_index.copy().fa
-            if self.is_weighted:
-                # ignore vertices with zero weight
-                vw = self.vweight.fa
-                vertices = vertices[vw > 0]
-        multi_state.vlist.resize(len(vertices))
-        multi_state.vlist.a = vertices
-        multi_state.E = self.get_E()
+
+        entropy_args = kwargs.get("entropy_args", {})
+
+        if multiflip:
+            mcmc_state = self.multiflip_mcmc_sweep(**kwargs, dispatch=False)
+        else:
+            mcmc_state = self.mcmc_sweep(**kwargs, dispatch=False)
+
+        multi_state.update(mcmc_state)
+        multi_state.multiflip = multiflip
+
         multi_state.S = self.entropy(**entropy_args)
         multi_state.state = self._state
 
         multi_state.f = m_state._f
-        multi_state.time = m_state._time
-        multi_state.refine = m_state._refine
         multi_state.S_min = m_state._S_min
         multi_state.S_max = m_state._S_max
         multi_state.hist = m_state._hist
         multi_state.dens = m_state._density
-        multi_state.target_bin = target_bin
-
 
         if (multi_state.S < multi_state.S_min or
             multi_state.S > multi_state.S_max):
@@ -1661,12 +1648,9 @@ class BlockState(object):
                               multi_state.S_max))
 
         try:
-            S, nmoves, f, time = \
-                    self._multicanonical_sweep_dispatch(multi_state)
+            S, nmoves = self._multicanonical_sweep_dispatch(multi_state)
         finally:
             self.B = max(int(self.b.fa.max()) + 1, self.B)
-            m_state._f = f
-            m_state._time = time
 
         disable_callback_test = kwargs.pop("disable_callback_test", False)
 
@@ -1679,10 +1663,6 @@ class BlockState(object):
             assert abs(S - Sf) < 1e-6, \
                 "inconsistent entropy after sweep %g (%g): %s" % \
                 (S, Sf, str(entropy_args))
-
-        if len(kwargs) > 0:
-            raise ValueError("unrecognized keyword arguments: " +
-                             str(list(kwargs.keys())))
 
         return S, nmoves
 

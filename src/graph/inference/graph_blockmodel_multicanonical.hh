@@ -40,18 +40,9 @@ using namespace std;
     ((S_min, , double, 0))                                                     \
     ((S_max, , double, 0))                                                     \
     ((f, , double, 0))                                                         \
-    ((time, , double, 0))                                                      \
-    ((refine, , bool, 0))                                                      \
     ((S, , double, 0))                                                         \
     ((E,, size_t, 0))                                                          \
-    ((vlist,&, std::vector<size_t>&, 0))                                       \
-    ((c,, double, 0))                                                          \
-    ((d,, double, 0))                                                          \
-    ((entropy_args,, entropy_args_t, 0))                                       \
-    ((allow_vacate,, bool, 0))                                                 \
-    ((verbose,, bool, 0))                                                      \
-    ((target_bin,, int, 0))                                                    \
-    ((niter,, size_t, 0))
+    ((verbose,, bool, 0))
 
 
 template <class State>
@@ -74,15 +65,12 @@ struct Multicanonical
                                             sizeof...(Ts)>* = nullptr>
         MulticanonicalBlockState(ATs&&... as)
            : MulticanonicalBlockStateBase<Ts...>(as...),
-            _g(_state._g)
+            _i(get_bin(_S))
         {
-            _state.init_mcmc(_c,
-                             (_entropy_args.partition_dl ||
-                              _entropy_args.degree_dl ||
-                              _entropy_args.edges_dl));
         }
 
-        typename state_t::g_t& _g;
+        int _i;
+        double _dS;
 
         int get_bin(double S)
         {
@@ -90,9 +78,14 @@ struct Multicanonical
                               ((S - _S_min) / (_S_max - _S_min)));
         };
 
+        bool skip_node(size_t v)
+        {
+            return _state.skip_node(v);
+        }
+
         size_t node_state(size_t v)
         {
-            return _state._b[v];
+            return _state.node_state(v);
         }
 
         size_t node_weight(size_t v)
@@ -103,33 +96,62 @@ struct Multicanonical
         template <class RNG>
         size_t move_proposal(size_t v, RNG& rng)
         {
-            auto r = _state._b[v];
-
-            size_t s = _state.sample_block(v, _c, _d, rng);
-
-            if (!_state.allow_move(r, s))
-                return r;
-
-            if (!_allow_vacate && _state.virtual_remove_size(v) == 0)
-                return r;
-
-            return s;
+            return _state.move_proposal(v, rng);
         }
 
-        std::pair<double, double> virtual_move_dS(size_t v, size_t nr)
+        auto virtual_move_dS(size_t v, size_t nr)
         {
-            double dS = _state.virtual_move(v, _state._b[v], nr, _entropy_args);
-
-            size_t r = _state._b[v];
-            double pf = _state.get_move_prob(v, r, nr, _c, _d, false);
-            double pb = _state.get_move_prob(v, nr, r, _c, _d, true);
-            double a = log(pb) - log(pf);
-            return make_pair(dS, a);
+            auto dS = _state.virtual_move_dS(v, nr);
+            double nS = _S + get<0>(dS);
+            if (nS < _S_min || nS >= _S_max)
+            {
+                get<0>(dS) = numeric_limits<double>::infinity();
+            }
+            else
+            {
+                int j = get_bin(nS);
+                get<1>(dS) += _dens[_i] - _dens[j];
+            }
+            _dS = get<0>(dS);
+            return dS;
         }
 
         void perform_move(size_t v, size_t nr)
         {
-            _state.move_vertex(v, nr);
+            _state.perform_move(v, nr);
+            _S += _dS;
+            _i = get_bin(_S);
+        }
+
+        bool is_deterministic()
+        {
+            return _state.is_deterministic();
+        }
+
+        bool is_sequential()
+        {
+            return _state.is_sequential();
+        }
+
+        auto& get_vlist()
+        {
+            return _state.get_vlist();
+        }
+
+        double get_beta()
+        {
+            return 1;
+        }
+
+        size_t get_niter()
+        {
+            return _state.get_niter();
+        }
+
+        void step(size_t, size_t)
+        {
+            _hist[_i]++;
+            _dens[_i] += _f;
         }
     };
 };

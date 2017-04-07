@@ -22,13 +22,18 @@
 
 #include "graph_blockmodel_util.hh"
 #include "graph_blockmodel.hh"
+#include "graph_blockmodel_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
-#include "multicanonical_loop.hh"
+#include "mcmc_loop.hh"
 
 using namespace boost;
 using namespace graph_tool;
 
 GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
+
+template <class State>
+GEN_DISPATCH(mcmc_block_state, MCMC<State>::template MCMCBlockState,
+             MCMC_BLOCK_STATE_params(State))
 
 template <class State>
 GEN_DISPATCH(multicanonical_block_state,
@@ -45,14 +50,23 @@ python::object do_multicanonical_sweep(python::object omulticanonical_state,
         typedef typename std::remove_reference<decltype(block_state)>::type
             state_t;
 
-        multicanonical_block_state<state_t>::make_dispatch
-           (omulticanonical_state,
-            [&](auto& s)
-            {
-                auto ret_ = multicanonical_sweep(s, rng);
-                ret = python::make_tuple(ret_.first, ret_.second, s._f,
-                                         s._time);
-            });
+        mcmc_block_state<state_t>::make_dispatch
+            (omulticanonical_state,
+             [&](auto& mcmc_state)
+             {
+                 typedef typename std::remove_reference<decltype(mcmc_state)>::type
+                     mcmc_state_t;
+
+                 omulticanonical_state.attr("state") = boost::any(mcmc_state);
+
+                 multicanonical_block_state<mcmc_state_t>::make_dispatch
+                     (omulticanonical_state,
+                      [&](auto& mc_state)
+                      {
+                          auto ret_ = mcmc_sweep(mc_state, rng);
+                          ret = python::make_tuple(ret_.first, ret_.second);
+                      });
+             });
     };
     block_state::dispatch(oblock_state, dispatch);
     return ret;

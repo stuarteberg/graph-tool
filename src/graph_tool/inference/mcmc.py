@@ -398,19 +398,15 @@ class MulticanonicalState(object):
         self._hist.resize(nbins)
         self._perm_hist = numpy.zeros(nbins, dtype=self._hist.a.dtype)
         self._f = None
-        self._time = 0
-        self._refine = False
 
     def __getstate__(self):
         state = [self._g, self._S_min, self._S_max,
                  numpy.array(self._density.a), numpy.array(self._hist.a),
-                 numpy.array(self._perm_hist), self._f, self._time,
-                 self._refine]
+                 numpy.array(self._perm_hist), self._f]
         return state
 
     def __setstate__(self, state):
-        g, S_min, S_max, density, hist, phist, self._f, self._time, \
-            self._refine = state
+        g, S_min, S_max, density, hist, phist, self._f = state
         self.__init__(g, S_min, S_max, len(hist))
         self._density.a[:] = density
         self._hist.a[:] = hist
@@ -462,31 +458,27 @@ class MulticanonicalState(object):
         "Get permanent energy histogram."
         return self._perm_hist
 
-    def get_flatness(self, use_ent=False, h=None, allow_gaps=False):
+    def get_flatness(self, h=None, allow_gaps=True):
         "Get energy histogram flatness."
         if h is None:
             h = self._hist.a
         if h.sum() == 0:
             return 0
         if allow_gaps:
-            h_all = h + self._perm_hist
-            h = array(h[h_all>0], dtype="float")
+            idx = (h + self._perm_hist) > 0
         else:
             Ss = self.get_range()
             S_min, S_max = self.get_allowed_energies()
-            h = array(h[numpy.logical_and(Ss >= S_min, Ss <= S_max)],
-                      dtype="float")
-        if len(h) == 1 and h.sum() < 1000:
+            idx =numpy.logical_and(Ss >= S_min, Ss <= S_max)
+
+        h = array(h[idx], dtype="float")
+
+        if len(h) == 1:
             h = array([1e-6] + list(h))
-        if not use_ent:
-            h_mean = h.mean()
-            return min(h.min() / h_mean,
-                       h_mean / h.max())
-        else:
-            h /= h.sum()
-            _h = h[h > 0]
-            S = -(_h * log(_h)).sum()
-            return exp(S - log(len(h)))
+
+        h_mean = h.mean()
+        return min(h.min() / h_mean,
+                   h_mean / h.max())
 
     def get_posterior(self, N=None):
         "Get posterior probability."
@@ -502,9 +494,8 @@ class MulticanonicalState(object):
         self._perm_hist += self._hist.a
         self._hist.a = 0
 
-def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
-                               f_refine=1e-5, r=2, flatness=.95, use_ent=False,
-                               allow_gaps=False, callback=None,
+def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6), r=2,
+                               flatness=.95, allow_gaps=True, callback=None,
                                multicanonical_args={}, verbose=False):
     r"""Equilibrate a multicanonical Monte Carlo sampling using the Wang-Landau
     algorithm.
@@ -517,20 +508,12 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         Initial multicanonical state, where the state density will be stored.
     f_range : ``tuple`` of two floats (optional, default: ``(1., 1e-6)``)
         Range of density updates.
-    f_refine : ``float`` (optional, default: ``1e-5``)
-        If the value of ``f`` decreases below this threshold, the refinement
-        steps described in [belardinelli-wang-2007]_ will be employed, instead
-        of histogram flatness.
     r : ``float`` (optional, default: ``2.``)
         Greediness of convergence. At each iteration, the density updates will
         be reduced by a factor ``r``.
-    flatness : ``float`` (optional, default: ``.99``)
+    flatness : ``float`` (optional, default: ``.95``)
         Sufficient histogram flatness threshold used to continue the algorithm.
-    use_ent : ``bool`` (optional, default: ``False``)
-        If ``True``, the histogram entropy will be used to determine flatness,
-        otherwise the smallest and largest counts relative to the mean will be
-        used.
-    allow_gaps : ``bool`` (optional, default: ``False``)
+    allow_gaps : ``bool`` (optional, default: ``True``)
         If ``True``, gaps in the histogram (regions with zero count) will be
         ignored when computing the flatness.
     callback : ``function`` (optional, default: ``None``)
@@ -570,26 +553,23 @@ def multicanonical_equilibrate(state, m_state, f_range=(1., 1e-6),
         m_state._f = f_range[0]
     while m_state._f >= f_range[1]:
         state.multicanonical_sweep(m_state, **multicanonical_args)
-        hf = m_state.get_flatness(use_ent=use_ent, allow_gaps=allow_gaps)
+        hf = m_state.get_flatness(allow_gaps=allow_gaps)
 
         if callback is not None:
             callback(state, m_state)
 
         if check_verbose(verbose):
             print(verbose_pad(verbose) +
-                  "count: %d  time: %#8.8g  f: %#8.8g  flatness: %#8.8g  nonempty bins: %d  S: %#8.8g" % \
-                  (count, m_state._time, m_state._f, hf,
-                   (m_state._hist.a > 0).sum(),
-                   state.entropy(**multicanonical_args.get("entropy_args", {}))))
+                  "count: %d  f: %#8.8g  flatness: %#8.8g  nonempty bins: %d  S: %#8.8g  B: %d" % \
+                  (count, m_state._f, hf, (m_state._hist.a > 0).sum(),
+                   state.entropy(**multicanonical_args.get("entropy_args", {})),
+                   state.get_nonempty_B()))
 
-        if not m_state._refine:
-            if hf > flatness:
-                m_state._f /= r
-                if m_state._f >= f_range[1]:
-                    m_state.reset_hist()
-                if m_state._f <= f_refine:
-                    m_state._f = f_refine
-                    m_state._refine = True
+        if hf > flatness:
+            m_state._f /= r
+            if m_state._f >= f_range[1]:
+                m_state.reset_hist()
+
         count += 1
 
     return count

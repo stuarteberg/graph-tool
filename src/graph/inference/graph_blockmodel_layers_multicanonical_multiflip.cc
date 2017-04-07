@@ -20,18 +20,19 @@
 
 #include <boost/python.hpp>
 
-#include "graph_blockmodel_overlap_util.hh"
-#include "graph_blockmodel_overlap.hh"
-#define BASE_STATE_params OVERLAP_BLOCK_STATE_params ((eweight,,,0))
+#include "graph_blockmodel_util.hh"
+#include "graph_blockmodel.hh"
+#define BASE_STATE_params BLOCK_STATE_params
 #include "graph_blockmodel_layers.hh"
-#include "graph_blockmodel_mcmc.hh"
+#include "graph_blockmodel_multiflip_mcmc.hh"
 #include "graph_blockmodel_multicanonical.hh"
 #include "mcmc_loop.hh"
 
 using namespace boost;
 using namespace graph_tool;
 
-GEN_DISPATCH(overlap_block_state, OverlapBlockState, OVERLAP_BLOCK_STATE_params)
+
+GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 template <class BaseState>
 GEN_DISPATCH(layered_block_state, Layers<BaseState>::template LayeredBlockState,
@@ -46,10 +47,9 @@ GEN_DISPATCH(multicanonical_block_state,
              Multicanonical<State>::template MulticanonicalBlockState,
              MULTICANONICAL_BLOCK_STATE_params(State))
 
-python::object
-multicanonical_layered_overlap_sweep(python::object omulticanonical_state,
-                                     python::object olayered_state,
-                                     rng_t& rng)
+python::object multicanonical_layered_multiflip_sweep(python::object omulticanonical_state,
+                                                      python::object olayered_state,
+                                                      rng_t& rng)
 {
     python::object ret;
     auto dispatch = [&](auto* block_state)
@@ -84,13 +84,12 @@ multicanonical_layered_overlap_sweep(python::object omulticanonical_state,
              },
              false);
     };
-    overlap_block_state::dispatch(dispatch);
+    block_state::dispatch(dispatch);
     return ret;
 }
 
-void export_layered_overlap_blockmodel_multicanonical()
+void export_layered_blockmodel_multicanonical_multiflip()
 {
     using namespace boost::python;
-    def("multicanonical_layered_overlap_sweep",
-        &multicanonical_layered_overlap_sweep);
+    def("multicanonical_layered_multiflip_sweep", &multicanonical_layered_multiflip_sweep);
 }

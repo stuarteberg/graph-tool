@@ -61,21 +61,21 @@ bool metropolis_accept(double dS, double mP, double beta, RNG& rng)
 template <class MCMCState, class RNG>
 auto mcmc_sweep(MCMCState state, RNG& rng)
 {
-    auto& vlist = state._vlist;
-    auto& beta = state._beta;
+    auto& vlist = state.get_vlist();
+    auto beta = state.get_beta();
 
     double S = 0;
     size_t nmoves = 0;
 
-    for (size_t iter = 0; iter < state._niter; ++iter)
+    for (size_t iter = 0; iter < state.get_niter(); ++iter)
     {
-        if (state._sequential && !state._deterministic)
+        if (state.is_sequential() && !state.is_deterministic())
             std::shuffle(vlist.begin(), vlist.end(), rng);
 
         for (size_t vi = 0; vi < vlist.size(); ++vi)
         {
             size_t v;
-            if (state._sequential)
+            if (state.is_sequential())
                 v = vlist[vi];
             else
                 v = uniform_sample(vlist, rng);
@@ -99,11 +99,13 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
                 S += dS;
             }
 
+            state.step(v, s);
+
             if (state._verbose)
                 cout << v << ": " << r << " -> " << s << " " << S << endl;
         }
 
-        if (state._sequential && state._deterministic)
+        if (state.is_sequential() && state.is_deterministic())
             std::reverse(vlist.begin(), vlist.end());
     }
     return make_pair(S, nmoves);
