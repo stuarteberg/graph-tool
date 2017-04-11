@@ -1550,6 +1550,7 @@ public:
     virtual void add_partition_node(size_t v, size_t r) = 0;
     virtual void remove_partition_node(size_t v, size_t r) = 0;
     virtual void set_vertex_weight(size_t v, int w) = 0;
+    virtual void coupled_resize_vertex(size_t v) = 0;
     virtual double virtual_move(size_t v, size_t r, size_t nr,
                                 entropy_args_t eargs) = 0;
 };

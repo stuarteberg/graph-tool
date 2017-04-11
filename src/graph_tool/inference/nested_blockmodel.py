@@ -79,10 +79,6 @@ class NestedBlockState(object):
         if sampling:
             self.hstate_args = dict(self.hstate_args, vweight="nonempty",
                                     copy_bg=False)
-            if self.state_args.get("vweight", None) is None:
-                self.state_args["vweight"] = "unity"
-            if self.state_args.get("eweight", None) is None:
-                self.state_args["eweight"] = "unity"
         self.hentropy_args = dict(dict(adjacency=True,
                                        dense=True,
                                        multigraph=True,

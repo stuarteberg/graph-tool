@@ -779,13 +779,16 @@ public:
         if (!_egroups.empty())
             _egroups.init(_b, _eweight, _g, _bg);
         if (_coupled_state != nullptr)
-        {
-            _coupled_state->_b.resize(num_vertices(_coupled_state->_g));
-            _coupled_state->init_vertex_weight(r);
-            _coupled_state->_pclabel.resize(num_vertices(_coupled_state->_g));
-            _coupled_state->_ignore_degrees.resize(num_vertices(_coupled_state->_g));
-        }
+            _coupled_state->coupled_resize_vertex(r);
         return r;
+    }
+
+    void coupled_resize_vertex(size_t v)
+    {
+        _b.resize(num_vertices(_g));
+        init_vertex_weight(v);
+        _pclabel.resize(num_vertices(_g));
+        _ignore_degrees.resize(num_vertices(_g));
     }
 
     // =========================================================================
@@ -1701,7 +1704,7 @@ public:
             disable_partition_stats();
     }
 
-    void couple_state(BlockState& s, entropy_args_t ea)
+    void couple_state(BlockStateVirtualBase& s, entropy_args_t ea)
     {
         _coupled_state = &s;
         _coupled_entropy_args = ea;
@@ -1810,7 +1813,7 @@ public:
                      std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 
-    BlockState* _coupled_state;
+    BlockStateVirtualBase* _coupled_state;
     entropy_args_t _coupled_entropy_args;
 };
 
