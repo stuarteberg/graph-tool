@@ -1198,12 +1198,10 @@ public:
     template <class RNG>
     size_t sample_block(size_t v, double c, double d, RNG& rng)
     {
-        std::uniform_real_distribution<> rdist;
-
         // attempt random block
         size_t s;
-        if (rdist(rng) < d &&
-            _candidate_blocks.size() - 1 < num_vertices(_g))
+        std::bernoulli_distribution new_r(d);
+        if (new_r(rng) && (_candidate_blocks.size() - 1 < num_vertices(_g)))
         {
             if (_empty_blocks.empty())
                 add_block();
@@ -1230,6 +1228,7 @@ public:
                     p_rand = c * B / double(_mrp[t] + c * B);
             }
 
+            std::uniform_real_distribution<> rdist;
             if (c == 0 || rdist(rng) >= p_rand)
             {
                 if (_egroups.empty())
