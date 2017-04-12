@@ -205,35 +205,26 @@ struct MCMC
             {
                 auto v = _vs.front();
                 dS = _state.virtual_move(v, r, nr, _entropy_args);
-                if (!std::isinf(_c))
-                {
-                    double pf = _state.get_move_prob(v, r, nr, _c, _d, false);
-                    double pb = _state.get_move_prob(v, nr, r, _c, _d, true);
-                    a += log(pb) - log(pf);
-                }
+                double pf = _state.get_move_prob(v, r, nr, _c, _d, false);
+                double pb = _state.get_move_prob(v, nr, r, _c, _d, true);
+                a += log(pb) - log(pf);
             }
             else
             {
                 _state._egroups_enabled = false;
                 double pf = 0, pb = 0;
-                if (!std::isinf(_c))
-                {
-                    for (auto v : _vs)
-                        pf += _state.get_move_prob(v, r, nr, _c, _d, false);
-                    pf /= m;
-                }
+                for (auto v : _vs)
+                    pf += _state.get_move_prob(v, r, nr, _c, _d, false);
+                pf /= m;
                 for (auto v : _vs)
                 {
                     dS += _state.virtual_move(v, r, nr, _entropy_args);
                     _state.move_vertex(v, nr);
                 }
-                if (!std::isinf(_c))
-                {
-                    for (auto v : _vs)
-                        pb += _state.get_move_prob(v, nr, r, _c, _d, false);
-                    pb /= m;
-                    a += log(pb) - log(pf);
-                }
+                for (auto v : _vs)
+                    pb += _state.get_move_prob(v, nr, r, _c, _d, false);
+                pb /= m;
+                a += log(pb) - log(pf);
                 for (auto v : _vs)
                     _state.move_vertex(v, r);
                 _state._egroups_enabled = true;
