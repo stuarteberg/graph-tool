@@ -1625,9 +1625,9 @@ class BlockState(object):
         entropy_args = kwargs.get("entropy_args", {})
 
         if multiflip:
-            mcmc_state = self.multiflip_mcmc_sweep(**kwargs, dispatch=False)
+            mcmc_state = self.multiflip_mcmc_sweep(dispatch=False, **kwargs)
         else:
-            mcmc_state = self.mcmc_sweep(**kwargs, dispatch=False)
+            mcmc_state = self.mcmc_sweep(dispatch=False, **kwargs)
 
         multi_state.update(mcmc_state)
         multi_state.multiflip = multiflip
