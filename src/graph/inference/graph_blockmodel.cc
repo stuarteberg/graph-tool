@@ -171,6 +171,7 @@ void export_blockmodel_state()
 
     enum_<weight_type>("rec_type")
         .value("none", weight_type::NONE)
+        .value("count", weight_type::COUNT)
         .value("real_exponential", weight_type::REAL_EXPONENTIAL)
         .value("real_normal", weight_type::REAL_NORMAL)
         .value("discrete_geometric", weight_type::DISCRETE_GEOMETRIC)

@@ -74,6 +74,10 @@ class NestedBlockState(object):
                  hstate_args={}, hentropy_args={}, sampling=False, **kwargs):
         self.g = g
         self.state_args = dict(kwargs, **state_args)
+        if "rec_params" not in self.state_args:
+            recs = self.state_args.get("recs", None)
+            if recs is not None:
+                self.state_args["rec_params"] = ["microcanonical"] * len(recs)
         self.hstate_args = dict(dict(deg_corr=False), **hstate_args)
         self.sampling = sampling
         if sampling:
@@ -88,7 +92,7 @@ class NestedBlockState(object):
                                        degree_dl_kind="distributed",
                                        edges_dl=True,
                                        exact=True,
-                                       recs=False),
+                                       recs=True),
                                   **hentropy_args)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for i, b in enumerate(bs[1:]):
@@ -387,7 +391,7 @@ class NestedBlockState(object):
             print("l: %d, N: %d, B: %d" % (l, state.get_N(),
                                            state.get_nonempty_B()))
 
-    def find_new_level(self, l, sparse_thres=100, bisection_args={}, B_min=None,
+    def find_new_level(self, l, sparse_thres=numpy.inf, bisection_args={}, B_min=None,
                        B_max=None, b_min=None, b_max=None):
         """Attempt to find a better network partition at level ``l``, using
         :func:`~graph_tool.inference.bisection_minimize` with arguments given by
@@ -465,6 +469,13 @@ class NestedBlockState(object):
             assert min_state._check_clabel(), "invalid clabel %s" % str((l, self))
             assert max_state._check_clabel(), "invalid clabel %s" % str((l, self))
 
+        if l < len(self.levels) - 1:
+            hentropy_args = dict(entropy_args, dl=True,
+                                 edges_dl=l + 1 == len(self.levels) - 1,
+                                 recs=False)
+            min_state._couple_state(self.levels[l+1], hentropy_args)
+            max_state._couple_state(self.levels[l+1], hentropy_args)
+
         # find new state
         state = bisection_minimize([min_state, max_state], **bisection_args)
 
@@ -483,9 +494,9 @@ class NestedBlockState(object):
 
         for l in range(len(self.levels) - 1):
             eargs = dict(self.hentropy_args,
-                         edges_dl=(l + 1 == len(self.levels) - 1))
-            self.levels[l]._couple_state(self.levels[l + 1],
-                                         get_entropy_args(eargs))
+                         edges_dl=(l + 1 == len(self.levels) - 1),
+                         recs=False)
+            self.levels[l]._couple_state(self.levels[l + 1], eargs)
 
         dS = 0
         nmoves = 0
@@ -645,7 +656,7 @@ class NestedBlockState(object):
 
 
 def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
-                       frozen_levels=None, sparse_thres=100, bisection_args={},
+                       frozen_levels=None, sparse_thres=numpy.inf, bisection_args={},
                        epsilon=1e-8, verbose=False):
     """Attempt to find a fit of the nested stochastic block model that minimizes the
     description length.
@@ -664,7 +675,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
         The partition to be used with the maximum number of blocks.
     frozen_levels : sequence of ``int`` values (optional, default: ``None``)
         List of hierarchy levels that are kept constant during the minimization.
-    sparse_thres : int (optional, default: ``100``)
+    sparse_thres : int (optional, default: ``inf``)
         If the number of nodes in a given level is larger than `sparse_thres`,
         the graph is treated as a sparse graph for minimization purposes (the
         full entropy is always computed exactly).
@@ -746,6 +757,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
             if l == 0:
                 bstate = state.find_new_level(l, bisection_args=bisection_args,
+                                              sparse_thres=sparse_thres,
                                               B_min=B_min, B_max=B_max,
                                               b_min=b_min, b_max=b_max)
             else:

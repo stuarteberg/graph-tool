@@ -31,7 +31,7 @@ using namespace boost;
 
 inline double lbinom(double N, double k)
 {
-    if (N == 0 || k == 0 || k > N)
+    if (N == 0 || k == 0 || k >= N)
         return 0;
     assert(N > 0);
     assert(k > 0);

@@ -110,6 +110,22 @@ auto uncheck(boost::checked_vector_property_map<Type,Index> p)
     return p.get_unchecked();
 }
 
+template <class Type, class Index>
+auto uncheck(std::vector<boost::checked_vector_property_map<Type,Index>>*)
+{
+    std::vector<boost::unchecked_vector_property_map<Type,Index>>* na(nullptr);
+    return na;
+}
+
+template <class Type, class Index>
+auto uncheck(std::vector<boost::checked_vector_property_map<Type,Index>> p)
+{
+    std::vector<boost::unchecked_vector_property_map<Type,Index>> np;
+    for (auto& x : p)
+        np.push_back(x.get_unchecked());
+    return np;
+}
+
 template <class T>
 auto&& uncheck(T&& a)
 {
@@ -283,6 +299,43 @@ struct StateWrap
                                          + ", reason: " +
                                          std::string(e.what()));
                 }
+            }
+        };
+
+        template <class Value, class Index>
+        struct Extract<std::vector<boost::checked_vector_property_map<Value,Index>>>
+        {
+            typedef boost::checked_vector_property_map<Value,Index> pmap_t;
+            std::vector<pmap_t> operator()(python::object mobj,
+                                           std::string name) const
+            {
+                python::object obj = mobj.attr(name.c_str());
+                std::vector<pmap_t> ret;
+                try
+                {
+                    for (int i = 0; i < python::len(obj); ++i)
+                    {
+                        python::object o = obj[i];
+                        python::object aobj;
+                        if (PyObject_HasAttrString(o.ptr(), "_get_any"))
+                            aobj = o.attr("_get_any")();
+                        else
+                            aobj = o;
+                        python::extract<boost::any&> extract(aobj);
+                        if (!extract.check())
+                            throw boost::bad_any_cast();
+                        boost::any& aval = extract();
+                        pmap_t val = any_cast<pmap_t>(aval);
+                        ret.push_back(val);
+                    }
+                }
+                catch (boost::bad_any_cast& e)
+                {
+                    throw ValueException("Cannot extract parameter '" + name +
+                                         "' of desired type: " +
+                                         name_demangle(typeid(std::vector<pmap_t>).name()));
+                }
+                return ret;
             }
         };
     };

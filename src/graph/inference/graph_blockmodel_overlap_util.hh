@@ -1356,6 +1356,10 @@ public:
 
     std::tuple<EVals...> _self_weight;
 
+    std::vector<std::tuple<size_t, size_t,
+                           GraphInterface::edge_t, int>>
+        _recs_entries;
+
 private:
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;

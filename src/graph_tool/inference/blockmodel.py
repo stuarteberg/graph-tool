@@ -67,9 +67,11 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
     if ecount is not None:
         aeprops.append(ecount)
     if rec is not None:
-        aeprops.append(rec)
+        for r in rec:
+            aeprops.append(r)
     if drec is not None:
-        aeprops.append(drec)
+        for r in drec:
+            aeprops.append(r)
     cg, br, vc, ec, av, ae = condensation_graph(g, b,
                                                 avprops=avprops,
                                                 aeprops=aeprops,
@@ -89,16 +91,30 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
     cg.ep.count = ecount
 
     if rec is not None:
-        cg.ep.rec = ae[0]
-        del ae[0]
+        for i in range(len(rec)):
+            cg.ep["rec%d" % i] = ae[0]
+            del ae[0]
 
     if drec is not None:
-        cg.ep.drec = ae[0]
-        del ae[0]
+        for i in range(len(drec)):
+            cg.ep["drec%d" % i] = ae[0]
+            del ae[0]
 
     cg = Graph(cg, vorder=br)
-
     cg.add_vertex(B - cg.num_vertices())
+
+    cg.gp.rec = cg.new_gp("object", [])
+    if rec is not None:
+        for i in range(len(rec)):
+            cg.gp.rec.append(cg.ep["rec%d" % i])
+            del cg.ep["rec%d" % i]
+
+    cg.gp.drec = cg.new_gp("object", [])
+    if drec is not None:
+        for i in range(len(drec)):
+            cg.gp.drec.append(cg.ep["drec%d" % i])
+            del cg.ep["drec%d" % i]
+
     return cg
 
 def get_entropy_args(kargs):
@@ -172,8 +188,9 @@ class BlockState(object):
         ``"real-exponential"``, ``"real-normal"``, ``"discrete-geometric"``,
         ``"discrete-poisson"`` or ``"discrete-binomial"``.
     rec_params : list of ``dict`` (optional, default: ``[]``)
-        Model hyperparameters for edge covariates. This should a list of
-        ``dict`` instances. The keys depend on the type of edge covariate:
+        Model hyperparameters for edge covariates. This should be a list of
+        ``dict`` instances, or the string `"microcanonical"` (the default if
+        nothing is specified). The keys depend on the type of edge covariate:
 
         ``"real-exponential"`` or ``"discrete-poisson"``
             The parameter list is ``["r", "theta"]``, corresponding to the
@@ -274,7 +291,6 @@ class BlockState(object):
                                                     self.eweight._get_any(),
                                                     self.g.num_vertices(True))
 
-
         # ensure we have at most as many blocks as nodes
         if B is not None and b is None:
             B = min(B, self.g.num_vertices())
@@ -305,23 +321,33 @@ class BlockState(object):
             raise ValueError("Maximum value of b is larger or equal to B! (%d vs %d)" %
                              (self.b.fa.max(), B))
 
-        self.recs = recs
-        if len(recs) == 0:
-            self.rec = self.g.new_ep("vector<double>")
-        else:
-            recs = [x.copy("double") for x in recs]
-            self.rec = group_vector_property(recs)
+        self.rec = [self.g.own_property(p) for p in recs]
+        for i in range(len(self.rec)):
+            if self.rec[i].value_type() != "double":
+                self.rec[i] = self.rec[i].copy("double")
         self.drec = kwargs.pop("drec", None)
         if self.drec is None:
-            if len(self.recs) == 0:
-                self.drec = self.g.new_ep("vector<double>")
-            else:
-                drecs = [x.copy("double") for x in self.recs]
-                for r in drecs:
-                    r.fa **= 2
-                self.drec = group_vector_property(drecs)
+            self.drec = []
+            for rec in self.rec:
+                self.drec.append(self.g.new_ep("double", rec.fa ** 2))
         else:
-            self.drec = self.drec.copy()
+            self.drec = [self.g.own_property(p) for p in self.drec]
+
+        rec_types = list(rec_types)
+        rec_params = list(rec_params)
+
+        if len(rec_params) < len(rec_types):
+            rec_params += [{} for i in range((len(rec_types) -
+                                              len(rec_params)))]
+
+        if len(self.rec) > 0 and rec_types[0] != libinference.rec_type.count:
+            rec_types.insert(0, libinference.rec_type.count)
+            rec_params.insert(0, {})
+            if isinstance(self.eweight, libinference.unity_eprop_t):
+                self.rec.insert(0, self.g.new_ep("double", 1))
+            else:
+                self.rec.insert(0, self.eweight.copy("double"))
+            self.drec.insert(0, self.g.new_ep("double"))
 
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, self.vweight, self.eweight,
@@ -387,13 +413,14 @@ class BlockState(object):
         self.empty_blocks = Vector_size_t()
         self.empty_pos = self.bg.new_vp("int")
 
-        self._init_recs(recs, rec_types, rec_params)
+        self._init_recs(self.rec, rec_types, rec_params)
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
         self._avweight = self.vweight._get_any()
         self._aeweight = self.eweight._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
+        self._coupled_state = None
 
         if deg_corr:
             init_q_cache(max(2 * max(self.get_E(), self.get_N()), 100))
@@ -429,8 +456,8 @@ class BlockState(object):
                 rt = rec_type
             self.rec_types.append(rt)
 
-        self.brec = self.bg.ep.rec
-        self.bdrec = self.bg.ep.drec
+        self.brec = self.bg.gp.rec
+        self.bdrec = self.bg.gp.drec
 
         if (len(self.rec_types) > 0 and
             self.rec_types[0] == libinference.rec_type.delta_t): # waiting times
@@ -444,32 +471,55 @@ class BlockState(object):
 
         self.rec_params = rec_params = list(rec_params)
         while len(rec_params) < len(self.rec_types):
-            rec_params.append({})
+            rec_params.append("microcanonical")
         self.wparams = libcore.Vector_Vector_double()
+
         for i, rt in enumerate(self.rec_types):
             ps = Vector_double()
-            if rt in [libinference.rec_type.real_exponential,
-                      libinference.rec_type.discrete_poisson]:
-                defaults = OrderedDict([("alpha", 1),
-                                        ("beta", self.recs[i].fa.mean())])
+            if rt == libinference.rec_type.count:
+                defaults = OrderedDict()
+            elif rt in [libinference.rec_type.real_exponential,
+                        libinference.rec_type.discrete_poisson]:
+                if rec_params[i] != "microcanonical":
+                    defaults = OrderedDict([("alpha", 1),
+                                            ("beta", self.rec[i].fa.mean())])
+                else:
+                    defaults = OrderedDict([("alpha", numpy.nan),
+                                            ("beta", numpy.nan)])
             elif rt == libinference.rec_type.real_normal:
-                defaults = OrderedDict([("m0", self.recs[i].fa.mean()),
-                                        ("k0", 1),
-                                        ("v0", self.recs[i].fa.std() ** 2),
-                                        ("nu0", 3)])
+                if rec_params[i] != "microcanonical":
+                    defaults = OrderedDict([("m0", self.rec[i].fa.mean()),
+                                            ("k0", 1),
+                                            ("v0", self.rec[i].fa.std() ** 2),
+                                            ("nu0", 3)])
+                else:
+                    defaults = OrderedDict([("m0", numpy.nan),
+                                            ("k0", numpy.nan),
+                                            ("v0", numpy.nan),
+                                            ("nu0", numpy.nan)])
             elif rt == libinference.rec_type.discrete_geometric:
-                defaults = OrderedDict([("alpha",1),
-                                        ("beta",1)])
+                if rec_params[i] != "microcanonical":
+                    defaults = OrderedDict([("alpha", 1),
+                                            ("beta", 1)])
+                else:
+                    defaults = OrderedDict([("alpha", numpy.nan),
+                                            ("beta", numpy.nan)])
             elif rt == libinference.rec_type.discrete_binomial:
-                defaults = OrderedDict([("N", self.recs[i].fa.max()),
-                                        ("alpha", 1),
-                                        ("beta", 1)])
+                if rec_params[i] != "microcanonical":
+                    defaults = OrderedDict([("N", self.rec[i].fa.max()),
+                                            ("alpha", 1),
+                                            ("beta", 1)])
+                else:
+                    defaults = OrderedDict([("N", self.rec[i].fa.max()),
+                                            ("alpha", numpy.nan),
+                                            ("beta", numpy.nan)])
             else: # delta_t
                 defaults = OrderedDict([("alpha", 1),
-                                        ("beta", self.recs[i].fa.mean())])
+                                        ("beta", self.rec[i].fa.mean())])
 
             ks = list(defaults.keys())
-            defaults.update(rec_params[i])
+            if rec_params[i] != "microcanonical":
+                defaults.update(rec_params[i])
             rec_params[i] = defaults.copy()
             for k in ks:
                 ps.append(defaults.pop(k))
@@ -481,14 +531,16 @@ class BlockState(object):
     def get_rec_params(self):
         """Get model hyperparameters for edge covariates."""
         params = []
-        for ps in self.rec_params:
+        for rt, ps in zip(self.rec_types, self.rec_params):
+            if rt == libinference.rec_type.count:
+                continue
             p = dict(ps)
             params.append(p)
         return params
 
     def set_rec_params(self, params):
         """Update model hyperparameters for edge covariates."""
-        for ps, ws, nps in zip(self.rec_params, self.wparams, params):
+        for ps, ws, nps in zip(self.rec_params[1:], self.wparams[1:], params):
             ps.update(nps)
             for i, (k, v) in enumerate(ps.items()):
                 ws[i] = v
@@ -497,8 +549,8 @@ class BlockState(object):
         return "<BlockState object with %d blocks (%d nonempty),%s%s for graph %s, at 0x%x>" % \
             (self.B, self.get_nonempty_B(),
              " degree-corrected," if self.deg_corr else "",
-             ((" with %d edge covariate%s," % (len(self.rec_types),
-                                               "s" if len(self.rec_types) > 1 else ""))
+             ((" with %d edge covariate%s," % (len(self.rec_types) - 1,
+                                               "s" if len(self.rec_types) > 2 else ""))
               if len(self.rec_types) > 0 else ""),
              str(self.g), id(self))
 
@@ -515,8 +567,6 @@ class BlockState(object):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
 
-        recs = ungroup_vector_property(self.rec, range(len(self.recs)))
-
         if not overlap:
             state = BlockState(self.g if g is None else g,
                                eweight=self.eweight if eweight is None else eweight,
@@ -530,7 +580,7 @@ class BlockState(object):
                                degs=self.degs.copy(),
                                merge_map=kwargs.pop("merge_map",
                                                     self.merge_map.copy()),
-                               recs=kwargs.pop("recs", recs),
+                               recs=kwargs.pop("recs", self.rec),
                                drec=kwargs.pop("drec", self.drec),
                                rec_types=kwargs.pop("rec_types", self.rec_types),
                                rec_params=kwargs.pop("rec_params",
@@ -544,7 +594,7 @@ class BlockState(object):
             state = OverlapBlockState(self.g if g is None else g,
                                       b=self.b.copy() if b is None else b,
                                       B=(self.B if b is None else None) if B is None else B,
-                                      recs=kwargs.pop("recs", recs),
+                                      recs=kwargs.pop("recs", self.rec),
                                       drec=kwargs.pop("drec", self.drec),
                                       rec_types=kwargs.pop("rec_types",
                                                            self.rec_types),
@@ -557,6 +607,11 @@ class BlockState(object):
                                                              self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
                                       **kwargs)
+
+        if self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False),
+                                self._coupled_state[1])
         return state
 
 
@@ -571,10 +626,9 @@ class BlockState(object):
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
-                     recs=ungroup_vector_property(self.rec,
-                                                  range(len(self.recs))),
+                     recs=self.rec,
                      drec=self.drec,
-                     rec_types=list(self.rec_types),
+                     rec_types=self.rec_types,
                      rec_params=self.rec_params,
                      ignore_degrees=self.ignore_degrees.copy("int"),
                      degs=self.degs if not isinstance(self.degs,
@@ -593,7 +647,7 @@ class BlockState(object):
         == True`` the nodes of the block state are weighted with the node
         counts."""
 
-        deg_corr = kwargs.pop("deg_corr", self.deg_corr)
+        deg_corr = kwargs.pop("deg_corr", self.deg_corr if vweight == True else False)
         copy_bg = kwargs.pop("copy_bg", True)
 
         if deg_corr and vweight:
@@ -614,12 +668,17 @@ class BlockState(object):
         if copy_bg:
             bg = self.bg.copy()
             eweight = bg.own_property(self.mrs.copy())
+            for i in range(len(bg.gp.rec)):
+                bg.gp.rec[i] = bg.own_property(bg.gp.rec[i]).copy()
+            for i in range(len(bg.gp.drec)):
+                bg.gp.drec[i] = bg.own_property(bg.gp.drec[i]).copy()
         else:
             bg = self.bg
             eweight = self.mrs
             if self.g.get_vertex_filter()[0] is not None:
                 bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
 
+        copy_coupled = False
         recs = False
         if vweight == "nonempty":
             vweight = bg.new_vp("int", self.wr.a > 0)
@@ -631,8 +690,48 @@ class BlockState(object):
             else:
                 vweight = self.wr
             recs = True
+            copy_coupled = True
         else:
             vweight = None
+
+        if recs:
+            rec_types = kwargs.pop("rec_types", self.rec_types)
+            recs = kwargs.pop("recs", bg.gp.rec)
+            drec = kwargs.pop("drec", bg.gp.drec if len(bg.gp.drec) > 0 else
+                              None)
+            rec_params = kwargs.pop("rec_params", self.rec_params)
+        else:
+            drec = None
+            recs = []
+            rec_types = []
+            rec_params = []
+            for rt, rp, r, dr in zip(self.rec_types, self.wparams,
+                                     bg.gp.rec, bg.gp.drec):
+                if rt == libinference.rec_type.count:
+                    recs.append(bg.new_ep("double", bg.ep.count.fa > 0))
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif numpy.isnan(rp.a).sum() == 0:
+                    continue
+                elif rt in [libinference.rec_type.discrete_geometric,
+                            libinference.rec_type.discrete_binomial,
+                            libinference.rec_type.discrete_poisson]:
+                    recs.append(r)
+                    rec_types.append(libinference.rec_type.discrete_geometric)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_exponential:
+                    recs.append(r)
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_normal:
+                    recs.append(r)
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                    recs.append(dr)
+                    rec_types.append(libinference.rec_type.real_exponential)
+                    rec_params.append("microcanonical")
+            rec_params = kwargs.pop("rec_params", rec_params)
+
         state = BlockState(bg,
                            eweight=eweight,
                            vweight=vweight,
@@ -641,23 +740,21 @@ class BlockState(object):
                            allow_empty=kwargs.pop("allow_empty",
                                                   self.allow_empty),
                            degs=degs,
-                           rec_types=kwargs.pop("rec_types",
-                                                self.rec_types if recs else []),
-                           recs=kwargs.pop("recs",
-                                           ungroup_vector_property(bg.ep.rec,
-                                                                   range(len(self.rec_types)))
-                                           if (recs and len(self.rec_types) > 0)
-                                           else []),
-                           drec=kwargs.pop("drec",
-                                           bg.ep.drec if (recs and len(self.rec_types) > 0)
-                                           else None),
-                           rec_params=kwargs.pop("rec_params", self.rec_params),
+                           rec_types=rec_types,
+                           recs=recs,
+                           drec=drec,
+                           rec_params=rec_params,
                            ignore_degrees=kwargs.pop("ignore_degrees",
                                                      self.get_bclabel(clabel=self.ignore_degrees)),
                            clabel=kwargs.pop("clabel", self.get_bclabel()),
                            pclabel=kwargs.pop("pclabel", self.get_bpclabel()),
                            max_BE=self.max_BE,
                            **kwargs)
+
+        if copy_coupled and self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False),
+                                self._coupled_state[1])
         return state
 
     def get_E(self):
@@ -708,9 +805,13 @@ class BlockState(object):
 
     def _couple_state(self, state, entropy_args):
         if state is None:
+            self._coupled_state = None
             self._state.decouple_state()
         else:
-            self._state.couple_state(state._state, entropy_args)
+            self._coupled_state = (state, entropy_args)
+            eargs = get_entropy_args(dict(self._entropy_args,
+                                          **entropy_args))
+            self._state.couple_state(state._state, eargs)
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -932,7 +1033,8 @@ class BlockState(object):
 
         S = 0
         if adjacency:
-            S += self._state.entropy(dense, multigraph, deg_entropy, exact, recs)
+            S += self._state.entropy(dense, multigraph, deg_entropy, exact,
+                                     recs, edges_dl)
 
             if not dense and not exact:
                 if multigraph:
@@ -1862,6 +1964,8 @@ class BlockState(object):
         bstate = self.get_block_state(vweight=True,
                                       clabel=self.get_bclabel(),
                                       deg_corr=self.deg_corr)
+        #bstate._couple_state(None, None)
+
         nB = bstate.get_nonempty_B()
         while nB > B:
             bstate.merge_sweep(nB - B, **kwargs)

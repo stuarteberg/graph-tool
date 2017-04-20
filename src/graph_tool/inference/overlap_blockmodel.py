@@ -118,6 +118,9 @@ class OverlapBlockState(BlockState):
             g, b, node_index, half_edges, eindex, rec = \
                                                 half_edge_graph(g, b, B, rec)
 
+            if len(recs) > 0:
+                recs = ungroup_vector_property(rec, range(len(recs)))
+
         # create half edges set if absent
         if half_edges is None:
             half_edges = self.base_g.new_vertex_property("vector<int64_t>")
@@ -167,23 +170,30 @@ class OverlapBlockState(BlockState):
         if self.b.fa.max() >= B:
             raise ValueError("Maximum value of b is larger or equal to B!")
 
-        self.recs = recs
-        if len(recs) == 0:
-            self.rec = self.g.new_ep("vector<double>")
-        else:
-            recs = [x.copy("double") for x in recs]
-            self.rec = group_vector_property(recs)
+        self.rec = [self.g.own_property(p) for p in recs]
+        for i in range(len(self.rec)):
+            if self.rec[i].value_type() != "double":
+                self.rec[i] = self.rec[i].copy("double")
         self.drec = kwargs.pop("drec", None)
         if self.drec is None:
-            if len(self.recs) == 0:
-                self.drec = self.g.new_ep("vector<double>")
-            else:
-                drecs = [x.copy("double") for x in self.recs]
-                for r in drecs:
-                    r.fa **= 2
-                self.drec = group_vector_property(drecs)
+            self.drec = []
+            for rec in self.rec:
+                self.drec.append(self.g.new_ep("double", rec.fa ** 2))
         else:
-            self.drec = self.drec.copy()
+            self.drec = [self.g.own_property(p) for p in self.drec]
+
+        rec_types = list(rec_types)
+        rec_params = list(rec_params)
+
+        if len(rec_params) < len(rec_types):
+            rec_params += [{} for i in range((len(rec_types) -
+                                              len(rec_params)))]
+
+        if len(self.rec) > 0 and rec_types[0] != libinference.rec_type.count:
+            rec_types.insert(0, libinference.rec_type.count)
+            rec_params.insert(0, {})
+            self.rec.insert(0, self.g.new_ep("double", 1))
+            self.drec.insert(0, self.g.new_ep("double"))
 
         # Construct block-graph
         self.bg = get_block_graph(g, B, self.b, rec=self.rec, drec=self.drec)
@@ -191,9 +201,6 @@ class OverlapBlockState(BlockState):
 
         self.mrs = self.bg.ep["count"]
         self.wr = self.bg.vp["count"]
-
-        del self.bg.ep["count"]
-        del self.bg.vp["count"]
 
         self.mrp = self.bg.degree_property_map("out", weight=self.mrs)
 
@@ -229,7 +236,7 @@ class OverlapBlockState(BlockState):
 
         self.bclabel = self.get_bclabel()
 
-        BlockState._init_recs(self, recs, rec_types, rec_params)
+        BlockState._init_recs(self, self.rec, rec_types, rec_params)
 
         self.max_BE = max_BE
 
@@ -248,6 +255,8 @@ class OverlapBlockState(BlockState):
                                   edges_dl=True, dense=False, multigraph=True,
                                   exact=True, recs=True)
 
+        self._coupled_state = None
+
         vweight = kwargs.pop("vweight", "unity")
         eweight = kwargs.pop("eweight", "unity")
 
@@ -261,8 +270,11 @@ class OverlapBlockState(BlockState):
                           str(list(kwargs.keys())))
 
     def __repr__(self):
-        return "<OverlapBlockState object with %d blocks,%s for graph %s, at 0x%x>" % \
+        return "<OverlapBlockState object with %d blocks,%s%s for graph %s, at 0x%x>" % \
             (self.B, " degree corrected," if self.deg_corr else "",
+             ((" with %d edge covariate%s," % (len(self.rec_types) - 1,
+                                               "s" if len(self.rec_types) > 2 else ""))
+              if len(self.rec_types) > 0 else ""),
              str(self.base_g), id(self))
 
     def __copy__(self):
@@ -284,15 +296,13 @@ class OverlapBlockState(BlockState):
          instance of :class:`~graph_tool.community.BlockState` is returned. This
          is by default a shallow copy."""
 
-        recs = ungroup_vector_property(self.rec, range(len(self.recs)))
-
         state = OverlapBlockState(self.g if g is None else g,
                                   b=self.b if b is None else b,
                                   B=(self.B if b is None else None) if B is None else B,
                                   clabel=self.clabel.fa if clabel is None else clabel,
                                   pclabel=self.pclabel if pclabel is None else pclabel,
                                   deg_corr=self.deg_corr if deg_corr is None else deg_corr,
-                                  recs=kwargs.pop("recs", recs),
+                                  recs=kwargs.pop("recs", self.rec),
                                   drec=kwargs.pop("drec", self.drec),
                                   rec_types=kwargs.pop("rec_types", self.rec_types),
                                   rec_params=kwargs.pop("rec_params",
@@ -305,6 +315,10 @@ class OverlapBlockState(BlockState):
                                   **dmask(kwargs, ["half_edges", "node_index",
                                                    "eindex", "base_g", "drec",
                                                    "max_BE"]))
+        if self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False),
+                                self._coupled_state[1])
         return state
 
     def __getstate__(self):
@@ -345,26 +359,61 @@ class OverlapBlockState(BlockState):
             mrs = self.mrs
             wr = self.wr
 
+        if vweight:
+            rec_types = kwargs.pop("rec_types", self.rec_types)
+            recs = kwargs.pop("recs", bg.gp.rec)
+            drec = kwargs.pop("drec", bg.gp.drec if len(bg.gp.drec) > 0 else
+                              None)
+            rec_params = kwargs.pop("rec_params", self.rec_params)
+        else:
+            drec = None
+            recs = []
+            rec_types = []
+            rec_params = []
+            for rt, rp, r, dr in zip(self.rec_types, self.wparams,
+                                     bg.gp.rec, bg.gp.drec):
+                if rt == libinference.rec_type.count:
+                    recs.append(bg.new_ep("double", bg.ep.count.fa > 0))
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif numpy.isnan(rp.a).sum() == 0:
+                    continue
+                elif rt in [libinference.rec_type.discrete_geometric,
+                            libinference.rec_type.discrete_binomial,
+                            libinference.rec_type.discrete_poisson]:
+                    recs.append(r)
+                    rec_types.append(libinference.rec_type.discrete_geometric)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_exponential:
+                    recs.append(r)
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_normal:
+                    recs.append(r)
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                    recs.append(dr)
+                    rec_types.append(libinference.rec_type.real_exponential)
+                    rec_params.append("microcanonical")
+            rec_params = kwargs.pop("rec_params", rec_params)
+
         state = BlockState(bg, eweight=mrs,
                            vweight=wr if vweight else None,
                            b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
-                           rec_types=kwargs.pop("rec_types",
-                                                self.rec_types if vweight else []),
-                           recs=kwargs.pop("recs",
-                                           ungroup_vector_property(bg.ep.rec,
-                                                                   range(len(self.rec_types)))
-                                           if (vweight and len(self.rec_types) > 0)
-                                           else []),
-                           drec=kwargs.pop("drec",
-                                           bg.ep.drec if (vweight is not None and
-                                                          len(self.rec_types) > 0)
-                                           else None),
-                           rec_params=kwargs.pop("rec_params", self.rec_params),
+                           rec_types=rec_types,
+                           recs=recs,
+                           drec=drec,
+                           rec_params=rec_params,
                            allow_empty=kwargs.pop("allow_empty",
                                                   self.allow_empty),
                            max_BE=self.max_BE,
                            **kwargs)
+
+        if vweight and self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False),
+                                self._coupled_state[1])
         return state
 
     def get_E(self):

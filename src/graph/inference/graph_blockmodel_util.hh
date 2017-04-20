@@ -34,23 +34,48 @@
 
 #include <boost/multi_array.hpp>
 #include <boost/math/special_functions/gamma.hpp>
+#include <boost/math/special_functions/relative_difference.hpp>
 
 #ifdef USING_OPENMP
 #include <omp.h>
 #endif
 
+template <class PMap>
+class VAdapter
+{
+public:
+    typedef typename boost::property_traits<PMap>::key_type key_t;
+    typedef typename boost::property_traits<PMap>::value_type val_t;
+    VAdapter(std::vector<PMap>& v, const key_t& e)
+        : _v(v), _e(e) {}
+
+    size_t size() const { return _v.size(); }
+    val_t& operator[](size_t i) { return _v[i][_e]; }
+    const val_t& operator[](size_t i) const { return _v[i][_e]; }
+
+    std::vector<PMap>& _v;
+    const key_t& _e;
+};
+
+template <class PMap>
+VAdapter<PMap> make_vadapter(std::vector<PMap>& v,
+                             const typename VAdapter<PMap>::key_t& e)
+{
+    return VAdapter<PMap>(v, e);
+}
+
 namespace std
 {
-template <class T>
-void operator+=(vector<T>& ret, const vector<T>& v)
+template <class T, class V>
+void operator+=(vector<T>& ret, const V& v)
 {
     ret.resize(max(ret.size(), v.size()));
     for (size_t i = 0; i < v.size(); ++i)
         ret[i] += v[i];
 }
 
-template <class T>
-void operator-=(vector<T>& ret, const vector<T>& v)
+template <class T, class V>
+void operator-=(vector<T>& ret, const V& v)
 {
     ret.resize(max(ret.size(), v.size()));
     for (size_t i = 0; i < v.size(); ++i)
@@ -251,6 +276,7 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
 }
 
 // Weighted entropy terms
+// ======================
 
 // exponential
 template <class DT>
@@ -258,17 +284,35 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
+    if (std::isnan(alpha) && std::isnan(beta))
+    {
+        if (x == 0 || N == 1)
+            return 0.;
+        else
+            return lgamma(N) - N * log(x);
+    }
     return lgamma(N + alpha) - lgamma(alpha) + alpha * log(beta) -
         (alpha + N) * log(beta + x);
 }
 
 // normal
 template <class DT>
-double signed_w_log_P(DT N, double x, double v, double m0, double k0, double v0,
+double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0,
                       double nu0)
 {
     if (N == 0)
         return 0.;
+    if (std::isnan(m0) && std::isnan(k0))
+    {
+        auto smu1 = x * (x / N);
+        if (N == 1 || (boost::math::relative_difference(x2, smu1) <
+                       100 * numeric_limits<double>::epsilon()) || smu1 > x2)
+            return 0.;
+        else
+            return lgamma(N/2.) - ((N-1)/2.) * log(x2-smu1) - log(2) - (N / 2.) *
+                log(M_PI);
+    }
+    auto v = x2 - x * (x / N);
     auto k_n = k0 + N;
     auto nu_n = nu0 + N;
     auto v_n = (v0 * nu0 + v + ((N * k0)/(k0 + N)) * pow(m0 - x/N, 2)) / nu_n;
@@ -283,15 +327,19 @@ double geometric_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
+    if (std::isnan(alpha) && std::isnan(beta))
+        return -lbinom((N - 1) + x, x);
     return lbeta(N + alpha, x + beta) - lbeta(alpha, beta);
 }
 
 // discrete: binomial
 template <class DT>
-double binomial_w_log_P(DT N, double x, size_t n, double alpha, double beta)
+double binomial_w_log_P(DT N, double x, int n, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
+    if (std::isnan(alpha) && std::isnan(beta))
+        return -lbinom(N * n, x);
     return lbeta(x + alpha, N * n - x + beta) - lbeta(alpha, beta);
 }
 
@@ -301,6 +349,8 @@ double poisson_w_log_P(DT N, double x, double alpha, double beta)
 {
     if (N == 0)
         return 0.;
+    if (std::isnan(alpha) && std::isnan(beta))
+        return lgamma(N+1) - x * log(N);
     return lgamma(x + alpha) - (x + alpha) * log(N + beta) - lgamma(alpha) +
         alpha * log(beta);
 }
@@ -1119,6 +1169,7 @@ public:
         _entries.clear();
         _delta.clear();
         _mes.clear();
+        _recs_entries.clear();
     }
 
     const vector<pair<size_t, size_t> >& get_entries() { return _entries; }
@@ -1148,6 +1199,10 @@ public:
 
     std::tuple<EVals...> _self_weight;
 
+    std::vector<std::tuple<size_t, size_t,
+                           GraphInterface::edge_t, int>>
+        _recs_entries;
+
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
     static const std::tuple<EVals...> _null_delta;
@@ -1161,6 +1216,7 @@ private:
     vector<std::tuple<EVals...>> _delta;
     vector<bedge_t> _mes;
     size_t _dummy;
+
 };
 
 template <class Graph, class BGraph, class... EVals>
@@ -1205,11 +1261,12 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         if (Add && u == v)
             s = r;
 
-        m_entries.template insert_delta<Add>(r, s, ew, eprops[e]...);
+        m_entries.template insert_delta<Add>(r, s, ew,
+                                             make_vadapter(eprops, e)...);
 
         if ((u == v || is_loop(v)) && !is_directed::apply<Graph>::type::value)
             tuple_op(self_weight, [&](auto& r, auto& v){ r += v; },
-                     ew, eprops[e]...);
+                     ew, make_vadapter(eprops, e)...);
     }
 
     if (get<0>(self_weight) > 0 && get<0>(self_weight) % 2 == 0 &&
@@ -1218,7 +1275,8 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         tuple_apply([&](auto&&... vals)
                     {
                         auto op = [](auto& x) -> auto& { x /= 2; return x; };
-                        m_entries.template insert_delta<!Add>(r, r, op(vals)...);
+                        m_entries.template insert_delta<!Add>(r, r,
+                                                              op(vals)...);
                     }, self_weight);
     }
 
@@ -1232,7 +1290,8 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         vertex_t s = _b[u];
         int ew = eweights[e];
 
-        m_entries.template insert_delta<Add>(s, r, ew, eprops[e]...);
+        m_entries.template insert_delta<Add>(s, r, ew,
+                                             make_vadapter(eprops, e)...);
     }
 }
 
@@ -1553,6 +1612,11 @@ public:
     virtual void coupled_resize_vertex(size_t v) = 0;
     virtual double virtual_move(size_t v, size_t r, size_t nr,
                                 entropy_args_t eargs) = 0;
+    virtual void add_edge(const GraphInterface::edge_t& e) = 0;
+    virtual void remove_edge(const GraphInterface::edge_t& e) = 0;
+    virtual double recs_dS(size_t, size_t,
+                           const std::vector<std::tuple<size_t, size_t,
+                                             GraphInterface::edge_t, int>>&) = 0;
 };
 
 
