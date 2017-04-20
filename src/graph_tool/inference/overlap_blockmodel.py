@@ -552,7 +552,7 @@ class OverlapBlockState(BlockState):
 
             .. math::
 
-                P(\boldsymbol{k}|\vec{b}) = \prod_{\vec{b}}\frac{\prod_{\vec{k}}\eta_{\vec{k}}^{\vec{b}}!}{n_{\vec{b}}!} \prod_r q(e_{\vec{b}}^r, n_{\vec{b}})
+                P(\boldsymbol{k}|\vec{b}) = \prod_{\vec{b}}\frac{\prod_{\vec{k}}\eta_{\vec{k}}^{\vec{b}}!}{n_{\vec{b}}!} \prod_r q(e_{\vec{b}}^r - n_{\vec{b}}, n_{\vec{b}})
 
             where :math:`n^{\vec{b}}_{\vec{k}}` is the number of nodes in
             mixture :math:`\vec{b}` with labelled degree :math:`\vec{k}`, and
