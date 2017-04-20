@@ -384,7 +384,9 @@ struct overlap_partition_stats_t
                               std::vector<size_t>& vmap,
                               bool allow_empty)
         : _overlap_stats(ostats), _bmap(bmap), _vmap(vmap),
-          _allow_empty(allow_empty)
+          _allow_empty(allow_empty),
+          _directed(is_directed::apply<Graph>::type::value)
+
     {
         _D = 0;
         _N = vlist.size();
@@ -603,8 +605,15 @@ struct overlap_partition_stats_t
 
             for (size_t i = 0; i < bv.size(); ++i)
             {
-                S += log_q(bmh[i], n_bv);
-                S += log_q(bph[i], n_bv);
+                if (_directed)
+                {
+                    S += log_q(bmh[i], n_bv);
+                    S += log_q(bph[i], n_bv);
+                }
+                else
+                {
+                    S += log_q(bph[i] - n_bv, n_bv);
+                }
             }
 
             S += lgamma_fast(n_bv + 1);
@@ -947,16 +956,30 @@ struct overlap_partition_stats_t
 
                     for (size_t i = 0; i < bv_i.size(); ++i)
                     {
-                        S += log_q(size_t(bmh[i] + deg_delta * int(get<0>(deg_i[i]))), bv_c);
-                        S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                        if (_directed)
+                        {
+                            S += log_q(size_t(bmh[i] + deg_delta * int(get<0>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                        }
+                        else
+                        {
+                            S += log_q(size_t(bph[i] + deg_delta * int(get<1>(deg_i[i]))) - bv_c, bv_c);
+                        }
                     }
                 }
                 else
                 {
                     for (size_t i = 0; i < bv_i.size(); ++i)
                     {
-                        S += log_q(size_t(deg_delta * int(get<0>(deg_i[i]))), bv_c);
-                        S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                        if (_directed)
+                        {
+                            S += log_q(size_t(deg_delta * int(get<0>(deg_i[i]))), bv_c);
+                            S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))), bv_c);
+                        }
+                        else
+                        {
+                            S += log_q(size_t(deg_delta * int(get<1>(deg_i[i]))) - bv_c, bv_c);
+                        }
                     }
                 }
 
@@ -971,14 +994,25 @@ struct overlap_partition_stats_t
 
                 for (size_t i = 0; i < bv.size(); ++i)
                 {
-                    S += log_q(size_t(bmh[i] +
-                                      deg_delta * int(get<0>(deg[i])) +
-                                      ndeg_delta * int(get<0>(n_deg[i]))),
-                               bv_count);
-                    S += log_q(size_t(bph[i] +
-                                      deg_delta * int(get<1>(deg[i])) +
-                                      ndeg_delta * int(get<1>(n_deg[i]))),
-                               bv_count);
+                    if (_directed)
+                    {
+                        S += log_q(size_t(bmh[i] +
+                                          deg_delta * int(get<0>(deg[i])) +
+                                          ndeg_delta * int(get<0>(n_deg[i]))),
+                                   bv_count);
+                        S += log_q(size_t(bph[i] +
+                                          deg_delta * int(get<1>(deg[i])) +
+                                          ndeg_delta * int(get<1>(n_deg[i]))),
+                                   bv_count);
+                    }
+                    else
+                    {
+                        S += log_q(size_t(bph[i] +
+                                          deg_delta * int(get<1>(deg[i])) +
+                                          ndeg_delta * int(get<1>(n_deg[i])))
+                                   - bv_count,
+                                   bv_count);
+                    }
                 }
                 return S;
             };
@@ -1223,6 +1257,7 @@ private:
     size_t _total_B;
     size_t _D;
     bool _allow_empty;
+    bool _directed;
     vector<int> _dhist;        // d-histogram
     vector<int> _r_count;      // m_r
     bhist_t _bhist;            // b-histogram
