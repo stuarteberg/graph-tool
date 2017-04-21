@@ -962,7 +962,7 @@ public:
             auto vi = std::max_element(vertices(_g).first, vertices(_g).second,
                                        [&](auto u, auto v)
                                        { return this->_pclabel[u] < this->_pclabel[v];});
-            size_t C = _bclabel[*vi] + 1;
+            size_t C = _pclabel[*vi] + 1;
 
             vector<gt_hash_set<size_t>> vcs(C);
             vector<size_t> rc(num_vertices(_bg));
