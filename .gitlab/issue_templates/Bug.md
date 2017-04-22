@@ -5,7 +5,8 @@
 - [ ] Are you running the latest `graph-tool` version?
 - [ ] Do you observe the problem with the current git version?
 - [ ] Are you using Macports or Homebrew? If yes, please submit an issue there instead: https://github.com/Homebrew/brew/issues and https://trac.macports.org/newticket
-- [ ] Did you compile `graph-tool` manually? If yes, did you use the exact same compiler to build `graph-tool`, `boost-python` and `Python`?
+- [ ] Did you compile `graph-tool` manually?
+- [ ] If you answered yes above, did you use the exact same compiler to build `graph-tool`, `boost-python` and `Python`?
 
 Please replace this section with a brief summary of your issue.
 
@@ -15,8 +16,9 @@ Please replace this section with a brief summary of your issue.
 - [ ] Your operating system.
 - [ ] The Python version you are using.
 - [ ] If you compiled graph-tool manually: Your compiler version, as well as the version of Boost being used.
+- [ ] If you are reporting a compilation error, please provide the **entire** `./configure` output, as well as the **entire** contents of the `config.log` file and the **entire** compilation output.
 
-Do not forget to add code snippets using [Markdown](/help/user/markdown.md), i.e.
+Do not forget to add code snippets and error messages using [Markdown](/help/user/markdown.md), i.e.
 
 ```
 Insert your code/shell command/error message here.
