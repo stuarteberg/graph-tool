@@ -136,7 +136,7 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
         The partition to be used with the maximum number of blocks.
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the model will be used.
-    overlap : ``bool`` (optional, default: ``True``)
+    overlap : ``bool`` (optional, default: ``False``)
         If ``True``, the overlapping version of the model will be used.
     nonoverlap_init : ``bool`` (optional, default: ``True``)
         If ``True``, and ``overlap == True`` a non-overlapping initial state
@@ -340,7 +340,7 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
         If provided, it will correspond to the initial hierarchical partition.
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the model will be used.
-    overlap : ``bool`` (optional, default: ``True``)
+    overlap : ``bool`` (optional, default: ``False``)
         If ``True``, the overlapping version of the model will be used.
     nonoverlap_init : ``bool`` (optional, default: ``True``)
         If ``True``, and ``overlap == True`` a non-overlapping initial state
