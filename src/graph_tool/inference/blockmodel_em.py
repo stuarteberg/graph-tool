@@ -80,7 +80,7 @@ class EMBlockState(object):
         self.prs = random.random((B, B))
         for r in range(B):
             for s in range(r, B):
-                self.prs[r,s] = self.prs[s,r] = random.random()
+                self.prs[r,s] = self.prs[s,r]
 
         self.em_s = g.new_edge_property("vector<double>")
         self.em_t = g.new_edge_property("vector<double>")
@@ -176,7 +176,7 @@ class EMBlockState(object):
 
         The last update delta is returned.
         """
-        return self._state.bp_iter(epsilon, max_iter, verbose, _get_rng())
+        return self._state.bp_iter(max_iter, epsilon, verbose, _get_rng())
 
     def m_iter(self):
         """Perform a single 'maximization' iteration, where the group sizes and
