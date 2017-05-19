@@ -331,6 +331,10 @@ class BlockState(object):
             for rec in self.rec:
                 self.drec.append(self.g.new_ep("double", rec.fa ** 2))
         else:
+            if (isinstance(self.drec, PropertyMap) and
+                self.drec.value_type() == "vector<double>"):
+                self.drec = ungroup_vector_property(self.drec,
+                                                    range(len(self.drec[next(g.edges())])))
             self.drec = [self.g.own_property(p) for p in self.drec]
 
         rec_types = list(rec_types)
