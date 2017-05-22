@@ -35,13 +35,25 @@ typedef eprop_map_t<int32_t>::type emap_t;
 typedef UnityPropertyMap<int,GraphInterface::vertex_t> vcmap_t;
 typedef UnityPropertyMap<int,GraphInterface::edge_t> ecmap_t;
 
-template <class CMap>
-CMap& uncheck(boost::any& amap, CMap*) { return any_cast<CMap&>(amap); }
-vmap_t::unchecked_t uncheck(boost::any& amap, vmap_t::unchecked_t*);
-emap_t::unchecked_t uncheck(boost::any& amap, emap_t::unchecked_t*);
+template <class PMap>
+auto uncheck(boost::any& amap, PMap*)
+{
+    return any_cast<typename PMap::checked_t&>(amap).get_unchecked();
+}
+
+template <class T, class V>
+auto& uncheck(boost::any& amap, UnityPropertyMap<T,V>*)
+{
+    return any_cast<UnityPropertyMap<T,V>&>(amap);
+}
+
+inline simple_degs_t uncheck(boost::any& amap, simple_degs_t*)
+{
+    return any_cast<simple_degs_t>(amap);
+}
+
 
 typedef mpl::vector2<std::true_type, std::false_type> bool_tr;
-typedef mpl::vector2<simple_degs_t, degs_map_t> degs_tr;
 typedef mpl::vector2<vcmap_t, vmap_t> vweight_tr;
 typedef mpl::vector2<ecmap_t, emap_t> eweight_tr;
 
@@ -57,15 +69,14 @@ enum weight_type
     DELTA_T
 };
 
-
 #define BLOCK_STATE_params                                                     \
     ((g, &, all_graph_views, 1))                                               \
-    ((degs,, degs_tr, 1))                                                      \
     ((is_weighted,, bool_tr, 1))                                               \
     ((use_hash,, bool_tr, 1))                                                  \
     ((_abg, &, boost::any&, 0))                                                \
     ((_aeweight, &, boost::any&, 0))                                           \
     ((_avweight, &, boost::any&, 0))                                           \
+    ((_adegs, &, boost::any&, 0))                                              \
     ((mrs,, emap_t, 0))                                                        \
     ((mrp,, vmap_t, 0))                                                        \
     ((mrm,, vmap_t, 0))                                                        \
@@ -108,6 +119,7 @@ public:
           _c_mrs(_mrs.get_checked()),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
+          _degs(uncheck(__adegs, typename std::add_pointer<degs_t>::type())),
           _emat(_bg, rng),
           _egroups_enabled(true),
           _neighbour_sampler(_g, _eweight),
@@ -166,6 +178,7 @@ public:
           _B_E(other._B_E),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
+          _degs(uncheck(__adegs, typename std::add_pointer<degs_t>::type())),
           _emat(other._emat),
           _egroups_enabled(other._egroups_enabled),
           _neighbour_sampler(other._neighbour_sampler),
@@ -888,6 +901,14 @@ public:
         init_vertex_weight(v);
         _pclabel.resize(num_vertices(_g));
         _ignore_degrees.resize(num_vertices(_g));
+        resize_degs(_degs);
+    }
+
+    void resize_degs(const simple_degs_t&) {}
+
+    void resize_degs(typename degs_map_t::unchecked_t& degs)
+    {
+        degs.resize(num_vertices(_g));
     }
 
     // =========================================================================
@@ -2113,6 +2134,12 @@ public:
     typedef typename std::conditional<is_weighted_t::value,
                                       emap_t::unchecked_t, ecmap_t>::type eweight_t;
     eweight_t _eweight;
+
+    typedef typename std::conditional<is_weighted_t::value,
+                                      degs_map_t::unchecked_t,
+                                      simple_degs_t>::type degs_t;
+
+    degs_t _degs;
 
     typedef typename std::conditional<use_hash_t::value,
                                       EHash<bg_t>,

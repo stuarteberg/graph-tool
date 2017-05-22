@@ -27,18 +27,6 @@
 using namespace boost;
 using namespace graph_tool;
 
-namespace graph_tool
-{
-vmap_t::unchecked_t uncheck(boost::any& amap, vmap_t::unchecked_t*)
-{
-    return any_cast<vmap_t&>(amap).get_unchecked();
-}
-emap_t::unchecked_t uncheck(boost::any& amap, emap_t::unchecked_t*)
-{
-    return any_cast<emap_t&>(amap).get_unchecked();
-}
-}
-
 GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 python::object make_block_state(boost::python::object ostate,
@@ -110,11 +98,16 @@ degs_map_t get_weighted_block_degs(GraphInterface& gi, degs_map_t& degs,
     return ndegs;
 }
 
+degs_map_t get_empty_degs(GraphInterface& gi)
+{
+    return degs_map_t(gi.get_num_vertices(false));
+}
+
 
 template <class Prop>
 boost::any get_any(Prop& p)
 {
-    return any(p);
+    return boost::any(p);
 }
 
 void print_degs(degs_map_t& degs, size_t B)
@@ -183,11 +176,14 @@ void export_blockmodel_state()
 
     def("get_block_degs", &get_block_degs);
     def("get_weighted_block_degs", &get_weighted_block_degs);
+    def("get_empty_degs", &get_empty_degs);
     class_<degs_map_t>("degs_map_t")
         .def("print", &print_degs)
-        .def("copy", &copy_degs);
+        .def("copy", &copy_degs)
+        .def("_get_any", &get_any<degs_map_t>);
     class_<simple_degs_t>("simple_degs_t")
-        .def("copy", &copy_simple_degs);
+        .def("copy", &copy_simple_degs)
+        .def("_get_any", &get_any<simple_degs_t>);
 
     def("init_q_cache", init_q_cache);
     def("log_q", log_q<size_t>);

@@ -281,15 +281,21 @@ class BlockState(object):
 
         self.deg_corr = deg_corr
         self.overlap = False
-        self.degs = kwargs.pop("degs", libinference.simple_degs_t())
+        self.degs = kwargs.pop("degs", None)
         if self.degs is None:
-            self.degs = libinference.simple_degs_t()
-        elif self.degs == "weighted":
-            idx_ = self.g.vertex_index.copy("int")
-            self.degs = libinference.get_block_degs(self.g._Graph__graph,
-                                                    _prop("v", self.g, idx_),
-                                                    self.eweight._get_any(),
-                                                    self.g.num_vertices(True))
+            if not self.is_weighted:
+                self.degs = libinference.simple_degs_t()
+            else:
+                self.degs = "weighted"
+        if self.degs == "weighted":
+            if self.deg_corr:
+                idx_ = self.g.vertex_index.copy("int")
+                self.degs = libinference.get_block_degs(self.g._Graph__graph,
+                                                        _prop("v", self.g, idx_),
+                                                        self.eweight._get_any(),
+                                                        self.g.num_vertices(True))
+            else:
+                self.degs = libinference.get_empty_degs(self.g._Graph__graph)
 
         # ensure we have at most as many blocks as nodes
         if B is not None and b is None:
@@ -423,6 +429,7 @@ class BlockState(object):
         self._abg = self.bg._get_any()
         self._avweight = self.vweight._get_any()
         self._aeweight = self.eweight._get_any()
+        self._adegs = self.degs._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
         self._coupled_state = None
 
@@ -654,7 +661,7 @@ class BlockState(object):
         deg_corr = kwargs.pop("deg_corr", self.deg_corr if vweight == True else False)
         copy_bg = kwargs.pop("copy_bg", True)
 
-        if deg_corr and vweight:
+        if vweight and deg_corr:
             if isinstance(self.degs, libinference.simple_degs_t):
                 degs = libinference.get_block_degs(self.g._Graph__graph,
                                                    _prop("v", self.g, self.b),
@@ -667,7 +674,7 @@ class BlockState(object):
                                                                   self.b),
                                                             self.get_B())
         else:
-            degs = libinference.simple_degs_t()
+            degs = None
 
         if copy_bg:
             bg = self.bg.copy()
