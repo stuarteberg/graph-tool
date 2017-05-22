@@ -347,7 +347,7 @@ illustrate its use with the neural network of the `C. elegans
 
 .. testsetup:: celegans
 
-   gt.seed_rng(4)
+   gt.seed_rng(6)
 
 .. testcode:: celegans
 
@@ -399,9 +399,9 @@ which shows the number of nodes and groups in all levels:
 
 .. testoutput:: celegans
 
-   l: 0, N: 297, B: 22
-   l: 1, N: 22, B: 6
-   l: 2, N: 6, B: 3
+   l: 0, N: 297, B: 21
+   l: 1, N: 21, B: 8
+   l: 2, N: 8, B: 3
    l: 3, N: 3, B: 1
 
 The hierarchical levels themselves are represented by individual
@@ -416,9 +416,9 @@ The hierarchical levels themselves are represented by individual
 
 .. testoutput:: celegans
 
-   <BlockState object with 22 blocks (22 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
-   <BlockState object with 6 blocks (6 nonempty), for graph <Graph object, directed, with 22 vertices and 236 edges at 0x...>, at 0x...>
-   <BlockState object with 3 blocks (3 nonempty), for graph <Graph object, directed, with 6 vertices and 29 edges at 0x...>, at 0x...>
+   <BlockState object with 21 blocks (21 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
+   <BlockState object with 8 blocks (8 nonempty), for graph <Graph object, directed, with 21 vertices and 210 edges at 0x...>, at 0x...>
+   <BlockState object with 3 blocks (3 nonempty), for graph <Graph object, directed, with 8 vertices and 53 edges at 0x...>, at 0x...>
    <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 3 vertices and 9 edges at 0x...>, at 0x...>
 
 This means that we can inspect the hierarchical partition just as before:
@@ -435,8 +435,8 @@ This means that we can inspect the hierarchical partition just as before:
 .. testoutput:: celegans
 
    8
-   0
-   0
+   1
+   1
 
 
 Model selection
@@ -459,8 +459,8 @@ case of the `C. elegans` network we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 8495.7603...
-   Degree-corrected DL:	 8240.8139...
+   Non-degree-corrected DL:	 8612.5158...
+   Degree-corrected DL:	 8274.0696...
    
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -486,12 +486,12 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -254.9463...
+   ln Λ:  -338.4461...
 
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
 subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`e^{224} \sim 10^{97}`
+particular degree-corrected fit is around :math:`e^{338} \sim 10^{146}`
 times more likely than the non-degree corrected one, and hence it can be
 safely concluded that it provides a substantially better fit.
 
@@ -513,12 +513,12 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:	 1733.5256...
-   Degree-corrected DL:	 1780.7525...
-   ln Λ:			 -47.2268...
+   Non-degree-corrected DL:	 1750.3876...
+   Degree-corrected DL:	 1788.4210...
+   ln Λ:			 -38.0334...
 
-Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-47} \sim
-10^{-20}` in favor of the non-degree-corrected model, it seems like the
+Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-38} \sim
+10^{-16}` in favor of the non-degree-corrected model, it seems like the
 degree-corrected variant is an unnecessarily complex description for
 this network.
 
@@ -814,8 +814,8 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: 6.9889...
-   Number of accepted vertex moves: 45597
+   Change in description length: 8.4317...
+   Number of accepted vertex moves: 48463
 
 Similarly to the the non-nested case, we can use
 :func:`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
@@ -1145,8 +1145,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -518.064521707 (mean field), -770.951332583 (Bethe)
-   Model evidence for deg_corr = False: -533.357785329 (mean field), -681.561365629 (Bethe)
+   Model evidence for deg_corr = True: -526.904822342 (mean field), -727.215709786 (Bethe)
+   Model evidence for deg_corr = False: -544.952477376 (mean field), -652.096915026 (Bethe)
 
 The results are similar: If we consider the most accurate approximation,
 the non-degree-corrected model possesses the largest evidence. Note also
@@ -1386,8 +1386,8 @@ above).
 
 .. testoutput:: missing-edges
 
-   likelihood-ratio for (101, 102): 0.36...
-   likelihood-ratio for (17, 56): 0.63...
+   likelihood-ratio for (101, 102): 0.37...
+   likelihood-ratio for (17, 56): 0.62...
 
 From which we can conclude that edge :math:`(17, 56)` is more likely
 than :math:`(101, 102)` to be a missing edge.
