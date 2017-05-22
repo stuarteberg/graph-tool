@@ -278,7 +278,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             self._state = \
                 libinference.make_layered_overlap_block_state(agg_state._state,
                                                               self)
-        del self.agg_state._state
 
         self._entropy_args = self.agg_state._entropy_args
         self.allow_empty = allow_empty
