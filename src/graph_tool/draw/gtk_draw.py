@@ -159,7 +159,7 @@ class GraphWidget(Gtk.DrawingArea):
             If provided, defines the relative order in which the edges are drawn.
         nodesfirst : bool (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
-        update_layout : bool (optional, default: ``True``)
+        update_layout : bool (optional, default: ``False``)
             If ``True``, the layout will be updated dynamically.
         layout_K : float (optional, default: ``1.0``)
             Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
