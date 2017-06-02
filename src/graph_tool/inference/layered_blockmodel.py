@@ -652,7 +652,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                 "invalid entropy %g (%s) " % (S, str(args))
 
             Salt = self.copy().entropy(test=False, **args)
-            assert abs(S - Salt) < 1e-6, \
+            assert math.isclose(S, Salt, abs_tol=1e-8), \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
         return S
@@ -788,7 +788,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             L_alt = state.get_edges_prob(edge_list, missing=missing,
                                          entropy_args=entropy_args)
             set_test(True)
-            assert abs(L - L_alt) < 1e-6, \
+            assert math.isclose(L, L_alt, abs_tol=1e-8), \
                 "inconsistent missing=%s edge probability (%g, %g): %s, %s" % \
                 (str(missing), L, L_alt,  str(entropy_args), str(edge_list))
 

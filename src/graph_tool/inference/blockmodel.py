@@ -31,6 +31,7 @@ from .. stats import label_self_loops, remove_parallel_edges, remove_self_loops
 from .. spectral import adjacency
 import random
 from numpy import *
+import math
 import numpy
 import copy
 import collections
@@ -1089,7 +1090,7 @@ class BlockState(object):
             state_copy = self.copy()
             Salt = state_copy.entropy(**args)
 
-            assert abs(S - Salt) < 1e-6, \
+            assert math.isclose(S, Salt, abs_tol=1e-8), \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
         if len(kwargs) > 0:
@@ -1328,7 +1329,7 @@ class BlockState(object):
             L_alt = state.get_edges_prob(edge_list, missing=missing,
                                          entropy_args=entropy_args)
             set_test(True)
-            assert abs(L - L_alt) < 1e-6, \
+            assert math.isclose(L, L_alt, abs_tol=1e-8), \
                 "inconsistent missing=%s edge probability (%g, %g): %s, %s" % \
                 (str(missing), L, L_alt,  str(entropy_args), str(edge_list))
 
@@ -1447,7 +1448,7 @@ class BlockState(object):
                     Sf = self.entropy(**dmask(entropy_args, ["callback"]))
                 else:
                     Sf = self.entropy(**entropy_args)
-                assert abs(dS - (Sf - Si)) < 1e-6, \
+                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                     "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                                 str(entropy_args))
 
@@ -1565,7 +1566,7 @@ class BlockState(object):
                     Sf = self.entropy(**dmask(entropy_args, ["callback"]))
                 else:
                     Sf = self.entropy(**entropy_args)
-                assert abs(dS - (Sf - Si)) < 1e-6, \
+                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                     "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                                 str(entropy_args))
 
@@ -1674,7 +1675,7 @@ class BlockState(object):
                 Sf = self.entropy(**dmask(entropy_args, ["callback"]))
             else:
                 Sf = self.entropy(**entropy_args)
-            assert abs(dS - (Sf - Si)) < 1e-6, \
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
 
@@ -1773,7 +1774,7 @@ class BlockState(object):
                 Sf = self.entropy(**dmask(entropy_args, ["callback"]))
             else:
                 Sf = self.entropy(**entropy_args)
-            assert abs(S - Sf) < 1e-6, \
+            assert math.isclose(S, Sf, abs_tol=1e-8), \
                 "inconsistent entropy after sweep %g (%g): %s" % \
                 (S, Sf, str(entropy_args))
 
@@ -1958,7 +1959,7 @@ class BlockState(object):
                 Sf = self.entropy(**dmask(entropy_args, ["callback"]))
             else:
                 Sf = self.entropy(**entropy_args)
-            assert abs(dS - (Sf - Si)) < 1e-6, \
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
 

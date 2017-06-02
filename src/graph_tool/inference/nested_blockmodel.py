@@ -202,8 +202,9 @@ class NestedBlockState(object):
             continuous_map(b)
             continuous_map(b2)
             assert ((b == b2).all() and
-                    (bstate.entropy(dl=False) -
-                     self.levels[l].entropy(dl=False))) < 1e-6, \
+                    math.isclose(bstate.entropy(dl=False),
+                                 self.levels[l].entropy(dl=False),
+                                 abs_tol=1e-8)), \
                 "inconsistent level %d (%s %g,  %s %g): %s" % \
                 (l, str(bstate), bstate.entropy(), str(self.levels[l]),
                  self.levels[l].entropy(), str(self))
@@ -812,7 +813,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
             if _bm_test():
                 if kept:
-                    assert abs(state.entropy() - Si) < 1e-6, \
+                    assert math.isclose(state.entropy(), Si, abs_tol=1e-8), \
                     "inconsistent delete at level %d (%g, %g)" % \
                     (l, state.entropy(), Si)
 
