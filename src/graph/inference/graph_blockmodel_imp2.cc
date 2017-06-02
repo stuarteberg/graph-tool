@@ -89,6 +89,10 @@ void export_sbm_state()
                       &state_t::couple_state)
                  .def("decouple_state",
                       &state_t::decouple_state)
+                 .def("get_B_E",
+                      &state_t::get_B_E)
+                 .def("get_B_E_D",
+                      &state_t::get_B_E_D)
                  .def("clear_egroups",
                       &state_t::clear_egroups)
                  .def("rebuild_neighbour_sampler",

@@ -43,7 +43,7 @@ def default_args(mcmc_args={}, anneal_args={}, mcmc_equilibrate_args={},
                                  **dmask(mcmc_equilibrate_args,
                                          ["mcmc_args"]))
     shrink_entropy_args = dict(dict(mcmc_args["entropy_args"],
-                                       dl=not overlap),
+                                    dl=not overlap),
                                **shrink_args.get("entropy_args", {}))
     if not shrink_entropy_args.get("dense", False):
          shrink_entropy_args["multigraph"] = False

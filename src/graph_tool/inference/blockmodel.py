@@ -235,7 +235,7 @@ class BlockState(object):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    allow_empty : ``bool`` (optional, default: ``True``)
+    allow_empty : ``bool`` (optional, default: ``False``)
         If ``True``, partition description length computed will allow for empty
         groups.
     max_BE : ``int`` (optional, default: ``1000``)
@@ -425,6 +425,10 @@ class BlockState(object):
         self.empty_pos = self.bg.new_vp("int")
 
         self._init_recs(self.rec, rec_types, rec_params)
+        self.recdx = libcore.Vector_double(len(self.rec))
+        self.Lrecdx = kwargs.pop("Lrecdx",
+                                 libcore.Vector_double(len(self.rec)+1))
+        self.Lrecdx.resize(len(self.rec)+1)
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
@@ -433,6 +437,9 @@ class BlockState(object):
         self._adegs = self.degs._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
         self._coupled_state = None
+        self.bg.properties.clear()
+
+        assert all(self.recdx.a >= 0), self.recdx.a
 
         if deg_corr:
             init_q_cache(max(2 * max(self.get_E(), self.get_N()), 100))
@@ -468,8 +475,8 @@ class BlockState(object):
                 rt = rec_type
             self.rec_types.append(rt)
 
-        self.brec = self.bg.gp.rec
-        self.bdrec = self.bg.gp.drec
+        self.brec = [self.bg.own_property(p) for p in self.bg.gp.rec]
+        self.bdrec = [self.bg.own_property(p) for p in self.bg.gp.drec]
 
         if (len(self.rec_types) > 0 and
             self.rec_types[0] == libinference.rec_type.delta_t): # waiting times
@@ -678,15 +685,20 @@ class BlockState(object):
             degs = None
 
         if copy_bg:
+            self.bg.ep["eweight"] = self.mrs
+            for i in range(len(self.brec)):
+                self.bg.ep["brec%d"%i] = self.brec[i]
+                self.bg.ep["bdrec%d"%i] = self.bdrec[i]
             bg = self.bg.copy()
-            eweight = bg.own_property(self.mrs.copy())
-            for i in range(len(bg.gp.rec)):
-                bg.gp.rec[i] = bg.own_property(bg.gp.rec[i]).copy()
-            for i in range(len(bg.gp.drec)):
-                bg.gp.drec[i] = bg.own_property(bg.gp.drec[i]).copy()
+            eweight = bg.ep["eweight"]
+            brec = [bg.ep["brec%d"%i] for i in range(len(self.brec))]
+            bdrec = [bg.ep["bdrec%d"%i] for i in range(len(self.bdrec))]
+            bg.properties.clear()
         else:
             bg = self.bg
             eweight = self.mrs
+            brec = self.brec
+            bdrec = self.bdrec
             if self.g.get_vertex_filter()[0] is not None:
                 bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
 
@@ -708,19 +720,17 @@ class BlockState(object):
 
         if recs:
             rec_types = kwargs.pop("rec_types", self.rec_types)
-            recs = kwargs.pop("recs", bg.gp.rec)
-            drec = kwargs.pop("drec", bg.gp.drec if len(bg.gp.drec) > 0 else
-                              None)
+            recs = kwargs.pop("recs", brec)
+            drec = kwargs.pop("drec", bdrec)
             rec_params = kwargs.pop("rec_params", self.rec_params)
         else:
-            drec = None
             recs = []
+            drec = None
             rec_types = []
             rec_params = []
-            for rt, rp, r, dr in zip(self.rec_types, self.wparams,
-                                     bg.gp.rec, bg.gp.drec):
+            for rt, rp, r in zip(self.rec_types, self.wparams, brec):
                 if rt == libinference.rec_type.count:
-                    recs.append(bg.new_ep("double", bg.ep.count.fa > 0))
+                    recs.append(bg.new_ep("double", eweight.fa > 0))
                     rec_types.append(rt)
                     rec_params.append("microcanonical")
                 elif numpy.isnan(rp.a).sum() == 0:
@@ -738,9 +748,6 @@ class BlockState(object):
                 elif rt == libinference.rec_type.real_normal:
                     recs.append(r)
                     rec_types.append(rt)
-                    rec_params.append("microcanonical")
-                    recs.append(dr)
-                    rec_types.append(libinference.rec_type.real_exponential)
                     rec_params.append("microcanonical")
             rec_params = kwargs.pop("rec_params", rec_params)
 
@@ -1428,9 +1435,10 @@ class BlockState(object):
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)
+        test = kwargs.pop("test", True)
         if dispatch:
-            disable_callback_test = kwargs.pop("disable_callback_test", False)
-            if _bm_test():
+            if _bm_test() and test:
+                disable_callback_test = kwargs.pop("disable_callback_test", False)
                 assert self._check_clabel(), "invalid clabel before sweep"
                 if disable_callback_test:
                     Si = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1442,7 +1450,7 @@ class BlockState(object):
             finally:
                 self.B = max(int(self.b.fa.max()) + 1, self.B)
 
-            if _bm_test():
+            if _bm_test() and test:
                 assert self._check_clabel(), "invalid clabel after sweep"
                 if disable_callback_test:
                     Sf = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1535,9 +1543,10 @@ class BlockState(object):
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)
+        test = kwargs.pop("test", True)
         if dispatch:
-            disable_callback_test = kwargs.pop("disable_callback_test", False)
-            if _bm_test():
+            if _bm_test() and test:
+                disable_callback_test = kwargs.pop("disable_callback_test", False)
                 assert self._check_clabel(), "invalid clabel before sweep"
                 if disable_callback_test:
                     Si = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1560,7 +1569,7 @@ class BlockState(object):
                 kwargs["maccept"][:M] = mcmc_state.maccept.a
                 del kwargs["maccept"]
 
-            if _bm_test():
+            if _bm_test() and test:
                 assert self._check_clabel(), "invalid clabel after sweep"
                 if disable_callback_test:
                     Sf = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1656,8 +1665,9 @@ class BlockState(object):
         gibbs_state.E = self.get_E()
         gibbs_state.state = self._state
 
-        disable_callback_test = kwargs.pop("disable_callback_test", False)
-        if _bm_test():
+        test = kwargs.pop("test", True)
+        if _bm_test() and test:
+            disable_callback_test = kwargs.pop("disable_callback_test", False)
             assert self._check_clabel(), "invalid clabel before sweep"
             if disable_callback_test:
                 Si = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1669,7 +1679,7 @@ class BlockState(object):
         finally:
             self.B = max(int(self.b.fa.max()) + 1, self.B)
 
-        if _bm_test():
+        if _bm_test() and test:
             assert self._check_clabel(), "invalid clabel after sweep"
             if disable_callback_test:
                 Sf = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1766,9 +1776,8 @@ class BlockState(object):
         finally:
             self.B = max(int(self.b.fa.max()) + 1, self.B)
 
-        disable_callback_test = kwargs.pop("disable_callback_test", False)
-
-        if _bm_test():
+        if _bm_test() and kwargs.pop("test", True):
+            disable_callback_test = kwargs.pop("disable_callback_test", False)
             assert self._check_clabel(), "invalid clabel after sweep"
             if disable_callback_test:
                 Sf = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1943,8 +1952,8 @@ class BlockState(object):
         entropy_args = dict(self._entropy_args, **entropy_args)
         merge_state.entropy_args = get_entropy_args(entropy_args)
 
-        disable_callback_test = kwargs.pop("disable_callback_test", False)
         if _bm_test():
+            disable_callback_test = kwargs.pop("disable_callback_test", False)
             self._check_clabel()
             if disable_callback_test:
                 Si = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1976,7 +1985,6 @@ class BlockState(object):
         bstate = self.get_block_state(vweight=True,
                                       clabel=self.get_bclabel(),
                                       deg_corr=self.deg_corr)
-        #bstate._couple_state(None, None)
 
         nB = bstate.get_nonempty_B()
         while nB > B:

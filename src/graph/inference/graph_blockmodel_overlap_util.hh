@@ -1357,7 +1357,7 @@ public:
     std::tuple<EVals...> _self_weight;
 
     std::vector<std::tuple<size_t, size_t,
-                           GraphInterface::edge_t, int>>
+                           GraphInterface::edge_t, int, std::vector<double>>>
         _recs_entries;
 
 private:

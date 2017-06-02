@@ -97,6 +97,8 @@ enum weight_type
     ((bdrec,, std::vector<eprop_map_t<double>::type>, 0))                      \
     ((brecsum,, vprop_map_t<double>::type, 0))                                 \
     ((wparams, &, std::vector<std::vector<double>>&, 0))                       \
+    ((recdx, &, std::vector<double>&, 0))                                      \
+    ((Lrecdx, &, std::vector<double>&, 0))                                     \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
     ((bignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))               \
     ((allow_empty,, bool, 0))
@@ -121,10 +123,8 @@ public:
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _degs(uncheck(__adegs, typename std::add_pointer<degs_t>::type())),
           _emat(_bg, rng),
-          _egroups_enabled(true),
           _neighbour_sampler(_g, _eweight),
-          _m_entries(num_vertices(_bg)),
-          _coupled_state(nullptr)
+          _m_entries(num_vertices(_bg))
     {
         _empty_blocks.clear();
         _candidate_blocks.clear();
@@ -145,25 +145,42 @@ public:
             _recsum.push_back(x);
         }
         for (auto& p : _bdrec)
-        {
             _c_bdrec.push_back(p.get_checked());
-            double x = 0;
-            for (auto me : edges_range(_bg))
-                x += p[me];
-            _drecsum.push_back(x);
-        }
 
-        _B_E = 0;
-        _recx2.resize(this->_rec_types.size());
-        for (auto me : edges_range(_bg))
+        if (!_rec_types.empty())
         {
-            if (_mrs[me] > 0)
+            _recx2.resize(this->_rec_types.size());
+            _recdx.resize(this->_rec_types.size());
+            for (auto me : edges_range(_bg))
             {
-                _B_E++;
-                for (size_t i = 0; i < _rec_types.size(); ++i)
-                    _recx2[i] += std::pow(_brec[i][me], 2);
+                if (_brec[0][me] > 0)
+                {
+                    _B_E++;
+                    for (size_t i = 0; i < _rec_types.size(); ++i)
+                    {
+                        if (this->_rec_types[i] == weight_type::REAL_NORMAL)
+                        {
+                            _recx2[i] += std::pow(_brec[i][me], 2);
+                            if (_brec[0][me] > 1)
+                                _recdx[i] += \
+                                    (_bdrec[i][me] -
+                                     std::pow(_brec[i][me], 2) / _brec[0][me]);
+                        }
+                    }
+                }
+                if (_brec[0][me] > 1)
+                    _B_E_D++;
             }
         }
+
+        _rt = weight_type::NONE;
+        for (auto rt : _rec_types)
+        {
+            _rt = rt;
+            if (rt == weight_type::REAL_NORMAL)
+                break;
+        }
+        _dBdx.resize(_rec_types.size());
     }
 
     BlockState(const BlockState& other)
@@ -173,17 +190,18 @@ public:
           _c_brec(other._c_brec),
           _c_bdrec(other._c_bdrec),
           _recsum(other._recsum),
-          _drecsum(other._drecsum),
           _recx2(other._recx2),
+          _dBdx(other._dBdx),
           _B_E(other._B_E),
+          _B_E_D(other._B_E_D),
+          _rt(other._rt),
           _vweight(uncheck(__avweight, typename std::add_pointer<vweight_t>::type())),
           _eweight(uncheck(__aeweight, typename std::add_pointer<eweight_t>::type())),
           _degs(uncheck(__adegs, typename std::add_pointer<degs_t>::type())),
           _emat(other._emat),
           _egroups_enabled(other._egroups_enabled),
           _neighbour_sampler(other._neighbour_sampler),
-          _m_entries(num_vertices(_bg)),
-          _coupled_state(nullptr)
+          _m_entries(num_vertices(_bg))
     {
         if (other.is_partition_stats_enabled())
             enable_partition_stats();
@@ -205,29 +223,16 @@ public:
                              std::forward<decltype(args)>(args)...);
             };
 
-        int rec_type = weight_type::NONE;
-        for (auto rt : _rec_types)
+        if (_rt == weight_type::NONE)
         {
-            rec_type = rt;
-            if (rt == weight_type::REAL_NORMAL)
-                break;
-        }
-
-        switch (rec_type)
-        {
-        case weight_type::COUNT:
-        case weight_type::REAL_EXPONENTIAL:
-        case weight_type::DISCRETE_GEOMETRIC:
-        case weight_type::DISCRETE_POISSON:
-        case weight_type::DISCRETE_BINOMIAL:
-        case weight_type::DELTA_T:
-            mv_entries(_rec);
-            break;
-        case weight_type::REAL_NORMAL:
-            mv_entries(_rec, _drec);
-            break;
-        default: // no weights
             mv_entries();
+        }
+        else
+        {
+            if (_rt == weight_type::REAL_NORMAL)
+                mv_entries(_rec, _drec);
+            else
+                mv_entries(_rec);
         }
     }
 
@@ -248,64 +253,152 @@ public:
             get_move_entries(v, r, null_group, _m_entries,
                              std::forward<EFilt>(efilt));
 
-        entries_op(_m_entries, _emat,
-                   [&](auto r, auto s, auto& me, auto& delta)
-                   {
-                       if (get<0>(delta) == 0) // can happen with zero-weight
-                           return;             // edges
-
-                       if (Add && me == _emat.get_null_edge())
-                       {
-                           me = boost::add_edge(r, s, this->_bg).first;
-                           _emat.put_me(r, s, me);
-                           this->_c_mrs[me] = 0;
-                           for (size_t i = 0; i < this->_rec_types.size(); ++i)
+        auto eops = [&](auto&& mid_op, auto&& end_op)
+            {
+                entries_op(_m_entries, _emat,
+                           [&](auto r, auto s, auto& me, auto& delta)
                            {
-                               this->_c_brec[i][me] = 0;
-                               this->_c_bdrec[i][me] = 0;
-                           }
-                           if (_coupled_state != nullptr)
-                               _coupled_state->add_edge(me);
-                       }
+                               if (get<0>(delta) == 0) // can happen with
+                                   return;             // zero-weight edges
 
-                       if (Add && this->_mrs[me] == 0)
-                           _B_E++;
-                       if (!Add && this->_mrs[me] + get<0>(delta) == 0)
-                           _B_E--;
+                               if (Add && me == _emat.get_null_edge())
+                               {
+                                   me = boost::add_edge(r, s, this->_bg).first;
+                                   _emat.put_me(r, s, me);
+                                   this->_c_mrs[me] = 0;
+                                   for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                                   {
+                                       this->_c_brec[i][me] = 0;
+                                       this->_c_bdrec[i][me] = 0;
+                                   }
+                               }
 
-                       for (size_t i = 0; i < this->_rec_types.size(); ++i)
-                       {
-                           _recx2[i] -= std::pow(this->_brec[i][me], 2);
-                           _recx2[i] += std::pow(this->_brec[i][me] +
-                                                 get<1>(delta)[i], 2);
-                       }
+                               mid_op(me, delta);
 
-                       this->_mrs[me] += get<0>(delta);
-                       this->_mrp[r] += get<0>(delta);
-                       this->_mrm[s] += get<0>(delta);
+                               this->_mrs[me] += get<0>(delta);
+                               this->_mrp[r] += get<0>(delta);
+                               this->_mrm[s] += get<0>(delta);
 
-                       assert(this->_mrs[me] >= 0);
-                       assert(this->_mrp[r] >= 0);
-                       assert(this->_mrm[s] >= 0);
+                               assert(this->_mrs[me] >= 0);
+                               assert(this->_mrp[r] >= 0);
+                               assert(this->_mrm[s] >= 0);
 
-                       for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                               end_op(me, delta);
+                           });
+                   };
+
+        if (_rec_types.empty())
+        {
+            eops([](auto, auto&){}, [](auto, auto&){});
+        }
+        else
+        {
+            auto end_op = [&](auto& me, auto& delta)
+                {
+                    for (size_t i = 0; i < this->_rec_types.size(); ++i)
                        {
                            switch (this->_rec_types[i])
                            {
                            case weight_type::REAL_NORMAL: // signed weights
                                this->_bdrec[i][me] += get<2>(delta)[i];
+                               [[gnu::fallthrough]];
                            default:
                                this->_brec[i][me] += get<1>(delta)[i];
                            }
                        }
+                };
 
-                       if (!Add && this->_mrs[me] == 0)
-                       {
-                           if (_coupled_state != nullptr)
-                               _coupled_state->remove_edge(me);
-                           _emat.remove_me(me, this->_bg);
-                       }
-                   });
+            auto mid_op_BE =
+                [&](auto& me, auto&& delta)
+                {
+                    auto& mrs = this->_brec[0][me];
+                    if (Add && mrs == 0 && mrs + get<1>(delta)[0] > 0)
+                    {
+                        _B_E++;
+                        if (_coupled_state != nullptr)
+                            _coupled_state->add_edge(me);
+                    }
+
+                    if (!Add && mrs > 0 && mrs + get<1>(delta)[0] == 0)
+                    {
+                        _B_E--;
+                        if (_coupled_state != nullptr)
+                            _coupled_state->remove_edge(me);
+                    }
+                };
+
+            if (_rt != weight_type::REAL_NORMAL)
+            {
+                eops(mid_op_BE, end_op);
+            }
+            else
+            {
+                auto mid_op =
+                    [&](auto& me, auto&& delta)
+                    {
+                        auto& mrs = this->_brec[0][me];
+                        mid_op_BE(me, delta);
+
+                        if (mrs + get<1>(delta)[0] > 1)
+                        {
+                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                            {
+                                if (this->_rec_types[i] == weight_type::REAL_NORMAL)
+                                {
+                                    auto dx = \
+                                        (this->_bdrec[i][me] + get<2>(delta)[i]
+                                         - (std::pow((this->_brec[i][me] +
+                                                      get<1>(delta)[i]), 2) /
+                                            (mrs + get<1>(delta)[0])));
+                                    this->_recdx[i] += dx;
+                                    this->_Lrecdx[i+1] += dx;
+                                }
+                            }
+
+                            if (Add && (mrs < 2))
+                                _B_E_D++;
+                        }
+
+                        if (mrs > 1)
+                        {
+                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                            {
+                                if (this->_rec_types[i] == weight_type::REAL_NORMAL)
+                                {
+                                    auto dx = \
+                                       (this->_bdrec[i][me] -
+                                        std::pow(this->_brec[i][me], 2) / mrs);
+                                    this->_recdx[i] -= dx;
+                                    this->_Lrecdx[i+1] -= dx;
+                                }
+                            }
+
+                            if (!Add && ((mrs + get<1>(delta)[0]) < 2))
+                                _B_E_D--;
+                        }
+
+                        for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                        {
+                            if (this->_rec_types[i] == weight_type::REAL_NORMAL)
+                            {
+                                _recx2[i] -= std::pow(this->_brec[i][me], 2);
+                                _recx2[i] += std::pow(this->_brec[i][me] +
+                                                      get<1>(delta)[i], 2);
+                            }
+                        }
+
+                    };
+
+                auto coupled_end_op = [&](auto& me, auto& delta)
+                    {
+                        end_op(me, delta);
+                        if (_coupled_state != nullptr)
+                            _coupled_state->update_edge(me, get<1>(delta));
+                    };
+
+                eops(mid_op, coupled_end_op);
+            }
+        }
 
         if (!_rec_types.empty() &&
             _rec_types[1] == weight_type::DELTA_T) // waiting times
@@ -332,11 +425,46 @@ public:
         {
             auto crec = _rec[0].get_checked();
             crec[e] = 1;
+            for (size_t i = 1; i < _rec_types.size(); ++i)
+            {
+                auto drec = _drec[i].get_checked();
+                drec[e] = 0;
+            }
             size_t r = _b[source(e, _g)];
             size_t s = _b[target(e, _g)];
             auto& me = _emat.get_me(r, s);
             assert(me != _emat.get_null_edge());
             _brec[0][me] += 1;
+
+            if (_brec[0][me] == 1)
+                _B_E++;
+
+            if (_brec[0][me] == 2)
+                _B_E_D++;
+
+            if (_rt == weight_type::REAL_NORMAL && _brec[0][me] > 1)
+            {
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                {
+                    if (_rec_types[i] == weight_type::REAL_NORMAL)
+                    {
+                        auto dx = (_bdrec[i][me] -
+                                      std::pow(_brec[i][me], 2) /
+                                      _brec[0][me]);
+                        _recdx[i] += dx;
+                        _Lrecdx[i+1] += dx;
+
+                        if (_brec[0][me] > 2)
+                        {
+                            dx = (_bdrec[i][me] -
+                                          std::pow(_brec[i][me], 2) /
+                                          (_brec[0][me] - 1));
+                            _recdx[i] -= dx;
+                            _Lrecdx[i+1] -= dx;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -347,9 +475,79 @@ public:
             size_t r = _b[source(e, _g)];
             size_t s = _b[target(e, _g)];
             auto& me = _emat.get_me(r, s);
-            _brec[0][me] -= _rec[0][e];
+            _brec[0][me] -= 1;
             _rec[0][e] = 0;
+
+            if (_brec[0][me] == 0)
+                _B_E--;
+
+            if (_brec[0][me] == 1)
+                _B_E_D--;
+
+            if (_rt == weight_type::REAL_NORMAL && _brec[0][me] > 0)
+            {
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                {
+                    if (_rec_types[i] == weight_type::REAL_NORMAL)
+                    {
+                        auto dx = \
+                            (_bdrec[i][me] -
+                             std::pow(_brec[i][me], 2) / (_brec[0][me] + 1));
+                        _recdx[i] -= dx;
+                        _Lrecdx[i+1] -= dx;
+
+                        if (_brec[0][me] > 1)
+                        {
+                            dx = (_bdrec[i][me] -
+                                  std::pow(_brec[i][me], 2) / _brec[0][me]);
+                            _recdx[i] += dx;
+                            _Lrecdx[i+1] += dx;
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    void update_edge(const GraphInterface::edge_t& e,
+                     const std::vector<double>& delta)
+    {
+        if (_rt != weight_type::REAL_NORMAL)
+            return;
+        size_t r = _b[source(e, _g)];
+        size_t s = _b[target(e, _g)];
+        auto& me = _emat.get_me(r, s);
+        for (size_t i = 0; i < this->_rec_types.size(); ++i)
+        {
+            auto c_rec = _rec[i].get_checked();
+            auto rec = c_rec[e];
+            auto c_drec = _drec[i].get_checked();
+            auto d = (std::pow(rec, 2) -
+                      std::pow(rec - delta[i], 2));
+            c_drec[e] += d;
+
+            if (_rec_types[i] != weight_type::REAL_NORMAL)
+                continue;
+
+            _bdrec[i][me] += d;
+
+            auto ers = _brec[0][me];
+            if (ers > 1)
+            {
+                _recdx[i] += d;
+                _Lrecdx[i+1] += d;
+            }
+        }
+    }
+
+    size_t get_B_E()
+    {
+        return _B_E;
+    }
+
+    size_t get_B_E_D()
+    {
+        return _B_E_D;
     }
 
     void remove_partition_node(size_t v, size_t r)
@@ -454,6 +652,7 @@ public:
                 {
                 case weight_type::REAL_NORMAL: // signed weights
                     _bdrec[i][me] -= _drec[i][e];
+                    [[gnu::fallthrough]];
                 default:
                     _brec[i][me] -= _rec[i][e];
                 }
@@ -546,6 +745,7 @@ public:
                 {
                 case weight_type::REAL_NORMAL: // signed weights
                     _bdrec[i][me] += _drec[i][e];
+                    [[gnu::fallthrough]];
                 default:
                     _brec[i][me] += _rec[i][e];
                 }
@@ -1187,7 +1387,7 @@ public:
 
                                    if (ea.edges_dl)
                                    {
-                                       ers = 0;
+                                       size_t ers = 0;
                                        if (me != _emat.get_null_edge())
                                            ers = this->_mrs[me];
                                        if (ers == 0 && get<0>(delta) > 0)
@@ -1265,7 +1465,9 @@ public:
                 case weight_type::REAL_NORMAL:
                     {
                         int dB_E = 0;
+                        int dB_E_D = 0;
                         double dBx2 = 0;
+                        _dBdx[i] = 0;
                         entries_op(m_entries, _emat,
                                    [&](auto, auto, auto& me, auto& delta)
                                    {
@@ -1281,39 +1483,63 @@ public:
                                        auto dx = get<1>(delta)[i];
                                        auto dx2 = get<2>(delta)[i];
                                        dS -= -signed_w_log_P(ers, xrs, x2rs,
-                                                             wp[0], wp[1], wp[2],
-                                                             wp[3]);
-                                       dS += -signed_w_log_P(ers + d, xrs + dx,
+                                                             wp[0], wp[1],
+                                                             wp[2], wp[3]);
+                                       dS += -signed_w_log_P(ers + d,
+                                                             xrs + dx,
                                                              x2rs + dx2,
                                                              wp[0], wp[1],
                                                              wp[2], wp[3]);
-                                       if (ea.edges_dl)
+                                       if (std::isnan(wp[0]) &&
+                                           std::isnan(wp[1]))
                                        {
-                                           ers = 0;
-                                           if (me != _emat.get_null_edge())
-                                               ers = this->_mrs[me];
-                                           if (ers == 0 && get<0>(delta) > 0)
+                                           if (ers == 0 && get<1>(delta)[0] > 0)
                                                dB_E++;
-                                           if (ers > 0 && ers + get<0>(delta) == 0)
+                                           if (ers > 0 && ers + get<1>(delta)[0] == 0)
                                                dB_E--;
-                                           dBx2 += (std::pow(x2rs + dx2, 2) -
-                                                    std::pow(x2rs, 2));
+                                           if (ers + get<1>(delta)[0] > 1)
+                                           {
+                                               if (ers < 2)
+                                                   dB_E_D++;
+                                               _dBdx[i] += \
+                                                   (x2rs + dx2 -
+                                                    std::pow(xrs + dx, 2) /
+                                                    (ers + get<1>(delta)[0]));
+
+                                           }
+                                           if (ers > 1)
+                                           {
+                                               if (ers + get<1>(delta)[0] < 2)
+                                                   dB_E_D--;
+                                               _dBdx[i] -= \
+                                                   (x2rs -
+                                                    std::pow(xrs, 2) / ers);
+                                           }
+                                           dBx2 += (std::pow(xrs + dx, 2) -
+                                                    std::pow(xrs, 2));
                                        }
                                    });
 
-                        if (dB_E > 0 && ea.edges_dl && std::isnan(wp[0]) &&
-                            std::isnan(wp[1]))
+                        if (std::isnan(wp[0]) && std::isnan(wp[1]))
                         {
-                            dS -= -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
-                                                  wp[0], wp[1], wp[2], wp[3]);
-                            dS -= -positive_w_log_P(_B_E, _drecsum[i], wp[0],
-                                                    wp[1]);
-                            dS += -signed_w_log_P(_B_E + dB_E, _recsum[i],
-                                                  _recx2[i] + dBx2, wp[0], wp[1],
-                                                  wp[2],
-                                                  wp[3]);
-                            dS += -positive_w_log_P(_B_E + dB_E, _drecsum[i], wp[0],
-                                                    wp[1]);
+                            if (ea.edges_dl && (dB_E != 0 || dBx2 != 0))
+                            {
+                                dS -= -signed_w_log_P(_B_E, _recsum[i],
+                                                      _recx2[i], wp[0], wp[1],
+                                                      wp[2], wp[3]);
+                                dS += -signed_w_log_P(_B_E + dB_E, _recsum[i],
+                                                      _recx2[i] + dBx2, wp[0],
+                                                      wp[1], wp[2], wp[3]);
+                            }
+
+                            if (dB_E_D != 0 || _dBdx[i] != 0)
+                            {
+                                dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
+                                                            wp[2], wp[3]);
+                                dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
+                                                            _recdx[i] + _dBdx[i],
+                                                            wp[2], wp[3]);
+                            }
                         }
                     }
                     break;
@@ -1349,7 +1575,7 @@ public:
             assert(r == null_group || nr == null_group || allow_move(r, nr));
             bool r_vacate = (r != null_group) && (_wr[r] == _vweight[v]);
             bool nr_occupy = (nr != null_group) && (_wr[nr] == 0);
-            if (r_vacate != nr_occupy)
+            if (ea.partition_dl && r_vacate != nr_occupy)
             {
                 #pragma omp critical (coupled_virtual_move)
                 {
@@ -1379,13 +1605,13 @@ public:
                 entries_op(m_entries, _emat,
                            [&](auto r, auto s, auto& me, auto& delta)
                            {
-                               if (get<0>(delta) != 0)
-                                   recs_entries.emplace_back(r, s, me,
-                                                             get<0>(delta));
+                               recs_entries.emplace_back(r, s, me,
+                                                         get<0>(delta),
+                                                         get<1>(delta));
                            });
                 #pragma omp critical (coupled_virtual_move)
                 {
-                    dS += _coupled_state->recs_dS(r, nr, recs_entries);
+                    dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx);
                 }
             }
         }
@@ -1399,8 +1625,9 @@ public:
 
     double recs_dS(size_t u, size_t v,
                    const std::vector<std::tuple<size_t, size_t,
-                                                GraphInterface::edge_t, int>>&
-                   entries)
+                                     GraphInterface::edge_t, int,
+                                     std::vector<double>>>& entries,
+                   std::vector<double>& dBdx)
     {
         if (_rec_types.empty())
             return 0;
@@ -1413,30 +1640,39 @@ public:
 
         for (auto& iter : entries)
         {
-
             size_t r = _b[get<0>(iter)];
             size_t s = _b[get<1>(iter)];
 
             auto& e = get<2>(iter);
 
+            int d = get<3>(iter);
+            auto dx = get<4>(iter);
+
             if (e == _emat.get_null_edge())
             {
-                _m_entries.template insert_delta<true>(r, s, 1);
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                    dx[i] = std::pow(dx[i], 2);
+
+                _m_entries.template insert_delta<true>(r, s, d > 0, dx);
             }
             else
             {
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                    dx[i] = (std::pow(_rec[i][e] + dx[i], 2) -
+                             std::pow(_rec[i][e], 2));
+
                 int ers = _eweight[e];
-                if (ers == 0)
+                if (ers == 0 && d > 0)
                 {
                     assert(get<3>(iter) > 0);
                     _m_entries.template insert_delta<true>(r, s, 1);
                 }
                 else
                 {
-                    int delta = get<3>(iter);
-                    if (ers + delta == 0)
+                    if (ers > 0 && ers + d == 0)
                         _m_entries.template insert_delta<false>(r, s, 1);
                 }
+                _m_entries.template insert_delta<true>(r, s, 0, dx);
             }
         }
 
@@ -1446,7 +1682,7 @@ public:
                 entries_op(_m_entries, _emat,
                            [&](auto, auto, auto& me, auto& delta)
                            {
-                               double ers = 0;
+                               int ers = 0;
                                if (me != _emat.get_null_edge())
                                    ers = this->_brec[0][me];
                                auto d = get<0>(delta);
@@ -1486,18 +1722,61 @@ public:
                              });
                 break;
             case weight_type::REAL_NORMAL:
-                w_entries_op([&](auto N, auto& me)
-                             {
-                                 double x = 0, x2 = 0;
-                                 if (me != _emat.get_null_edge())
-                                 {
-                                     x = this->_brec[i][me];
-                                     x2 = this->_bdrec[i][me];
-                                 }
-                                 return signed_w_log_P(N, x, x2,
-                                                       wp[0], wp[1], wp[2],
-                                                       wp[3]);
-                           });
+                {
+                    int dB_E_D = 0;
+                    double drecdx = 0;
+                    entries_op(_m_entries, _emat,
+                               [&](auto, auto, auto& me, auto& delta)
+                               {
+                                   int ers = 0;
+                                   double x = 0, x2 = 0;
+                                   if (me != _emat.get_null_edge())
+                                   {
+                                       ers = this->_brec[0][me];
+                                       x = this->_brec[i][me];
+                                       x2 = this->_bdrec[i][me];
+                                   }
+                                   auto d = get<0>(delta);
+                                   auto dx2 = get<1>(delta)[i];
+                                   dS -= -signed_w_log_P(ers, x, x2,
+                                                         wp[0], wp[1], wp[2],
+                                                         wp[3]);
+                                   dS += -signed_w_log_P(ers + d, x, x2 + dx2,
+                                                         wp[0], wp[1], wp[2],
+                                                         wp[3]);
+                                   if (ers > 1)
+                                   {
+                                       dB_E_D--;
+                                       drecdx -= \
+                                           (this->_bdrec[i][me] -
+                                            std::pow(this->_brec[i][me], 2) / ers);
+                                   }
+                                   if (ers + d > 1)
+                                   {
+                                       dB_E_D++;
+                                       drecdx += \
+                                           (this->_bdrec[i][me] + dx2 -
+                                            std::pow(this->_brec[i][me], 2) / (ers + d));
+                                   }
+                               });
+                    if (dB_E_D != 0 || drecdx != 0 || dBdx[i] != 0)
+                    {
+                        dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
+                                                    wp[2], wp[3]);
+                        dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
+                                                    _recdx[i] + drecdx,
+                                                    wp[2], wp[3]);
+                        size_t L = _Lrecdx[0];
+                        if (L > 0)
+                        {
+                            dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
+                                                        wp[2], wp[3]);
+                            dS += -positive_w_log_P_alt(L, _Lrecdx[i+1] +
+                                                        dBdx[i] + drecdx,
+                                                        wp[2], wp[3]);
+                        }
+                    }
+                }
                 break;
             default:
                 throw GraphException("coupled rec type not implemented");
@@ -1893,12 +2172,13 @@ public:
                         S += -signed_w_log_P(ers, xrs, x2rs, wp[0], wp[1],
                                              wp[2], wp[3]);
                     }
-                    if (edges_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
+                    if (std::isnan(wp[0]) && std::isnan(wp[1]))
                     {
-                        S += -signed_w_log_P(_B_E, _brecsum[i], _recx2[i],
-                                             wp[0], wp[1], wp[2], wp[3]);
-                        S += -positive_w_log_P(_B_E, _drecsum[i], wp[0],
-                                               wp[1]);
+                        if (edges_dl)
+                            S += -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
+                                                 wp[0], wp[1], wp[2], wp[3]);
+                        S += -positive_w_log_P_alt(_B_E_D, _recdx[i], wp[2],
+                                                   wp[3]);
                     }
                     break;
                 case weight_type::DELTA_T: // waiting times
@@ -2123,9 +2403,11 @@ public:
     std::vector<typename brec_t::value_type::checked_t> _c_brec;
     std::vector<typename brec_t::value_type::checked_t> _c_bdrec;
     std::vector<double> _recsum;
-    std::vector<double> _drecsum;
     std::vector<double> _recx2;
-    size_t _B_E;
+    std::vector<double> _dBdx;
+    size_t _B_E = 0;
+    size_t _B_E_D = 0;
+    int _rt = weight_type::NONE;
 
     typedef typename std::conditional<is_weighted_t::value,
                                       vmap_t::unchecked_t, vcmap_t>::type vweight_t;
@@ -2148,7 +2430,7 @@ public:
     emat_t _emat;
 
     EGroups<g_t, is_weighted_t> _egroups;
-    bool _egroups_enabled;
+    bool _egroups_enabled = true;
 
     typedef NeighbourSampler<g_t, is_weighted_t, boost::mpl::false_>
         neighbour_sampler_t;
@@ -2161,7 +2443,7 @@ public:
                      std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 
-    BlockStateVirtualBase* _coupled_state;
+    BlockStateVirtualBase* _coupled_state = nullptr;
     entropy_args_t _coupled_entropy_args;
 };
 

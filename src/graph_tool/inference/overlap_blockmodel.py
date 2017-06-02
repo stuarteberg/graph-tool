@@ -75,7 +75,7 @@ class OverlapBlockState(BlockState):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    allow_empty : ``bool`` (optional, default: ``True``)
+    allow_empty : ``bool`` (optional, default: ``False``)
         If ``True``, partition description length computed will allow for empty
         groups.
     max_BE : ``int`` (optional, default: ``1000``)
@@ -85,7 +85,7 @@ class OverlapBlockState(BlockState):
     """
 
     def __init__(self, g, b=None, B=None, recs=[], rec_types=[], rec_params=[],
-                 clabel=None, pclabel=None, deg_corr=True, allow_empty=True,
+                 clabel=None, pclabel=None, deg_corr=True, allow_empty=False,
                  max_BE=1000, **kwargs):
 
         kwargs = kwargs.copy()
@@ -237,6 +237,10 @@ class OverlapBlockState(BlockState):
         self.bclabel = self.get_bclabel()
 
         BlockState._init_recs(self, self.rec, rec_types, rec_params)
+        self.recdx = libcore.Vector_double(len(self.rec))
+        self.Lrecdx = kwargs.pop("Lrecdx",
+                                 libcore.Vector_double(len(self.rec)+1))
+        self.Lrecdx.resize(len(self.rec)+1)
 
         self.max_BE = max_BE
 
@@ -264,6 +268,8 @@ class OverlapBlockState(BlockState):
             kwargs["vweight"] = vweight
         if eweight != "unity":
             kwargs["eweight"] = eweight
+
+        self.ignore_degrees = kwargs.pop("ignore_degrees", self.g.new_vp("bool"))
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -342,79 +348,6 @@ class OverlapBlockState(BlockState):
     def __setstate__(self, state):
         conv_pickle_state(state)
         self.__init__(**state)
-
-    def get_block_state(self, b=None, vweight=False, deg_corr=False, **kwargs):
-        r"""Returns a :class:`~graph_tool.community.BlockState` corresponding to the
-        block graph. The parameters have the same meaning as the in the
-        constructor."""
-
-        copy_bg = kwargs.pop("copy_bg", True)
-
-        if copy_bg:
-            bg = self.bg.copy()
-            mrs = bg.own_property(self.mrs.copy())
-            wr = bg.own_property(self.wr.copy())
-        else:
-            bg = self.bg
-            mrs = self.mrs
-            wr = self.wr
-
-        if vweight:
-            rec_types = kwargs.pop("rec_types", self.rec_types)
-            recs = kwargs.pop("recs", bg.gp.rec)
-            drec = kwargs.pop("drec", bg.gp.drec if len(bg.gp.drec) > 0 else
-                              None)
-            rec_params = kwargs.pop("rec_params", self.rec_params)
-        else:
-            drec = None
-            recs = []
-            rec_types = []
-            rec_params = []
-            for rt, rp, r, dr in zip(self.rec_types, self.wparams,
-                                     bg.gp.rec, bg.gp.drec):
-                if rt == libinference.rec_type.count:
-                    recs.append(bg.new_ep("double", bg.ep.count.fa > 0))
-                    rec_types.append(rt)
-                    rec_params.append("microcanonical")
-                elif numpy.isnan(rp.a).sum() == 0:
-                    continue
-                elif rt in [libinference.rec_type.discrete_geometric,
-                            libinference.rec_type.discrete_binomial,
-                            libinference.rec_type.discrete_poisson]:
-                    recs.append(r)
-                    rec_types.append(libinference.rec_type.discrete_geometric)
-                    rec_params.append("microcanonical")
-                elif rt == libinference.rec_type.real_exponential:
-                    recs.append(r)
-                    rec_types.append(rt)
-                    rec_params.append("microcanonical")
-                elif rt == libinference.rec_type.real_normal:
-                    recs.append(r)
-                    rec_types.append(rt)
-                    rec_params.append("microcanonical")
-                    recs.append(dr)
-                    rec_types.append(libinference.rec_type.real_exponential)
-                    rec_params.append("microcanonical")
-            rec_params = kwargs.pop("rec_params", rec_params)
-
-        state = BlockState(bg, eweight=mrs,
-                           vweight=wr if vweight else None,
-                           b=bg.vertex_index.copy("int") if b is None else b,
-                           deg_corr=deg_corr,
-                           rec_types=rec_types,
-                           recs=recs,
-                           drec=drec,
-                           rec_params=rec_params,
-                           allow_empty=kwargs.pop("allow_empty",
-                                                  self.allow_empty),
-                           max_BE=self.max_BE,
-                           **kwargs)
-
-        if vweight and self._coupled_state is not None:
-            state._couple_state(state.get_block_state(b=state.get_bclabel(),
-                                                      copy_bg=False),
-                                self._coupled_state[1])
-        return state
 
     def get_E(self):
         r"Returns the total number of edges."

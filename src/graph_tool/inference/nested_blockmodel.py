@@ -36,9 +36,7 @@ import copy
 def get_edges_dl(state, hstate_args, hentropy_args):
     bclabel = state.get_bclabel()
     bstate = state.get_block_state(b=bclabel, **hstate_args)
-    return bstate.entropy(**dict(hentropy_args, dl=True, edges_dl=False,
-                                 multigraph=True))
-
+    return bstate.entropy(**hentropy_args)
 
 class NestedBlockState(object):
     r"""The nested stochastic block model state of a given graph.
@@ -73,27 +71,30 @@ class NestedBlockState(object):
     def __init__(self, g, bs, base_type=BlockState, state_args={},
                  hstate_args={}, hentropy_args={}, sampling=False, **kwargs):
         self.g = g
+        self.Lrecdx = libcore.Vector_double()
         self.state_args = dict(kwargs, **state_args)
+        self.state_args["Lrecdx"] = self.Lrecdx
         if "rec_params" not in self.state_args:
             recs = self.state_args.get("recs", None)
             if recs is not None:
                 self.state_args["rec_params"] = ["microcanonical"] * len(recs)
-        self.hstate_args = dict(dict(deg_corr=False), **hstate_args)
+        self.hstate_args = dict(dict(deg_corr=False, vweight="nonempty",
+                                     Lrecdx=self.Lrecdx),
+                                **hstate_args)
         self.sampling = sampling
         if sampling:
-            self.hstate_args = dict(self.hstate_args, vweight="nonempty",
-                                    copy_bg=False)
-        self.hentropy_args = dict(dict(adjacency=True,
-                                       dense=True,
-                                       multigraph=True,
-                                       dl=True,
-                                       partition_dl=True,
-                                       degree_dl=True,
-                                       degree_dl_kind="distributed",
-                                       edges_dl=True,
-                                       exact=True,
-                                       recs=True),
-                                  **hentropy_args)
+            self.hstate_args = dict(self.hstate_args, copy_bg=False)
+        self.hentropy_args = dict(hentropy_args,
+                                  adjacency=True,
+                                  dense=True,
+                                  multigraph=True,
+                                  dl=True,
+                                  partition_dl=True,
+                                  degree_dl=True,
+                                  degree_dl_kind="distributed",
+                                  edges_dl=True,
+                                  exact=True,
+                                  recs=True)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for i, b in enumerate(bs[1:]):
             state = self.levels[-1]
@@ -103,8 +104,16 @@ class NestedBlockState(object):
             bstate = state.get_block_state(b=b, **args)
             self.levels.append(bstate)
 
+        self._regen_Lrecdx()
+
         if _bm_test():
             self._consistency_check()
+
+    def _regen_Lrecdx(self):
+        self.Lrecdx.a = 0
+        self.Lrecdx[0] = len(self.levels)
+        for s in self.levels:
+            self.Lrecdx.a[1:] += s.recdx.a
 
     def _regen_levels(self):
         for l in range(1, len(self.levels)):
@@ -112,6 +121,7 @@ class NestedBlockState(object):
             nstate = self.levels[l-1].get_block_state(b=state.b,
                                                       **self.hstate_args)
             self.levels[l] = nstate
+        self._regen_Lrecdx()
 
     def __repr__(self):
         return "<NestedBlockState object, with base %s, and %d levels of sizes %s at 0x%x>" % \
@@ -225,6 +235,8 @@ class NestedBlockState(object):
                                                     **self.hstate_args)
             self.levels[l + 1] = bstate
 
+        self._regen_Lrecdx()
+
         if _bm_test():
             self._consistency_check()
 
@@ -236,6 +248,8 @@ class NestedBlockState(object):
         self.replace_level(l - 1, b.fa)
         del self.levels[l]
 
+        self._regen_Lrecdx()
+
         if _bm_test():
             self._consistency_check()
 
@@ -243,7 +257,7 @@ class NestedBlockState(object):
         """Duplicate level ``l``."""
         bstate = self.levels[l].copy(b=self.levels[l].g.vertex_index.copy("int").fa)
         self.levels.insert(l, bstate)
-
+        self._regen_Lrecdx()
         if _bm_test():
             self._consistency_check()
 
@@ -273,6 +287,19 @@ class NestedBlockState(object):
         S = 0
         for l in range(len(self.levels)):
             S += self.level_entropy(l, **kwargs)
+
+        for i in range(len(self.Lrecdx)-1):
+            S += -libinference.positive_w_log_P(len(self.levels),
+                                                self.Lrecdx[i+1], numpy.nan,
+                                                numpy.nan);
+
+        if _bm_test() and kwargs.pop("test", True):
+            state = self.copy()
+            Salt = state.entropy(test=False, **kwargs)
+            assert math.isclose(S, Salt, abs_tol=1e-8), \
+                "inconsistent entropy after copying (%g, %g): %s" % \
+                (S, Salt, str(kwargs))
+
         return S
 
     def move_vertex(self, v, s):
@@ -408,27 +435,40 @@ class NestedBlockState(object):
         mcmc_equilibrate_args = mcmc_multilevel_args.get("mcmc_equilibrate_args", {})
         mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
         entropy_args = mcmc_args.get("entropy_args", {})
-        entropy_args = dict(entropy_args, dl=True,
-                            edges_dl=l==len(self.levels) - 1)
         extra_entropy_args = bisection_args.get("extra_entropy_args", {})
-        if l > 0 and self.hentropy_args.get("dense"):
-            entropy_args = dict(entropy_args,
+        if l > 0:
+            entropy_args = dict(self.hentropy_args,
                                 dense=self.levels[l].get_N() < sparse_thres)
             if self.levels[l].get_N() >= sparse_thres:
                 extra_entropy_args = dict(extra_entropy_args, dense=True)
+        else:
+            entropy_args = dict(entropy_args, dl=True,
+                                edges_dl=l==len(self.levels) - 1)
         if l < len(self.levels) - 1:
             entropy_args = dict(entropy_args,
-                                callback=lambda s: get_edges_dl(s,
-                                                                self.hstate_args,
-                                                                self.hentropy_args))
-        mcmc_args = dict(mcmc_args, entropy_args=entropy_args,
-                         disable_callback_test=isinstance(self.levels[0],
-                                                          LayeredBlockState))
+                                callback=\
+                                lambda s: get_edges_dl(s,
+                                                       self.hstate_args,
+                                                       dict(self.hentropy_args,
+                                                            edges_dl=(l + 1 == len(self.levels) - 1))))
+        mcmc_args = dict(mcmc_args, entropy_args=entropy_args)
+        if _bm_test() and isinstance(self.levels[0], LayeredBlockState):
+            mcmc_args = dict(mcmc_args, disable_callback_test=True)
         if l > 0:
             mcmc_args = dmask(mcmc_args, ["bundled"])
         mcmc_equilibrate_args = dict(mcmc_equilibrate_args,
                                      mcmc_args=mcmc_args)
+        shrink_args = mcmc_multilevel_args.get("shrink_args", {})
+        shrink_args = dict(shrink_args,
+                           entropy_args=dict(shrink_args.get("entropy_args", {}),
+                                             **entropy_args))
+        if l > 0:
+            shrink_args["entropy_args"].update(dict(multigraph=True, dense=True))
+        elif not shrink_args["entropy_args"].get("dense", False):
+            shrink_args["entropy_args"]["multigraph"] = False
+
         mcmc_multilevel_args = dict(mcmc_multilevel_args,
+                                    shrink_args=shrink_args,
                                     mcmc_equilibrate_args=mcmc_equilibrate_args)
         bisection_args = dict(bisection_args,
                               mcmc_multilevel_args=mcmc_multilevel_args,
@@ -444,13 +484,17 @@ class NestedBlockState(object):
             b_max = group_vector_property([b_max, clabel])
             b_max = perfect_prop_hash([b_max])[0].fa
         continuous_map(b_max)
-        max_state = state.copy(b=b_max, clabel=clabel)
+        max_state = state.copy(b=b_max, clabel=clabel,
+                               recs=[r.copy() for r in state.rec],
+                               drec=[r.copy() for r in state.drec])
         if B_max is not None and max_state.B > B_max:
             max_state = mcmc_multilevel(max_state, B_max,
                                         **mcmc_multilevel_args)
         if l < len(self.levels) - 1:
             if B_min is None:
-                min_state = state.copy(b=clabel.fa, clabel=clabel.fa)
+                min_state = state.copy(b=clabel.fa, clabel=clabel.fa,
+                                       recs=[r.copy() for r in state.rec],
+                                       drec=[r.copy() for r in state.drec])
                 B_min = min_state.B
             else:
                 B_min = max(B_min, clabel.fa.max() + 1)
@@ -471,11 +515,11 @@ class NestedBlockState(object):
             assert max_state._check_clabel(), "invalid clabel %s" % str((l, self))
 
         if l < len(self.levels) - 1:
-            hentropy_args = dict(entropy_args, dl=True,
-                                 edges_dl=l + 1 == len(self.levels) - 1,
-                                 recs=False)
-            min_state._couple_state(self.levels[l+1], hentropy_args)
-            max_state._couple_state(self.levels[l+1], hentropy_args)
+            eargs = dict(self.hentropy_args,
+                         edges_dl=(l + 1 == len(self.levels) - 1),
+                         recs=False)
+            min_state._couple_state(self.levels[l+1], eargs)
+            max_state._couple_state(self.levels[l+1], eargs)
 
         # find new state
         state = bisection_minimize([min_state, max_state], **bisection_args)
@@ -581,7 +625,20 @@ class NestedBlockState(object):
         if not isinstance(c, collections.Iterable):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
-        return self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c, **kwargs)
+        if _bm_test():
+            kwargs = dict(kwargs, test=False)
+            entropy_args = kwargs.get("entropy_args", {})
+            Si = self.entropy(**entropy_args)
+
+        dS, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c,
+                                   **kwargs)
+
+        if _bm_test():
+            Sf = self.entropy(**entropy_args)
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                            str(entropy_args))
+        return dS, nmoves
 
     def multiflip_mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection MCMC
@@ -601,7 +658,18 @@ class NestedBlockState(object):
         if not isinstance(c, collections.Iterable):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
-        return self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a), c=c, **kwargs)
+        if _bm_test():
+            entropy_args = kwargs.get("entropy_args", {})
+            Si = self.entropy(**entropy_args)
+
+        dS, nmoves = self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a),
+                                   c=c, **kwargs)
+        if _bm_test():
+            Sf = self.entropy(**entropy_args)
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                            str(entropy_args))
+        return dS, nmoves
 
     def gibbs_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs MCMC to sample network
@@ -610,7 +678,18 @@ class NestedBlockState(object):
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.gibbs_sweep`.
         """
-        return self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
+        if _bm_test():
+            entropy_args = kwargs.get("entropy_args", {})
+            Si = self.entropy(**entropy_args)
+
+        dS, nmoves = self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
+
+        if _bm_test():
+            Sf = self.entropy(**entropy_args)
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                            str(entropy_args))
+        return dS, nmoves
 
     def multicanonical_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
@@ -619,7 +698,18 @@ class NestedBlockState(object):
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
         """
-        return self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
+        if _bm_test():
+            entropy_args = kwargs.get("entropy_args", {})
+            Si = self.entropy(**entropy_args)
+
+        dS, nmoves = self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
+
+        if _bm_test():
+            Sf = self.entropy(**entropy_args)
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                            str(entropy_args))
+        return dS, nmoves
 
     def collect_partition_histogram(self, h=None, update=1):
         r"""Collect a histogram of partitions.

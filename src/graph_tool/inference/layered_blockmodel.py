@@ -281,6 +281,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         self._entropy_args = self.agg_state._entropy_args
         self.allow_empty = allow_empty
+        self.recdx = self.agg_state.recdx
 
         if _bm_test():
             assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"

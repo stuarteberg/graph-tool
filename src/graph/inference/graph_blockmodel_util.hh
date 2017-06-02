@@ -295,6 +295,14 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
         (alpha + N) * log(beta + x);
 }
 
+template <class DT>
+double positive_w_log_P_alt(DT N, double x, double alpha, double beta)
+{
+    if (abs(x) < 1e-10)
+        x = 0;
+    return positive_w_log_P(N, x, alpha, beta);
+}
+
 // normal
 template <class DT>
 double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0,
@@ -1203,7 +1211,7 @@ public:
     std::tuple<EVals...> _self_weight;
 
     std::vector<std::tuple<size_t, size_t,
-                           GraphInterface::edge_t, int>>
+                           GraphInterface::edge_t, int, std::vector<double>>>
         _recs_entries;
 
 private:
@@ -1617,9 +1625,13 @@ public:
                                 entropy_args_t eargs) = 0;
     virtual void add_edge(const GraphInterface::edge_t& e) = 0;
     virtual void remove_edge(const GraphInterface::edge_t& e) = 0;
+    virtual void update_edge(const GraphInterface::edge_t& e,
+                             const std::vector<double>& delta) = 0;
     virtual double recs_dS(size_t, size_t,
                            const std::vector<std::tuple<size_t, size_t,
-                                             GraphInterface::edge_t, int>>&) = 0;
+                                             GraphInterface::edge_t, int,
+                                             std::vector<double>>>&,
+                           std::vector<double>&) = 0;
 };
 
 
