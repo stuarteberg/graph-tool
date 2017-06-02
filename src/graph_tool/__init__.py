@@ -3338,16 +3338,52 @@ _get_null_vertex = libcore.get_null_vertex
 def _get_array_view(self):
     return self.get_array()[:]
 
-
 def _set_array_view(self, v):
     self.get_array()[:] = v
 
+def _vt_getstate(self):
+    a = self.a
+    if a is None:
+        return list(self)
+    else:
+        return a
+
+def _vt_setstate(self, state):
+    self.resize(len(state))
+    if self.a is not None:
+        self.a = state
+    else:
+        for i in range(len(state)):
+            self[i] = state[i]
+
+def _vt_copy(self):
+    v = type(self)()
+    v.resize(len(self))
+    _vt_setstate(v, self)
+    return v
+
+def _vt_init(self, n=None, init=None):
+    self.__base_init__()
+    if n is not None:
+        self.resize(n)
+    if init is not None:
+        _vt_setstate(self, init)
+
 vector_types = [Vector_bool, Vector_int16_t, Vector_int32_t, Vector_int64_t,
                 Vector_double, Vector_long_double, Vector_size_t]
+
 for vt in vector_types:
+    if not hasattr(vt, "__base_init__"):
+        vt.__base_init__ = vt.__init__
+        vt.__init__ = _vt_init
     vt.a = property(_get_array_view, _set_array_view,
                     doc=r"""Shortcut to the `get_array` method as an attribute.""")
     vt.__repr__ = lambda self: self.a.__repr__()
+    vt.copy = _vt_copy
+    vt.__copy__ = vt.copy
+    vt.__getstate__ = _vt_getstate
+    vt.__setstate__ = _vt_setstate
+
 Vector_string.a = None
 Vector_string.get_array = lambda self: None
 Vector_string.__repr__ = lambda self: repr(list(self))
