@@ -59,7 +59,8 @@ void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
 
 
 void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
-                      python::object vertices, python::object max_size)
+                      boost::any visited, python::object vertices,
+                      python::object max_size)
 {
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -84,11 +85,26 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
         throw GraphException("size map must be a vertex property map of value type int64_t");
     }
 
+    typedef property_map_type::apply<uint8_t,
+                                     GraphInterface::vertex_index_map_t>::type
+        visited_t;
+
+    visited_t visited_map;
+    try
+    {
+        visited_map = any_cast<visited_t>(visited);
+    }
+    catch (bad_any_cast&)
+    {
+        throw GraphException("visited map must be a vertex property map of value type uint8_t");
+    }
+
     multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(vertices);
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, [&](auto& g){ vertex_percolate(g, tree_map, size_map, ms, vs); })();
+        (gi, [&](auto& g){ vertex_percolate(g, tree_map, size_map, visited_map,
+                                            ms, vs); })();
 }
 
 #include <boost/python.hpp>

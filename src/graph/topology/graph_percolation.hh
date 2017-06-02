@@ -24,9 +24,8 @@ using namespace std;
 using namespace boost;
 
 template <class Graph, class TreeMap>
-typename graph_traits<Graph>::vertex_descriptor
-find_root(size_t vi, TreeMap tree, Graph& g,
-          vector<size_t>& temp)
+auto find_root(size_t vi, TreeMap tree, Graph& g,
+               vector<size_t>& temp)
 {
     auto parent = vertex(vi, g);
     temp.clear();
@@ -43,8 +42,8 @@ find_root(size_t vi, TreeMap tree, Graph& g,
 
 
 template <class Graph, class TreeMap, class SizeMap>
-void join_cluster(const pair<size_t, size_t>& e, TreeMap tree, SizeMap size,
-                  size_t& max_size, Graph& g, vector<size_t>& temp)
+auto join_cluster(const pair<size_t, size_t>& e, TreeMap tree, SizeMap size,
+                  Graph& g, vector<size_t>& temp)
 {
     auto rs = find_root(e.first, tree, g, temp);
     auto rt = find_root(e.second, tree, g, temp);
@@ -54,22 +53,24 @@ void join_cluster(const pair<size_t, size_t>& e, TreeMap tree, SizeMap size,
             swap(rs, rt);
         tree[rt] = rs;
         size[rs] += size[rt];
-        max_size = max(size_t(size[rs]), max_size);
+        return size[rs];
     }
+    return std::max(size[rs], size[rt]);
 }
 
-template <class Graph, class TreeMap,
-          class SizeMap, class MaxSize, class Edges>
+template <class Graph, class TreeMap, class SizeMap, class MaxSize,
+          class Edges>
 void edge_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
                     Edges& edges)
 {
     vector<size_t> temp;
-    size_t s = 0;
+    size_t ms = 0;
     for (size_t i = 0; i < edges.size(); ++i)
     {
-        join_cluster(make_pair(size_t(edges[i][0]), size_t(edges[i][1])),
-                     tree, size, s, g, temp);
-        max_size[i] = s;
+        size_t s = join_cluster({edges[i][0], edges[i][1]},
+                                tree, size, g, temp);
+        ms = std::max(ms, s);
+        max_size[i] = ms;
     }
 
     boost::multi_array_ref<typename Edges::element, 1>
@@ -83,28 +84,32 @@ void edge_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
     }
 };
 
-template <class Graph,  class TreeMap, class SizeMap, class MaxSize,
-          class Vertices>
-void vertex_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
-                      Vertices& vertices)
+template <class Graph,  class TreeMap, class SizeMap, class VisitedMap,
+          class MaxSize,  class Vertices>
+void vertex_percolate(Graph& g, TreeMap tree, SizeMap size, VisitedMap visited,
+                      MaxSize& max_size, Vertices& vertices)
 {
     vector<size_t> temp;
-    size_t s = 0;
+    size_t ms = 0;
     for (size_t i = 0; i < vertices.size(); ++i)
     {
         auto v = vertex(vertices[i], g);
         if (v == graph_traits<Graph>::null_vertex())
         {
-            max_size[i] = s;
+            max_size[i] = ms;
             continue;
         }
 
         for (auto a : adjacent_vertices_range(v, g))
         {
-            join_cluster(make_pair(size_t(v), size_t(a)), tree, size, s, g,
-                         temp);
+            if (!visited[a])
+                continue;
+            size_t s = join_cluster({v, a}, tree, size, g,
+                                    temp);
+            ms = std::max(ms, s);
         }
-        max_size[i] = s;
+        max_size[i] = std::max(ms, size_t(1));
+        visited[v] = true;
     }
 
     //flatten tree

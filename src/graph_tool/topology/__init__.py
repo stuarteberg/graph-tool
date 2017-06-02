@@ -1327,6 +1327,7 @@ def vertex_percolation(g, vertices):
 
     tree = g.vertex_index.copy("int64_t")
     size = g.new_vertex_property("int64_t", 1)
+    visited = g.new_vertex_property("bool", False)
     max_size = numpy.zeros(len(vertices), dtype="uint64")
 
     u = GraphView(g, directed=False)
@@ -1335,6 +1336,7 @@ def vertex_percolation(g, vertices):
         percolate_vertex(u._Graph__graph,
                          _prop("v", u, tree),
                          _prop("v", u, size),
+                         _prop("v", u, visited),
                          vertices, max_size)
 
     return max_size, tree
