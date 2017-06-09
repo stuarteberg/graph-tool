@@ -161,6 +161,10 @@ AX_BOOST_GRAPH
 if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
 fi
+AX_BOOST_THREAD
+if test "$BOOST_THREAD_LIB" = ""; then
+   AC_MSG_ERROR([No usable boost::thread found])
+fi
 
 [BOOST_LIBS="${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB}"]
 

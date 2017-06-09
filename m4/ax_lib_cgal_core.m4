@@ -1,5 +1,5 @@
 # ===========================================================================
-#     http://www.gnu.org/software/autoconf-archive/ax_lib_cgal_core.html
+#     https://www.gnu.org/software/autoconf-archive/ax_lib_cgal_core.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -35,7 +35,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 3.1 (locally modified)
+#serial 4.1 (locally modified for graph-tool)
 
 AC_DEFUN([AX_LIB_CGAL_CORE],[
 
@@ -58,7 +58,7 @@ for ac_cgal_iterate in $ac_cgal_dirs ; do
 	CPPFLAGS="$CPPFLAGS $CGAL_CPPFLAGS $BOOST_CPPFLAGS"
 	export CPPFLAGS
 
-	CGAL_LDFLAGS="-L$ac_cgal_iterate/lib -lCGAL -lCGAL_Core -lgmp"
+	CGAL_LDFLAGS="-L$ac_cgal_iterate/lib -lCGAL -lCGAL_Core -lgmp ${BOOST_THREAD_LIB}"
 	LDFLAGS_SAVED="$LDFLAGS"
 	LDFLAGS="$LDFLAGS $CGAL_LDFLAGS"
 	export LDFLAGS
