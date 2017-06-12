@@ -207,14 +207,17 @@ public:
         u = _overlap_stats.get_in_neighbour(v);
         if (u != _overlap_stats._null)
         {
-            size_t s = _b[u];
+            size_t s = (Add) ? r : _b[u];
 
-            auto me = _emat.get_me(r, s);
+            if (Add && u != v)
+                s = _b[u];
+
+            auto me = _emat.get_me(s, r);
 
             if (Add && me == _emat.get_null_edge())
             {
-                me = boost::add_edge(r, s, _bg).first;
-                _emat.put_me(r, s, me);
+                me = boost::add_edge(s, r, _bg).first;
+                _emat.put_me(s, r, me);
                 _c_mrs[me] = 0;
                 for (size_t i = 0; i < this->_rec_types.size(); ++i)
                 {
@@ -229,14 +232,14 @@ public:
             if (Add)
             {
                 _mrs[me] += 1;
-                _mrp[r] += 1;
-                _mrm[s] += 1;
+                _mrp[s] += 1;
+                _mrm[r] += 1;
             }
             else
             {
                 _mrs[me] -= 1;
-                _mrp[r] -= 1;
-                _mrm[s] -= 1;
+                _mrp[s] -= 1;
+                _mrm[r] -= 1;
             }
 
             eop(e, me);
