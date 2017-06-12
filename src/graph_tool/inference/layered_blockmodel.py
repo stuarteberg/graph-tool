@@ -282,6 +282,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self._entropy_args = self.agg_state._entropy_args
         self.allow_empty = allow_empty
         self.recdx = self.agg_state.recdx
+        self.Lrecdx = self.agg_state.Lrecdx
 
         if _bm_test():
             assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
@@ -289,6 +290,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         kwargs.pop("recs", None)
         kwargs.pop("drec", None)
         kwargs.pop("rec_params", None)
+        kwargs.pop("Lrecdx", None)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
