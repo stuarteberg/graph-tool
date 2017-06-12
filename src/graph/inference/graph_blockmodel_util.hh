@@ -317,8 +317,8 @@ double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0
                        100 * numeric_limits<double>::epsilon()) || smu1 > x2)
             return 0.;
         else
-            return lgamma(N/2.) - ((N-1)/2.) * log(x2-smu1) - log(2) - (N / 2.) *
-                log(M_PI);
+            return (lgamma((N - 1) / 2.) + log(x2) / 2. - ((N - 2) / 2.) *
+                    log(x2-smu1) - ((N - 1) / 2.) * log(M_PI));
     }
     auto v = x2 - x * (x / N);
     auto k_n = k0 + N;
