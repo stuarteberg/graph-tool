@@ -2053,37 +2053,8 @@ public:
         }
 
         if (multigraph)
-        {
-            for (auto v : vertices_range(_g))
-            {
-                gt_hash_map<decltype(v), size_t> us;
-                for (auto e : out_edges_range(v, _g))
-                {
-                    auto u = target(e, _g);
-                    if (u < v && !is_directed::apply<g_t>::type::value)
-                        continue;
-                    us[u] += _eweight[e];
-                }
+            S += get_parallel_entropy();
 
-                for (auto& uc : us)
-                {
-                    auto& u = uc.first;
-                    auto& m = uc.second;
-                    if (m > 1)
-                    {
-                        if (u == v && !is_directed::apply<g_t>::type::value)
-                        {
-                            assert(m % 2 == 0);
-                            S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
-                        }
-                        else
-                        {
-                            S += lgamma_fast(m + 1);
-                        }
-                    }
-                }
-            }
-        }
         return S;
     }
 
@@ -2213,36 +2184,12 @@ public:
         return S;
     }
 
-    template <class Vlist>
-    double get_parallel_neighbours_entropy(size_t v, Vlist& us)
-    {
-        double S = 0;
-        for (auto& uc : us)
-        {
-            auto& u = uc.first;
-            auto& m = uc.second;
-            if (m > 1)
-            {
-                if (u == v && !is_directed::apply<g_t>::type::value)
-                {
-                    assert(m % 2 == 0);
-                    S += lgamma_fast(m/2 + 1);
-                }
-                else
-                {
-                    S += lgamma_fast(m + 1);
-                }
-            }
-        }
-        return S;
-    }
-
     double get_parallel_entropy()
     {
         double S = 0;
         for (auto v : vertices_range(_g))
         {
-            gt_hash_map<decltype(v), int> us;
+            gt_hash_map<decltype(v), size_t> us;
             for (auto e : out_edges_range(v, _g))
             {
                 auto u = target(e, _g);
@@ -2250,7 +2197,24 @@ public:
                     continue;
                 us[u] += _eweight[e];
             }
-            S += get_parallel_neighbours_entropy(v, us);
+
+            for (auto& uc : us)
+            {
+                auto& u = uc.first;
+                auto& m = uc.second;
+                if (m > 1)
+                {
+                    if (u == v && !is_directed::apply<g_t>::type::value)
+                    {
+                        assert(m % 2 == 0);
+                        S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
+                    }
+                    else
+                    {
+                        S += lgamma_fast(m + 1);
+                    }
+                }
+            }
         }
         return S;
     }

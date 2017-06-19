@@ -107,7 +107,7 @@ public:
                         size_t s = b[w];
                         if (!is_directed::apply<Graph>::type::value && r > s)
                             std::swap(r, s);
-                        h[make_pair(r, s)]++;
+                        h[std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == w)]++;
                     }
                 }
             }
@@ -144,7 +144,7 @@ public:
             auto& h = _parallel_bundles[m];
             if (!is_directed::apply<Graph>::type::value && r > s)
                 std::swap(r, s);
-            h[make_pair(r, s)]++;
+            h[std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == v)]++;
         }
     }
 
@@ -181,7 +181,7 @@ public:
             auto& h = _parallel_bundles[m];
             if (!is_directed::apply<Graph>::type::value && r > s)
                 std::swap(r, s);
-            auto iter = h.find(make_pair(r, s));
+            auto iter = h.find(std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == v));
             assert(iter->second > 0);
             iter->second--;
             if (iter->second == 0)
@@ -286,7 +286,7 @@ public:
 
         auto& h = _parallel_bundles[m];
 
-        auto get_h = [&](const pair<size_t, size_t>& k) -> int
+        auto get_h = [&](const std::tuple<size_t, size_t, bool>& k) -> int
             {
                 const auto iter = h.find(k);
                 if (iter == h.end())
@@ -294,8 +294,9 @@ public:
                 return iter->second;
             };
 
-        int c  = get_h(make_pair(r,  s));
-        int nc = get_h(make_pair(nr, ns));
+        bool is_loop = !is_directed::apply<Graph>::type::value && u == v;
+        int c  = get_h(std::make_tuple(r,  s, is_loop));
+        int nc = get_h(std::make_tuple(nr, ns, is_loop));
 
         assert(c > 0);
         assert(nc >= 0);
@@ -327,7 +328,7 @@ public:
     auto get_in_neighbour(size_t v) const { return _in_neighbours[v]; }
 
 
-    typedef gt_hash_map<pair<size_t, size_t>, int> phist_t;
+    typedef gt_hash_map<std::tuple<size_t, size_t, bool>, int> phist_t;
 
     const vector<phist_t>& get_parallel_bundles() const { return _parallel_bundles; }
     const vector<int>& get_mi() const { return _mi; }

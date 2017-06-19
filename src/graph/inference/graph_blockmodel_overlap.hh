@@ -1063,22 +1063,7 @@ public:
         }
 
         if (multigraph)
-        {
-            for (const auto& h : _overlap_stats.get_parallel_bundles())
-            {
-                for (const auto& kc : h)
-                {
-                    if (kc.first.first == kc.first.second)
-                    {
-                        S += lgamma_fast(kc.second + 1) + kc.second * log(2);
-                    }
-                    else
-                    {
-                        S += lgamma_fast(kc.second + 1);
-                    }
-                }
-            }
-        }
+            S += get_parallel_entropy();
         return S;
     }
 
@@ -1195,13 +1180,25 @@ public:
         return S;
     }
 
-    double get_parallel_entropy()
+    double get_parallel_entropy() const
     {
         double S = 0;
-        for (auto& h : _overlap_stats.get_parallel_bundles())
+        for (const auto& h : _overlap_stats.get_parallel_bundles())
         {
-            for (auto& kc : h)
-                S += lgamma_fast(kc.second + 1);
+            for (const auto& kc : h)
+            {
+                bool is_loop = get<2>(kc.first);
+                auto m = kc.second;
+                if (is_loop)
+                {
+                    assert(m % 2 == 0);
+                    S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
+                }
+                else
+                {
+                    S += lgamma_fast(m + 1);
+                }
+            }
         }
         return S;
     }
