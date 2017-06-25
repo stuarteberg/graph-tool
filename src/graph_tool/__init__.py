@@ -1379,6 +1379,14 @@ class PropertyDict(object):
         except KeyError:
             return default
 
+    def pop(self, key, default=None):
+        try:
+            x = self[key]
+            del self[key]
+            return x
+        except KeyError:
+            return default
+
     def __setitem__(self, key, val):
         k = (self.t, key)
         if self.t == "g" and not isinstance(val, PropertyMap) and k in self.properties:
