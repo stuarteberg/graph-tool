@@ -1671,7 +1671,11 @@ def shortest_distance(g, source=None, target=None, weights=None,
         u = g
 
     if source is not None:
-        pmap = g.copy_property(u.vertex_index, value_type="int64_t")
+        if numpy.issubdtype(dist_map.a.dtype, numpy.integer):
+            dist_map.fa = numpy.iinfo(dist_map.a.dtype).max
+        else:
+            dist_map.fa = numpy.inf
+        pmap = u.copy_property(u.vertex_index, value_type="int64_t")
         libgraph_tool_topology.get_dists(u._Graph__graph,
                                          int(source),
                                          target,

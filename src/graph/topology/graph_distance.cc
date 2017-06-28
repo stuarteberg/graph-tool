@@ -47,16 +47,14 @@ public:
         : _dist_map(dist_map), _pred(pred), _max_dist(max_dist),
           _source(source), _target(target), _dist(0) {}
 
-    template <class Graph>
-    void initialize_vertex(typename graph_traits<Graph>::vertex_descriptor v,
-                           Graph&)
+    ~bfs_max_visitor()
     {
         typedef typename property_traits<DistMap>::value_type dist_t;
-        dist_t inf = std::is_floating_point<dist_t>::value ?
+        constexpr dist_t inf = std::is_floating_point<dist_t>::value ?
             numeric_limits<dist_t>::infinity() :
             numeric_limits<dist_t>::max();
-        _dist_map[v] = (v == _source) ? 0 : inf;
-        _pred[v] = v;
+        for (auto v : _unreached)
+            _dist_map[v] = inf;
     }
 
     template <class Graph>
@@ -70,8 +68,7 @@ public:
     void examine_vertex(typename graph_traits<Graph>::vertex_descriptor v,
                         Graph&)
     {
-        typedef typename property_traits<DistMap>::value_type val_t;
-        if ( _dist_map[v] > val_t(_max_dist))
+        if ( _dist_map[v] > _max_dist)
             throw stop_search();
     }
 
@@ -79,9 +76,12 @@ public:
     void discover_vertex(typename graph_traits<Graph>::vertex_descriptor v,
                          Graph&)
     {
-        if (size_t(_pred[v]) == v)
+        auto p = _pred[v];
+        if (size_t(p) == v)
             return;
-        _dist_map[v] = _dist_map[_pred[v]] + 1;
+        _dist_map[v] = _dist_map[p] + 1;
+        if (_dist_map[v] > _max_dist)
+            _unreached.push_back(v);
         if (v == _target)
             throw stop_search();
     }
@@ -89,10 +89,11 @@ public:
 private:
     DistMap _dist_map;
     PredMap _pred;
-    size_t _max_dist;
+    typename property_traits<DistMap>::value_type _max_dist;
     size_t _source;
     size_t _target;
     size_t _dist;
+    std::vector<size_t> _unreached;
 };
 
 template <class DistMap, class PredMap>
@@ -106,16 +107,14 @@ public:
         : _dist_map(dist_map), _pred(pred), _max_dist(max_dist),
           _source(source), _target(target), _dist(0) {}
 
-    template <class Graph>
-    void initialize_vertex(typename graph_traits<Graph>::vertex_descriptor v,
-                           Graph&)
+    ~bfs_max_multiple_targets_visitor()
     {
         typedef typename property_traits<DistMap>::value_type dist_t;
-        dist_t inf = std::is_floating_point<dist_t>::value ?
+        constexpr dist_t inf = std::is_floating_point<dist_t>::value ?
             numeric_limits<dist_t>::infinity() :
             numeric_limits<dist_t>::max();
-        _dist_map[v] = (v == _source) ? 0 : inf;
-        _pred[v] = v;
+        for (auto v : _unreached)
+            _dist_map[v] = inf;
     }
 
     template <class Graph>
@@ -129,8 +128,7 @@ public:
     void examine_vertex(typename graph_traits<Graph>::vertex_descriptor v,
                         Graph&)
     {
-        typedef typename property_traits<DistMap>::value_type val_t;
-        if ( _dist_map[v] > val_t(_max_dist))
+        if ( _dist_map[v] > _max_dist)
             throw stop_search();
     }
 
@@ -138,9 +136,13 @@ public:
     void discover_vertex(typename graph_traits<Graph>::vertex_descriptor v,
                          Graph&)
     {
-        if (size_t(_pred[v]) == v)
+        auto p = _pred[v];
+        if (size_t(p) == v)
             return;
-        _dist_map[v] = _dist_map[_pred[v]] + 1;
+        _dist_map[v] = _dist_map[p] + 1;
+
+        if (_dist_map[v] > _max_dist)
+            _unreached.push_back(v);
 
         auto iter = _target.find(v);
         if (iter != _target.end())
@@ -154,10 +156,11 @@ public:
 private:
     DistMap _dist_map;
     PredMap _pred;
-    size_t _max_dist;
+    typename property_traits<DistMap>::value_type _max_dist;
     size_t _source;
     gt_hash_set<std::size_t> _target;
     size_t _dist;
+    std::vector<size_t> _unreached;
 };
 
 
@@ -168,9 +171,16 @@ class djk_max_visitor:
 public:
     djk_max_visitor(DistMap dist_map,
                     typename property_traits<DistMap>::value_type max_dist,
+                    typename property_traits<DistMap>::value_type inf,
                     size_t target)
-        : _dist_map(dist_map), _max_dist(max_dist), _target(target) {}
+        : _dist_map(dist_map), _max_dist(max_dist), _inf(inf),
+          _target(target) {}
 
+    ~djk_max_visitor()
+    {
+        for (auto v : _unreached)
+            _dist_map[v] = _inf;
+    }
 
     template <class Graph>
     void examine_vertex(typename graph_traits<Graph>::vertex_descriptor u,
@@ -183,11 +193,20 @@ public:
             throw stop_search();
     }
 
+    template <class Graph>
+    void discover_vertex(typename graph_traits<Graph>::vertex_descriptor u,
+                         Graph&)
+    {
+        if (_dist_map[u] > _max_dist)
+            _unreached.push_back(u);
+    }
 
 private:
     DistMap _dist_map;
     typename property_traits<DistMap>::value_type _max_dist;
+    typename property_traits<DistMap>::value_type _inf;
     size_t _target;
+    std::vector<size_t> _unreached;
 };
 
 
@@ -198,9 +217,16 @@ class djk_max_multiple_targets_visitor:
 public:
     djk_max_multiple_targets_visitor(DistMap dist_map,
                                      typename property_traits<DistMap>::value_type max_dist, 
+                                     typename property_traits<DistMap>::value_type inf, 
                                      gt_hash_set<std::size_t> target)
-        : _dist_map(dist_map), _max_dist(max_dist), _target(target) {}
+        : _dist_map(dist_map), _max_dist(max_dist), _inf(inf),
+          _target(target) {}
 
+    ~djk_max_multiple_targets_visitor()
+    {
+        for (auto v : _unreached)
+            _dist_map[v] = _inf;
+    }
 
     template <class Graph>
     void examine_vertex(typename graph_traits<Graph>::vertex_descriptor u,
@@ -218,11 +244,20 @@ public:
         };
     }
 
+    template <class Graph>
+    void discover_vertex(typename graph_traits<Graph>::vertex_descriptor u,
+                         Graph&)
+    {
+        if (_dist_map[u] > _max_dist)
+            _unreached.push_back(u);
+    }
 
 private:
     DistMap _dist_map;
     typename property_traits<DistMap>::value_type _max_dist;
+    typename property_traits<DistMap>::value_type _inf;
     gt_hash_set<std::size_t> _target;
+    std::vector<size_t> _unreached;
 };
 
 struct do_bfs_search
@@ -245,6 +280,8 @@ struct do_bfs_search
 
         dist_t max_d = (max_dist > 0) ? max_dist : inf;
 
+        dist_map[source] = 0;
+
         unchecked_vector_property_map<boost::default_color_type, VertexIndexMap>
         color_map(vertex_index, num_vertices(g));
         try
@@ -254,36 +291,25 @@ struct do_bfs_search
                 size_t target = tgt.empty() ?
                     graph_traits<GraphInterface::multigraph_t>::null_vertex() :
                     *tgt.begin();
-                breadth_first_search(g, vertex(source, g),
-                                     visitor(bfs_max_visitor<DistMap, PredMap>
-                                             (dist_map, pred_map, max_d,
-                                              source, target)).
-                                     vertex_index_map(vertex_index).
-                                     color_map(color_map));
+                breadth_first_visit(g, vertex(source, g),
+                                    visitor(bfs_max_visitor<DistMap, PredMap>
+                                            (dist_map, pred_map, max_d,
+                                             source, target)).
+                                    vertex_index_map(vertex_index).
+                                    color_map(color_map));
             }
             else
             {
-                breadth_first_search(g, vertex(source, g),
-                                     visitor(bfs_max_multiple_targets_visitor<DistMap, PredMap>
-                                             (dist_map, pred_map, max_d,
-                                              source, tgt)).
-                                     vertex_index_map(vertex_index).
-                                     color_map(color_map));
+                breadth_first_visit(g, vertex(source, g),
+                                    visitor(bfs_max_multiple_targets_visitor<DistMap, PredMap>
+                                            (dist_map, pred_map, max_d,
+                                             source, tgt)).
+                                    vertex_index_map(vertex_index).
+                                    color_map(color_map));
             }
 
         }
         catch (stop_search&) {}
-
-        if (max_dist > 0)
-        {
-            parallel_vertex_loop(g,
-                                 [&](auto v)
-                                 {
-                                     auto& d = dist_map[v];
-                                     if (d > max_dist)
-                                         d = inf;
-                                 });
-        }
     }
 };
 
@@ -309,7 +335,6 @@ struct do_djk_search
         gt_hash_set<std::size_t> tgt(target_list.begin(),
                                      target_list.end());
 
-        parallel_vertex_loop(g, [&](auto v) { dist_map[v] = inf; });
         dist_map[source] = 0;
 
         try
@@ -319,42 +344,25 @@ struct do_djk_search
                 size_t target = tgt.empty() ?
                     graph_traits<GraphInterface::multigraph_t>::null_vertex() :
                     *tgt.begin();
-                dijkstra_shortest_paths_no_color_map
-                    (g, vertex(source, g),
-                     weight_map(weight).
-                     distance_map(dist_map).
-                     vertex_index_map(vertex_index).
-                     predecessor_map(pred_map).
-                     distance_inf(inf).
-                     visitor(djk_max_visitor<DistMap>
-                             (dist_map, max_d, target)));
+                dijkstra_shortest_paths_no_color_map_no_init
+                    (g, vertex(source, g), pred_map, dist_map, weight,
+                     vertex_index, std::less<dist_t>(),
+                     boost::closed_plus<dist_t>(), inf, dist_t(),
+                     djk_max_visitor<DistMap>(dist_map, max_d, inf, target));
             }
             else
             {
-                dijkstra_shortest_paths_no_color_map
-                    (g, vertex(source, g),
-                     weight_map(weight).
-                     distance_map(dist_map).
-                     vertex_index_map(vertex_index).
-                     predecessor_map(pred_map).
-                     distance_inf(inf).
-                     visitor(djk_max_multiple_targets_visitor<DistMap>
-                             (dist_map, max_d, tgt)));
+                dijkstra_shortest_paths_no_color_map_no_init
+                    (g, vertex(source, g), pred_map, dist_map, weight,
+                     vertex_index, std::less<dist_t>(),
+                     boost::closed_plus<dist_t>(), inf, dist_t(),
+                     djk_max_multiple_targets_visitor<DistMap>(dist_map, max_d,
+                                                               inf, tgt));
             }
 
         }
         catch (stop_search&) {}
 
-        if (max_dist > 0)
-        {
-            parallel_vertex_loop(g,
-                                 [&](auto v)
-                                 {
-                                     auto& d = dist_map[v];
-                                     if (d > max_dist)
-                                         d = inf;
-                                 });
-        }
     }
 };
 
