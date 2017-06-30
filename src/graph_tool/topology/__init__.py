@@ -1500,7 +1500,8 @@ def kcore_decomposition(g, vprop=None):
 
 def shortest_distance(g, source=None, target=None, weights=None,
                       negative_weights=False, max_dist=None, directed=None,
-                      dense=False, dist_map=None, pred_map=False):
+                      dense=False, dist_map=None, pred_map=False,
+                      return_reached=False):
     """Calculate the distance from a source to a target vertex, or to of all
     vertices from a given source, or the all pairs shortest paths, if the source
     is not specified.
@@ -1535,9 +1536,35 @@ def shortest_distance(g, source=None, target=None, weights=None,
     dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex property to store the distances. If none is supplied, one
         is created.
-    pred_map : ``bool`` (optional, default: ``False``)
+
+        .. warning::
+
+            If this parameter is supplied, the user is responsible for
+            initializing it to infinity. This can be done as:
+
+            >>> dist_map = g.new_vp("double", numpy.inf)
+
+            or
+
+            >>> dist_map = g.new_vp("int32_t", numpy.iinfo(numpy.int32).max)
+
+            depending on the distance type.
+
+    pred_map : ``bool`` or :class:`~graph_tool.PropertyMap` (optional, default: ``False``)
         If ``True``, a vertex property map with the predecessors is returned.
-        Ignored if ``source`` is ``None``.
+        If a :class:`~graph_tool.PropertyMap` is passed, it must be of value
+        ``int64_t`` and it will be used to store the predecessors.  Ignored if
+        ``source`` is ``None``.
+
+        .. warning::
+
+            If a property map is supplied, the user is responsible for
+            initializing to the identity map. This can be done as:
+
+            >>> pred_map = g.vertex_index.copy()
+
+    return_reached : ``bool`` (optional, default: ``False``)
+        If ``True``, return an array of visited vertices.
 
     Returns
     -------
@@ -1546,6 +1573,8 @@ def shortest_distance(g, source=None, target=None, weights=None,
         it will have a vector value type, with the distances to every vertex.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, if ``pred_map == True``)
         Vertex property map with the predecessors in the search tree.
+    pred_map : :class:`numpy.ndarray` (optional, if ``return_reached == True``)
+        Array containing vertices visited during the search.
 
     Notes
     -----
@@ -1675,7 +1704,13 @@ def shortest_distance(g, source=None, target=None, weights=None,
             dist_map.fa = numpy.iinfo(dist_map.a.dtype).max
         else:
             dist_map.fa = numpy.inf
-        pmap = u.copy_property(u.vertex_index, value_type="int64_t")
+        if isinstance(pred_map, PropertyMap):
+            pmap = pred_map
+            if pmap.value_type() != "int64_t":
+                raise ValueError("supplied pred_map must be of value type 'int64_t'")
+        else:
+            pmap = u.copy_property(u.vertex_index, value_type="int64_t")
+        reached = libcore.Vector_size_t()
         libgraph_tool_topology.get_dists(u._Graph__graph,
                                          int(source),
                                          target,
@@ -1683,7 +1718,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
                                          _prop("e", u, weights),
                                          _prop("v", u, pmap),
                                          float(max_dist),
-                                         negative_weights)
+                                         negative_weights, reached)
     else:
         libgraph_tool_topology.get_all_dists(u._Graph__graph,
                                              _prop("v", u, dist_map),
@@ -1695,8 +1730,17 @@ def shortest_distance(g, source=None, target=None, weights=None,
         else:
             dist_map = numpy.array(dist_map.a[target])
 
-    if source is not None and pred_map:
-        return dist_map, pmap
+    if source is not None:
+        if pred_map:
+            ret = (dist_map, pmap)
+        else:
+            ret = (dist_map,)
+        if return_reached:
+            return ret + (numpy.asarray(reached.a.copy()),)
+        else:
+            if len(ret) == 1:
+                return ret[0]
+            return ret
     else:
         return dist_map
 
