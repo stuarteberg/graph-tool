@@ -286,7 +286,7 @@ class NestedBlockState(object):
         :class:`graph_tool.inference.LayeredBlockState.entropy`).  """
         S = 0
         for l in range(len(self.levels)):
-            S += self.level_entropy(l, **kwargs)
+            S += self.level_entropy(l, **dict(kwargs, test=False))
 
         for i in range(len(self.Lrecdx)-1):
             S += -libinference.positive_w_log_P(len(self.levels),
@@ -297,8 +297,8 @@ class NestedBlockState(object):
             state = self.copy()
             Salt = state.entropy(test=False, **kwargs)
             assert math.isclose(S, Salt, abs_tol=1e-8), \
-                "inconsistent entropy after copying (%g, %g): %s" % \
-                (S, Salt, str(kwargs))
+                "inconsistent entropy after copying (%g, %g, %g): %s" % \
+                (S, Salt, abs(S-Salt), str(kwargs))
 
         return S
 
@@ -659,6 +659,7 @@ class NestedBlockState(object):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
         if _bm_test():
+            kwargs = dict(kwargs, test=False)
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
@@ -679,6 +680,7 @@ class NestedBlockState(object):
         :method:`graph_tool.inference.BlockState.gibbs_sweep`.
         """
         if _bm_test():
+            kwargs = dict(kwargs, test=False)
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
@@ -699,6 +701,7 @@ class NestedBlockState(object):
         :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
         """
         if _bm_test():
+            kwargs = dict(kwargs, test=False)
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
