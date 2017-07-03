@@ -313,12 +313,11 @@ double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0
     if (std::isnan(m0) && std::isnan(k0))
     {
         auto smu1 = x * (x / N);
-        if (N == 1 || (boost::math::relative_difference(x2, smu1) <
-                       100 * numeric_limits<double>::epsilon()) || smu1 > x2)
+        if (N <= 2 || smu1 >= x2 || boost::math::relative_difference(x2, smu1) < 1e-10)
             return 0.;
         else
             return (lgamma((N - 1) / 2.) + log(x2) / 2. - ((N - 2) / 2.) *
-                    log(x2-smu1) - ((N - 1) / 2.) * log(M_PI));
+                    log(x2 - smu1) - ((N - 1) / 2.) * log(M_PI));
     }
     auto v = x2 - x * (x / N);
     auto k_n = k0 + N;
