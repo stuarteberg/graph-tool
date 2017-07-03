@@ -426,8 +426,9 @@ class BlockState(object):
 
         self._init_recs(self.rec, rec_types, rec_params)
         self.recdx = libcore.Vector_double(len(self.rec))
-        self.Lrecdx = kwargs.pop("Lrecdx",
-                                 libcore.Vector_double(len(self.rec)+1))
+        self.Lrecdx = kwargs.pop("Lrecdx", None)
+        if self.Lrecdx is None:
+            self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
         self.Lrecdx.resize(len(self.rec)+1)
 
         self.allow_empty = allow_empty
@@ -608,6 +609,7 @@ class BlockState(object):
                                                          self.ignore_degrees),
                                allow_empty=kwargs.pop("allow_empty",
                                                       self.allow_empty),
+                               Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                **kwargs)
         else:
             state = OverlapBlockState(self.g if g is None else g,
@@ -625,6 +627,7 @@ class BlockState(object):
                                       allow_empty=kwargs.pop("allow_empty",
                                                              self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
+                                      Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                       **kwargs)
 
         if self._coupled_state is not None:
