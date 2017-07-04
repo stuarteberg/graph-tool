@@ -389,6 +389,16 @@ public:
         }
     }
 
+    size_t get_B_E()
+    {
+        return _B_E;
+    }
+
+    size_t get_B_E_D()
+    {
+        return _B_E_D;
+    }
+
     void remove_vertex(size_t v)
     {
         modify_vertex<false>(v, _b[v]);
@@ -596,6 +606,7 @@ public:
             }
         }
 
+        int dL = 0;
         if (ea.recs)
         {
             auto positive_entries_op = [&](size_t i, auto&& w_log_P,
@@ -772,6 +783,24 @@ public:
                                                             _recdx[i] + _dBdx[i],
                                                             wp[2], wp[3]);
                             }
+
+                            if (dL == 0)
+                            {
+                                if (_B_E_D == 0 && dB_E_D > 0)
+                                    dL++;
+                                if (_B_E_D > 0 && _B_E_D + dB_E_D == 0)
+                                    dL--;
+                            }
+
+                            if (_coupled_state == nullptr && _Lrecdx[0] >= 0)
+                            {
+                                size_t L = _Lrecdx[0];
+                                dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
+                                                            wp[2], wp[3]);
+                                dS += -positive_w_log_P_alt(L + dL,
+                                                            _Lrecdx[i+1] + _dBdx[i],
+                                                            wp[2], wp[3]);
+                            }
                         }
                     }
                     break;
@@ -821,7 +850,8 @@ public:
                            });
                 #pragma omp critical (coupled_virtual_move)
                 {
-                    dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx);
+                    dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx,
+                                                  dL);
                 }
             }
         }
@@ -840,9 +870,11 @@ public:
         return get_partition_stats(v).get_delta_partition_dl(v, r, nr, _g);
     }
 
-    double recs_dS(size_t, size_t, const std::vector<std::tuple<size_t, size_t,
-                   GraphInterface::edge_t, int, std::vector<double>>> &,
-                   std::vector<double>&)
+    double recs_dS(size_t, size_t,
+                   const std::vector<std::tuple<size_t, size_t,
+                                                GraphInterface::edge_t, int,
+                                                std::vector<double>>> &,
+                   std::vector<double>&, int)
     {
         return 0;
     }

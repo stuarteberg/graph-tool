@@ -98,6 +98,10 @@ void export_layered_overlap_blockmodel_state()
                           .def("get_partition_dl", &state_t::get_partition_dl)
                           .def("get_deg_dl", &state_t::get_deg_dl)
                           .def("get_move_prob", get_move_prob)
+                          .def("get_B_E",
+                               &state_t::get_B_E)
+                          .def("get_B_E_D",
+                               &state_t::get_B_E_D)
                           .def("enable_partition_stats",
                                &state_t::enable_partition_stats)
                           .def("disable_partition_stats",

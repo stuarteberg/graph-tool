@@ -1630,7 +1630,7 @@ public:
                            const std::vector<std::tuple<size_t, size_t,
                                              GraphInterface::edge_t, int,
                                              std::vector<double>>>&,
-                           std::vector<double>&) = 0;
+                           std::vector<double>&, int) = 0;
 };
 
 

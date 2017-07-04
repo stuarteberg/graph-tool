@@ -429,6 +429,7 @@ class BlockState(object):
         self.Lrecdx = kwargs.pop("Lrecdx", None)
         if self.Lrecdx is None:
             self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
+            self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
 
         self.allow_empty = allow_empty
@@ -632,7 +633,8 @@ class BlockState(object):
 
         if self._coupled_state is not None:
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
-                                                      copy_bg=False),
+                                                      copy_bg=False,
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
@@ -775,7 +777,8 @@ class BlockState(object):
 
         if copy_coupled and self._coupled_state is not None:
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
-                                                      copy_bg=False),
+                                                      copy_bg=False,
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
@@ -1101,7 +1104,8 @@ class BlockState(object):
             Salt = state_copy.entropy(**args)
 
             assert math.isclose(S, Salt, abs_tol=1e-8), \
-                "entropy discrepancy after copying (%g %g)" % (S, Salt)
+                "entropy discrepancy after copying (%g %g %g)" % (S, Salt,
+                                                                  S - Salt)
 
         if len(kwargs) > 0:
             raise ValueError("unrecognized keyword arguments: " +

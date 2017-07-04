@@ -356,7 +356,11 @@ public:
                             }
 
                             if (Add && (mrs < 2))
+                            {
+                                if (_B_E_D == 0 && this->_Lrecdx[0] >= 0)
+                                    this->_Lrecdx[0] += 1;
                                 _B_E_D++;
+                            }
                         }
 
                         if (mrs > 1)
@@ -374,7 +378,11 @@ public:
                             }
 
                             if (!Add && ((mrs + get<1>(delta)[0]) < 2))
+                            {
                                 _B_E_D--;
+                                if (_B_E_D == 0 && this->_Lrecdx[0] >= 0)
+                                    this->_Lrecdx[0] -= 1;
+                            }
                         }
 
                         for (size_t i = 0; i < this->_rec_types.size(); ++i)
@@ -440,7 +448,11 @@ public:
                 _B_E++;
 
             if (_brec[0][me] == 2)
+            {
+                if (_B_E_D == 0 && _Lrecdx[0] >= 0)
+                    _Lrecdx[0] += 1;
                 _B_E_D++;
+            }
 
             if (_rt == weight_type::REAL_NORMAL && _brec[0][me] > 1)
             {
@@ -482,7 +494,11 @@ public:
                 _B_E--;
 
             if (_brec[0][me] == 1)
+            {
                 _B_E_D--;
+                if (_B_E_D == 0 && _Lrecdx[0] >= 0)
+                    _Lrecdx[0] -= 1;
+            }
 
             if (_rt == weight_type::REAL_NORMAL && _brec[0][me] > 0)
             {
@@ -1364,6 +1380,7 @@ public:
             }
         }
 
+        int dL = 0;
         if (ea.recs)
         {
             auto positive_entries_op = [&](size_t i, auto&& w_log_P,
@@ -1540,6 +1557,24 @@ public:
                                                             _recdx[i] + _dBdx[i],
                                                             wp[2], wp[3]);
                             }
+
+                            if (dL == 0)
+                            {
+                                if (_B_E_D == 0 && dB_E_D > 0)
+                                    dL++;
+                                if (_B_E_D > 0 && _B_E_D + dB_E_D == 0)
+                                    dL--;
+                            }
+
+                            if (_coupled_state == nullptr && _Lrecdx[0] >= 0)
+                            {
+                                size_t L = _Lrecdx[0];
+                                dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
+                                                            wp[2], wp[3]);
+                                dS += -positive_w_log_P_alt(L + dL,
+                                                            _Lrecdx[i+1] + _dBdx[i],
+                                                            wp[2], wp[3]);
+                            }
                         }
                     }
                     break;
@@ -1611,10 +1646,11 @@ public:
                            });
                 #pragma omp critical (coupled_virtual_move)
                 {
-                    dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx);
+                    dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
                 }
             }
         }
+
         return dS;
     }
 
@@ -1625,9 +1661,9 @@ public:
 
     double recs_dS(size_t u, size_t v,
                    const std::vector<std::tuple<size_t, size_t,
-                                     GraphInterface::edge_t, int,
-                                     std::vector<double>>>& entries,
-                   std::vector<double>& dBdx)
+                                                GraphInterface::edge_t, int,
+                                                std::vector<double>>>& entries,
+                   std::vector<double>& dBdx, int dL)
     {
         if (_rec_types.empty())
             return 0;
@@ -1759,19 +1795,26 @@ public:
                                             std::pow(this->_brec[i][me], 2) / (ers + d));
                                    }
                                });
-                    if (dB_E_D != 0 || drecdx != 0 || dBdx[i] != 0)
+
+                    if (dB_E_D != 0 || drecdx != 0 || dBdx[i] != 0 || dL != 0)
                     {
                         dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
                                                     wp[2], wp[3]);
                         dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
                                                     _recdx[i] + drecdx,
                                                     wp[2], wp[3]);
-                        size_t L = _Lrecdx[0];
-                        if (L > 0)
+                        int ddL = 0;
+                        if (_Lrecdx[0] >= 0)
                         {
+                            size_t L = _Lrecdx[0];
+                            if (_B_E_D == 0 && dB_E_D > 0)
+                                ddL++;
+                            if (_B_E_D > 0 && _B_E_D + dB_E_D == 0)
+                                ddL--;
                             dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
                                                         wp[2], wp[3]);
-                            dS += -positive_w_log_P_alt(L, _Lrecdx[i+1] +
+                            dS += -positive_w_log_P_alt(L + dL + ddL,
+                                                        _Lrecdx[i+1] +
                                                         dBdx[i] + drecdx,
                                                         wp[2], wp[3]);
                         }

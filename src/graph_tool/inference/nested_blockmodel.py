@@ -35,7 +35,8 @@ import copy
 
 def get_edges_dl(state, hstate_args, hentropy_args):
     bclabel = state.get_bclabel()
-    bstate = state.get_block_state(b=bclabel, **hstate_args)
+    bstate = state.get_block_state(b=bclabel, **dict(hstate_args,
+                                                     Lrecdx=state.Lrecdx))
     return bstate.entropy(**hentropy_args)
 
 class NestedBlockState(object):
@@ -111,7 +112,7 @@ class NestedBlockState(object):
 
     def _regen_Lrecdx(self):
         self.Lrecdx.a = 0
-        self.Lrecdx[0] = len(self.levels)
+        self.Lrecdx[0] = len([s for s in self.levels if s._state.get_B_E_D() > 0])
         for s in self.levels:
             self.Lrecdx.a[1:] += s.recdx.a
 
@@ -276,6 +277,15 @@ class NestedBlockState(object):
                                   edges_dl=(l == (len(self.levels) - 1))))
         return S
 
+    def _Lrecdx_entropy(self, Lrecdx=None):
+        if Lrecdx is None:
+            Lrecdx = self.Lrecdx
+        S = 0
+        for i in range(len(Lrecdx)-1):
+            S += -libinference.positive_w_log_P(Lrecdx[0], Lrecdx[i+1],
+                                                numpy.nan, numpy.nan)
+        return S
+
     def entropy(self, **kwargs):
         """Compute the entropy of whole hierarchy.
 
@@ -288,10 +298,7 @@ class NestedBlockState(object):
         for l in range(len(self.levels)):
             S += self.level_entropy(l, **dict(kwargs, test=False))
 
-        for i in range(len(self.Lrecdx)-1):
-            S += -libinference.positive_w_log_P(len(self.levels),
-                                                self.Lrecdx[i+1], numpy.nan,
-                                                numpy.nan);
+        S += self._Lrecdx_entropy()
 
         if _bm_test() and kwargs.pop("test", True):
             state = self.copy()
@@ -419,8 +426,8 @@ class NestedBlockState(object):
             print("l: %d, N: %d, B: %d" % (l, state.get_N(),
                                            state.get_nonempty_B()))
 
-    def find_new_level(self, l, sparse_thres=numpy.inf, bisection_args={}, B_min=None,
-                       B_max=None, b_min=None, b_max=None):
+    def find_new_level(self, l, sparse_thres=numpy.inf, bisection_args={},
+                       B_min=None, B_max=None, b_min=None, b_max=None):
         """Attempt to find a better network partition at level ``l``, using
         :func:`~graph_tool.inference.bisection_minimize` with arguments given by
         ``bisection_args``.
@@ -444,13 +451,16 @@ class NestedBlockState(object):
         else:
             entropy_args = dict(entropy_args, dl=True,
                                 edges_dl=l==len(self.levels) - 1)
-        if l < len(self.levels) - 1:
-            entropy_args = dict(entropy_args,
-                                callback=\
-                                lambda s: get_edges_dl(s,
-                                                       self.hstate_args,
-                                                       dict(self.hentropy_args,
-                                                            edges_dl=(l + 1 == len(self.levels) - 1))))
+        def callback(s):
+            S = 0
+            if l < len(self.levels) - 1:
+                S += get_edges_dl(s, self.hstate_args,
+                                  dict(self.hentropy_args,
+                                       edges_dl=(l + 1 == len(self.levels) - 1)))
+            if s.Lrecdx[0] >= 0:
+                S += self._Lrecdx_entropy(s.Lrecdx)
+            return S
+        entropy_args = dict(entropy_args, callback=callback)
         mcmc_args = dict(mcmc_args, entropy_args=entropy_args)
         if _bm_test() and isinstance(self.levels[0], LayeredBlockState):
             mcmc_args = dict(mcmc_args, disable_callback_test=True)
@@ -871,6 +881,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
                           Sf - Si, len(state.levels))
             else:
                 state.levels[l:l+len(bstates)] = bstates
+                state._regen_Lrecdx()
 
                 if check_verbose(verbose):
                     print(verbose_pad(verbose) + "level", l,
@@ -894,6 +905,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
             if Si - Sf < epsilon:
                 state.levels[l - 1] = bstates[0]
                 state.levels.insert(l, bstates[1])
+                state._regen_Lrecdx()
             else:
                 kept = False
                 del done[l]
@@ -936,6 +948,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
                     state.levels[l + j] = bstates[j]
                 if bstates[-1].B == 1:
                     del state.levels[l + len(bstates):]
+                state._regen_Lrecdx()
             else:
                 kept = False
                 dS += Sf - Si
@@ -953,6 +966,8 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
             bstate = bstate.get_block_state(b=zeros(state.levels[-1].B),
                                             deg_corr=False)
             state.levels.append(bstate)
+            state._regen_Lrecdx()
+
             if _bm_test():
                 state._consistency_check()
 

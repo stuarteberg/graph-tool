@@ -238,8 +238,10 @@ class OverlapBlockState(BlockState):
 
         BlockState._init_recs(self, self.rec, rec_types, rec_params)
         self.recdx = libcore.Vector_double(len(self.rec))
-        self.Lrecdx = kwargs.pop("Lrecdx",
-                                 libcore.Vector_double(len(self.rec)+1))
+        self.Lrecdx = kwargs.pop("Lrecdx", None)
+        if self.Lrecdx is None:
+            self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
+            self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
 
         self.max_BE = max_BE
