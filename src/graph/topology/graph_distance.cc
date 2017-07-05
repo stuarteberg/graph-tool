@@ -448,8 +448,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
     }
 }
 
-template <class Graph, class Dist, class Pred, class Preds>
-void get_all_preds(Graph g, Dist dist, Pred pred, Preds preds)
+template <class Graph, class Dist, class Pred, class Weight, class Preds>
+void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds)
 {
     parallel_vertex_loop
         (g,
@@ -457,18 +457,19 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Preds preds)
          {
             if (size_t(pred[v]) == v)
                 return;
-            auto d = dist[pred[v]];
+            auto d = dist[v];
+            typedef decltype(d) dist_t;
             for (auto e : in_or_out_edges_range(v, g))
             {
                 auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
-                if (dist[u] == d)
+                if (dist_t(dist[u] + get(weight, e)) == d)
                     preds[v].push_back(u);
             }
          });
 };
 
 void do_get_all_preds(GraphInterface& gi, boost::any adist,
-                      boost::any apred, boost::any apreds)
+                      boost::any apred, boost::any aweight, boost::any apreds)
 {
     typedef property_map_type
         ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
@@ -478,11 +479,18 @@ void do_get_all_preds(GraphInterface& gi, boost::any adist,
     pred_map_t pred = any_cast<pred_map_t>(apred);
     preds_map_t preds = any_cast<preds_map_t>(apreds);
 
+    typedef UnityPropertyMap<int,GraphInterface::edge_t> weight_map_t;
+    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
+        weight_props_t;
+
+    if (aweight.empty())
+        aweight = weight_map_t();
+
     run_action<>()
-        (gi, [&](auto& g, auto dist)
+        (gi, [&](auto& g, auto dist, auto weight)
              {get_all_preds(g, dist, pred.get_unchecked(num_vertices(g)),
-                            preds.get_unchecked(num_vertices(g)));},
-         vertex_scalar_properties())(adist);
+                            weight, preds.get_unchecked(num_vertices(g)));},
+         vertex_scalar_properties(), weight_props_t())(adist, aweight);
 }
 
 
