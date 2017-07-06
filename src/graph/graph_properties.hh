@@ -631,7 +631,7 @@ public:
     typedef boost::readable_property_map_tag category;
 
     template <class K>
-    value_type operator[](const K&) const { return value_type(1); }
+    constexpr value_type operator[](const K&) const { return value_type(1); }
 };
 
 
