@@ -1849,7 +1849,7 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         v = p
     return vlist, elist
 
-def all_predecessors(g, dist_map, pred_map, weights=None):
+def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
     """Return a property map with all possible predecessors in the search tree
         determined by ``dist_map`` and ``pred_map``.
 
@@ -1864,6 +1864,9 @@ def all_predecessors(g, dist_map, pred_map, weights=None):
         Vertex property map with the predecessors in the search tree.
     weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
         The edge weights.
+    epsilon : `float` (optional, default: `1e-8`)
+        Maximum relative difference between distances to be considered "equal",
+        in case floating-point weights are used.
 
     Returns
     -------
@@ -1878,11 +1881,13 @@ def all_predecessors(g, dist_map, pred_map, weights=None):
                                          _prop("v", g, dist_map),
                                          _prop("v", g, pred_map),
                                          _prop("e", g, weights),
-                                         _prop("v", g, preds))
+                                         _prop("v", g, preds),
+                                         epsilon)
     return preds
 
 def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
-                       dist_map=None, pred_map=None, all_preds_map=None):
+                       dist_map=None, pred_map=None, all_preds_map=None,
+                       epsilon=1e-8):
     """Return an iterator over all shortest paths from `source` to `target`.
 
     Parameters
@@ -1908,6 +1913,9 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
         Vector-valued vertex property map with all possible predecessors in the
         search tree. If this is provided, the shortest paths are obtained
         directly from this map.
+    epsilon : `float` (optional, default: `1e-8`)
+        Maximum relative difference between distances to be considered "equal",
+        in case floating-point weights are used.
 
     Returns
     -------
@@ -1955,7 +1963,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
                                                negative_weights=negative_weights,
                                                pred_map=True)
     if all_preds_map is None:
-        all_preds_map = all_predecessors(g, dist_map, pred_map, weights)
+        all_preds_map = all_predecessors(g, dist_map, pred_map, weights, epsilon)
 
     path_iterator = \
         libgraph_tool_topology.get_all_shortest_paths(g._Graph__graph,

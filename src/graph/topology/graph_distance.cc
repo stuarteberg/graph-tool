@@ -30,6 +30,7 @@
 #include <boost/graph/bellman_ford_shortest_paths.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python.hpp>
+#include <boost/math/special_functions/relative_difference.hpp>
 
 using namespace std;
 using namespace boost;
@@ -449,7 +450,8 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
 }
 
 template <class Graph, class Dist, class Pred, class Weight, class Preds>
-void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds)
+void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds,
+                   long double epsilon)
 {
     parallel_vertex_loop
         (g,
@@ -462,14 +464,23 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds)
             for (auto e : in_or_out_edges_range(v, g))
             {
                 auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
-                if (dist_t(dist[u] + get(weight, e)) == d)
-                    preds[v].push_back(u);
+                if (std::is_floating_point<dist_t>::value)
+                {
+                    if (dist_t(dist[u] + get(weight, e)) == d)
+                        preds[v].push_back(u);
+                }
+                else
+                {
+                    if (boost::math::relative_difference(dist_t(dist[u] + get(weight, e)), d) < epsilon)
+                        preds[v].push_back(u);
+                }
             }
          });
 };
 
-void do_get_all_preds(GraphInterface& gi, boost::any adist,
-                      boost::any apred, boost::any aweight, boost::any apreds)
+void do_get_all_preds(GraphInterface& gi, boost::any adist, boost::any apred,
+                      boost::any aweight, boost::any apreds,
+                      long double epsilon)
 {
     typedef property_map_type
         ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
@@ -489,7 +500,8 @@ void do_get_all_preds(GraphInterface& gi, boost::any adist,
     run_action<>()
         (gi, [&](auto& g, auto dist, auto weight)
              {get_all_preds(g, dist, pred.get_unchecked(num_vertices(g)),
-                            weight, preds.get_unchecked(num_vertices(g)));},
+                            weight, preds.get_unchecked(num_vertices(g)),
+                            epsilon);},
          vertex_scalar_properties(), weight_props_t())(adist, aweight);
 }
 
