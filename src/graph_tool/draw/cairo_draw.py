@@ -1560,7 +1560,7 @@ class GraphArtist(matplotlib.artist.Artist):
 
 def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                    vprops=None, eprops=None, hvprops=None, heprops=None,
-                   subsample_edges=None, deg_order=True, deg_size=True,
+                   subsample_edges=None, rel_order="degree", deg_size=True,
                    vsize_scale=1, hsize_scale=1, hshortcuts=0, hide=0,
                    bip_aspect=1., empty_branches=False, **kwargs):
     r"""Draw a nested block model state in a circular hierarchy layout with edge
@@ -1605,9 +1605,11 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     subsample_edges : ``int`` or list of :class:`~graph_tool.Edge` instances (optional, default: ``None``)
         If provided, only this number of random edges will be drawn. If the
         value is a list, it should include the edges that are to be drawn.
-    deg_order : ``bool`` (optional, default: ``True``)
-        If ``True``, the vertices will be ordered according to degree inside
-        each group.
+    rel_order : ``str`` or ``None`` or :class:`~graph_tool.PropertyMap` (optional, default: ``"degree"``)
+        If ``degree``, the vertices will be ordered according to degree inside
+        each group, and the relative ordering of the hierarchy branches. If
+        instead a :class:`~graph_tool.PropertyMap` is provided, its value will
+        be used for the relative ordering.
     deg_size : ``bool`` (optional, default: ``True``)
         If ``True``, the (total) node degrees will be used for the default
         vertex sizes..
@@ -1690,6 +1692,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
        Visualization of Adjacency Relations in Hierarchical Data.", IEEE
        Transactions on Visualization and Computer Graphics 12, no. 5, 741–748
        (2006). :doi:`10.1109/TVCG.2006.147`
+
     """
 
     g = state.g
@@ -1718,12 +1721,13 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                 emask[e] = True
         g = GraphView(g, efilt=emask)
 
-    t, tb, vorder = get_hierarchy_tree(state,
-                                       empty_branches=empty_branches)
+    t, tb, tvorder = get_hierarchy_tree(state,
+                                        empty_branches=empty_branches)
 
     if layout == "radial":
-        if not deg_order:
-            vorder = None
+        if rel_order == "degree":
+            rel_order = g.degree_property_map("total")
+        vorder = t.own_property(rel_order.copy())
         if pos is not None:
             x, y = ungroup_vector_property(pos, [0, 1])
             x.fa -= x.fa.mean()
@@ -1737,7 +1741,8 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         tpos = radial_tree_layout(t, root=t.vertex(t.num_vertices() - 1,
                                                    use_index=False),
                                   node_weight=node_weight,
-                                  rel_order=vorder)
+                                  rel_order=vorder,
+                                  rel_order_leaf=True)
     elif layout == "bipartite":
         tpos = get_bip_hierachy_pos(state, aspect=bip_aspect,
                                     node_weight=node_weight)
@@ -2007,7 +2012,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     if "eorder" in kwargs:
         kwargs["eorder"] = eorder
 
-    pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=vorder,
+    vorder = kwargs.pop("vorder", None)
+    if vorder is None:
+        vorder = g.degree_property_map("total")
+    tvorder.fa[:g.num_vertices()] = vorder.fa
+
+    pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=tvorder,
                      **kwargs)
 
     if isinstance(pos, PropertyMap):

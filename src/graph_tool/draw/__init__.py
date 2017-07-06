@@ -767,8 +767,8 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     pos = g_.own_property(pos)
     return pos
 
-def radial_tree_layout(g, root, rel_order=None, weighted=False,
-                       node_weight=None, r=1.):
+def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
+                       weighted=False, node_weight=None, r=1.):
     r"""Computes a radial layout of the graph according to the minimum spanning
     tree centered at the ``root`` vertex.
 
@@ -780,6 +780,9 @@ def radial_tree_layout(g, root, rel_order=None, weighted=False,
         The root of the radial tree.
     rel_order : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Relative order of the nodes at each respective branch.
+    rel_order_leaf : ``bool`` (optional, default: ``False``)
+        If ``True``, the relative order of the leafs will propagate to the
+        root. Otherwise they will propagate in the opposite direction.
     weighted : ``bool`` (optional, default: ``False``)
         If true, the angle between the child branches will be computed according
         to weight of the entire sub-branches.
@@ -797,7 +800,8 @@ def radial_tree_layout(g, root, rel_order=None, weighted=False,
 
     Notes
     -----
-    This algorithm has complexity :math:`O(V + E)`.
+    This algorithm has complexity :math:`O(V + E)`, or :math:`O(V\log V + E)` if
+    ``rel_order`` is given.
 
     Examples
     --------
@@ -840,7 +844,8 @@ def radial_tree_layout(g, root, rel_order=None, weighted=False,
                                     _prop("v", g, levels),
                                     _prop("v", g, rel_order),
                                     _prop("v", g, node_weight),
-                                    int(root), weighted, r)
+                                    int(root), weighted, r,
+                                    rel_order_leaf)
     return g.own_property(pos)
 
 def prop_to_size(prop, mi=0, ma=5, log=False, power=0.5):

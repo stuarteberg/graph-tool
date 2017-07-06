@@ -34,7 +34,8 @@ struct do_get_radial
     template <class Graph, class PosProp, class LevelMap, class OrderMap,
               class WeightMap>
     void operator()(Graph& g, PosProp tpos, LevelMap level, OrderMap order,
-                    WeightMap weight, size_t root, bool weighted, double r) const
+                    WeightMap weight, size_t root, bool weighted, double r,
+                    bool order_propagate) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
         typedef typename vprop_map_t<typename property_traits<WeightMap>::value_type>::type vcount_t;
@@ -77,6 +78,32 @@ struct do_get_radial
             }
         }
 
+        vprop_map_t<double>::type::unchecked_t vorder(get(vertex_index, g));
+
+        if (order_propagate)
+        {
+            vorder.resize(num_vertices(g));
+            std::vector<size_t> vs(vertices(g).first, vertices(g).second);
+            std::sort(vs.begin(), vs.end(),
+                      [&] (vertex_t u, vertex_t v) { return order[u] < order[v]; });
+
+            for (size_t i = 0; i < vs.size(); ++i)
+                vorder[vs[i]] = i;
+
+            std::sort(vs.begin(), vs.end(),
+                      [&] (vertex_t u, vertex_t v) { return level[u] > level[v]; });
+
+            for (auto v : vs)
+            {
+                if (out_degree(v,g) == 0)
+                    continue;
+                vorder[v] = 0;
+                for (auto e : out_edges_range(v, g))
+                    vorder[v] += vorder[target(e,g)];
+                vorder[v] /= out_degree(v,g);
+            }
+        }
+
         vector<vector<vertex_t>> layers(1);
         layers[0].push_back(root);
 
@@ -100,8 +127,20 @@ struct do_get_radial
                         last = false;
                 }
 
-                std::sort(new_layer.end() - out_degree(v, g), new_layer.end(),
-                          [&] (vertex_t u, vertex_t v) -> bool { return order[u] < order[v]; });
+                if (order_propagate)
+                {
+                    std::sort(new_layer.end() - out_degree(v, g),
+                              new_layer.end(),
+                              [&] (vertex_t u, vertex_t v)
+                              { return vorder[u] < vorder[v]; });
+                }
+                else
+                {
+                    std::sort(new_layer.end() - out_degree(v, g),
+                              new_layer.end(),
+                              [&] (vertex_t u, vertex_t v)
+                              { return order[u] < order[v]; });
+                }
 
                 if (out_degree(v, g) == 0)
                     new_layer.push_back(v);
@@ -153,7 +192,7 @@ struct do_get_radial
 
 void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
                 boost::any oorder, boost::any oweight, size_t root,
-                bool weighted, double r)
+                bool weighted, double r, bool order_propagate)
 {
     typedef vprop_map_t<int32_t>::type vmap_t;
 
@@ -165,7 +204,8 @@ void get_radial(GraphInterface& gi, boost::any otpos, boost::any olevels,
 
     run_action<graph_tool::detail::always_directed>()
         (gi, std::bind(do_get_radial(), std::placeholders::_1, std::placeholders::_2,
-                       levels, std::placeholders::_3, weight, root, weighted,  r),
+                       levels, std::placeholders::_3, weight, root, weighted, r,
+                       order_propagate),
          vertex_scalar_vector_properties(),
          vertex_properties())(otpos, oorder);
 }
