@@ -431,6 +431,11 @@ class BlockState(object):
             self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
             self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
+        self.epsilon = kwargs.pop("epsilon", libcore.Vector_double(len(self.rec)))
+        for i in range(len(self.rec)):
+            idx = self.rec[i].a != 0
+            if numpy.any(idx):
+                self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
@@ -611,6 +616,7 @@ class BlockState(object):
                                allow_empty=kwargs.pop("allow_empty",
                                                       self.allow_empty),
                                Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
+                               epsilon=self.epsilon.copy(),
                                **kwargs)
         else:
             state = OverlapBlockState(self.g if g is None else g,
@@ -629,6 +635,7 @@ class BlockState(object):
                                                              self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
                                       Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
+                                      epsilon=self.epsilon.copy(),
                                       **kwargs)
 
         if self._coupled_state is not None:
@@ -773,6 +780,7 @@ class BlockState(object):
                            clabel=kwargs.pop("clabel", self.get_bclabel()),
                            pclabel=kwargs.pop("pclabel", self.get_bpclabel()),
                            max_BE=self.max_BE,
+                           epsilon=self.epsilon.copy(),
                            **kwargs)
 
         if copy_coupled and self._coupled_state is not None:

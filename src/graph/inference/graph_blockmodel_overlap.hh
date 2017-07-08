@@ -63,6 +63,7 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((wparams,, std::vector<std::vector<double>>, 0))                          \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
+    ((epsilon, &, std::vector<double>&, 0))                                    \
     ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(OverlapBlockStateVirtualBase, OVERLAP_BLOCK_STATE_params)
@@ -316,6 +317,9 @@ public:
             }
             else
             {
+                for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                    _dBdx[i] = 0;
+
                 auto mid_op =
                     [&](auto& e, auto& me)
                     {
@@ -334,7 +338,7 @@ public:
                                                       one * this->_rec[i][e]), 2) /
                                             (mrs + one * this->_rec[0][e])));
                                     _recdx[i] += dx;
-                                    _Lrecdx[i+1] += dx;
+                                    _dBdx[i] += dx;
                                 }
                             }
 
@@ -352,7 +356,6 @@ public:
                                        (this->_bdrec[i][me] -
                                         std::pow(this->_brec[i][me], 2) / mrs);
                                     _recdx[i] -= dx;
-                                    _Lrecdx[i+1] -= dx;
                                 }
                             }
 
@@ -384,7 +387,13 @@ public:
                         }
                     };
 
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                    _Lrecdx[i+1] -= _recdx[i] * _B_E_D;
+
                 modify_vertex<Add>(v, r, mid_op, coupled_end_op);
+
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                    _Lrecdx[i+1] += _recdx[i] * _B_E_D;
             }
         }
     }
@@ -658,12 +667,14 @@ public:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
                                         { return positive_w_log_P(N, x, wp[0],
-                                                                  wp[1]);
+                                                                  wp[1],
+                                                                  this->_epsilon[i]);
                                         },
                                         [&](size_t B_E)
                                         { return positive_w_log_P(B_E,
                                                                   _recsum[i],
-                                                                  wp[0], wp[1]);
+                                                                  wp[0], wp[1],
+                                                                  this->_epsilon[i]);
                                         });
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
@@ -727,12 +738,14 @@ public:
                                        auto dx2 = get<2>(delta)[i];
                                        dS -= -signed_w_log_P(ers, xrs, x2rs,
                                                              wp[0], wp[1],
-                                                             wp[2], wp[3]);
+                                                             wp[2], wp[3],
+                                                             this->_epsilon[i]);
                                        dS += -signed_w_log_P(ers + d,
                                                              xrs + dx,
                                                              x2rs + dx2,
                                                              wp[0], wp[1],
-                                                             wp[2], wp[3]);
+                                                             wp[2], wp[3],
+                                                             this->_epsilon[i]);
                                        if (std::isnan(wp[0]) &&
                                            std::isnan(wp[1]))
                                        {
@@ -769,19 +782,22 @@ public:
                             {
                                 dS -= -signed_w_log_P(_B_E, _recsum[i],
                                                       _recx2[i], wp[0], wp[1],
-                                                      wp[2], wp[3]);
+                                                      wp[2], wp[3], _epsilon[i]);
                                 dS += -signed_w_log_P(_B_E + dB_E, _recsum[i],
                                                       _recx2[i] + dBx2, wp[0],
-                                                      wp[1], wp[2], wp[3]);
+                                                      wp[1], wp[2], wp[3],
+                                                      _epsilon[i]);
                             }
 
                             if (dB_E_D != 0 || _dBdx[i] != 0)
                             {
-                                dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
-                                                            wp[2], wp[3]);
-                                dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
-                                                            _recdx[i] + _dBdx[i],
-                                                            wp[2], wp[3]);
+                                dS -= -positive_w_log_P(_B_E_D, _recdx[i],
+                                                        wp[2], wp[3],
+                                                        _epsilon[i]);
+                                dS += -positive_w_log_P(_B_E_D + dB_E_D,
+                                                        _recdx[i] + _dBdx[i],
+                                                        wp[2], wp[3],
+                                                        _epsilon[i]);
                             }
 
                             if (dL == 0)
@@ -792,14 +808,26 @@ public:
                                     dL--;
                             }
 
-                            if (_coupled_state == nullptr && _Lrecdx[0] >= 0)
+                            if (_Lrecdx[0] >= 0)
                             {
-                                size_t L = _Lrecdx[0];
-                                dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
-                                                            wp[2], wp[3]);
-                                dS += -positive_w_log_P_alt(L + dL,
-                                                            _Lrecdx[i+1] + _dBdx[i],
-                                                            wp[2], wp[3]);
+                                size_t N_B_E_D = _B_E_D + dB_E_D;
+
+                                dS -= -safelog(_B_E_D);
+                                dS += -safelog(N_B_E_D);
+
+                                _dBdx[i] = _recdx[i] * dB_E_D + _dBdx[i] * N_B_E_D;
+
+                                if (_coupled_state == nullptr)
+                                {
+                                    size_t L = _Lrecdx[0];
+                                    dS -= -positive_w_log_P(L, _Lrecdx[i+1],
+                                                            wp[2], wp[3],
+                                                            _epsilon[i]);
+                                    dS += -positive_w_log_P(L + dL,
+                                                            _Lrecdx[i+1] +
+                                                            _dBdx[i], wp[2],
+                                                            wp[3], _epsilon[i]);
+                                }
                             }
                         }
                     }
@@ -1127,10 +1155,12 @@ public:
                     {
                         auto ers = _brec[0][me];
                         auto xrs = _brec[i][me];
-                        S += -positive_w_log_P(ers, xrs, wp[0], wp[1]);
+                        S += -positive_w_log_P(ers, xrs, wp[0], wp[1],
+                                               _epsilon[i]);
                     }
                     if (edges_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
-                        S += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
+                        S += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1],
+                                               _epsilon[i]);
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
                     for (auto me : edges_range(_bg))
@@ -1173,15 +1203,16 @@ public:
                         auto xrs = _brec[i][me];
                         auto x2rs = _bdrec[i][me];
                         S += -signed_w_log_P(ers, xrs, x2rs, wp[0], wp[1],
-                                             wp[2], wp[3]);
+                                             wp[2], wp[3], _epsilon[i]);
                     }
                     if (std::isnan(wp[0]) && std::isnan(wp[1]))
                     {
                         if (edges_dl)
                             S += -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
-                                                 wp[0], wp[1], wp[2], wp[3]);
-                        S += -positive_w_log_P_alt(_B_E_D, _recdx[i], wp[2],
-                                                   wp[3]);
+                                                 wp[0], wp[1], wp[2], wp[3],
+                                                 _epsilon[i]);
+                        S += -positive_w_log_P(_B_E_D, _recdx[i], wp[2], wp[3],
+                                               _epsilon[i]);
                     }
                     break;
                 case weight_type::DELTA_T: // waiting times

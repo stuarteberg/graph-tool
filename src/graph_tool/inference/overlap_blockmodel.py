@@ -243,6 +243,11 @@ class OverlapBlockState(BlockState):
             self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
             self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
+        self.epsilon = libcore.Vector_double(len(self.rec))
+        for i in range(len(self.rec)):
+            idx = self.rec[i].a != 0
+            if numpy.any(idx):
+                self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.max_BE = max_BE
 

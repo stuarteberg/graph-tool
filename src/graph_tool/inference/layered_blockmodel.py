@@ -187,6 +187,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.drec = agg_state.drec
         self.rec_types = agg_state.rec_types
         self.rec_params = agg_state.rec_params
+        self.Lrecdx = agg_state.Lrecdx
+        self.epsilon = agg_state.epsilon
 
         self.b = agg_state.b
         self.B = agg_state.B

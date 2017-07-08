@@ -33,12 +33,6 @@ from numpy import *
 import numpy
 import copy
 
-def get_edges_dl(state, hstate_args, hentropy_args):
-    bclabel = state.get_bclabel()
-    bstate = state.get_block_state(b=bclabel, **dict(hstate_args,
-                                                     Lrecdx=state.Lrecdx))
-    return bstate.entropy(**hentropy_args)
-
 class NestedBlockState(object):
     r"""The nested stochastic block model state of a given graph.
 
@@ -114,7 +108,8 @@ class NestedBlockState(object):
         self.Lrecdx.a = 0
         self.Lrecdx[0] = len([s for s in self.levels if s._state.get_B_E_D() > 0])
         for s in self.levels:
-            self.Lrecdx.a[1:] += s.recdx.a
+            self.Lrecdx.a[1:] += s.recdx.a * s._state.get_B_E_D()
+            s.epsilon.a = self.levels[0].epsilon.a
 
     def _regen_levels(self):
         for l in range(1, len(self.levels)):
@@ -278,12 +273,24 @@ class NestedBlockState(object):
         return S
 
     def _Lrecdx_entropy(self, Lrecdx=None):
+        S_D = 0
+
         if Lrecdx is None:
             Lrecdx = self.Lrecdx
+            for s in self.levels:
+                B_E_D = s._state.get_B_E_D()
+                if B_E_D > 0:
+                    S_D -= log(B_E_D)
+
         S = 0
-        for i in range(len(Lrecdx)-1):
+        for i in range(len(self.levels[0].rec)):
+            if self.levels[0].rec_types[i] != libinference.rec_type.real_normal:
+                continue
             S += -libinference.positive_w_log_P(Lrecdx[0], Lrecdx[i+1],
-                                                numpy.nan, numpy.nan)
+                                                numpy.nan, numpy.nan,
+                                                self.levels[0].epsilon[i])
+            S += S_D
+
         return S
 
     def entropy(self, **kwargs):
@@ -305,7 +312,7 @@ class NestedBlockState(object):
             Salt = state.entropy(test=False, **kwargs)
             assert math.isclose(S, Salt, abs_tol=1e-8), \
                 "inconsistent entropy after copying (%g, %g, %g): %s" % \
-                (S, Salt, abs(S-Salt), str(kwargs))
+                (S, Salt, S-Salt, str(kwargs))
 
         return S
 
@@ -454,11 +461,27 @@ class NestedBlockState(object):
         def callback(s):
             S = 0
             if l < len(self.levels) - 1:
-                S += get_edges_dl(s, self.hstate_args,
-                                  dict(self.hentropy_args,
-                                       edges_dl=(l + 1 == len(self.levels) - 1)))
+                bclabel = s.get_bclabel()
+                bstate = s.get_block_state(b=bclabel,
+                                               **dict(self.hstate_args,
+                                                      Lrecdx=s.Lrecdx))
+                S += bstate.entropy(**dict(self.hentropy_args,
+                                           edges_dl=(l + 1 == len(self.levels) - 1)))
+
             if s.Lrecdx[0] >= 0:
                 S += self._Lrecdx_entropy(s.Lrecdx)
+                ss = s
+                while ss is not None:
+                    B_E_D = ss._state.get_B_E_D()
+                    if B_E_D > 0:
+                        for i in range(len(s.rec)):
+                            if s.rec_types[i] != libinference.rec_type.real_normal:
+                                continue
+                            S -= log(B_E_D)
+                    if l < len(self.levels) - 1 and ss is not bstate:
+                        ss = bstate
+                    else:
+                        ss = None
             return S
         entropy_args = dict(entropy_args, callback=callback)
         mcmc_args = dict(mcmc_args, entropy_args=entropy_args)

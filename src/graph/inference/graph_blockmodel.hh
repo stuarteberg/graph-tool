@@ -99,6 +99,7 @@ enum weight_type
     ((wparams, &, std::vector<std::vector<double>>&, 0))                       \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
+    ((epsilon, &, std::vector<double>&, 0))                                    \
     ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
     ((bignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))               \
     ((allow_empty,, bool, 0))
@@ -339,49 +340,47 @@ public:
                         auto& mrs = this->_brec[0][me];
                         mid_op_BE(me, delta);
 
-                        if (mrs + get<1>(delta)[0] > 1)
-                        {
-                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
-                            {
-                                if (this->_rec_types[i] == weight_type::REAL_NORMAL)
-                                {
-                                    auto dx = \
-                                        (this->_bdrec[i][me] + get<2>(delta)[i]
-                                         - (std::pow((this->_brec[i][me] +
-                                                      get<1>(delta)[i]), 2) /
-                                            (mrs + get<1>(delta)[0])));
-                                    this->_recdx[i] += dx;
-                                    this->_Lrecdx[i+1] += dx;
-                                }
-                            }
+                        auto n_mrs = mrs + get<1>(delta)[0];
 
-                            if (Add && (mrs < 2))
+                        if (n_mrs > 1)
+                        {
+
+                            if (Add && mrs < 2)
                             {
                                 if (_B_E_D == 0 && this->_Lrecdx[0] >= 0)
                                     this->_Lrecdx[0] += 1;
                                 _B_E_D++;
                             }
+
+                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                            {
+                                if (this->_rec_types[i] != weight_type::REAL_NORMAL)
+                                    continue;
+                                auto dx = \
+                                    (this->_bdrec[i][me] + get<2>(delta)[i]
+                                     - (std::pow((this->_brec[i][me] +
+                                                  get<1>(delta)[i]), 2) / n_mrs));
+                                this->_recdx[i] += dx;
+                            }
                         }
 
                         if (mrs > 1)
                         {
-                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
-                            {
-                                if (this->_rec_types[i] == weight_type::REAL_NORMAL)
-                                {
-                                    auto dx = \
-                                       (this->_bdrec[i][me] -
-                                        std::pow(this->_brec[i][me], 2) / mrs);
-                                    this->_recdx[i] -= dx;
-                                    this->_Lrecdx[i+1] -= dx;
-                                }
-                            }
 
-                            if (!Add && ((mrs + get<1>(delta)[0]) < 2))
+                            if (!Add && n_mrs < 2)
                             {
                                 _B_E_D--;
                                 if (_B_E_D == 0 && this->_Lrecdx[0] >= 0)
                                     this->_Lrecdx[0] -= 1;
+                            }
+
+                            for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                            {
+                                if (this->_rec_types[i] != weight_type::REAL_NORMAL)
+                                    continue;
+                                auto dx = (this->_bdrec[i][me] -
+                                           std::pow(this->_brec[i][me], 2) / mrs);
+                                this->_recdx[i] -= dx;
                             }
                         }
 
@@ -404,7 +403,13 @@ public:
                             _coupled_state->update_edge(me, get<1>(delta));
                     };
 
+                for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                    this->_Lrecdx[i+1] -= this->_recdx[i] * _B_E_D;
+
                 eops(mid_op, coupled_end_op);
+
+                for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                    this->_Lrecdx[i+1] += this->_recdx[i] * _B_E_D;
             }
         }
 
@@ -447,6 +452,7 @@ public:
             if (_brec[0][me] == 1)
                 _B_E++;
 
+            size_t old_B_E_D = _B_E_D;
             if (_brec[0][me] == 2)
             {
                 if (_B_E_D == 0 && _Lrecdx[0] >= 0)
@@ -458,23 +464,22 @@ public:
             {
                 for (size_t i = 0; i < _rec_types.size(); ++i)
                 {
-                    if (_rec_types[i] == weight_type::REAL_NORMAL)
-                    {
-                        auto dx = (_bdrec[i][me] -
-                                      std::pow(_brec[i][me], 2) /
-                                      _brec[0][me]);
-                        _recdx[i] += dx;
-                        _Lrecdx[i+1] += dx;
+                    if (_rec_types[i] != weight_type::REAL_NORMAL)
+                        continue;
 
-                        if (_brec[0][me] > 2)
-                        {
-                            dx = (_bdrec[i][me] -
-                                          std::pow(_brec[i][me], 2) /
-                                          (_brec[0][me] - 1));
-                            _recdx[i] -= dx;
-                            _Lrecdx[i+1] -= dx;
-                        }
+                    _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
+
+                    auto dx = (_bdrec[i][me] -
+                               std::pow(_brec[i][me], 2) / _brec[0][me]);
+                    _recdx[i] += dx;
+                    if (_brec[0][me] > 2)
+                    {
+                        dx = (_bdrec[i][me] -
+                              std::pow(_brec[i][me], 2) / (_brec[0][me] - 1));
+                        _recdx[i] -= dx;
                     }
+
+                    _Lrecdx[i+1] += _recdx[i] * _B_E_D;
                 }
             }
         }
@@ -493,6 +498,7 @@ public:
             if (_brec[0][me] == 0)
                 _B_E--;
 
+            size_t old_B_E_D = _B_E_D;
             if (_brec[0][me] == 1)
             {
                 _B_E_D--;
@@ -504,22 +510,19 @@ public:
             {
                 for (size_t i = 0; i < _rec_types.size(); ++i)
                 {
-                    if (_rec_types[i] == weight_type::REAL_NORMAL)
+                    if (_rec_types[i] != weight_type::REAL_NORMAL)
+                        continue;
+                    _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
+                    auto dx = (_bdrec[i][me] -
+                               std::pow(_brec[i][me], 2) / (_brec[0][me] + 1));
+                    _recdx[i] -= dx;
+                    if (_brec[0][me] > 1)
                     {
-                        auto dx = \
-                            (_bdrec[i][me] -
-                             std::pow(_brec[i][me], 2) / (_brec[0][me] + 1));
-                        _recdx[i] -= dx;
-                        _Lrecdx[i+1] -= dx;
-
-                        if (_brec[0][me] > 1)
-                        {
-                            dx = (_bdrec[i][me] -
-                                  std::pow(_brec[i][me], 2) / _brec[0][me]);
-                            _recdx[i] += dx;
-                            _Lrecdx[i+1] += dx;
-                        }
+                        dx = (_bdrec[i][me] -
+                              std::pow(_brec[i][me], 2) / _brec[0][me]);
+                        _recdx[i] += dx;
                     }
+                    _Lrecdx[i+1] += _recdx[i] * _B_E_D;
                 }
             }
         }
@@ -551,7 +554,7 @@ public:
             if (ers > 1)
             {
                 _recdx[i] += d;
-                _Lrecdx[i+1] += d;
+                _Lrecdx[i+1] += d * _B_E_D;
             }
         }
     }
@@ -1432,12 +1435,14 @@ public:
                     positive_entries_op(i,
                                         [&](auto N, auto x)
                                         { return positive_w_log_P(N, x, wp[0],
-                                                                  wp[1]);
+                                                                  wp[1],
+                                                                  this->_epsilon[i]);
                                         },
                                         [&](size_t B_E)
                                         { return positive_w_log_P(B_E,
                                                                   _recsum[i],
-                                                                  wp[0], wp[1]);
+                                                                  wp[0], wp[1],
+                                                                  this->_epsilon[i]);
                                         });
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
@@ -1501,32 +1506,34 @@ public:
                                        auto dx2 = get<2>(delta)[i];
                                        dS -= -signed_w_log_P(ers, xrs, x2rs,
                                                              wp[0], wp[1],
-                                                             wp[2], wp[3]);
+                                                             wp[2], wp[3],
+                                                             this->_epsilon[i]);
                                        dS += -signed_w_log_P(ers + d,
                                                              xrs + dx,
                                                              x2rs + dx2,
                                                              wp[0], wp[1],
-                                                             wp[2], wp[3]);
+                                                             wp[2], wp[3],
+                                                             this->_epsilon[i]);
                                        if (std::isnan(wp[0]) &&
                                            std::isnan(wp[1]))
                                        {
-                                           if (ers == 0 && get<1>(delta)[0] > 0)
+                                           auto n_ers = ers + get<1>(delta)[0];
+                                           if (ers == 0 && n_ers > 0)
                                                dB_E++;
-                                           if (ers > 0 && ers + get<1>(delta)[0] == 0)
+                                           if (ers > 0 && n_ers == 0)
                                                dB_E--;
-                                           if (ers + get<1>(delta)[0] > 1)
+                                           if (n_ers > 1)
                                            {
                                                if (ers < 2)
                                                    dB_E_D++;
                                                _dBdx[i] += \
                                                    (x2rs + dx2 -
-                                                    std::pow(xrs + dx, 2) /
-                                                    (ers + get<1>(delta)[0]));
+                                                    std::pow(xrs + dx, 2) / n_ers);
 
                                            }
                                            if (ers > 1)
                                            {
-                                               if (ers + get<1>(delta)[0] < 2)
+                                               if (n_ers < 2)
                                                    dB_E_D--;
                                                _dBdx[i] -= \
                                                    (x2rs -
@@ -1543,19 +1550,22 @@ public:
                             {
                                 dS -= -signed_w_log_P(_B_E, _recsum[i],
                                                       _recx2[i], wp[0], wp[1],
-                                                      wp[2], wp[3]);
+                                                      wp[2], wp[3], _epsilon[i]);
                                 dS += -signed_w_log_P(_B_E + dB_E, _recsum[i],
                                                       _recx2[i] + dBx2, wp[0],
-                                                      wp[1], wp[2], wp[3]);
+                                                      wp[1], wp[2], wp[3],
+                                                      _epsilon[i]);
                             }
 
                             if (dB_E_D != 0 || _dBdx[i] != 0)
                             {
-                                dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
-                                                            wp[2], wp[3]);
-                                dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
-                                                            _recdx[i] + _dBdx[i],
-                                                            wp[2], wp[3]);
+                                dS -= -positive_w_log_P(_B_E_D, _recdx[i],
+                                                        wp[2], wp[3],
+                                                        _epsilon[i]);
+                                dS += -positive_w_log_P(_B_E_D + dB_E_D,
+                                                        _recdx[i] + _dBdx[i],
+                                                        wp[2], wp[3],
+                                                        _epsilon[i]);
                             }
 
                             if (dL == 0)
@@ -1566,14 +1576,26 @@ public:
                                     dL--;
                             }
 
-                            if (_coupled_state == nullptr && _Lrecdx[0] >= 0)
+                            if (_Lrecdx[0] >= 0)
                             {
-                                size_t L = _Lrecdx[0];
-                                dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
-                                                            wp[2], wp[3]);
-                                dS += -positive_w_log_P_alt(L + dL,
+                                size_t N_B_E_D = _B_E_D + dB_E_D;
+
+                                dS -= -safelog(_B_E_D);
+                                dS += -safelog(N_B_E_D);
+
+                                _dBdx[i] = _recdx[i] * dB_E_D + _dBdx[i] * N_B_E_D;
+
+                                if (_coupled_state == nullptr)
+                                {
+                                    size_t L = _Lrecdx[0];
+                                    dS -= -positive_w_log_P(L, _Lrecdx[i+1],
+                                                            wp[2], wp[3],
+                                                            _epsilon[i]);
+                                    dS += -positive_w_log_P(L + dL,
                                                             _Lrecdx[i+1] + _dBdx[i],
-                                                            wp[2], wp[3]);
+                                                            wp[2], wp[3],
+                                                            _epsilon[i]);
+                                }
                             }
                         }
                     }
@@ -1586,18 +1608,22 @@ public:
                         if (r != null_group)
                         {
                             dS -= -positive_w_log_P(_mrp[r], _brecsum[r],
-                                                    wp[0], wp[1]);
+                                                    wp[0], wp[1],
+                                                    _epsilon[i]);
                             dS += -positive_w_log_P(_mrp[r] - k,
                                                     _brecsum[r] - dt,
-                                                    wp[0], wp[1]);
+                                                    wp[0], wp[1],
+                                                    _epsilon[i]);
                         }
                         if (nr != null_group)
                         {
                             dS -= -positive_w_log_P(_mrp[nr], _brecsum[nr],
-                                                    wp[0], wp[1]);
+                                                    wp[0], wp[1],
+                                                    _epsilon[i]);
                             dS += -positive_w_log_P(_mrp[nr] + k,
                                                     _brecsum[nr] + dt,
-                                                    wp[0], wp[1]);
+                                                    wp[0], wp[1],
+                                                    _epsilon[i]);
                         }
                     }
                     break;
@@ -1743,8 +1769,8 @@ public:
                                  double x = 0;
                                  if (me != _emat.get_null_edge())
                                      x = this->_brec[i][me];
-                                 return positive_w_log_P(N, x, wp[0],
-                                                         wp[1]);
+                                 return positive_w_log_P(N, x, wp[0], wp[1],
+                                                         this->_epsilon[i]);
                              });
                 break;
             case weight_type::DISCRETE_GEOMETRIC:
@@ -1774,12 +1800,13 @@ public:
                                    }
                                    auto d = get<0>(delta);
                                    auto dx2 = get<1>(delta)[i];
-                                   dS -= -signed_w_log_P(ers, x, x2,
-                                                         wp[0], wp[1], wp[2],
-                                                         wp[3]);
+                                   dS -= -signed_w_log_P(ers, x, x2, wp[0],
+                                                         wp[1], wp[2], wp[3],
+                                                         this->_epsilon[i]);
                                    dS += -signed_w_log_P(ers + d, x, x2 + dx2,
                                                          wp[0], wp[1], wp[2],
-                                                         wp[3]);
+                                                         wp[3],
+                                                         this->_epsilon[i]);
                                    if (ers > 1)
                                    {
                                        dB_E_D--;
@@ -1798,27 +1825,34 @@ public:
 
                     if (dB_E_D != 0 || drecdx != 0 || dBdx[i] != 0 || dL != 0)
                     {
-                        dS -= -positive_w_log_P_alt(_B_E_D, _recdx[i],
-                                                    wp[2], wp[3]);
-                        dS += -positive_w_log_P_alt(_B_E_D + dB_E_D,
-                                                    _recdx[i] + drecdx,
-                                                    wp[2], wp[3]);
-                        int ddL = 0;
+                        dS -= -positive_w_log_P(_B_E_D, _recdx[i], wp[2],
+                                                wp[3], _epsilon[i]);
+                        dS += -positive_w_log_P(_B_E_D + dB_E_D,
+                                                _recdx[i] + drecdx, wp[2],
+                                                wp[3], _epsilon[i]);
                         if (_Lrecdx[0] >= 0)
                         {
                             size_t L = _Lrecdx[0];
-                            if (_B_E_D == 0 && dB_E_D > 0)
+                            size_t N_B_E_D = _B_E_D + dB_E_D;
+                            int ddL = 0;
+                            if (_B_E_D == 0 && N_B_E_D > 0)
                                 ddL++;
-                            if (_B_E_D > 0 && _B_E_D + dB_E_D == 0)
+                            if (_B_E_D > 0 && N_B_E_D == 0)
                                 ddL--;
-                            dS -= -positive_w_log_P_alt(L, _Lrecdx[i+1],
-                                                        wp[2], wp[3]);
-                            dS += -positive_w_log_P_alt(L + dL + ddL,
-                                                        _Lrecdx[i+1] +
-                                                        dBdx[i] + drecdx,
-                                                        wp[2], wp[3]);
+
+                            dS -= -positive_w_log_P(L, _Lrecdx[i+1], wp[2],
+                                                    wp[3], _epsilon[i]);
+
+                            auto dx = dBdx[i] + \
+                                _recdx[i] * dB_E_D + drecdx * N_B_E_D;
+
+                            dS += -positive_w_log_P(L + dL + ddL,
+                                                    _Lrecdx[i+1] + dx, wp[2],
+                                                    wp[3], _epsilon[i]);
+                            dS -= -safelog(_B_E_D);
+                            dS += -safelog(N_B_E_D);
                         }
-                    }
+                     }
                 }
                 break;
             default:
@@ -2138,10 +2172,12 @@ public:
                     {
                         auto ers = _brec[0][me];
                         auto xrs = _brec[i][me];
-                        S += -positive_w_log_P(ers, xrs, wp[0], wp[1]);
+                        S += -positive_w_log_P(ers, xrs, wp[0], wp[1],
+                                               _epsilon[i]);
                     }
                     if (edges_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
-                        S += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
+                        S += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1],
+                                               _epsilon[i]);
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
                     for (auto me : edges_range(_bg))
@@ -2184,15 +2220,16 @@ public:
                         auto xrs = _brec[i][me];
                         auto x2rs = _bdrec[i][me];
                         S += -signed_w_log_P(ers, xrs, x2rs, wp[0], wp[1],
-                                             wp[2], wp[3]);
+                                             wp[2], wp[3], _epsilon[i]);
                     }
                     if (std::isnan(wp[0]) && std::isnan(wp[1]))
                     {
                         if (edges_dl)
                             S += -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
-                                                 wp[0], wp[1], wp[2], wp[3]);
-                        S += -positive_w_log_P_alt(_B_E_D, _recdx[i], wp[2],
-                                                   wp[3]);
+                                                 wp[0], wp[1], wp[2], wp[3],
+                                                 _epsilon[i]);
+                        S += -positive_w_log_P(_B_E_D, _recdx[i], wp[2],
+                                               wp[3], _epsilon[i]);
                     }
                     break;
                 case weight_type::DELTA_T: // waiting times
@@ -2200,7 +2237,7 @@ public:
                     {
                         if (_bignore_degrees[r] > 0)
                             S += -positive_w_log_P(_mrp[r], _brecsum[r], wp[0],
-                                                   wp[1]);
+                                                   wp[1], _epsilon[i]);
                     }
                     break;
                 }

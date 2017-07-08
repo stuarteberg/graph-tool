@@ -280,13 +280,14 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
 
 // exponential
 template <class DT>
-double positive_w_log_P(DT N, double x, double alpha, double beta)
+double positive_w_log_P(DT N, double x, double alpha, double beta,
+                        double epsilon)
 {
     if (N == 0)
         return 0.;
     if (std::isnan(alpha) && std::isnan(beta))
     {
-        if (x == 0 || N == 1)
+        if (x < epsilon || N == 1)
             return 0.;
         else
             return lgamma(N) - N * log(x);
@@ -295,25 +296,17 @@ double positive_w_log_P(DT N, double x, double alpha, double beta)
         (alpha + N) * log(beta + x);
 }
 
-template <class DT>
-double positive_w_log_P_alt(DT N, double x, double alpha, double beta)
-{
-    if (abs(x) < 1e-10)
-        x = 0;
-    return positive_w_log_P(N, x, alpha, beta);
-}
-
 // normal
 template <class DT>
 double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0,
-                      double nu0)
+                      double nu0, double epsilon)
 {
     if (N == 0)
         return 0.;
     if (std::isnan(m0) && std::isnan(k0))
     {
         auto smu1 = x * (x / N);
-        if (N <= 2 || smu1 >= x2 || boost::math::relative_difference(x2, smu1) < 1e-10)
+        if (N <= 2 || smu1 >= x2 || (x2 - smu1) < std::pow(epsilon, 2))
             return 0.;
         else
             return (lgamma((N - 1) / 2.) + log(x2) / 2. - ((N - 2) / 2.) *
