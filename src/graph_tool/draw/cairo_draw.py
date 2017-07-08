@@ -376,7 +376,7 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                 new_val = [float(x) for x in flatten(val)]
             except ValueError:
                 try:
-                    new_val = flatten(color_convert.to_rgba(x) for x in val)
+                    new_val = flatten(color_converter.to_rgba(x) for x in val)
                     new_val = list(new_val)
                 except ValueError:
                     pass
