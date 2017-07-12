@@ -137,6 +137,10 @@ public:
             else
                 add_element(_candidate_blocks, _candidate_pos, r);
         }
+        for (auto& p : _rec)
+            _c_rec.push_back(p.get_checked());
+        for (auto& p : _drec)
+            _c_drec.push_back(p.get_checked());
         for (auto& p : _brec)
         {
             _c_brec.push_back(p.get_checked());
@@ -188,6 +192,8 @@ public:
         : BlockStateBase<Ts...>(static_cast<const BlockStateBase<Ts...>&>(other)),
           _bg(boost::any_cast<std::reference_wrapper<bg_t>>(__abg)),
           _c_mrs(_mrs.get_checked()),
+          _c_rec(other._c_rec),
+          _c_drec(other._c_drec),
           _c_brec(other._c_brec),
           _c_bdrec(other._c_bdrec),
           _recsum(other._recsum),
@@ -403,13 +409,19 @@ public:
                             _coupled_state->update_edge(me, get<1>(delta));
                     };
 
-                for (size_t i = 0; i < this->_rec_types.size(); ++i)
-                    this->_Lrecdx[i+1] -= this->_recdx[i] * _B_E_D;
+                if (_Lrecdx[0] >= 0)
+                {
+                    for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                        this->_Lrecdx[i+1] -= this->_recdx[i] * _B_E_D;
+                }
 
                 eops(mid_op, coupled_end_op);
 
-                for (size_t i = 0; i < this->_rec_types.size(); ++i)
-                    this->_Lrecdx[i+1] += this->_recdx[i] * _B_E_D;
+                if (_Lrecdx[0] >= 0)
+                {
+                    for (size_t i = 0; i < this->_rec_types.size(); ++i)
+                        this->_Lrecdx[i+1] += this->_recdx[i] * _B_E_D;
+                }
             }
         }
 
@@ -467,7 +479,8 @@ public:
                     if (_rec_types[i] != weight_type::REAL_NORMAL)
                         continue;
 
-                    _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
+                    if (_Lrecdx[0] >= 0)
+                        _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
 
                     auto dx = (_bdrec[i][me] -
                                std::pow(_brec[i][me], 2) / _brec[0][me]);
@@ -479,7 +492,8 @@ public:
                         _recdx[i] -= dx;
                     }
 
-                    _Lrecdx[i+1] += _recdx[i] * _B_E_D;
+                    if (_Lrecdx[0] >= 0)
+                        _Lrecdx[i+1] += _recdx[i] * _B_E_D;
                 }
             }
         }
@@ -512,7 +526,8 @@ public:
                 {
                     if (_rec_types[i] != weight_type::REAL_NORMAL)
                         continue;
-                    _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
+                    if (_Lrecdx[0] >= 0)
+                        _Lrecdx[i+1] -= _recdx[i] * old_B_E_D;
                     auto dx = (_bdrec[i][me] -
                                std::pow(_brec[i][me], 2) / (_brec[0][me] + 1));
                     _recdx[i] -= dx;
@@ -522,7 +537,8 @@ public:
                               std::pow(_brec[i][me], 2) / _brec[0][me]);
                         _recdx[i] += dx;
                     }
-                    _Lrecdx[i+1] += _recdx[i] * _B_E_D;
+                    if (_Lrecdx[0] >= 0)
+                        _Lrecdx[i+1] += _recdx[i] * _B_E_D;
                 }
             }
         }
@@ -531,30 +547,25 @@ public:
     void update_edge(const GraphInterface::edge_t& e,
                      const std::vector<double>& delta)
     {
-        if (_rt != weight_type::REAL_NORMAL)
-            return;
         size_t r = _b[source(e, _g)];
         size_t s = _b[target(e, _g)];
         auto& me = _emat.get_me(r, s);
+        auto ers = _brec[0][me];
         for (size_t i = 0; i < this->_rec_types.size(); ++i)
         {
-            auto c_rec = _rec[i].get_checked();
-            auto rec = c_rec[e];
-            auto c_drec = _drec[i].get_checked();
-            auto d = (std::pow(rec, 2) -
-                      std::pow(rec - delta[i], 2));
-            c_drec[e] += d;
-
             if (_rec_types[i] != weight_type::REAL_NORMAL)
                 continue;
 
+            auto rec = _c_rec[i][e];
+            auto d = (std::pow(rec, 2) -
+                      std::pow(rec - delta[i], 2));
+            _c_drec[i][e] += d;
             _bdrec[i][me] += d;
-
-            auto ers = _brec[0][me];
             if (ers > 1)
             {
                 _recdx[i] += d;
-                _Lrecdx[i+1] += d * _B_E_D;
+                if (_Lrecdx[0] >= 0)
+                    _Lrecdx[i+1] += d * _B_E_D;
             }
         }
     }
@@ -1720,8 +1731,11 @@ public:
             else
             {
                 for (size_t i = 0; i < _rec_types.size(); ++i)
-                    dx[i] = (std::pow(_rec[i][e] + dx[i], 2) -
-                             std::pow(_rec[i][e], 2));
+                {
+                    auto x = _rec[i][e];
+                    dx[i] = (std::pow(x + dx[i], 2) -
+                             std::pow(x, 2));
+                }
 
                 int ers = _eweight[e];
                 if (ers == 0 && d > 0)
@@ -2444,8 +2458,10 @@ public:
     bg_t& _bg;
 
     typename mrs_t::checked_t _c_mrs;
+    std::vector<typename rec_t::value_type::checked_t> _c_rec;
+    std::vector<typename drec_t::value_type::checked_t> _c_drec;
     std::vector<typename brec_t::value_type::checked_t> _c_brec;
-    std::vector<typename brec_t::value_type::checked_t> _c_bdrec;
+    std::vector<typename bdrec_t::value_type::checked_t> _c_bdrec;
     std::vector<double> _recsum;
     std::vector<double> _recx2;
     std::vector<double> _dBdx;
