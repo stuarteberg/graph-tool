@@ -290,7 +290,7 @@ double positive_w_log_P(DT N, double x, double alpha, double beta,
         if (x < epsilon || N == 1)
             return 0.;
         else
-            return lgamma(N) - N * log(x);
+            return lgamma(N) - (N - 1) * log(x);
     }
     return lgamma(N + alpha) - lgamma(alpha) + alpha * log(beta) -
         (alpha + N) * log(beta + x);
@@ -306,11 +306,13 @@ double signed_w_log_P(DT N, double x, double x2, double m0, double k0, double v0
     if (std::isnan(m0) && std::isnan(k0))
     {
         auto smu1 = x * (x / N);
-        if (N <= 2 || smu1 >= x2 || (x2 - smu1) < std::pow(epsilon, 2))
+
+        if (N < 2 || smu1 >= x2 || (x2 - smu1) < std::pow(epsilon, 2))
             return 0.;
         else
-            return (lgamma((N - 1) / 2.) + log(x2) / 2. - ((N - 2) / 2.) *
-                    log(x2 - smu1) - ((N - 1) / 2.) * log(M_PI));
+            return (lgamma((N - 1) / 2.) + log(N) / 2.
+                    - ((int(N) - 3) / 2.) * log(x2 - smu1)
+                    - ((N - 1) / 2.) * log(M_PI));
     }
     auto v = x2 - x * (x / N);
     auto k_n = k0 + N;
@@ -350,7 +352,7 @@ double poisson_w_log_P(DT N, double x, double alpha, double beta)
     if (N == 0)
         return 0.;
     if (std::isnan(alpha) && std::isnan(beta))
-        return lgamma(N+1) - x * log(N);
+        return lgamma(x+1) - x * log(N);
     return lgamma(x + alpha) - (x + alpha) * log(N + beta) - lgamma(alpha) +
         alpha * log(beta);
 }
