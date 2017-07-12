@@ -77,13 +77,15 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
             s >= v_in_sampler.size() || v_in_sampler[s].prob_sum() == 0)
             throw GraphException("Inconsistent SBM parameters: edge probabilities given for empty groups");
 
+        auto& r_sampler = v_out_sampler[r];
+        auto& s_sampler = v_in_sampler[s];
+
         std::poisson_distribution<> poi(p);
         size_t ers = poi(rng);
-
         for (size_t j = 0; j < ers; ++j)
         {
-            size_t u = v_out_sampler[r].sample(rng);
-            size_t v = v_in_sampler[s].sample(rng);
+            size_t u = r_sampler.sample(rng);
+            size_t v = s_sampler.sample(rng);
             add_edge(u, v, g);
         }
     }
