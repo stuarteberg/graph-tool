@@ -1571,7 +1571,8 @@ def shortest_distance(g, source=None, target=None, weights=None,
     dist_map : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
         Vertex property map with the distances from source. If ``source`` is
         ``None``, it will have a vector value type, with the distances to every
-        vertex. If ``source`` is an iterable, this will be of type
+        vertex. If ``target`` is an iterable, instead of
+        :class:`~graph_tool.PropertyMap`, this will be of type
         :class:`numpy.ndarray`, and contain only the distances to those specific
         targets.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, if ``pred_map == True``)
