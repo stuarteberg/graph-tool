@@ -1568,9 +1568,12 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     Returns
     -------
-    dist_map : :class:`~graph_tool.PropertyMap`
-        Vertex property map with the distances from source. If source is ``None``,
-        it will have a vector value type, with the distances to every vertex.
+    dist_map : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
+        Vertex property map with the distances from source. If ``source`` is
+        ``None``, it will have a vector value type, with the distances to every
+        vertex. If ``source`` is an iterable, this will be of type
+        :class:`numpy.ndarray`, and contain only the distances to those specific
+        targets.
     pred_map : :class:`~graph_tool.PropertyMap` (optional, if ``pred_map == True``)
         Vertex property map with the predecessors in the search tree.
     pred_map : :class:`numpy.ndarray` (optional, if ``return_reached == True``)
@@ -1667,7 +1670,9 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     """
 
+    tgtlist = False
     if isinstance(target, collections.Iterable):
+        tgtlist = True
         target = numpy.asarray(target, dtype="int64")
     elif target is None:
         target = numpy.array([], dtype="int64")
@@ -1725,7 +1730,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
                                              _prop("e", u, weights), dense)
 
     if source is not None and len(target) > 0:
-        if len(target) == 1:
+        if len(target) == 1 and not tgtlist:
             dist_map = dist_map.a[target[0]]
         else:
             dist_map = numpy.array(dist_map.a[target])
