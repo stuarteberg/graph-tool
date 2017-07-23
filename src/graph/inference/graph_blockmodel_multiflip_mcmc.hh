@@ -177,7 +177,7 @@ struct MCMC
             if (_groups[s].empty())
                 _state._bclabel[s] = _state._bclabel[r];
 
-            if (!_groups[s].empty() || _groups[r].size() >m)
+            if (!_groups[s].empty() || _groups[r].size() > m)
                 _mproposals[m]++;
             return s;
         }
