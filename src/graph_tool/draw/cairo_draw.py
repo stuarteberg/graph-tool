@@ -669,6 +669,14 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         angle, tpos = centered_rotation(g, pos, text_pos=True)
         vprops["text_position"] = tpos
         vprops["text_rotation"] = angle
+        toffset = vprops.get("text_offset", None)
+        if toffset is not None:
+            if not isinstance(toffset, PropertyMap):
+                toffset = g.new_vp("vector<double>", val=toffset)
+            xo, yo = ungroup_vector_property(toffset, [0, 1])
+            xo.a[tpos.a == numpy.pi] *= -1
+            toffset = group_vector_property([xo, yo])
+            vprops["text_offset"] = toffset
 
     vattrs, vdefaults = _attrs(vprops, "v", g, vcmap)
     eattrs, edefaults = _attrs(eprops, "e", g, ecmap)
@@ -1276,7 +1284,7 @@ def get_bb(g, pos, size, pen_width, size_scale=1, text=None, font_family=None,
             ff = font_family[v] if isinstance(font_family, PropertyMap) \
                else font_family
             cr.select_font_face(ff)
-            fs = font_size[v] if isinstance(font_family, PropertyMap) \
+            fs = font_size[v] if isinstance(font_size, PropertyMap) \
                else font_size
             if not isinstance(font_size, PropertyMap):
                 cr.set_font_size(fs)
@@ -1799,6 +1807,14 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         angle, text_pos = centered_rotation(g, pos, text_pos=True)
         vprops["text_position"] = text_pos
         vprops["text_rotation"] = angle
+        toffset = vprops.get("text_offset", None)
+        if toffset is not None:
+            if not isinstance(toffset, PropertyMap):
+                toffset = g.new_vp("vector<double>", val=toffset)
+            xo, yo = ungroup_vector_property(toffset, [0, 1])
+            xo.a[text_pos.a == numpy.pi] *= -1
+            toffset = group_vector_property([xo, yo])
+            vprops["text_offset"] = toffset
 
     self_loops = label_self_loops(g, mark_only=True)
     if self_loops.fa.max() > 0:
@@ -1841,6 +1857,14 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
         angle, text_pos = centered_rotation(t, tpos, text_pos=True)
         hvprops["text_position"] = text_pos
         hvprops["text_rotation"] = angle
+        toffset = hvprops.get("text_offset", None)
+        if toffset is not None:
+            if not isinstance(toffset, PropertyMap):
+                toffset = t.new_vp("vector<double>", val=toffset)
+            xo, yo = ungroup_vector_property(toffset, [0, 1])
+            xo.a[text_pos.a == numpy.pi] *= -1
+            toffset = group_vector_property([xo, yo])
+            hvprops["text_offset"] = toffset
 
     hvprops = _convert_props(hvprops, "v", t, kwargs.get("vcmap", default_cm),
                              pmap_default=True)
