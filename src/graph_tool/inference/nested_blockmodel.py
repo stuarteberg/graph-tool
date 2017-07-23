@@ -581,7 +581,7 @@ class NestedBlockState(object):
 
         c = kwargs.get("c", None)
 
-        lrange = list(range(len(self.levels)))
+        lrange = list(kwargs.pop("ls", range(len(self.levels))))
         numpy.random.shuffle(lrange)
         for l in lrange:
             if check_verbose(verbose):
