@@ -724,35 +724,23 @@ class PropertyMap(object):
             g = self.get_graph()
             vfilt = g.get_vertex_filter()
             efilt = g.get_edge_filter()
-            if vfilt[0] is not None:
-                g = GraphView(g, skip_vfilt=True, skip_efilt=True)
-            if self.key_type() == "v":
-                N = g.num_vertices()
-                idx = g.vertex_index
-                filt = vfilt
-            else:
-                N = g.edge_index_range
-                idx = g.edge_index
-                filt = efilt
-            a = [["" for j in range(N)] for i in range(len(p))]
             if self.key_type() == "v":
                 iters = g.vertices()
             else:
-                iters = g.edges()
+                iters = [None for i in range(g.edge_index_range)]
+                idx = g.edge_index
+                for e in g.edges():
+                    iters[idx[e]] = e
+                iters = [e for e in iters if e is not None]
+            a = [[] for i in range(len(p))]
             for v in iters:
                 for i in range(len(p)):
-                    a[i][idx[v]] = p[i][v]
-            if len(a) == 1:
-                a = a[0]
+                    a[i].append(p[i][v])
             a = numpy.array(a)
-            if vfilt[0] is not None:
-                a = a[filt[0].a[:a.shape[0]] == (not filt[1])]
             return a
 
-        a = self.fa
-        if a is None:
-            p = ungroup_vector_property(self, pos)
-            a = numpy.array([x.fa for x in p])
+        p = ungroup_vector_property(self, pos)
+        a = numpy.array([x.fa for x in p])
         return a
 
     def set_2d_array(self, a, pos=None):
@@ -774,7 +762,11 @@ class PropertyMap(object):
                 if self.key_type() == "v":
                     iters = g.vertices()
                 else:
-                    iters = sorted(g.edges(), key=lambda e: g.edge_index[e])
+                    iters = [None for i in range(g.edge_index_range)]
+                    idx = g.edge_index
+                    for e in g.edges():
+                        iters[idx[e]] = e
+                    iters = [e for e in iters if e is not None]
                 for j, v in enumerate(iters):
                     self[v] = a[j]
             return
@@ -790,7 +782,11 @@ class PropertyMap(object):
                 if self.key_type() == "v":
                     iters = g.vertices()
                 else:
-                    iters = g.edges()
+                    iters = [None for i in range(g.edge_index_range)]
+                    idx = g.edge_index
+                    for e in g.edges():
+                        iters[idx[e]] = e
+                    iters = [e for e in iters if e is not None]
                 for j, v in enumerate(iters):
                     ps[-1][v] = a[i, j]
         group_vector_property(ps, val, self, pos)
