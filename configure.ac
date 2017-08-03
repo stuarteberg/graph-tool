@@ -219,6 +219,8 @@ dnl cairo
 if test "$USING_CAIRO" = "yes"; then
    PKG_CHECK_MODULES(CAIROMM, [cairomm-1.0], AC_DEFINE([HAVE_CAIROMM], [1],
                      [Cairomm is available]), [])
+   # Workaround for buggy cairomm installs (see #410)
+   CAIROMM_CFLAGS=`echo $CAIROMM_CFLAGS | sed s/-std=c++11//`
    AC_SUBST(CAIROMM_CFLAGS)
    AC_SUBST(CAIROMM_LIBS)
    AX_PYTHON_MODULE(cairo)
