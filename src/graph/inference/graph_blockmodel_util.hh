@@ -34,7 +34,6 @@
 
 #include <boost/multi_array.hpp>
 #include <boost/math/special_functions/gamma.hpp>
-#include <boost/math/special_functions/relative_difference.hpp>
 
 #ifdef USING_OPENMP
 #include <omp.h>
