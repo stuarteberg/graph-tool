@@ -1,8 +1,9 @@
 @import url("flasky.css");
 
 table.docutils {
-    margin-left:1em;
-    margin-right:1em;
+    /* margin-left:1em; */
+    /* margin-right:1em; */
+    margin: auto;
     border: 0px;
 }
 
@@ -160,4 +161,15 @@ pre {
 .xref.docutils.literal
 {
     background-color: inherit;
+}
+
+div.sphinxsidebar
+{
+    position: sticky;
+    top: 0px;
+    min-width: 310px;
+}
+
+div.bodywrapper {
+    margin: 0 0 0 310px;
 }

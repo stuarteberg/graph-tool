@@ -41,7 +41,8 @@ given partition :math:`\boldsymbol b` is obtained via the `Bayesian
 
    P(\boldsymbol b | \boldsymbol G) = \frac{\sum_{\boldsymbol\theta}P(\boldsymbol G|\boldsymbol\theta, \boldsymbol b)P(\boldsymbol\theta, \boldsymbol b)}{P(\boldsymbol G)}
 
-where :math:`P(\boldsymbol\theta, \boldsymbol b)` is the `prior likelihood` of the
+where :math:`P(\boldsymbol\theta, \boldsymbol b)` is the `prior
+probability <https://en.wikipedia.org/wiki/Prior_probability>`_ of the
 model parameters, and
 
 .. math::
@@ -65,7 +66,7 @@ here will consist in either finding a network partition that maximizes
 Eq. :eq:`model-posterior`, or sampling different partitions according
 its posterior probability.
 
-As we will show below, this approach will also enable the comparison of
+As we will show below, this approach also enables the comparison of
 `different` models according to statistical evidence (a.k.a. `model
 selection`).
 
@@ -92,7 +93,7 @@ describe the data, if we `encode
 <https://en.wikipedia.org/wiki/Entropy_encoding>`_ it using the
 particular parametrization of the generative model given by
 :math:`\boldsymbol\theta` and :math:`\boldsymbol b`, as well as the parameters
-themselves. Therefore, if we choose to maximize the posterior likelihood
+themselves. Therefore, if we choose to maximize the posterior distribution
 of Eq. :eq:`model-posterior` it will be fully equivalent to the
 so-called `minimum description length
 <https://en.wikipedia.org/wiki/Minimum_description_length>`_
@@ -165,8 +166,9 @@ figure.
 .. note::
 
    We emphasize that no constraints are imposed on what `kind` of
-   modular structure is allowed. Hence, we can detect the putatively
-   typical pattern of `"community structure"
+   modular structure is allowed, as the matrix of edge counts :math:`e`
+   is unconstrained. Hence, we can detect the putatively typical pattern
+   of `"community structure"
    <https://en.wikipedia.org/wiki/Community_structure>`_, i.e. when
    nodes are connected mostly to other nodes of the same group, if it
    happens to be the most likely network description, but we can also
@@ -176,31 +178,31 @@ figure.
 
 
 Although quite general, the traditional model assumes that the edges are
-placed randomly inside each group, and as such the nodes that belong to
-the same group have very similar degrees. As it turns out, this is often
-a poor model for many networks, which possess highly heterogeneous
-degree distributions. A better model for such networks is called the
-`degree-corrected` stochastic block model [karrer-stochastic-2011]_, and
-it is defined just like the traditional model, with the addition of the
-degree sequence :math:`\boldsymbol k = \{k_i\}` of the graph as an
-additional set of parameters (assuming again a microcanonical
-formulation [peixoto-nonparametric-2017]_).
+placed randomly inside each group, and because of this the nodes that
+belong to the same group tend to have very similar degrees. As it turns
+out, this is often a poor model for many networks, which possess highly
+heterogeneous degree distributions. A better model for such networks is
+called the `degree-corrected` stochastic block model
+[karrer-stochastic-2011]_, and it is defined just like the traditional
+model, with the addition of the degree sequence :math:`\boldsymbol k =
+\{k_i\}` of the graph as an additional set of parameters (assuming again
+a microcanonical formulation [peixoto-nonparametric-2017]_).
 
 
 The nested stochastic block model
 +++++++++++++++++++++++++++++++++
 
-The regular SBM has a drawback when applied to very large
-networks. Namely, it cannot be used to find relatively small groups in
-very large networks: The maximum number of groups that can be found
-scales as :math:`B_{\text{max}}=O(\sqrt{N})`, where :math:`N` is the
-number of nodes in the network, if Bayesian inference is performed
+The regular SBM has a drawback when applied to large networks. Namely,
+it cannot be used to find relatively small groups, as the maximum number
+of groups that can be found scales as
+:math:`B_{\text{max}}=O(\sqrt{N})`, where :math:`N` is the number of
+nodes in the network, if Bayesian inference is performed
 [peixoto-parsimonious-2013]_. In order to circumvent this, we need to
 replace the noninformative priors used by a hierarchy of priors and
 hyperpriors, which amounts to a `nested SBM`, where the groups
 themselves are clustered into groups, and the matrix :math:`e` of edge
 counts are generated from another SBM, and so on recursively
-[peixoto-hierarchical-2014]_.
+[peixoto-hierarchical-2014]_, as illustrated below.
 
 .. figure:: nested-diagram.*
    :width: 400px
@@ -237,7 +239,7 @@ network of American football teams, which we load from the
       os.chdir("demos/inference")
    except FileNotFoundError:
        pass
-   gt.seed_rng(6)
+   gt.seed_rng(7)
 
 .. testcode:: football
 
@@ -250,11 +252,11 @@ which yields
 
    <Graph object, undirected, with 115 vertices and 613 edges at 0x...>
 
-we then fit the `traditional` model by calling
+we then fit the degree-corrected model by calling
 
 .. testcode:: football
 
-   state = gt.minimize_blockmodel_dl(g, deg_corr=False)
+   state = gt.minimize_blockmodel_dl(g)
 
 This returns a :class:`~graph_tool.inference.BlockState` object that
 includes the inference results.
@@ -262,20 +264,20 @@ includes the inference results.
 .. note::
 
    The inference algorithm used is stochastic by nature, and may return
-   a slightly different answer each time it is run. This may be due to
-   the fact that there are alternative partitions with similar
-   likelihoods, or that the optimum is difficult to find. Note that the
-   inference problem here is, in general, `NP-Hard
+   a different answer each time it is run. This may be due to the fact
+   that there are alternative partitions with similar probabilities, or
+   that the optimum is difficult to find. Note that the inference
+   problem here is, in general, `NP-Hard
    <https://en.wikipedia.org/wiki/NP-hardness>`_, hence there is no
    efficient algorithm that is guaranteed to always find the best
    answer.
 
    Because of this, typically one would call the algorithm many times,
-   and select the partition with the largest posterior likelihood of
+   and select the partition with the largest posterior probability of
    Eq. :eq:`model-posterior`, or equivalently, the minimum description
    length of Eq. :eq:`model-dl`. The description length of a fit can be
    obtained with the :meth:`~graph_tool.inference.BlockState.entropy`
-   method. See also :ref:`sec_model_selection` below.
+   method. See also Sec. :ref:`sec_model_selection` below.
 
 
 We may perform a drawing of the partition obtained via the
@@ -367,7 +369,7 @@ A hierarchical fit of the degree-corrected model is performed as follows.
 
 .. testcode:: celegans
 
-   state = gt.minimize_nested_blockmodel_dl(g, deg_corr=True)
+   state = gt.minimize_nested_blockmodel_dl(g)
 
 The object returned is an instance of a
 :class:`~graph_tool.inference.NestedBlockState` class, which
@@ -441,6 +443,7 @@ This means that we can inspect the hierarchical partition just as before:
    1
    0
 
+.. _model_selection:
 
 Model selection
 +++++++++++++++
@@ -494,7 +497,7 @@ fits. In our particular case, we have
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
 subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`e^{318} \sim 10^{138}`
+particular degree-corrected fit is around :math:`\mathrm{e}^{318} \approx 10^{138}`
 times more likely than the non-degree corrected one, and hence it can be
 safely concluded that it provides a substantially better fit.
 
@@ -520,20 +523,23 @@ example, for the American football network above, we have:
    Degree-corrected DL:          1780.5767...
    ln Λ:                         -34.1668...
 
-Hence, with a posterior odds ratio of :math:`\Lambda \sim e^{-34} \sim
+Hence, with a posterior odds ratio of :math:`\Lambda \approx \mathrm{e}^{-34} \approx
 10^{-18}` in favor of the non-degree-corrected model, it seems like the
 degree-corrected variant is an unnecessarily complex description for
 this network.
 
-Averaging over models
----------------------
+.. _sampling:
+
+Sampling from the posterior distribution
+----------------------------------------
 
 When analyzing empirical networks, one should be open to the possibility
 that there will be more than one fit of the SBM with similar posterior
-likelihoods. In such situations, one should instead `sample` partitions
-from the posterior likelihood, instead of simply finding its
-maximum. One can then compute quantities that are averaged over the
-different model fits, weighted according to their posterior likelihoods.
+probabilities. In such situations, one should instead `sample`
+partitions from the posterior distribution, instead of simply finding
+its maximum. One can then compute quantities that are averaged over the
+different model fits, weighted according to their posterior
+probabilities.
 
 Full support for model averaging is implemented in ``graph-tool`` via an
 efficient `Markov chain Monte Carlo (MCMC)
@@ -542,11 +548,10 @@ efficient `Markov chain Monte Carlo (MCMC)
 different groups with specific probabilities, and `accepting or
 rejecting
 <https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm>`_
-such moves such that, after a sufficiently long time, the partitions
-will be observed with the desired posterior probability. The algorithm
-is so designed, that its run-time is independent on the number of groups
-being used in the model, and hence is suitable for use on very large
-networks.
+such moves so that, after a sufficiently long time, the partitions will
+be observed with the desired posterior probability. The algorithm is so
+designed, that its run-time is independent on the number of groups being
+used in the model, and hence is suitable for use on very large networks.
 
 In order to perform such moves, one needs again to operate with
 :class:`~graph_tool.inference.BlockState` or
@@ -566,14 +571,9 @@ random partition into 20 groups
                                     # also pass an arbitrary initial
                                     # partition using the 'b' parameter.
 
-   # If we work with the above state object, we will be restricted to
-   # partitions into at most B=20 groups. But since we want to consider
-   # an arbitrary number of groups in the range [1, N], we transform it
-   # into a state with B=N groups (where N-20 will be empty).
-
-   state = state.copy(B=g.num_vertices())
-
-   # Now we run 1,000 sweeps of the MCMC
+   # Now we run 1,000 sweeps of the MCMC. Note that the number of groups
+   # is allowed to change, so it will eventually move from the initial
+   # value of B=20 to whatever is most appropriate for the data.
 
    dS, nmoves = state.mcmc_sweep(niter=1000)
 
@@ -582,18 +582,18 @@ random partition into 20 groups
 
 .. testoutput:: model-averaging
 
-   Change in description length: -366.0398...
-   Number of accepted vertex moves: 36371
+   Change in description length: -345.376523...
+   Number of accepted vertex moves: 34222
 
 .. note::
 
    Starting from a random partition is rarely the best option, since it
-   may take a long time for it to equilibrate; It was done above simply
+   may take a long time for it to equilibrate. It was done above simply
    as an illustration on how to initialize
    :class:`~graph_tool.inference.BlockState` by hand. Instead, a much
-   better option in practice is to start from the "ground state"
-   obtained with :func:`~graph_tool.inference.minimize_blockmodel_dl`,
-   e.g.
+   better option in practice is to start from an approximation to the
+   "ground state" obtained with
+   :func:`~graph_tool.inference.minimize_blockmodel_dl`, e.g.
 
     .. testcode:: model-averaging
 
@@ -606,8 +606,8 @@ random partition into 20 groups
 
     .. testoutput:: model-averaging
 
-       Change in description length: 28.6919...
-       Number of accepted vertex moves: 37694
+       Change in description length: 16.124022...
+       Number of accepted vertex moves: 41393
 
 Although the above is sufficient to implement model averaging, there is a
 convenience function called
@@ -628,51 +628,68 @@ will output:
 .. testoutput:: model-averaging
     :options: +NORMALIZE_WHITESPACE
 
-    niter:     1  count:    0  breaks:  0  min_S: 730.28005  max_S: 731.74561  S: 731.74561  ΔS:      1.46555  moves:   381 
-    niter:     2  count:    0  breaks:  0  min_S: 718.37357  max_S: 731.74561  S: 718.37357  ΔS:     -13.3720  moves:   398 
-    niter:     3  count:    1  breaks:  0  min_S: 718.37357  max_S: 731.74561  S: 724.10265  ΔS:      5.72908  moves:   393 
-    niter:     4  count:    2  breaks:  0  min_S: 718.37357  max_S: 731.74561  S: 720.88314  ΔS:     -3.21951  moves:   377 
-    niter:     5  count:    0  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 708.37549  ΔS:     -12.5077  moves:   361 
-    niter:     6  count:    1  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 714.45677  ΔS:      6.08128  moves:   390 
-    niter:     7  count:    2  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 712.72032  ΔS:     -1.73645  moves:   398 
-    niter:     8  count:    3  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 713.60092  ΔS:     0.880597  moves:   404 
-    niter:     9  count:    4  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 713.83140  ΔS:     0.230483  moves:   368 
-    niter:    10  count:    5  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 721.65040  ΔS:      7.81900  moves:   419 
-    niter:    11  count:    6  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 720.57922  ΔS:     -1.07118  moves:   423 
-    niter:    12  count:    7  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 719.56364  ΔS:     -1.01558  moves:   424 
-    niter:    13  count:    8  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 715.64426  ΔS:     -3.91939  moves:   398 
-    niter:    14  count:    9  breaks:  0  min_S: 708.37549  max_S: 731.74561  S: 714.18511  ΔS:     -1.45915  moves:   381 
-    niter:    15  count:    0  breaks:  1  min_S: 711.41324  max_S: 711.41324  S: 711.41324  ΔS:     -2.77187  moves:   366 
-    niter:    16  count:    0  breaks:  1  min_S: 711.41324  max_S: 712.57558  S: 712.57558  ΔS:      1.16234  moves:   363 
-    niter:    17  count:    0  breaks:  1  min_S: 711.41324  max_S: 723.90288  S: 723.90288  ΔS:      11.3273  moves:   360 
-    niter:    18  count:    1  breaks:  1  min_S: 711.41324  max_S: 723.90288  S: 713.13779  ΔS:     -10.7651  moves:   352 
-    niter:    19  count:    0  breaks:  1  min_S: 711.41324  max_S: 725.36464  S: 725.36464  ΔS:      12.2268  moves:   370 
-    niter:    20  count:    0  breaks:  1  min_S: 705.92837  max_S: 725.36464  S: 705.92837  ΔS:     -19.4363  moves:   357 
-    niter:    21  count:    1  breaks:  1  min_S: 705.92837  max_S: 725.36464  S: 707.23800  ΔS:      1.30962  moves:   387 
-    niter:    22  count:    2  breaks:  1  min_S: 705.92837  max_S: 725.36464  S: 717.12323  ΔS:      9.88524  moves:   358 
-    niter:    23  count:    3  breaks:  1  min_S: 705.92837  max_S: 725.36464  S: 714.37018  ΔS:     -2.75305  moves:   358 
-    niter:    24  count:    4  breaks:  1  min_S: 705.92837  max_S: 725.36464  S: 709.28454  ΔS:     -5.08564  moves:   353 
-    niter:    25  count:    0  breaks:  1  min_S: 705.92837  max_S: 734.14369  S: 734.14369  ΔS:      24.8592  moves:   354 
-    niter:    26  count:    1  breaks:  1  min_S: 705.92837  max_S: 734.14369  S: 711.14957  ΔS:     -22.9941  moves:   357 
-    niter:    27  count:    0  breaks:  1  min_S: 705.69867  max_S: 734.14369  S: 705.69867  ΔS:     -5.45089  moves:   398 
-    niter:    28  count:    0  breaks:  1  min_S: 704.65383  max_S: 734.14369  S: 704.65383  ΔS:     -1.04484  moves:   360 
-    niter:    29  count:    1  breaks:  1  min_S: 704.65383  max_S: 734.14369  S: 709.51094  ΔS:      4.85711  moves:   372 
-    niter:    30  count:    2  breaks:  1  min_S: 704.65383  max_S: 734.14369  S: 720.84652  ΔS:      11.3356  moves:   384 
-    niter:    31  count:    3  breaks:  1  min_S: 704.65383  max_S: 734.14369  S: 725.03520  ΔS:      4.18869  moves:   360 
-    niter:    32  count:    0  breaks:  1  min_S: 704.65383  max_S: 740.03650  S: 740.03650  ΔS:      15.0013  moves:   358 
-    niter:    33  count:    1  breaks:  1  min_S: 704.65383  max_S: 740.03650  S: 727.05978  ΔS:     -12.9767  moves:   399 
-    niter:    34  count:    2  breaks:  1  min_S: 704.65383  max_S: 740.03650  S: 707.37986  ΔS:     -19.6799  moves:   387 
-    niter:    35  count:    0  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 701.55744  ΔS:     -5.82241  moves:   386 
-    niter:    36  count:    1  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 710.54588  ΔS:      8.98844  moves:   396 
-    niter:    37  count:    2  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 722.58953  ΔS:      12.0436  moves:   393 
-    niter:    38  count:    3  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 722.15906  ΔS:    -0.430463  moves:   411 
-    niter:    39  count:    4  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 712.64495  ΔS:     -9.51412  moves:   367 
-    niter:    40  count:    5  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 724.65775  ΔS:      12.0128  moves:   397 
-    niter:    41  count:    6  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 713.30943  ΔS:     -11.3483  moves:   393 
-    niter:    42  count:    7  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 708.27298  ΔS:     -5.03645  moves:   393 
-    niter:    43  count:    8  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 707.86197  ΔS:    -0.411007  moves:   365 
-    niter:    44  count:    9  breaks:  1  min_S: 701.55744  max_S: 740.03650  S: 728.87747  ΔS:      21.0155  moves:   366 
-    niter:    45  count:   10  breaks:  2  min_S: 701.55744  max_S: 740.03650  S: 729.74366  ΔS:     0.866191  moves:   385 
+    niter:     1  count:    0  breaks:  0  min_S: 713.72081  max_S: 720.04438  S: 713.72081  ΔS:     -6.32357  moves:   418 
+    niter:     2  count:    0  breaks:  0  min_S: 713.72081  max_S: 728.31214  S: 728.31214  ΔS:      14.5913  moves:   384 
+    niter:     3  count:    0  breaks:  0  min_S: 713.70119  max_S: 728.31214  S: 713.70119  ΔS:     -14.6110  moves:   443 
+    niter:     4  count:    1  breaks:  0  min_S: 713.70119  max_S: 728.31214  S: 722.48803  ΔS:      8.78684  moves:   391 
+    niter:     5  count:    2  breaks:  0  min_S: 713.70119  max_S: 728.31214  S: 727.05935  ΔS:      4.57131  moves:   378 
+    niter:     6  count:    3  breaks:  0  min_S: 713.70119  max_S: 728.31214  S: 727.29821  ΔS:     0.238862  moves:   344 
+    niter:     7  count:    0  breaks:  0  min_S: 713.70119  max_S: 743.00358  S: 743.00358  ΔS:      15.7054  moves:   376 
+    niter:     8  count:    0  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 711.80965  ΔS:     -31.1939  moves:   382 
+    niter:     9  count:    1  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 712.92615  ΔS:      1.11651  moves:   343 
+    niter:    10  count:    2  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 721.94043  ΔS:      9.01428  moves:   388 
+    niter:    11  count:    3  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 719.13006  ΔS:     -2.81037  moves:   362 
+    niter:    12  count:    4  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 729.78095  ΔS:      10.6509  moves:   383 
+    niter:    13  count:    5  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 720.04992  ΔS:     -9.73104  moves:   376 
+    niter:    14  count:    6  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 732.90657  ΔS:      12.8567  moves:   387 
+    niter:    15  count:    7  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 717.42580  ΔS:     -15.4808  moves:   380 
+    niter:    16  count:    8  breaks:  0  min_S: 711.80965  max_S: 743.00358  S: 716.75399  ΔS:    -0.671812  moves:   359 
+    niter:    17  count:    0  breaks:  0  min_S: 711.80965  max_S: 745.15972  S: 745.15972  ΔS:      28.4057  moves:   350 
+    niter:    18  count:    1  breaks:  0  min_S: 711.80965  max_S: 745.15972  S: 728.99832  ΔS:     -16.1614  moves:   389 
+    niter:    19  count:    2  breaks:  0  min_S: 711.80965  max_S: 745.15972  S: 720.84596  ΔS:     -8.15237  moves:   348 
+    niter:    20  count:    0  breaks:  0  min_S: 709.75049  max_S: 745.15972  S: 709.75049  ΔS:     -11.0955  moves:   392 
+    niter:    21  count:    1  breaks:  0  min_S: 709.75049  max_S: 745.15972  S: 721.10373  ΔS:      11.3532  moves:   341 
+    niter:    22  count:    2  breaks:  0  min_S: 709.75049  max_S: 745.15972  S: 718.50836  ΔS:     -2.59537  moves:   354 
+    niter:    23  count:    3  breaks:  0  min_S: 709.75049  max_S: 745.15972  S: 714.36017  ΔS:     -4.14819  moves:   375 
+    niter:    24  count:    0  breaks:  0  min_S: 707.10762  max_S: 745.15972  S: 707.10762  ΔS:     -7.25255  moves:   367 
+    niter:    25  count:    1  breaks:  0  min_S: 707.10762  max_S: 745.15972  S: 708.42197  ΔS:      1.31435  moves:   372 
+    niter:    26  count:    0  breaks:  0  min_S: 704.56635  max_S: 745.15972  S: 704.56635  ΔS:     -3.85562  moves:   346 
+    niter:    27  count:    1  breaks:  0  min_S: 704.56635  max_S: 745.15972  S: 725.76740  ΔS:      21.2011  moves:   338 
+    niter:    28  count:    2  breaks:  0  min_S: 704.56635  max_S: 745.15972  S: 708.78787  ΔS:     -16.9795  moves:   378 
+    niter:    29  count:    3  breaks:  0  min_S: 704.56635  max_S: 745.15972  S: 722.03356  ΔS:      13.2457  moves:   382 
+    niter:    30  count:    0  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 704.10199  ΔS:     -17.9316  moves:   375 
+    niter:    31  count:    1  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 713.64366  ΔS:      9.54166  moves:   382 
+    niter:    32  count:    2  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 727.65050  ΔS:      14.0068  moves:   383 
+    niter:    33  count:    3  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 720.51443  ΔS:     -7.13607  moves:   379 
+    niter:    34  count:    4  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 726.77412  ΔS:      6.25969  moves:   366 
+    niter:    35  count:    5  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 722.96778  ΔS:     -3.80634  moves:   382 
+    niter:    36  count:    6  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 717.65450  ΔS:     -5.31328  moves:   394 
+    niter:    37  count:    7  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 734.02750  ΔS:      16.3730  moves:   377 
+    niter:    38  count:    8  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 727.36795  ΔS:     -6.65954  moves:   393 
+    niter:    39  count:    9  breaks:  0  min_S: 704.10199  max_S: 745.15972  S: 719.39773  ΔS:     -7.97022  moves:   382 
+    niter:    40  count:    0  breaks:  1  min_S: 718.06061  max_S: 718.06061  S: 718.06061  ΔS:     -1.33712  moves:   411 
+    niter:    41  count:    0  breaks:  1  min_S: 708.36787  max_S: 718.06061  S: 708.36787  ΔS:     -9.69274  moves:   398 
+    niter:    42  count:    0  breaks:  1  min_S: 708.36787  max_S: 729.98460  S: 729.98460  ΔS:      21.6167  moves:   406 
+    niter:    43  count:    1  breaks:  1  min_S: 708.36787  max_S: 729.98460  S: 719.27340  ΔS:     -10.7112  moves:   383 
+    niter:    44  count:    2  breaks:  1  min_S: 708.36787  max_S: 729.98460  S: 709.89100  ΔS:     -9.38239  moves:   409 
+    niter:    45  count:    3  breaks:  1  min_S: 708.36787  max_S: 729.98460  S: 721.29921  ΔS:      11.4082  moves:   383 
+    niter:    46  count:    0  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 706.67224  ΔS:     -14.6270  moves:   405 
+    niter:    47  count:    1  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 711.87311  ΔS:      5.20087  moves:   373 
+    niter:    48  count:    2  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 708.20851  ΔS:     -3.66460  moves:   367 
+    niter:    49  count:    3  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 712.26954  ΔS:      4.06103  moves:   368 
+    niter:    50  count:    4  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 717.69181  ΔS:      5.42227  moves:   396 
+    niter:    51  count:    5  breaks:  1  min_S: 706.67224  max_S: 729.98460  S: 716.64174  ΔS:     -1.05008  moves:   395 
+    niter:    52  count:    0  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 731.96439  ΔS:      15.3226  moves:   387 
+    niter:    53  count:    1  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 722.51613  ΔS:     -9.44825  moves:   411 
+    niter:    54  count:    2  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 719.18164  ΔS:     -3.33449  moves:   414 
+    niter:    55  count:    3  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 712.43942  ΔS:     -6.74222  moves:   395 
+    niter:    56  count:    4  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 720.71508  ΔS:      8.27565  moves:   395 
+    niter:    57  count:    5  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 718.75450  ΔS:     -1.96058  moves:   379 
+    niter:    58  count:    6  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 710.43596  ΔS:     -8.31854  moves:   428 
+    niter:    59  count:    7  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 723.89819  ΔS:      13.4622  moves:   408 
+    niter:    60  count:    8  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 718.87456  ΔS:     -5.02363  moves:   435 
+    niter:    61  count:    9  breaks:  1  min_S: 706.67224  max_S: 731.96439  S: 721.20227  ΔS:      2.32772  moves:   399 
+    niter:    62  count:   10  breaks:  2  min_S: 706.67224  max_S: 731.96439  S: 726.81344  ΔS:      5.61116  moves:   383 
 
 Note that the value of ``wait`` above was made purposefully low so that
 the output would not be overly long. The most appropriate value requires
@@ -684,8 +701,9 @@ after each call to
 :meth:`~graph_tool.inference.BlockState.mcmc_sweep`. This function
 should accept a single parameter which will contain the actual
 :class:`~graph_tool.inference.BlockState` instance. We will use this in
-the example below to collect the posterior vertex marginals, i.e. the
-posterior probability that a node belongs to a given group:
+the example below to collect the posterior vertex marginals (via
+:class:`~graph_tool.inference.BlockState.collect_vertex_marginals`),
+i.e. the posterior probability that a node belongs to a given group:
 
 .. testcode:: model-averaging
 
@@ -698,7 +716,8 @@ posterior probability that a node belongs to a given group:
       global pv
       pv = s.collect_vertex_marginals(pv)
 
-   # Now we collect the marginals for exactly 100,000 sweeps
+   # Now we collect the marginals for exactly 100,000 sweeps, at
+   # intervals of 10 sweeps:
    gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
                        callback=collect_marginals)
 
@@ -729,7 +748,8 @@ itself, as follows.
        B = s.get_nonempty_B()
        h[B] += 1
 
-   # Now we collect the marginal distribution for exactly 100,000 sweeps
+   # Now we collect the marginals for exactly 100,000 sweeps, at
+   # intervals of 10 sweeps:
    gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
                        callback=collect_num_groups)
 
@@ -748,9 +768,9 @@ itself, as follows.
 .. figure:: lesmis-B-posterior.*
    :align: center
 
-   Marginal posterior likelihood of the number of nonempty groups for the
-   network of characters in the novel Les Misérables, according to the
-   degree-corrected SBM.
+   Marginal posterior probability of the number of nonempty groups for
+   the network of characters in the novel Les Misérables, according to
+   the degree-corrected SBM.
 
 
 Hierarchical partitions
@@ -875,7 +895,7 @@ itself, as follows.
 .. figure:: lesmis-nested-B-posterior.*
    :align: center
 
-   Marginal posterior likelihood of the number of nonempty groups
+   Marginal posterior probability of the number of nonempty groups
    :math:`B_l` at each hierarchy level :math:`l` for the network of
    characters in the novel Les Misérables, according to the nested
    degree-corrected SBM.
@@ -916,7 +936,7 @@ Model class selection
 When averaging over partitions, we may be interested in evaluating which
 **model class** provides a better fit of the data, considering all
 possible parameter choices. This is done by evaluating the model
-evidence [peixoto-nonparametric-2017]_
+evidence summed over all possible partitions [peixoto-nonparametric-2017]_:
 
 .. math::
 
@@ -941,7 +961,7 @@ where
 
    q(\boldsymbol b) = \frac{P(\boldsymbol G,\boldsymbol b)}{\sum_{\boldsymbol b'}P(\boldsymbol G,\boldsymbol b')}
 
-is the posterior likelihood of partition :math:`\boldsymbol b`. The
+is the posterior probability of partition :math:`\boldsymbol b`. The
 first term of Eq. :eq:`free-energy` (the "negative energy") is minus the
 average of description length :math:`\left<\Sigma\right>`, weighted
 according to the posterior distribution. The second term
@@ -949,10 +969,10 @@ according to the posterior distribution. The second term
 <https://en.wikipedia.org/wiki/Entropy_(information_theory)>`_ of the
 posterior distribution, and measures, in a sense, the "quality of fit"
 of the model: If the posterior is very "peaked", i.e. dominated by a
-single partition with a very large likelihood, the entropy will tend to
-zero. However, if there are many partitions with similar likelihoods ---
-meaning that there is no single partition that describes the
-network uniquely well --- it will take a large value instead.
+single partition with a very large probability, the entropy will tend to
+zero. However, if there are many partitions with similar probabilities
+--- meaning that there is no single partition that describes the network
+uniquely well --- it will take a large value instead.
 
 Since the MCMC algorithm samples partitions from the distribution
 :math:`q(\boldsymbol b)`, it can be used to compute
@@ -1141,28 +1161,305 @@ comparing to the evidences for the non-nested model --- which is not
 quite surprising, since the non-nested model is a special case of the
 nested one.
 
-Edge layers and covariates
---------------------------
+.. _weights:
 
-In many situations, the edges of the network may posses discrete
-covariates on them, or they may be distributed in discrete
-"layers". Extensions to the SBM may be defined for such data, and they
-can be inferred using the exact same interface shown above, except one
-should use the :class:`~graph_tool.inference.LayeredBlockState` class,
-instead of :class:`~graph_tool.inference.BlockState`. This class takes
-two additional parameters: the ``ec`` parameter, that must correspond to
-an edge :class:`~graph_tool.PropertyMap` with the layer/covariate
-values on the edges, and the Boolean ``layers`` parameter, which if
-``True`` specifies a layered model, otherwise one with edge covariates.
+Edge weights and covariates
+---------------------------
+
+Very often networks cannot be completely represented by simple graphs,
+but instead have arbitrary "weights" :math:`x_{ij}` on the edges. Edge
+weights can be continuous or discrete numbers, and either strictly
+positive or positive or negative, depending on context. The SBM can be
+extended to cover these cases by treating edge weights as covariates
+that are sampled from some distribution conditioned on the node
+partition [aicher-learning-2015]_ [peixoto-weighted-2017]_, i.e.
+
+.. math::
+
+   P(\boldsymbol x,\boldsymbol G|\boldsymbol b) =
+   P(\boldsymbol x|\boldsymbol G,\boldsymbol b) P(\boldsymbol G|\boldsymbol b),
+
+where :math:`P(\boldsymbol G|\boldsymbol b)` is the likelihood of the
+unweighted SBM described previously, and :math:`P(\boldsymbol
+x|\boldsymbol G,\boldsymbol b)` is the integrated likelihood of the edge
+weights
+
+.. math::
+
+   P(\boldsymbol x|\boldsymbol G,\boldsymbol b) =
+   \prod_{r\le s}\int P(\boldsymbol x_{rs}|\gamma)P(\gamma)\,\mathrm{d}\gamma,
+
+where :math:`P(\boldsymbol x_{rs}|\gamma)` is some model for the weights
+between groups :math:`(r,s)`, conditioned on some parameter
+:math:`\gamma`, sampled from its prior :math:`P(\gamma)`. A hierarchical
+version of the model can also be implemented by replacing this prior by
+a nested sequence of priors and hyperpriors, as described in
+[peixoto-weighted-2017]_. The posterior partition distribution is then
+simply
+
+.. math::
+
+   P(\boldsymbol b | \boldsymbol G,\boldsymbol x) =
+   \frac{P(\boldsymbol x|\boldsymbol G,\boldsymbol b) P(\boldsymbol G|\boldsymbol b)
+         P(\boldsymbol b)}{P(\boldsymbol G,\boldsymbol x)},
+
+which can be sampled from, or maximized, just like with the unweighted
+case, but will use the information on the weights to guide the partitions.
+
+A variety of weight models is supported, reflecting different kinds of
+edge covariates:
+
+.. csv-table::
+   :header: "Name", "Domain", "Bounds", "Shape"
+   :widths: 10, 5, 5, 5
+   :delim: |
+   :align: center
+
+   ``"real-exponential"``   | Real    :math:`(\mathbb{R})` | :math:`[0,\infty]`       | `Exponential <https://en.wikipedia.org/wiki/Exponential_distribution>`_
+   ``"real-normal"``        | Real    :math:`(\mathbb{R})` | :math:`[-\infty,\infty]` | `Normal <https://en.wikipedia.org/wiki/Normal_distribution>`_
+   ``"discrete-geometric"`` | Natural :math:`(\mathbb{N})` | :math:`[0,\infty]`       | `Geometric <https://en.wikipedia.org/wiki/Geometric_distribution>`_
+   ``"discrete-binomial"``  | Natural :math:`(\mathbb{N})` | :math:`[0,M]`            | `Binomial <https://en.wikipedia.org/wiki/Binomial_distribution>`_
+   ``"discrete-poisson"``   | Natural :math:`(\mathbb{N})` | :math:`[0,\infty]`       | `Poisson <https://en.wikipedia.org/wiki/Poisson_distribution>`_
+
+In fact, the actual model implements `microcanonical
+<https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ versions of
+these distributions that are asymptotically equivalent, as described in
+[peixoto-weighted-2017]_. These can be combined with arbitrary weight
+transformations to achieve a large family of associated
+distributions. For example, to use a `log-normal
+<https://en.wikipedia.org/wiki/Log-normal_distribution>`_ weight model
+for positive real weights :math:`\boldsymbol x`, we can use the
+transformation :math:`y_{ij} = \ln x_{ij}` together with the
+``"real-normal"`` model for :math:`\boldsymbol y`. To model weights that
+are positive or negative integers in :math:`\mathbb{Z}`, we could either
+subtract the minimum value, :math:`y_{ij} = x_{ij} - x^*`, with
+:math:`x^*=\operatorname{min}_{ij}x_{ij}`, and use any of the above
+models for non-negative integers in :math:`\mathbb{N}`, or
+alternatively, consider the sign as an additional covariate,
+i.e. :math:`s_{ij} = [\operatorname{sign}(x_{ij})+1]/2 \in \{0,1\}`,
+using the Binomial distribution with :math:`M=1` (a.k.a. the `Bernoulli
+distribution <https://en.wikipedia.org/wiki/Bernoulli_distribution>`_),
+and any of the other discrete distributions for the magnitude,
+:math:`y_{ij} = \operatorname{abs}(x_{ij})`.
+   
+The support for weighted networks is activated by passing the parameters
+``recs`` and ``rec_types`` to :class:`~graph_tool.inference.BlockState`
+(or :class:`~graph_tool.inference.OverlapBlockState` or
+:class:`~graph_tool.inference.LayeredBlockState`), that specify the edge
+covariates (an edge :class:`~graph_tool.PropertyMap`) and their types (a
+string from the table above), respectively. Note that these parameters
+expect *lists*, so that multiple edge weights can be used
+simultaneously.
+
+For example, let us consider a network of suspected terrorists involved
+in the train bombing of Madrid on March 11, 2004
+[hayes-connecting-2006]_. An edge indicates that a connection between
+the two persons have been identified, and the weight of the edge (an
+integer in the range :math:`[0,3]`) indicates the "strength" of the
+connection. We can apply the weighted SBM, using a Binomial model for
+the weights, as follows:
+
+
+.. testsetup:: weighted-model
+
+   import os
+   try:
+       os.chdir("demos/inference")
+   except FileNotFoundError:
+       pass
+   gt.seed_rng(42)
+         
+.. testcode:: weighted-model
+
+   g = gt.collection.konect_data["moreno_train"]
+
+   # This network contains an internal edge property map with name
+   # "weight" that contains the strength of interactions. The values
+   # integers in the range [0, 3].
+   
+   state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[g.ep.weight],
+                                                               rec_types=["discrete-binomial"]))
+
+   state.draw(edge_color=g.ep.weight, ecmap=matplotlib.cm.inferno,
+              eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 1, 4, power=1),
+              edge_gradient=[], output="moreno-train-wsbm.svg")
+
+.. figure:: moreno-train-wsbm.*
+   :align: center
+   :width: 350px
+
+   Best fit of the Binomial-weighted degree-corrected SBM for a network
+   of terror suspects, using the strength of connection as edge
+   covariates. The edge colors and widths correspond to the strengths.
+
+Model selection
++++++++++++++++
+
+In order to select the best weighted model, we proceed in the same
+manner as described in Sec. :ref:`model_selection`. However, when using
+transformation on continuous weights, we must include the associated
+scaling of probability density, as described in
+[peixoto-weighted-2017]_.
+
+For example, consider a `food web
+<https://en.wikipedia.org/wiki/Food_web>`_ between species in south
+Florida [ulanowicz-network-2005]_. A directed link exists from species
+:math:`i` to :math:`j` if a biomass flow exists between them, and a
+weight :math:`x_{ij}` on this edge indicates the magnitude of biomass
+flow (a positive real value, i.e. :math:`x_{ij}\in [0,\infty]`). One
+possibility, therefore, is to use the ``"real-exponential"`` model, as
+follows:
+
+.. testsetup:: food-web
+
+   import os
+   try:
+       os.chdir("demos/inference")
+   except FileNotFoundError:
+       pass
+   gt.seed_rng(42)
+         
+.. testcode:: food-web
+
+   g = gt.collection.konect_data["foodweb-baywet"]
+
+   # This network contains an internal edge property map with name
+   # "weight" that contains the biomass flow between species. The values
+   # are continuous in the range [0, infinity].
+   
+   state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[g.ep.weight],
+                                                               rec_types=["real-exponential"]))
+
+   state.draw(edge_color=gt.prop_to_size(g.ep.weight, power=1, log=True), ecmap=matplotlib.cm.inferno,
+              eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 1, 4, power=1, log=True),
+              edge_gradient=[], output="foodweb-wsbm.svg")
+
+.. figure:: foodweb-wsbm.*
+   :align: center
+   :width: 350px
+
+   Best fit of the exponential-weighted degree-corrected SBM for a food
+   web, using the biomass flow as edge covariates (indicated by the edge
+   colors and widths).
+
+Alternatively, we may consider a transform of the type
+
+.. math::
+   :label: log_transform
+
+   y_{ij} = \ln x_{ij}
+
+so that :math:`y_{ij} \in [-\infty,\infty]`. If we use a model
+``"real-normal"`` for :math:`\boldsymbol y`, it amounts to a `log-normal
+<https://en.wikipedia.org/wiki/Log-normal_distribution>`_ model for
+:math:`x`. This model can be better if the weights are distributed
+across many orders of magnitude. We can fit this alternative model
+simply by using the transformed weights:
+
+.. testcode:: food-web
+
+   # Apply the weight transformation
+   y = g.ep.weight.copy()
+   y.a = log(y.a)
+   
+   state_ln = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[y],
+                                                                  rec_types=["real-normal"]))
+
+   state_ln.draw(edge_color=gt.prop_to_size(g.ep.weight, power=1, log=True), ecmap=matplotlib.cm.inferno,
+                 eorder=g.ep.weight, edge_pen_width=gt.prop_to_size(g.ep.weight, 1, 4, power=1, log=True),
+                 edge_gradient=[], output="foodweb-wsbm-lognormal.svg")
+
+.. figure:: foodweb-wsbm-lognormal.*
+   :align: center
+   :width: 350px
+
+   Best fit of the log-normal-weighted degree-corrected SBM for a food
+   web, using the biomass flow as edge covariates (indicated by the edge
+   colors and widths).
+
+At this point, we ask ourselves which of the above models is the best
+fit of the data. This is answered by performing model selection via
+posterior odds ratios just like in Sec. :ref:`model_selection`. However,
+here we need to take into account the scaling of the probability density
+incurred by the variable transformation, i.e.
+
+.. math::
+
+    P(\boldsymbol x | \boldsymbol G, \boldsymbol b) =
+    P(\boldsymbol y(\boldsymbol x) | \boldsymbol G, \boldsymbol b)
+    \prod_{ij}\left[\frac{\mathrm{d}y_{ij}}{\mathrm{d}x_{ij}}(x_{ij})\right]^{A_{ij}}.
+
+In the particular case of Eq. :eq:`log_transform`, we have
+
+.. math::
+
+    \prod_{ij}\left[\frac{\mathrm{d}y_{ij}}{\mathrm{d}x_{ij}}(x_{ij})\right]^{A_{ij}}
+    = \prod_{ij}\frac{1}{x_{ij}^{A_{ij}}}.
+
+Therefore, we can compute the posterior odds ratio between both models as:
+
+.. testcode:: food-web
+
+   L1 = -state.entropy()
+   L2 = -state_ln.entropy() - log(g.ep.weight.a).sum()
+              
+   print(u"ln \u039b: ", L2 - L1)
+
+.. testoutput:: food-web
+   :options: +NORMALIZE_WHITESPACE
+
+   ln Λ:  37.210511...
+
+A value of :math:`\Lambda \approx \mathrm{e}^{37} \approx 10^{16}` in
+favor the log-normal model indicates that it is indeed a better choice
+for this data.
+   
+   
+Posterior sampling
+++++++++++++++++++
+   
+The procedure to sample from the posterior distribution is identical to
+what is described in Sec. :ref:`sampling`, but with the appropriate
+initialization, i.e.
+
+.. testcode:: weighted-model
+
+    state = gt.BlockState(g, B=20, recs=[g.ep.weight], rec_types=["discrete-poisson"])
+
+or for the nested model
+
+.. testcode:: weighted-model
+
+    state = gt.NestedBlockState(g, bs=[np.random.randint(0, 20, g.num_vertices())] + [zeros(1)] * 10,
+                                state_args=dict(recs=[g.ep.weight],
+                                                rec_types=["discrete-poisson"]))
+
+Layered networks
+----------------
+
+The edges of the network may be distributed in discrete "layers",
+representing distinct types if interactions
+[peixoto-inferring-2015]_. Extensions to the SBM may be defined for such
+data, and they can be inferred using the exact same interface shown
+above, except one should use the
+:class:`~graph_tool.inference.LayeredBlockState` class, instead of
+:class:`~graph_tool.inference.BlockState`. This class takes two
+additional parameters: the ``ec`` parameter, that must correspond to an
+edge :class:`~graph_tool.PropertyMap` with the layer/covariate values on
+the edges, and the Boolean ``layers`` parameter, which if ``True``
+specifies a layered model, otherwise one with categorical edge
+covariates (not to be confused with the weighted models in
+Sec. :ref:`weights`).
 
 If we use :func:`~graph_tool.inference.minimize_blockmodel_dl`, this can
 be achieved simply by passing the option ``layers=True`` as well as the
 appropriate value of ``state_args``, which will be propagated to
 :class:`~graph_tool.inference.LayeredBlockState`'s constructor.
 
-For example, consider again the Les Misérables network, where we
-consider the number of co-appearances between characters as edge
-covariates.
+As an example, let us consider a social network of tribes, where two
+types of interactions were recorded, amounting to either friendship or
+enmity [read-cultures-1954]_. We may apply the layered model by
+separating these two types of interactions in two layers:
 
 .. testsetup:: layered-model
 
@@ -1175,50 +1472,28 @@ covariates.
          
 .. testcode:: layered-model
 
-   g = gt.collection.data["lesmis"]
+   g = gt.collection.konect_data["ucidata-gama"]
+
+   # The edge types are stored in the edge property map "weights".
 
    # Note the different meaning of the two 'layers' parameters below: The
    # first enables the use of LayeredBlockState, and the second selects
-   # the 'edge covariates' version.
+   # the 'edge layers' version (instead of 'edge covariates').
 
-   state = gt.minimize_blockmodel_dl(g, deg_corr=False, layers=True,
-                                     state_args=dict(ec=g.ep.value, layers=False))
+   state = gt.minimize_nested_blockmodel_dl(g, layers=True,
+                                            state_args=dict(ec=g.ep.weight, layers=True))
 
-   state.draw(pos=g.vp.pos, edge_color=g.ep.value, edge_gradient=None,
-              output="lesmis-sbm-edge-cov.svg")
+   state.draw(edge_color=g.ep.weight, edge_gradient=[],
+              ecmap=matplotlib.cm.RdBu, edge_pen_width=3,
+              output="tribes-sbm-edge-layers.svg")
 
-.. figure:: lesmis-sbm-edge-cov.*
+.. figure:: tribes-sbm-edge-layers.*
    :align: center
    :width: 350px
 
-   Best fit of the non-degree-corrected SBM with edge covariates for the
-   network of characters in the novel Les Misérables, using the number
-   of co-appearances as edge covariates. The edge colors correspond to
-   the edge covariates.
-
-
-In the case of the nested model, we still should use the
-:class:`~graph_tool.inference.NestedBlockState` class, but it must be
-initialized with the parameter ``base_type = LayeredBlockState``. But if
-we use :func:`~graph_tool.inference.minimize_nested_blockmodel_dl`, it
-works identically to the above:
-
-.. testcode:: layered-model
-
-   state = gt.minimize_nested_blockmodel_dl(g, deg_corr=False, layers=True,
-                                            state_args=dict(ec=g.ep.value, layers=False))
-
-   state.draw(eprops=dict(color=g.ep.value, gradient=None),
-              output="lesmis-nested-sbm-edge-cov.svg")
-
-.. figure:: lesmis-nested-sbm-edge-cov.*
-   :align: center
-   :width: 350px
-
-   Best fit of the nested non-degree-corrected SBM with edge covariates
-   for the network of characters in the novel Les Misérables, using the
-   number of co-appearances as edge covariates. The edge colors
-   correspond to the edge covariates.
+   Best fit of the degree-corrected SBM with edge layers for a network
+   of tribes, with edge layers shown as colors. The groups show two
+   enemy tribes.
 
 It is possible to perform model averaging of all layered variants
 exactly like for the regular SBMs as was shown above.
@@ -1239,41 +1514,28 @@ We do so by dividing the edges into two sets :math:`\boldsymbol G` and
 :math:`\delta \boldsymbol G`, where the former corresponds to the
 observed network and the latter either to the missing or spurious
 edges. We may compute the posterior of :math:`\delta \boldsymbol G` as
+[valles-catala-consistency-2017]_
 
 .. math::
    :label: posterior-missing
 
-   P(\delta \boldsymbol G | \boldsymbol G) = \frac{\sum_{\boldsymbol b}P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)P(\boldsymbol b | \boldsymbol G)}{P_{\delta}(\boldsymbol G)}
+   P(\delta \boldsymbol G | \boldsymbol G) \propto
+   \sum_{\boldsymbol b}\frac{P(\boldsymbol G + \delta\boldsymbol G| \boldsymbol b)}{P(\boldsymbol G| \boldsymbol b)}P(\boldsymbol b | \boldsymbol G)
 
-where
-
-.. math::
-   :label: posterior-missing
-
-   P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b) = \frac{P(\boldsymbol G + \delta \boldsymbol G| \boldsymbol b)}{P(\boldsymbol G | \boldsymbol b)}
-
-and
-
-.. math::
-
-   P_{\delta}(\boldsymbol G) = \sum_{\delta \boldsymbol G}\sum_{\boldsymbol b}P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)P(\boldsymbol b | \boldsymbol G)
-
-is a normalization constant. Although the value of
-:math:`P_{\delta}(\boldsymbol G)` is difficult to obtain in general
-(since we need to perform a sum over all possible spurious/missing
-edges), the numerator of Eq. :eq:`posterior-missing` can be computed by
-sampling partitions from the posterior, and then inserting or deleting
-edges from the graph and computing the new likelihood. This means that
-we can easily compare alternative predictive hypotheses :math:`\{\delta
-\boldsymbol G_i\}` via their likelihood ratios
+up to a normalization constant. Although the normalization constant is
+difficult to obtain in general (since we need to perform a sum over all
+possible spurious/missing edges), the numerator of
+Eq. :eq:`posterior-missing` can be computed by sampling partitions from
+the posterior, and then inserting or deleting edges from the graph and
+computing the new likelihood. This means that we can easily compare
+alternative predictive hypotheses :math:`\{\delta \boldsymbol G_i\}` via
+their likelihood ratios
 
 .. math::
 
    \lambda_i = \frac{P(\delta \boldsymbol G_i | \boldsymbol G)}{\sum_j P(\delta \boldsymbol G_j | \boldsymbol G)}
-             = \frac{\sum_{\boldsymbol b}P(\boldsymbol G+\delta \boldsymbol G_i | \boldsymbol b)P(\boldsymbol b | \boldsymbol G)}
-                    {\sum_j \sum_{\boldsymbol b}P(\boldsymbol G+\delta \boldsymbol G_j | \boldsymbol b)P(\boldsymbol b | \boldsymbol G)}
 
-which do not depend on the value of :math:`P_{\delta}(\boldsymbol G)`.
+which do not depend on the normalization constant.
 
 The values :math:`P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)`
 can be computed with
@@ -1390,46 +1652,77 @@ References
 
 .. [holland-stochastic-1983] Paul W. Holland, Kathryn Blackmond Laskey,
    Samuel Leinhardt, "Stochastic blockmodels: First steps", Social Networks
-   Volume 5, Issue 2, Pages 109-137 (1983), :doi:`10.1016/0378-8733(83)90021-7`
+   Volume 5, Issue 2, Pages 109-137 (1983). :doi:`10.1016/0378-8733(83)90021-7`
 
 .. [karrer-stochastic-2011] Brian Karrer, M. E. J. Newman "Stochastic
    blockmodels and community structure in networks", Phys. Rev. E 83,
-   016107 (2011), :doi:`10.1103/PhysRevE.83.016107`, :arxiv:`1008.3926`
+   016107 (2011). :doi:`10.1103/PhysRevE.83.016107`, :arxiv:`1008.3926`
    
 .. [peixoto-nonparametric-2017] Tiago P. Peixoto, "Nonparametric
    Bayesian inference of the microcanonical stochastic block model",
-   Phys. Rev. E 95 012317 (2017), :doi:`10.1103/PhysRevE.95.012317`,
+   Phys. Rev. E 95 012317 (2017). :doi:`10.1103/PhysRevE.95.012317`,
    :arxiv:`1610.02703`
 
 .. [peixoto-parsimonious-2013] Tiago P. Peixoto, "Parsimonious module
-   inference in large networks", Phys. Rev. Lett. 110, 148701 (2013),
+   inference in large networks", Phys. Rev. Lett. 110, 148701 (2013).
    :doi:`10.1103/PhysRevLett.110.148701`, :arxiv:`1212.4794`.
 
 .. [peixoto-hierarchical-2014] Tiago P. Peixoto, "Hierarchical block
    structures and high-resolution model selection in large networks",
-   Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
+   Phys. Rev. X 4, 011047 (2014). :doi:`10.1103/PhysRevX.4.011047`,
    :arxiv:`1310.4377`.
 
 .. [peixoto-model-2016] Tiago P. Peixoto, "Model selection and hypothesis
    testing for large-scale network models with overlapping groups",
-   Phys. Rev. X 5, 011033 (2016), :doi:`10.1103/PhysRevX.5.011033`,
+   Phys. Rev. X 5, 011033 (2016). :doi:`10.1103/PhysRevX.5.011033`,
    :arxiv:`1409.3059`.
 
+.. [peixoto-inferring-2015] Tiago P. Peixoto, "Inferring the mesoscale
+   structure of layered, edge-valued and time-varying networks",
+   Phys. Rev. E 92, 042807 (2015). :doi:`10.1103/PhysRevE.92.042807`,
+   :arxiv:`1504.02381`
+
+.. [aicher-learning-2015] Christopher Aicher, Abigail Z. Jacobs, and
+   Aaron Clauset, "Learning Latent Block Structure in Weighted
+   Networks", Journal of Complex Networks 3(2). 221-248
+   (2015). :doi:`10.1093/comnet/cnu026`, :arxiv:`1404.0431`
+
+.. [peixoto-weighted-2017] Tiago P. Peixoto, "Nonparametric weighted
+   stochastic block models", :arxiv:`1708.01432`
+          
 .. [peixoto-efficient-2014] Tiago P. Peixoto, "Efficient Monte Carlo and
    greedy heuristic for the inference of stochastic block models", Phys.
-   Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
+   Rev. E 89, 012804 (2014). :doi:`10.1103/PhysRevE.89.012804`,
    :arxiv:`1310.4378`
 
 .. [clauset-hierarchical-2008] Aaron Clauset, Cristopher
    Moore, M. E. J. Newman, "Hierarchical structure and the prediction of
-   missing links in networks", Nature 453, 98-101 (2008),
+   missing links in networks", Nature 453, 98-101 (2008).
    :doi:`10.1038/nature06830`
 
 .. [guimera-missing-2009] Roger Guimerà, Marta Sales-Pardo, "Missing and
    spurious interactions and the reconstruction of complex networks", PNAS
-   vol. 106 no. 52 (2009), :doi:`10.1073/pnas.0908366106`
+   vol. 106 no. 52 (2009). :doi:`10.1073/pnas.0908366106`
           
+.. [valles-catala-consistency-2017] Toni Vallès-Català,
+   Tiago P. Peixoto, Roger Guimerà, Marta Sales-Pardo, "On the consistency
+   between model selection and link prediction in networks". :arxiv:`1705.07967`
+
 .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
-   Physics, and Computation", Oxford Univ Press, 2009.
+   Physics, and Computation", Oxford Univ Press (2009).
    :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
 
+.. [hayes-connecting-2006] Brian Hayes, "Connecting the dots. can the
+   tools of graph theory and social-network studies unravel the next big
+   plot?", American Scientist, 94(5):400-404, 2006.
+   http://www.jstor.org/stable/27858828
+
+.. [ulanowicz-network-2005] Robert E. Ulanowicz, and
+   Donald L. DeAngelis. "Network analysis of trophic dynamics in south
+   florida ecosystems." US Geological Survey Program on the South
+   Florida Ecosystem 114 (2005).
+   https://fl.water.usgs.gov/PDF_files/ofr99_181_gerould.pdf#page=125
+
+.. [read-cultures-1954] Kenneth E. Read, "Cultures of the Central
+   Highlands, New Guinea", Southwestern J. of Anthropology,
+   10(1):1-43 (1954). :doi:`10.1086/soutjanth.10.1.3629074`

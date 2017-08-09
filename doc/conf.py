@@ -32,7 +32,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.intersphinx', 'mathjax', 'sphinx.ext.autosummary',
               'numpydoc',
               'sphinx.ext.extlinks',
-              'sphinx.ext.viewcode'
+              'sphinx.ext.viewcode',
+              'extlinks_fancy',
               #'sphinx.ext.linkcode'
               #'matplotlib.sphinxext.plot_directive'
               ]
@@ -180,10 +181,13 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'ipython': ('http://ipython.org/ipython-doc/stable/', None),
                        'panda': ('http://pandas.pydata.org/pandas-docs/stable/', None)}
 
-extlinks = {'ticket': ('http://graph-tool.skewed.de/tickets/ticket/%s',
-                       'ticket '),
-            'doi': ('http://dx.doi.org/%s', 'DOI: '),
-            'arxiv': ('http://arxiv.org/abs/%s', 'arXiv: ')}
+extlinks_fancy = {'ticket': (['https://graph-tool.skewed.de/tickets/ticket/{0}'],
+                             ['ticket {0}']),
+                  'doi': (['https://dx.doi.org/{0}',
+                           'https://sci-hub.cc/{0}',
+                           'https://scihub22266oqcxt.onion.link/{0}'],
+                          ['DOI: {0}', "sci-hub", "@tor"]),
+                  'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}'])}
 
 
 # def process_docstring(app, what, name, obj, options, lines):
@@ -202,6 +206,7 @@ plot_rcparams = pyenv.rcParams
 #plot_pre_code = open("pyenv.py").read()
 
 autodoc_default_flags = ['members', 'undoc-members']
+autosummary_gerenerate = True
 numpydoc_show_class_members = False
 autodoc_docstring_signature = False
 autodoc_member_order = 'bysource'
