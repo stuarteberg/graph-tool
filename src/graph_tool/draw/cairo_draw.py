@@ -319,6 +319,11 @@ def centered_rotation(g, pos, text_pos=True):
     return angle
 
 def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
+    try:
+        cmap, alpha = cmap
+    except TypeError:
+        alpha = None
+
     if attr == vertex_attrs.shape:
         new_val = shape_from_prop(val, vertex_shape)
         if pmap_default and not isinstance(val, PropertyMap):
@@ -350,7 +355,8 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                 if rg[0] == rg[1]:
                     rg[1] = 1
                 map_property_values(val, new_val,
-                                    lambda y: flatten([cmap((x - rg[0]) / (rg[1] - rg[0])) for x in y]))
+                                    lambda y: flatten([cmap((x - rg[0]) / (rg[1] - rg[0]),
+                                                            alpha=alpha) for x in y]))
                 return new_val
             if val.value_type() == "vector<string>":
                 g = val.get_graph()
@@ -422,7 +428,8 @@ def _convert(attr, val, cmap, pmap_default=False, g=None, k=None):
                     prop = g.new_vertex_property("vector<double>")
                 else:
                     prop = g.new_edge_property("vector<double>")
-                map_property_values(nval, prop, lambda x: cmap(cnorm(x)))
+                map_property_values(nval, prop, lambda x: cmap(cnorm(x),
+                                                               alpha=alpha))
                 new_val = prop
             elif val.value_type() == "string":
                 g = val.get_graph()
@@ -547,8 +554,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
                nodesfirst=False, vcmap=default_cm, ecmap=default_cm,
                loop_angle=numpy.nan, parallel_distance=None, fit_view=False,
                res=0, max_render_time=-1, **kwargs):
-    r"""
-    Draw a graph to a :mod:`cairo` context.
+    r"""Draw a graph to a :mod:`cairo` context.
 
     Parameters
     ----------
@@ -573,10 +579,12 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         If provided, defines the relative order in which the edges are drawn.
     nodesfirst : bool (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
-    vcmap : :class:`matplotlib.colors.Colormap` (optional, default: :class:`default_cm`)
-        Vertex color map.
-    ecmap : :class:`matplotlib.colors.Colormap` (optional, default: :class:`default_cm`)
-        Edge color map.
+    vcmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :class:`default_cm`)
+        Vertex color map. Optionally, this may be a
+        (:class:`matplotlib.colors.Colormap`, alpha) tuple.
+    ecmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :class:`default_cm`)
+        Edge color map. Optionally, this may be a
+        (:class:`matplotlib.colors.Colormap`, alpha) tuple.
     loop_angle : float or :class:`~graph_tool.PropertyMap` (optional, default: ``nan``)
         Angle used to draw self-loops. If ``nan`` is given, they will be placed
         radially from the center of the layout.
@@ -612,6 +620,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         If ``max_render_time`` is nonnegative, this will be an iterator that will
         perform part of the drawing at each step, so that each iteration takes
         at most ``max_render_time`` milliseconds.
+
     """
 
     if vorder is not None:
@@ -1060,7 +1069,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
             eprops["text_distance"] = pw * 2
 
     if "text" in vprops and ("text_color" not in vprops or vprops["text_color"] == "auto"):
-        vcmap = kwargs.get("vcmap", matplotlib.cm.jet)
+        vcmap = kwargs.get("vcmap", default_cm)
         bg = _convert(vertex_attrs.fill_color,
                       vprops.get("fill_color", _vdefaults["fill_color"]),
                       vcmap)
@@ -1070,7 +1079,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                                                       _vdefaults["text_position"]),
                                            bg_color)
 
-    if mplfig:
+    if mplfig is not None:
         ax = None
         if isinstance(mplfig, matplotlib.figure.Figure):
             ctr = ax = mplfig.gca()
