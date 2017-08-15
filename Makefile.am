@@ -4,11 +4,11 @@ SUBDIRS = src
 
 graphtooldocdir = ${PACKAGE_DOC_DIR}
 nobase_dist_graphtooldoc_DATA = \
-	README.md\
-	LICENSE\
-	AUTHORS\
-	INSTALL\
-	src/boost-workaround/LICENSE_1_0.txt\
+	README.md \
+	LICENSE \
+	AUTHORS \
+	INSTALL \
+	src/boost-workaround/LICENSE_1_0.txt \
 	doc/centrality.rst \
 	doc/correlations.rst \
 	doc/price.py \
@@ -58,6 +58,7 @@ pkgconfig_DATA = graph-tool-py${PYTHON_VERSION}.pc
 
 # Copy all the spec files. Of cource, only one is actually used.
 dist-hook:
+	cd ${top_srcdir} && git log --stat --name-only --date=short --abbrev-commit > ${distdir}/ChangeLog
 	for specfile in *.spec; do \
 		if test -f $$specfile; then \
 			cp -p $$specfile $(distdir); \
