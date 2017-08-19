@@ -31,6 +31,9 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/conf.py \
 	doc/pyenv.py \
 	doc/search_example.xml \
+	doc/demos/index.rst \
+	doc/demos/animation/animation.rst \
+	doc/demos/inference/inference.rst \
 	doc/sphinxext/README.txt \
 	doc/sphinxext/LICENSE.txt \
 	doc/sphinxext/__init__.py \
