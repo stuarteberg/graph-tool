@@ -166,7 +166,6 @@ public:
                                                   out_edge_iterator>::type
         adjacency_iterator;
 
-
     // BidirectionalGraph requirements
     typedef filter_iterator<
         InEdgePred, typename Traits::in_edge_iterator
@@ -180,10 +179,10 @@ public:
         EdgePred, typename Graph::all_edge_iterator_reversed
         > all_edge_iterator_reversed;
 
-    typedef typename adjacency_iterator_generator<self,
-                                                  vertex_descriptor,
-                                                  in_edge_iterator>::type
-       in_adjacency_iterator;
+    typedef typename inv_adjacency_iterator_generator<self,
+                                                      vertex_descriptor,
+                                                      in_edge_iterator>::type
+        in_adjacency_iterator;
 
     // VertexListGraph requirements
     typedef filter_iterator<
@@ -469,7 +468,7 @@ inline __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename filt_graph<G, EP, VP>::in_edge_iterator,
         typename filt_graph<G, EP, VP>::in_edge_iterator>
 in_edges(typename filt_graph<G, EP, VP>::vertex_descriptor u,
-       const filt_graph<G, EP, VP>& g)
+         const filt_graph<G, EP, VP>& g)
 {
     typedef filt_graph<G, EP, VP> Graph;
     typedef typename Graph::in_edge_iterator iter;
