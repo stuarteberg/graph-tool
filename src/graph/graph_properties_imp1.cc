@@ -22,7 +22,7 @@
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -45,7 +45,7 @@ struct do_edge_endpoint
         eprop_t eprop = any_cast<eprop_t>(aeprop);
         eprop.reserve(edge_index_range);
 
-        #ifdef USING_OPENMP
+        #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
         if (std::is_convertible<val_t,python::object>::value)
             nt = 1; // python is not thread-safe

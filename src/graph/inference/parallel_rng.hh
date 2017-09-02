@@ -24,7 +24,7 @@ template <class RNG>
 void init_rngs(std::vector<std::shared_ptr<RNG>>& rngs, RNG& rng)
 {
     size_t num_threads = 1;
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     num_threads = omp_get_max_threads();
 #endif
     for (size_t i = 0; i < num_threads; ++i)
@@ -42,7 +42,7 @@ RNG& get_rng(std::vector<std::shared_ptr<RNG>>& rngs, RNG& rng)
     if (rngs.empty())
         return rng;
     size_t tid = 0;
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     tid = omp_get_thread_num();
 #endif
     return *rngs[tid];

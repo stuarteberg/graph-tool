@@ -22,7 +22,7 @@
 #include "graph_util.hh"
 #include "hash_map_wrap.hh"
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #include <boost/type_traits.hpp>
 #endif
@@ -68,7 +68,7 @@ struct find_vertices
         range.first = python::extract<value_type>(prange[0]);
         range.second = python::extract<value_type>(prange[1]);
 
-        #ifdef USING_OPENMP
+        #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
         if (std::is_convertible<value_type,python::object>::value)
             nt = 1; // python is not thread-safe
@@ -112,7 +112,7 @@ struct find_edges
 
         gt_hash_set<size_t> edge_set;
 
-        #ifdef USING_OPENMP
+        #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
         if (std::is_convertible<value_type,python::object>::value)
             nt = 1; // python is not thread-safe

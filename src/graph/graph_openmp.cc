@@ -24,13 +24,13 @@ using namespace boost;
 using namespace graph_tool;
 
 // OpenMP control
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
 bool openmp_enabled()
 {
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     return true;
 #else
     return false;
@@ -39,7 +39,7 @@ bool openmp_enabled()
 
 size_t openmp_get_num_threads()
 {
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     return omp_get_max_threads();
 #else
     throw GraphException("OpenMP was not enabled during compilation");
@@ -48,7 +48,7 @@ size_t openmp_get_num_threads()
 
 void openmp_set_num_threads(int n)
 {
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     omp_set_num_threads(n);
 #else
     throw GraphException("OpenMP was not enabled during compilation");
@@ -57,7 +57,7 @@ void openmp_set_num_threads(int n)
 
 python::tuple openmp_get_schedule()
 {
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     omp_sched_t kind;
     int chunk;
     omp_get_schedule(&kind, &chunk);
@@ -88,7 +88,7 @@ python::tuple openmp_get_schedule()
 
 void openmp_set_schedule(string skind, int chunk)
 {
-#ifdef USING_OPENMP
+#ifdef _OPENMP
     omp_sched_t kind;
     if (skind == "static")
         kind = omp_sched_static;

@@ -23,7 +23,7 @@
 #include "hash_map_wrap.hh"
 #include <boost/mpl/if.hpp>
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include "omp.h"
 #endif
 

@@ -28,7 +28,7 @@
 #include "hash_map_wrap.hh"
 #include "parallel_rng.hh"
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 namespace graph_tool

@@ -22,7 +22,7 @@
 #include "graph_selectors.hh"
 #include "graph_util.hh"
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -164,7 +164,7 @@ struct do_out_edges_op
 
         auto vprop = boost::any_cast<VProp>(avprop).get_unchecked(num_vertices(g));
 
-        #ifdef USING_OPENMP
+        #ifdef _OPENMP
         size_t __attribute__ ((unused)) nt = omp_get_num_threads();
         if (std::is_convertible<eval_t,python::object>::value)
             nt = 1; // python is not thread-safe
