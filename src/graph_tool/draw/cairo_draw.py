@@ -699,8 +699,10 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
             parallel_distance = _defaults
         eprops["control_points"] = position_parallel_edges(g, pos, loop_angle,
                                                            parallel_distance)
-    generator = libgraph_tool_draw.cairo_draw(g._Graph__graph, _prop("v", g, pos),
-                                              _prop("v", g, vorder), _prop("e", g, eorder),
+    generator = libgraph_tool_draw.cairo_draw(g._Graph__graph,
+                                              _prop("v", g, pos),
+                                              _prop("v", g, vorder),
+                                              _prop("e", g, eorder),
                                               nodesfirst, vattrs, eattrs, vdefs, edefs, res,
                                               max_render_time, cr)
     if max_render_time >= 0:
@@ -2048,18 +2050,23 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     vorder = kwargs.pop("vorder", None)
     if vorder is None:
         vorder = g.degree_property_map("total")
+    tvorder = u.own_property(tvorder)
     tvorder.fa[:g.num_vertices()] = vorder.fa
+
+    for k, v in kwargs.items():
+        if isinstance(v, PropertyMap) and v.get_graph().base is not u.base:
+            kwargs[k] = u.own_property(v.copy())
 
     pos = graph_draw(u, pos, vprops=t_vprops, eprops=t_eprops, vorder=tvorder,
                      **kwargs)
 
     if isinstance(pos, PropertyMap):
-        pos = g.own_property(pos)
         t_orig.copy_property(pos, tpos, g=u)
+        pos = g.own_property(pos)
     else:
+        t_orig.copy_property(pos[0], tpos, g=u)
         pos = (g.own_property(pos[0]),
                g.own_property(pos[1]))
-        t_orig.copy_property(pos[0], tpos, g=u)
     return pos, t_orig, tpos
 
 

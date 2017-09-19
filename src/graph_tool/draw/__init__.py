@@ -840,8 +840,8 @@ def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
     elif node_weight.value_type() != "double":
         node_weight = node_weight.copy("double")
     libgraph_tool_layout.get_radial(t._Graph__graph,
-                                    _prop("v", g, pos),
-                                    _prop("v", g, levels),
+                                    _prop("v", t, pos),
+                                    _prop("v", t, levels),
                                     _prop("v", g, rel_order),
                                     _prop("v", g, node_weight),
                                     int(root), weighted, r,

@@ -922,7 +922,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     ...                     g.degree_property_map("in").a, directed=True)
     >>> gt.graph_draw(g, g.vp.pos, output="polblogs-sbm.png")
     <...>
-    >>> gt.graph_draw(u, g.vp.pos, output="polblogs-sbm-generated.png")
+    >>> gt.graph_draw(u, u.own_property(g.vp.pos), output="polblogs-sbm-generated.png")
     <...>
 
     .. image:: polblogs-sbm.*
@@ -1195,7 +1195,7 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
 
     vmap, emap = libgraph_tool_generation.graph_union(u1._Graph__graph,
                                                       u2._Graph__graph,
-                                                      _prop("v", g1,
+                                                      _prop("v", g2,
                                                             intersection))
 
     if include:
@@ -1915,7 +1915,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
             raise ValueError("Cannot compute sum of string properties!")
         temp = g.new_vertex_property(p.value_type())
         cp = gp.new_vertex_property(p.value_type())
-        avp.append((_prop("v", g, p), _prop("v", g, temp), _prop("v", g, cp)))
+        avp.append((_prop("v", g, p), _prop("v", g, temp), _prop("v", gp, cp)))
         r_avp.append(cp)
 
     if aeprops is None:
@@ -1929,7 +1929,7 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
             raise ValueError("Cannot compute sum of string properties!")
         temp = g.new_edge_property(p.value_type())
         cp = gp.new_edge_property(p.value_type())
-        aep.append((_prop("e", g, p), _prop("e", g, temp), _prop("e", g, cp)))
+        aep.append((_prop("e", g, p), _prop("e", g, temp), _prop("e", gp, cp)))
         r_aep.append(cp)
 
     libgraph_tool_generation.community_network(g._Graph__graph,

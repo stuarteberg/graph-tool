@@ -181,6 +181,12 @@ def _prop(t, g, prop):
         names = {'e': 'edge', 'v': 'vertex', 'g': 'graph'}
         raise ValueError("Expected '%s' property map, got '%s'" %
                          (names[t], names[prop.key_type()]))
+    u = pmap.get_graph()
+    if u is None:
+        raise ValueError("Received orphaned property map")
+    if g.base is not u.base:
+        raise ValueError("Received property map for graph %s (base: %s), expected: %s (base: %s)" %
+                         (str(g), str(g.base), str(u), str(u.base)))
     return pmap._get_any()
 
 
@@ -377,14 +383,9 @@ class PropertyMap(object):
     def __init__(self, pmap, g, key_type):
         self.__map = pmap
         self.__g = weakref.ref(g)
-        self.__base_g = lambda: None
-        try:
-            if isinstance(g, GraphView):
-                self.__base_g = weakref.ref(g.base)  # keep reference to the
-                                                     # base graph, in case the
-                                                     # graph view is deleted.
-        except NameError:
-            pass  # ignore if GraphView is yet undefined
+        self.__base_g = weakref.ref(g.base)  # keep reference to the
+                                             # base graph, in case the
+                                             # graph view is deleted.
         self.__key_type = key_type
         self.__convert = _converter(self.value_type())
         self.__register_map()
@@ -1318,6 +1319,13 @@ class InternalPropertyDict(dict):
     @_require("val", PropertyMap)
     def __setitem__(self, key, val):
         t, k = key
+        u = val.get_graph()
+        if u is None:
+            raise ValueError("Received orphaned property map")
+        g = self.g()
+        if u.base is not g.base:
+            raise ValueError("Received property map for graph %s (base: %s), expected: %s (base: %s)" %
+                         (str(u), str(u.base), str(g), str(g.base)))
         self.__set_property(t, k, val)
 
     @_limit_args({"t": ["v", "e", "g"]})
@@ -2897,6 +2905,9 @@ class Graph(object):
                 stream = gzip.GzipFile(fileobj=sio, mode="rb")
                 self.load(stream, "xml")
 
+    def __get_base(self):
+        return self
+    base = property(__get_base, doc="Base graph (self).")
 
 def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
                ignore_gp=None):
@@ -3068,7 +3079,7 @@ class GraphView(Graph):
     def __init__(self, g, vfilt=None, efilt=None, directed=None,
                  reversed=False, skip_properties=False, skip_vfilt=False,
                  skip_efilt=False):
-        self.__base = g if not isinstance(g, GraphView) else g.base
+        self.__base = g.base
         Graph.__init__(self)
         # copy graph reference
         self._Graph__graph = libcore.GraphInterface(g._Graph__graph, True,
