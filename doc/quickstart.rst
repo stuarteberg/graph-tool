@@ -144,7 +144,7 @@ descriptors:
    10
 
 Each vertex in a graph has an unique index, which is *always* between
-:math:``0`` and :math:``N-1``, where :math:``N`` is the number of
+:math:`0` and :math:`N-1`, where :math:`N` is the number of
 vertices. This index can be obtained by using the
 :attr:`~graph_tool.Graph.vertex_index` attribute of the graph (which is
 a *property map*, see :ref:`sec_property_maps`), or by converting the
