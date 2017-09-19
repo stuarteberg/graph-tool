@@ -35,7 +35,7 @@
 #include <boost/multi_array.hpp>
 #include <boost/math/special_functions/gamma.hpp>
 
-#ifdef USING_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -159,6 +159,7 @@ struct entropy_args_t
     bool degree_dl;
     deg_dl_kind  degree_dl_kind;
     bool edges_dl;
+    bool recs_dl;
 };
 
 // Sparse entropy terms
@@ -973,19 +974,26 @@ class perfect_hash_t
 {
 public:
     template <class RNG>
-    perfect_hash_t(size_t N, RNG& rng)
-        : _index(std::make_shared<std::vector<size_t>>())
+    perfect_hash_t(size_t N, std::vector<size_t>& index, RNG& rng)
+        : _index(&index)
     {
-        auto& index = *_index;
         index.reserve(N);
         for (size_t i = 0; i < N; ++i)
             index.push_back(i);
         std::shuffle(index.begin(), index.end(), rng);
     }
+    perfect_hash_t(std::vector<size_t>& index)
+        : _index(&index) {}
     perfect_hash_t() {}
-    size_t operator()(const Key& k) const {return (*_index)[k];}
+    size_t operator()(const Key& k) const { return (*_index)[k]; }
+    void resize(size_t N)
+    {
+        auto& index = *_index;
+        for (size_t i = index.size(); i < N; ++i)
+            index.push_back(i);
+    }
 private:
-    std::shared_ptr<std::vector<size_t>> _index;
+    std::vector<size_t>* _index;
 };
 
 // this structure speeds up the access to the edges between given blocks, since
@@ -999,14 +1007,28 @@ public:
 
     template <class RNG>
     EHash(BGraph& bg, RNG& rng)
-        : _hash_function(num_vertices(bg), rng),
+        : _hash_function(num_vertices(bg), _index, rng),
           _hash(num_vertices(bg), ehash_t(0, _hash_function))
     {
         sync(bg);
     }
 
+    EHash(const EHash& other)
+        : _index(other._index),
+          _hash_function(_index),
+          _hash(other._hash.size(), ehash_t(0, _hash_function))
+    {
+        for (size_t r = 0; r < other._hash.size(); ++r)
+        {
+            auto& h = _hash[r];
+            for (const auto& x : other._hash[r])
+                h[x.first] = x.second;
+        }
+    }
+
     void sync(BGraph& bg)
     {
+        _hash_function.resize(num_vertices(bg));
         _hash.clear();
         _hash.resize(num_vertices(bg), ehash_t(0, _hash_function));
         for (auto& h : _hash)
@@ -1022,7 +1044,7 @@ public:
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
-    __attribute__((flatten))
+    __attribute__((flatten)) __attribute__ ((hot))
     const auto& get_me(vertex_t r, vertex_t s) const
     {
         if (!is_directed::apply<BGraph>::type::value && r > s)
@@ -1056,6 +1078,7 @@ public:
     const auto& get_null_edge() const { return _null_edge; }
 
 private:
+    std::vector<size_t> _index;
     perfect_hash_t<vertex_t> _hash_function;
     typedef gt_hash_map<vertex_t, edge_t, perfect_hash_t<vertex_t>> ehash_t;
     std::vector<ehash_t> _hash;
@@ -1616,6 +1639,7 @@ public:
     virtual void coupled_resize_vertex(size_t v) = 0;
     virtual double virtual_move(size_t v, size_t r, size_t nr,
                                 entropy_args_t eargs) = 0;
+    virtual size_t add_block() = 0;
     virtual void add_edge(const GraphInterface::edge_t& e) = 0;
     virtual void remove_edge(const GraphInterface::edge_t& e) = 0;
     virtual void update_edge(const GraphInterface::edge_t& e,
@@ -1625,6 +1649,7 @@ public:
                                              GraphInterface::edge_t, int,
                                              std::vector<double>>>&,
                            std::vector<double>&, int) = 0;
+    virtual bool check_edge_counts(bool emat=true) = 0;
 };
 
 

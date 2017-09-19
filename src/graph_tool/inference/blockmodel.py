@@ -144,15 +144,18 @@ def get_entropy_args(kargs):
         ea.partition_dl = args.partition_dl
         ea.degree_dl = args.degree_dl
         ea.edges_dl = args.edges_dl
+        ea.recs_dl = args.recs_dl
     else:
         ea.partition_dl = False
         ea.degree_dl = False
         ea.edges_dl = False
+        ea.recs_dl = False
     ea.degree_dl_kind = kind
     del kargs["dl"]
     del kargs["partition_dl"]
     del kargs["degree_dl"]
     del kargs["edges_dl"]
+    del kargs["recs_dl"]
     kargs.pop("callback", None)
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
@@ -347,9 +350,9 @@ class BlockState(object):
         rec_types = list(rec_types)
         rec_params = list(rec_params)
 
-        if len(rec_params) < len(rec_types):
-            rec_params += [{} for i in range((len(rec_types) -
-                                              len(rec_params)))]
+        # if len(rec_params) < len(rec_types):
+        #     rec_params += [{} for i in range((len(rec_types) -
+        #                                       len(rec_params)))]
 
         if len(self.rec) > 0 and rec_types[0] != libinference.rec_type.count:
             rec_types.insert(0, libinference.rec_type.count)
@@ -397,6 +400,8 @@ class BlockState(object):
         else:
             self.clabel = self.g.new_vp("int")
 
+        self._coupled_state = None
+
         if not self._check_clabel():
             raise ValueError("provided clabel is inconsistent with node partition")
         if not self._check_clabel(clabel=self.pclabel):
@@ -431,11 +436,15 @@ class BlockState(object):
             self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
             self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
-        self.epsilon = kwargs.pop("epsilon", libcore.Vector_double(len(self.rec)))
-        for i in range(len(self.rec)):
-            idx = self.rec[i].a != 0
-            if numpy.any(idx):
-                self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
+        self.epsilon = kwargs.pop("epsilon", None)
+        if self.epsilon is None:
+            self.epsilon = libcore.Vector_double(len(self.rec))
+            for i in range(len(self.rec)):
+                idx = self.rec[i].a != 0
+                if not isinstance(self.eweight, libinference.unity_eprop_t):
+                    idx = numpy.logical_and(idx, self.eweight.a > 0)
+                if numpy.any(idx):
+                    self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
@@ -443,7 +452,6 @@ class BlockState(object):
         self._aeweight = self.eweight._get_any()
         self._adegs = self.degs._get_any()
         self._state = libinference.make_block_state(self, _get_rng())
-        self._coupled_state = None
         self.bg.properties.clear()
 
         assert all(self.recdx.a >= 0), self.recdx.a
@@ -454,7 +462,7 @@ class BlockState(object):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True)
+                                  exact=True, recs=True, recs_dl=True)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -616,7 +624,7 @@ class BlockState(object):
                                allow_empty=kwargs.pop("allow_empty",
                                                       self.allow_empty),
                                Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
-                               epsilon=self.epsilon.copy(),
+                               epsilon=kwargs.pop("epsilon",self.epsilon.copy()),
                                **kwargs)
         else:
             state = OverlapBlockState(self.g if g is None else g,
@@ -635,13 +643,15 @@ class BlockState(object):
                                                              self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
                                       Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
-                                      epsilon=self.epsilon.copy(),
+                                      epsilon=kwargs.pop("epsilon",self.epsilon.copy()),
                                       **kwargs)
 
         if self._coupled_state is not None:
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
-                                                      Lrecdx=state.Lrecdx),
+                                                      vweight="nonempty",
+                                                      Lrecdx=state.Lrecdx,
+                                                      allow_empty=False),
                                 self._coupled_state[1])
         return state
 
@@ -711,8 +721,8 @@ class BlockState(object):
             eweight = self.mrs
             brec = self.brec
             bdrec = self.bdrec
-            if self.g.get_vertex_filter()[0] is not None:
-                bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
+            # if self.g.get_vertex_filter()[0] is not None:
+            #     bg = GraphView(bg, vfilt=numpy.ones(bg.num_vertices()))
 
         copy_coupled = False
         recs = False
@@ -727,6 +737,7 @@ class BlockState(object):
                 vweight = self.wr
             recs = True
             copy_coupled = True
+            kwargs["Lrecdx"] = kwargs.get("Lrecdx", self.Lrecdx.copy())
         else:
             vweight = None
 
@@ -780,13 +791,16 @@ class BlockState(object):
                            clabel=kwargs.pop("clabel", self.get_bclabel()),
                            pclabel=kwargs.pop("pclabel", self.get_bpclabel()),
                            max_BE=self.max_BE,
-                           epsilon=self.epsilon.copy(),
+                           epsilon=kwargs.pop("epsilon",
+                                              self.epsilon.copy()),
                            **kwargs)
 
         if copy_coupled and self._coupled_state is not None:
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
-                                                      Lrecdx=state.Lrecdx),
+                                                      vweight="nonempty",
+                                                      Lrecdx=state.Lrecdx,
+                                                      allow_empty=False),
                                 self._coupled_state[1])
         return state
 
@@ -817,6 +831,11 @@ class BlockState(object):
         pmap(bclabel, clabel)
         return bclabel
 
+    def _set_bclabel(self, bstate):
+        self.bclabel.a = bstate.b.a
+        self.clabel.a = self.b.a
+        pmap(self.clabel, self.bclabel)
+
     def get_bpclabel(self):
         r"""Returns a :class:`~graph_tool.PropertyMap`` corresponding to partition
         constraint labels for the block graph."""
@@ -834,17 +853,25 @@ class BlockState(object):
         b = b.fa.copy()
         continuous_map(joint)
         continuous_map(b)
-        return (b == joint).all()
+        if not (b == joint).all():
+            return False
+        if self._coupled_state is not None:
+            b = self.bclabel
+            return (b.fa == self._coupled_state[0].b.fa).all()
+        return True
 
     def _couple_state(self, state, entropy_args):
         if state is None:
             self._coupled_state = None
             self._state.decouple_state()
         else:
+            if _bm_test():
+                assert state.g is self.bg
             self._coupled_state = (state, entropy_args)
             eargs = get_entropy_args(dict(self._entropy_args,
                                           **entropy_args))
             self._state.couple_state(state._state, eargs)
+            self._set_bclabel(state)
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -883,8 +910,8 @@ class BlockState(object):
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True, recs=True,
-                exact=True, **kwargs):
+                dense=False, multigraph=True, deg_entropy=True,
+                recs=True, recs_dl=True, exact=True, **kwargs):
         r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
         with the current block partition.
 
@@ -918,6 +945,9 @@ class BlockState(object):
         recs : ``bool`` (optional, default: ``True``)
             If ``True``, the likelihood for real or discrete-valued edge
             covariates is computed.
+        recs_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, and ``dl == True`` the edge covariate description
+            length will be included.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -1051,6 +1081,7 @@ class BlockState(object):
            structures and high-resolution model selection in large networks ",
            Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
            :arxiv:`1310.4377`.
+
         """
 
         if _bm_test() and kwargs.get("test", True):
@@ -1064,38 +1095,39 @@ class BlockState(object):
         E = self.get_E()
         N = self.get_N()
 
-        S = 0
-        if adjacency:
-            S += self._state.entropy(dense, multigraph, deg_entropy, exact,
-                                     recs, edges_dl)
+        if not dl:
+            edges_dl = partition_dl = degree_dl = recs_dl = dl
 
-            if not dense and not exact:
-                if multigraph:
-                    S -= E
-                else:
-                    S += E
+        S = self._state.entropy(dense, multigraph, deg_entropy, exact,
+                                recs, recs_dl, adjacency)
+
+        if adjacency and not dense and not exact:
+            if multigraph:
+                S -= E
+            else:
+                S += E
 
         dl_S = 0
-        if dl:
-            if partition_dl:
-                dl_S += self._state.get_partition_dl()
 
-            if edges_dl:
-                if self.allow_empty:
-                    actual_B = self.B
-                else:
-                    actual_B = self.get_nonempty_B()
-                dl_S += model_entropy(actual_B, N, E,
-                                      directed=self.g.is_directed(), nr=False)
+        if partition_dl:
+            dl_S += self._state.get_partition_dl()
 
-            if self.deg_corr and degree_dl:
-                if degree_dl_kind == "entropy":
-                    kind = libinference.deg_dl_kind.ent
-                elif degree_dl_kind == "uniform":
-                    kind = libinference.deg_dl_kind.uniform
-                elif degree_dl_kind == "distributed":
-                    kind = libinference.deg_dl_kind.dist
-                dl_S += self._state.get_deg_dl(kind)
+        if edges_dl:
+            if self.allow_empty:
+                actual_B = self.B
+            else:
+                actual_B = self.get_nonempty_B()
+            dl_S += model_entropy(actual_B, N, E,
+                                  directed=self.g.is_directed(), nr=False)
+
+        if self.deg_corr and degree_dl:
+            if degree_dl_kind == "entropy":
+                kind = libinference.deg_dl_kind.ent
+            elif degree_dl_kind == "uniform":
+                kind = libinference.deg_dl_kind.uniform
+            elif degree_dl_kind == "distributed":
+                kind = libinference.deg_dl_kind.dist
+            dl_S += self._state.get_deg_dl(kind)
 
         callback = kwargs.pop("callback", None)
         if callback is not None:
@@ -1453,24 +1485,17 @@ class BlockState(object):
         test = kwargs.pop("test", True)
         if dispatch:
             if _bm_test() and test:
-                disable_callback_test = kwargs.pop("disable_callback_test", False)
                 assert self._check_clabel(), "invalid clabel before sweep"
-                if disable_callback_test:
-                    Si = self.entropy(**dmask(entropy_args, ["callback"]))
-                else:
-                    Si = self.entropy(**entropy_args)
-
+                Si = self.entropy(**entropy_args)
             try:
                 dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
             finally:
                 self.B = max(int(self.b.fa.max()) + 1, self.B)
 
             if _bm_test() and test:
+                Sff = self.entropy(**dmask(entropy_args, ["callback"]))
                 assert self._check_clabel(), "invalid clabel after sweep"
-                if disable_callback_test:
-                    Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-                else:
-                    Sf = self.entropy(**entropy_args)
+                Sf = self.entropy(**entropy_args)
                 assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                     "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                                 str(entropy_args))
@@ -1561,12 +1586,8 @@ class BlockState(object):
         test = kwargs.pop("test", True)
         if dispatch:
             if _bm_test() and test:
-                disable_callback_test = kwargs.pop("disable_callback_test", False)
                 assert self._check_clabel(), "invalid clabel before sweep"
-                if disable_callback_test:
-                    Si = self.entropy(**dmask(entropy_args, ["callback"]))
-                else:
-                    Si = self.entropy(**entropy_args)
+                Si = self.entropy(**entropy_args)
 
             nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
@@ -1586,10 +1607,7 @@ class BlockState(object):
 
             if _bm_test() and test:
                 assert self._check_clabel(), "invalid clabel after sweep"
-                if disable_callback_test:
-                    Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-                else:
-                    Sf = self.entropy(**entropy_args)
+                Sf = self.entropy(**entropy_args)
                 assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                     "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                                 str(entropy_args))
@@ -1682,12 +1700,8 @@ class BlockState(object):
 
         test = kwargs.pop("test", True)
         if _bm_test() and test:
-            disable_callback_test = kwargs.pop("disable_callback_test", False)
             assert self._check_clabel(), "invalid clabel before sweep"
-            if disable_callback_test:
-                Si = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Si = self.entropy(**entropy_args)
+            Si = self.entropy(**entropy_args)
 
         try:
             dS, nmoves, nattempts = self._gibbs_sweep_dispatch(gibbs_state)
@@ -1696,10 +1710,7 @@ class BlockState(object):
 
         if _bm_test() and test:
             assert self._check_clabel(), "invalid clabel after sweep"
-            if disable_callback_test:
-                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Sf = self.entropy(**entropy_args)
+            Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -1792,12 +1803,8 @@ class BlockState(object):
             self.B = max(int(self.b.fa.max()) + 1, self.B)
 
         if _bm_test() and kwargs.pop("test", True):
-            disable_callback_test = kwargs.pop("disable_callback_test", False)
             assert self._check_clabel(), "invalid clabel after sweep"
-            if disable_callback_test:
-                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Sf = self.entropy(**entropy_args)
+            Sf = self.entropy(**entropy_args)
             assert math.isclose(S, Sf, abs_tol=1e-8), \
                 "inconsistent entropy after sweep %g (%g): %s" % \
                 (S, Sf, str(entropy_args))
@@ -1961,6 +1968,7 @@ class BlockState(object):
            Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
            :arxiv:`1310.4378`
         """
+
         merge_state = DictState(locals())
         merge_state.E = self.get_E()
         merge_state.state = self._state
@@ -1968,21 +1976,14 @@ class BlockState(object):
         merge_state.entropy_args = get_entropy_args(entropy_args)
 
         if _bm_test():
-            disable_callback_test = kwargs.pop("disable_callback_test", False)
-            self._check_clabel()
-            if disable_callback_test:
-                Si = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Si = self.entropy(**entropy_args)
+            assert self._check_clabel(), "invalid clabel before sweep"
+            Si = self.entropy(**entropy_args)
 
         dS, nmoves = self._merge_sweep_dispatch(merge_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
-            if disable_callback_test:
-                Sf = self.entropy(**dmask(entropy_args, ["callback"]))
-            else:
-                Sf = self.entropy(**entropy_args)
+            Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
@@ -2008,7 +2009,7 @@ class BlockState(object):
         b = self.b.copy()
         pmap(b, bstate.merge_map)
         continuous_map(b)
-        state = self.copy(b=b)
+        state = self.copy(b=b, Lrecdx=bstate.Lrecdx)
         if _bm_test():
             nB = (state.wr.a > 0).sum()
             assert nB == B, "wrong number of blocks after shrink: %d (should be %d)" % (nB, B)
@@ -2238,7 +2239,7 @@ class BlockState(object):
            >>> ustate = gt.BlockState(u, b=state.b)
            >>> state.draw(pos=g.vp.pos, output="polbooks-sbm.png")
            <...>
-           >>> ustate.draw(pos=g.vp.pos, output="polbooks-sbm-sampled.png")
+           >>> ustate.draw(pos=u.own_property(g.vp.pos), output="polbooks-sbm-sampled.png")
            <...>
 
         .. image:: polbooks-sbm.*

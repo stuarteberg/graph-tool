@@ -27,16 +27,12 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-
 template <class State, class MEntries>
 double virtual_move_covariate(size_t v, size_t r, size_t s, State& state,
                               MEntries& m_entries, bool reset)
 {
     if (reset)
-    {
-        m_entries.clear();
         state.get_move_entries(v, r, s, m_entries);
-    }
 
     auto& entries = m_entries.get_entries();
     auto& delta = m_entries.get_delta();

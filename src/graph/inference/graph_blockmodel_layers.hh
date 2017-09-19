@@ -45,6 +45,22 @@ typedef std::vector<bmap_t> vbmap_t;
     ((block_map, &, vbmap_t&, 0))                                              \
     ((master,, bool, 0))
 
+
+class LayeredBlockStateVirtualBase
+    : public BlockStateVirtualBase
+{
+public:
+    virtual BlockStateVirtualBase& get_layer(size_t l) = 0;
+    virtual size_t get_block(size_t l, size_t v) = 0;
+    virtual void set_block(size_t l, size_t v, size_t r) = 0;
+    virtual size_t get_vweight(size_t l, size_t v) = 0;
+    virtual void add_layer_node(size_t l, size_t v, size_t u) = 0;
+    virtual void remove_layer_node(size_t l, size_t v, size_t u) = 0;
+    virtual size_t get_layer_node(size_t l, size_t v) = 0;
+    virtual size_t get_block_map(size_t l, size_t r, bool put_new=true) = 0;
+    virtual bool check_layers() = 0;
+};
+
 template <class BaseState>
 struct Layers
 {
@@ -53,7 +69,8 @@ struct Layers
     template <class... Ts>
     class LayeredBlockState
         : public LayeredBlockStateBase<Ts...>,
-          public BaseState
+          public BaseState,
+          public LayeredBlockStateVirtualBase
     {
     public:
         GET_PARAMS_USING(LayeredBlockStateBase<Ts...>,
@@ -74,21 +91,25 @@ struct Layers
             : public BaseState
         {
         public:
-            LayerState(const BaseState& base_state, bmap_t& block_map,
-                       block_rmap_t block_rmap, vector<size_t>& free_blocks)
+            LayerState(const BaseState& base_state, LayeredBlockState& lstate,
+                       bmap_t& block_map, block_rmap_t block_rmap,
+                       vector<size_t>& free_blocks, size_t l)
                 : BaseState(base_state),
+                  _lstate(&lstate),
                   _block_map(block_map),
                   _block_rmap(block_rmap),
                   _free_blocks(free_blocks),
-                  _E(0)
+                  _l(l), _E(0)
             {
                 for (auto e : edges_range(BaseState::_g))
                     _E += BaseState::_eweight[e];
             }
 
+            LayeredBlockState* _lstate;
             bmap_t& _block_map;
             block_rmap_t _block_rmap;
             vector<size_t>& _free_blocks;
+            size_t _l;
             size_t _E;
 
             size_t get_block_map(size_t r, bool put_new=true)
@@ -98,78 +119,110 @@ struct Layers
                 if (iter == _block_map.end())
                 {
                     if (_free_blocks.empty())
-                    {
-                        r_u = _block_map.size();
-                    }
-                    else
-                    {
-                        r_u = _free_blocks.back();
-                        if (put_new)
-                            _free_blocks.pop_back();
-                    }
+                        _free_blocks.push_back(_block_map.size());
+                    r_u = _free_blocks.back();
+                    while (r_u >= num_vertices(BaseState::_bg))
+                        add_block();
+                    assert(r_u < num_vertices(BaseState::_bg));
+
                     if (put_new)
                     {
                         _block_map[r] = r_u;
                         _block_rmap[r_u] = r;
+                        if (_lstate->_lcoupled_state != nullptr)
+                        {
+                            _lstate->_lcoupled_state->add_layer_node(_l, r, r_u);
+                            BaseState::_bclabel[r_u] =
+                                _lstate->_lcoupled_state->get_block_map(_l, _lstate->_bclabel[r]);
+                            assert(_lstate->_lcoupled_state->get_vweight(_l, r_u) == (_wr[r_u] > 0));
+                            if (_wr[r_u] == 0)
+                                _lstate->_lcoupled_state->set_block(_l, r_u, BaseState::_bclabel[r_u]);
+                            assert(_lstate->_lcoupled_state->get_block(_l, r_u) == size_t(BaseState::_bclabel[r_u]));
+                        }
+                        _free_blocks.pop_back();
+                        assert(_lstate->_lcoupled_state == nullptr ||
+                               r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
+                        assert(_lstate->_lcoupled_state == nullptr ||
+                               size_t(BaseState::_bclabel[r_u]) ==
+                               _lstate->_lcoupled_state->
+                               get_block_map(_l, _lstate->_bclabel[r], false));
                     }
                 }
                 else
                 {
                     r_u = iter->second;
+                    assert(size_t(_block_rmap[r_u]) == r);
+                    assert(_lstate->_lcoupled_state == nullptr ||
+                           r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
                 }
                 assert(r_u < num_vertices(BaseState::_bg));
                 return r_u;
-            }
-
-            void remove_block_map(size_t r, bool free_block=true)
-            {
-                auto iter = _block_map.find(r);
-                if (free_block)
-                    _free_blocks.push_back(iter->second);
-                _block_map.erase(iter);
-            }
-
-            void put_block_map(size_t r, size_t r_u)
-            {
-                _block_map[r] = r_u;
             }
 
             bool has_block_map(size_t r)
             {
                 return _block_map.find(r) != _block_map.end();
             }
+
         };
 
         template <class... ATs,
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
         LayeredBlockState(const BaseState& base_state, ATs&&... args)
             : LayeredBlockStateBase<Ts...>(std::forward<ATs>(args)...),
-              BaseState(base_state), _actual_B(0),
-              _is_partition_stats_enabled(false)
+              BaseState(base_state), _vc_c(_vc.get_checked()),
+              _vmap_c(_vmap.get_checked())
         {
-            for (int i = 0; i < python::len(_layer_states); ++i)
+            for (int l = 0; l < python::len(_layer_states); ++l)
             {
-                auto ostate = _layer_states[i];
+                auto ostate = _layer_states[l];
                 BaseState& state = python::extract<BaseState&>(ostate.attr("_state"));
                 boost::python::object temp = ostate.attr("block_rmap").attr("_get_any")();
                 boost::any& a = python::extract<boost::any&>(temp);
                 block_rmap_t block_rmap = boost::any_cast<block_rmap_t>(a);
                 std::vector<size_t>& free_blocks =
                     python::extract<std::vector<size_t>&>(ostate.attr("free_blocks"));
-                bmap_t& block_map = _block_map[i];
-                _layers.emplace_back(state, block_map, block_rmap, free_blocks);
+                bmap_t& block_map = _block_map[l];
+                _layers.emplace_back(state, *this, block_map, block_rmap, free_blocks, l);
             }
             for (auto r : vertices_range(BaseState::_bg))
+            {
                 if (BaseState::_wr[r] > 0)
                     _actual_B++;
+            }
+            _N = BaseState::get_N();
+            // assert(check_layers());
+            // assert(check_edge_counts());
+        }
+
+        LayeredBlockState(const LayeredBlockState& other)
+            : LayeredBlockStateBase<Ts...>(static_cast<const LayeredBlockStateBase<Ts...>&>(other)),
+              BaseState(other),
+              _layers(other._layers),
+              _actual_B(other._actual_B),
+              _N(other._N),
+              _is_partition_stats_enabled(other._is_partition_stats_enabled),
+              _lcoupled_state(other._lcoupled_state),
+              _vc_c(_vc.get_checked()),
+            _vmap_c(_vmap.get_checked())
+        {
+            for (auto& state : _layers)
+                state._lstate = this;
         }
 
         std::vector<LayerState> _layers;
-        size_t _actual_B;
-        bool _is_partition_stats_enabled;
+        size_t _actual_B = 0;
+        size_t _N = 0;
+        bool _is_partition_stats_enabled = false;
+        LayeredBlockStateVirtualBase* _lcoupled_state = nullptr;
+        typename vc_t::checked_t _vc_c;
+        typename vmap_t::checked_t _vmap_c;
+        openmp_mutex _llock;
 
         void move_vertex(size_t v, size_t s)
         {
+            // assert(check_layers());
+
             if (BaseState::_vweight[v] == 0)
             {
                 _b[v] = s;
@@ -182,12 +235,7 @@ struct Layers
                 return;
 
             if (_wr[s] == 0)
-                _actual_B++;
-
-            BaseState::move_vertex(v, s);
-
-            if (_wr[r] == 0)
-                _actual_B--;
+                _bclabel[s] = _bclabel[r];
 
             auto& ls = _vc[v];
             auto& vs = _vmap[v];
@@ -197,23 +245,61 @@ struct Layers
                 size_t u = vs[j];
 
                 auto& state = _layers[l];
-                size_t r_u = state._b[u];
 
-                assert(r_u < num_vertices(state._bg));
+                if (state._vweight[u] == 0)
+                    continue;
 
-                if (state.virtual_remove_size(u) == 0 && !state.has_block_map(s))
+                assert(state.has_block_map(r));
+                assert(size_t(state._b[u]) == state.get_block_map(r, false));
+                assert(_lcoupled_state == nullptr ||
+                       _lcoupled_state->get_vweight(l, state._b[u]) > 0);
+                assert(state._wr[state._b[u]] > 0);
+                size_t s_u = state.get_block_map(s);
+
+                assert(size_t(state._b[u]) != s_u);
+
+                state.move_vertex(u, s_u);
+
+                assert(state._wr[s_u] > 0);
+                assert(s_u == state.get_block_map(s, false));
+            }
+
+            // bottom update needs to be last, due to _coupled_state, and the
+            // fact that the upper levels are affected by get_block_map()
+
+            if (_wr[s] == 0)
+                _actual_B++;
+
+            BaseState::move_vertex(v, s);
+
+            if (_wr[r] == 0)
+                _actual_B--;
+
+            if (_lcoupled_state != nullptr)
+            {
+                for (size_t j = 0; j < ls.size(); ++j)
                 {
-                    state.remove_block_map(r, false);
-                    state.put_block_map(s, r_u);
-                }
-                else
-                {
-                    size_t s_u = state.get_block_map(s);
-                    state.move_vertex(u, s_u);
+                    int l = ls[j];
+                    size_t u = vs[j];
+                    auto& state = _layers[l];
+
+                    if (state._vweight[u] == 0)
+                        continue;
+
+                    size_t r_u = state._b[u];
+                    assert(r_u == state.get_block_map(s));
+                    assert(state._wr[r_u] > 0);
+
+                    _lcoupled_state->get_layer(l).set_vertex_weight(r_u, 1);
+
+                    r_u = state.get_block_map(r);
                     if (state._wr[r_u] == 0)
-                        state.remove_block_map(r);
+                        _lcoupled_state->get_layer(l).set_vertex_weight(r_u, 0);
+                    assert(state._wr[r_u] == 0 || BaseState::_wr[r] != 0);
                 }
             }
+
+            // assert(check_layers());
         }
 
         template <class Vec>
@@ -242,21 +328,24 @@ struct Layers
                 int l = ls[j];
                 size_t u = vs[j];
                 auto& state = _layers[l];
-                size_t r_u = state._b[u];
                 state.remove_vertex(u);
-                if (state._wr[r_u] == 0)
-                    state.remove_block_map(r);
             }
             BaseState::remove_vertex(v);
+            if (_wr[r] == 0)
+                _actual_B--;
         }
 
         template <class Vec>
         void remove_vertices(Vec& vs)
         {
             gt_hash_map<size_t, vector<size_t>> lvs;
+            gt_hash_set<size_t> rs;
             for (auto v : vs)
+            {
                 for (auto l : _vc[v])
                     lvs[l].push_back(v);
+                rs.insert(_b[v]);
+            }
             for (auto& lv : lvs)
             {
                 auto l = lv.first;
@@ -273,13 +362,18 @@ struct Layers
                 }
                 state.remove_vertices(us);
 
-                for (auto rr_u : rus)
-                {
-                    if (state._wr[rr_u.second] == 0)
-                        state.remove_block_map(rr_u.first);
-                }
+                // for (auto rr_u : rus)
+                // {
+                //     if (state._wr[rr_u.second] == 0)
+                //         state.remove_block_map(rr_u.first);
+                // }
             }
             BaseState::remove_vertices(vs);
+            for (auto r : rs)
+            {
+                if (_wr[r] == 0)
+                    _actual_B--;
+            }
         }
 
         void remove_vertices(python::object ovs)
@@ -300,6 +394,8 @@ struct Layers
                 size_t r_u = state.get_block_map(r);
                 state.add_vertex(u, r_u);
             }
+            if (_wr[r] == 0)
+                _actual_B++;
             BaseState::add_vertex(v, r);
         }
 
@@ -332,6 +428,11 @@ struct Layers
                 }
                 state.add_vertices(us, rus);
             }
+            for (auto r : rs)
+            {
+                if (_wr[r] == 0)
+                    _actual_B++;
+            }
             BaseState::add_vertices(vs, rs);
         }
 
@@ -362,33 +463,45 @@ struct Layers
         {
             if (s == r)
                 return 0;
+            // assert(check_layers());
 
             double dS = 0;
 
+            entropy_args_t mea(ea);
+            mea.edges_dl = false;
+            mea.recs = false;
+
+            if (!_master)
+            {
+                mea.adjacency = false;
+                mea.degree_dl = false;
+            }
+
+            dS += BaseState::virtual_move(v, r, s, mea, m_entries);
+
             if (_master)
             {
-                entropy_args_t mea(ea);
-                mea.edges_dl = false;
-                dS += BaseState::virtual_move(v, r, s, mea, m_entries);
                 dS -= virtual_move_covariate(v, r, s, *this, m_entries, false);
-            }
-            else
-            {
-                if (ea.partition_dl)
-                {
-                    enable_partition_stats();
-                    dS += BaseState::get_delta_partition_dl(v, r, s);
-                }
+
+                if (ea.edges_dl)
+                    dS += get_delta_edges_dl(v, r, s);
             }
 
-            if (ea.edges_dl)
-                dS += get_delta_edges_dl(v, r, s);
+            // assert(check_layers());
 
-            if (ea.adjacency)
+            if (ea.adjacency || ea.recs || ea.edges_dl)
             {
+                scoped_lock lck(_llock);
+
                 entropy_args_t lea(ea);
-                lea.edges_dl = false;
                 lea.partition_dl = false;
+
+                if (_master)
+                {
+                    lea.adjacency = false;
+                    lea.degree_dl = false;
+                    lea.edges_dl = false;
+                }
 
                 auto& ls = _vc[v];
                 auto& vs = _vmap[v];
@@ -399,19 +512,40 @@ struct Layers
 
                     auto& state = _layers[l];
 
+                    if (state._vweight[u] == 0)
+                        continue;
+
                     size_t s_u = (s != null_group) ?
                         state.get_block_map(s, false) : null_group;
                     size_t r_u = (r != null_group) ?
                         state._b[u] : null_group;
 
-                    if (_master)
+                    assert(r == null_group || state.has_block_map(r));
+                    assert(r == null_group || r_u == state.get_block_map(r, false));
+
+                    if (_master && ea.adjacency)
                         dS += virtual_move_covariate(u, r_u, s_u, state,
                                                      m_entries, true);
-                    else
-                        dS += state.virtual_move(u, r_u, s_u, lea, m_entries);
-
+                    dS += state.virtual_move(u, r_u, s_u, lea, m_entries);
                 }
             }
+
+            if (BaseState::_coupled_state != nullptr)
+            {
+                bool r_vacate = (r != null_group) && (BaseState::virtual_remove_size(v) == 0);
+                bool nr_occupy = (s != null_group) && (_wr[s] == 0);
+
+                int L = _layers.size();
+                dS -= _actual_B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
+                size_t B = _actual_B;
+                if (r_vacate)
+                    B--;
+                if (nr_occupy)
+                    B++;
+                dS += B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
+            }
+            // assert(check_layers());
+
             return dS;
         }
 
@@ -426,10 +560,7 @@ struct Layers
         {
             // m_entries may include entries from different levels
             if (!reverse)
-            {
-                m_entries.clear();
                 BaseState::get_move_entries(v, r, s, m_entries);
-            }
             return BaseState::get_move_prob(v, r, s, c, d, reverse, m_entries);
         }
 
@@ -441,6 +572,12 @@ struct Layers
 
         void merge_vertices(size_t u, size_t v)
         {
+            if (u == v)
+                return;
+
+            assert(BaseState::_vweight[v] > 0);
+            assert(BaseState::_vweight[u] > 0);
+
             std::set<size_t> ls;
             gt_hash_map<size_t, size_t> ls_u, ls_v;
             for (size_t i = 0; i < _vc[u].size(); ++i)
@@ -470,39 +607,63 @@ struct Layers
                 size_t uu = (iter_u != ls_u.end()) ? iter_u->second : iter_v->second;
                 size_t vv = (iter_v != ls_v.end()) ? iter_v->second : iter_u->second;
 
-                _layers[l].merge_vertices(uu, vv);
+                auto& state = _layers[l];
+                assert(state._vweight[vv] > 0);
+                assert(state._vweight[uu] > 0);
+
+                state.merge_vertices(uu, vv);
+
+                assert(state._b[uu] == state._b[vv]);
+                assert(size_t(state._b[vv]) == state.get_block_map(_b[v], false));
+
+                assert(state._vweight[uu] > 0 || total_degreeS()(uu, state._g, state._eweight) == 0);
+                assert(state._vweight[vv] > 0 || total_degreeS()(vv, state._g, state._eweight) == 0);
 
                 _vc[v].push_back(l);
                 _vmap[v].push_back(vv);
             }
 
-            auto ec = _ec.get_checked();
-            BaseState::merge_vertices(u, v, ec);
+            BaseState::merge_vertices(u, v, _ec.get_checked());
+
+            // assert(check_layers());
+            // assert(check_edge_counts());
         }
 
         double entropy(bool dense, bool multigraph, bool deg_entropy,
-                       bool exact, bool recs, bool edges_dl)
+                       bool exact, bool recs, bool recs_dl, bool adjacency)
         {
             double S = 0;
             if (_master)
             {
                 S += BaseState::entropy(dense, multigraph, deg_entropy, exact,
-                                        recs, edges_dl);
-                S -= covariate_entropy(_bg, _mrs);
-                if (multigraph)
-                    S -= BaseState::get_parallel_entropy();
-                for (auto& state : _layers)
+                                        false, false, adjacency);
+                if (adjacency)
                 {
-                    S += covariate_entropy(state._bg, state._mrs);
+                    S -= covariate_entropy(_bg, _mrs);
                     if (multigraph)
-                        S += state.get_parallel_entropy();
+                        S -= BaseState::get_parallel_entropy();
+                    for (auto& state : _layers)
+                    {
+                        S += covariate_entropy(state._bg, state._mrs);
+                        if (multigraph)
+                            S += state.get_parallel_entropy();
+                    }
+                }
+
+                if (recs)
+                {
+                    for (auto& state : _layers)
+                        S += state.entropy(false, false, false, false,
+                                           true, recs_dl, false);
                 }
             }
             else
             {
                 for (auto& state : _layers)
                     S += state.entropy(dense, multigraph, deg_entropy, exact,
-                                       recs, edges_dl);
+                                       recs, recs_dl, adjacency);
+                int L = _layers.size();
+                S += _N * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
             }
             return S;
         }
@@ -537,7 +698,6 @@ struct Layers
             }
             return S_a - S_b;
         }
-
 
         double get_deg_dl(int kind)
         {
@@ -578,6 +738,333 @@ struct Layers
             BaseState::init_mcmc(c, dl);
             for (auto& state : _layers)
                 state.init_mcmc(numeric_limits<double>::infinity(), dl);
+        }
+
+        LayerState& get_layer(size_t l)
+        {
+            assert(l < _layers.size());
+            return _layers[l];
+        }
+
+        size_t get_block(size_t l, size_t v)
+        {
+            return _layers[l]._b[v];
+        }
+
+        void set_block(size_t l, size_t v, size_t r)
+        {
+            _layers[l]._b[v] = r;
+        }
+
+        size_t get_vweight(size_t l, size_t v)
+        {
+            return _layers[l]._vweight[v];
+        }
+
+        void couple_state(LayeredBlockStateVirtualBase& s,
+                          entropy_args_t ea)
+        {
+            _lcoupled_state = &s;
+
+            entropy_args_t lea(ea);
+            lea.edges_dl = false;
+            lea.partition_dl = false;
+            for (size_t l = 0; l < _layers.size(); ++l)
+                _layers[l].couple_state(s.get_layer(l), lea);
+
+            lea.partition_dl = true;
+            lea.adjacency = false;
+            lea.recs = false;
+            lea.degree_dl = false;
+
+            BaseState::couple_state(s, lea);
+
+            // assert(check_layers());
+        }
+
+        void decouple_state()
+        {
+            BaseState::decouple_state();
+            _lcoupled_state = nullptr;
+            for (auto& state : _layers)
+                state.decouple_state();
+        }
+
+        void couple_state(BlockStateVirtualBase& s,
+                          entropy_args_t ea)
+        {
+            BaseState::couple_state(s, ea);
+        }
+
+        void add_partition_node(size_t v, size_t r)
+        {
+            if (_wr[r] == 0)
+                _actual_B++;
+            BaseState::add_partition_node(v, r);
+        }
+
+        void remove_partition_node(size_t v, size_t r)
+        {
+            BaseState::remove_partition_node(v, r);
+            if (_wr[r] == 0)
+                _actual_B--;
+        }
+
+        size_t get_layer_node(size_t l, size_t v)
+        {
+            auto& ls = _vc[v];
+            auto& vs = _vmap[v];
+
+            auto pos = std::lower_bound(ls.begin(), ls.end(), l);
+
+            if (pos == ls.end() || size_t(*pos) != l)
+                return null_group;
+
+            return *(vs.begin() + (pos - ls.begin()));
+        }
+
+        void add_layer_node(size_t l, size_t v, size_t u)
+        {
+            auto& ls = _vc_c[v];
+            auto& vs = _vmap_c[v];
+
+            auto pos = std::lower_bound(ls.begin(), ls.end(), l);
+            assert(pos == ls.end() || size_t(*pos) != l);
+
+            vs.insert(vs.begin() + (pos - ls.begin()), u);
+            ls.insert(pos, l);
+
+            auto& state = _layers[l];
+            state.set_vertex_weight(u, 0);
+        }
+
+        void remove_layer_node(size_t l, size_t v, size_t)
+        {
+            auto& ls = _vc[v];
+            auto& vs = _vmap[v];
+
+            auto pos = std::lower_bound(ls.begin(), ls.end(), l);
+
+            assert(pos != ls.end());
+            assert(size_t(*pos) == l);
+            //assert(u == size_t(*(vs.begin() + (pos - ls.begin()))));
+
+            vs.erase(vs.begin() + (pos - ls.begin()));
+            ls.erase(pos);
+        }
+
+        size_t get_block_map(size_t l, size_t r, bool put_new=true)
+        {
+            return _layers[l].get_block_map(r, put_new);
+        }
+
+        void set_vertex_weight(size_t v, int w)
+        {
+            if (w == 0 && BaseState::_vweight[v] > 0)
+                _N--;
+            if (w == 1 && BaseState::_vweight[v] == 0)
+                _N++;
+            BaseState::set_vertex_weight(v, w);
+        }
+
+        size_t add_block()
+        {
+            auto r = BaseState::add_block();
+            for (size_t l = 0; l < _layers.size(); ++l)
+            {
+                auto& state = _layers[l];
+                size_t r_u = state.add_block();
+                if (_lcoupled_state != nullptr)
+                    _lcoupled_state->get_layer(l).coupled_resize_vertex(r_u);
+            }
+            return r;
+        }
+
+        void coupled_resize_vertex(size_t v)
+        {
+            BaseState::coupled_resize_vertex(v);
+            auto& ls = _vc_c[v];
+            auto& vs = _vmap_c[v];
+            for (size_t j = 0; j < ls.size(); ++j)
+            {
+                int l = ls[j];
+                size_t u = vs[j];
+                auto& state = _layers[l];
+                state.coupled_resize_vertex(u);
+            }
+        }
+
+        void add_edge(const GraphInterface::edge_t& e)
+        {
+            BaseState::add_edge(e);
+        }
+
+        void remove_edge(const GraphInterface::edge_t& e)
+        {
+            BaseState::remove_edge(e);
+        }
+
+        void update_edge(const GraphInterface::edge_t& e,
+                         const std::vector<double>& delta)
+        {
+            BaseState::update_edge(e, delta);
+        }
+
+        double recs_dS(size_t, size_t,
+                       const std::vector<std::tuple<size_t, size_t,
+                                                    GraphInterface::edge_t, int,
+                                                    std::vector<double>>>&,
+                       std::vector<double>&, int)
+        {
+            return 0;
+        }
+
+        void clear_egroups()
+        {
+            BaseState::clear_egroups();
+        }
+
+        void rebuild_neighbour_sampler()
+        {
+            BaseState::rebuild_neighbour_sampler();
+        }
+
+        void sync_emat()
+        {
+            BaseState::sync_emat();
+            for (auto& state : _layers)
+                state.sync_emat();
+        }
+
+        void sync_bclabel()
+        {
+            if (_lcoupled_state == nullptr)
+                return;
+            for (size_t l = 0; l < _layers.size(); ++ l)
+            {
+                auto& state = _layers[l];
+                for (auto r_u : vertices_range(state._bg))
+                {
+                    if (state._wr[r_u] == 0)
+                        continue;
+                    state._bclabel[r_u] = _lcoupled_state->get_block(l, r_u);
+                    assert(size_t(state._bclabel[r_u]) ==
+                           _lcoupled_state->
+                           get_block_map(l, _bclabel[state._block_rmap[r_u]], false));
+                    assert(r_u == _lcoupled_state->get_layer_node(l, state._block_rmap[r_u]));
+                }
+            }
+        }
+
+        bool check_edge_counts(bool emat = true)
+        {
+            if (!BaseState::check_edge_counts(emat))
+                return false;
+            for (auto& state : _layers)
+                if (!state.check_edge_counts(emat))
+                    return false;
+            return true;
+        }
+
+        bool check_layers()
+        {
+            scoped_lock lck(_llock);
+            for (auto v : vertices_range(_g))
+            {
+                auto r = _b[v];
+                auto& ls = _vc[v];
+                auto& vs = _vmap[v];
+
+                for (size_t j = 0; j < ls.size(); ++j)
+                {
+                    size_t l = ls[j];
+                    size_t u = vs[j];
+
+                    auto& state = _layers[l];
+
+                    assert(state._vweight[u] > 0 || total_degreeS()(u, state._g, state._eweight) == 0);
+
+                    if (state._vweight[u] == 0)
+                        continue;
+
+                    assert(BaseState::_vweight[v] > 0);
+
+                    size_t r_u = state._b[u];
+                    assert(r == state._block_rmap[r_u]);
+                    if (r != state._block_rmap[r_u])
+                        return false;
+
+                    // bool found = false;
+                    // for (auto e : out_edges_range(v, _g))
+                    // {
+                    //     if (_ec[e] == l && BaseState::_eweight[e] > 0)
+                    //         found = true;
+                    // }
+                    // assert(found);
+                }
+
+                // for (auto e: out_edges_range(v, _g))
+                // {
+                //     if (BaseState::_eweight[e] == 0)
+                //         continue;
+                //     auto l = _ec[e];
+                //     auto iter = std::find(ls.begin(), ls.end(), l);
+                //     assert(iter != ls.end());
+                // }
+            }
+
+            if (_lcoupled_state == nullptr)
+                return true;
+            for (auto v : vertices_range(_g))
+            {
+                if (BaseState::_vweight[v] == 0)
+                    continue;
+                auto r = _b[v];
+                auto& ls = _vc[v];
+                auto& vs = _vmap[v];
+                for (size_t j = 0; j < ls.size(); ++j)
+                {
+                    size_t l = ls[j];
+                    size_t u = vs[j];
+
+                    auto& state = _layers[l];
+
+                    if (state._vweight[u] == 0)
+                        continue;
+                    size_t r_u = state._b[u];
+                    assert(r == state._block_rmap[r_u]);
+                    if (r != state._block_rmap[r_u])
+                        return false;
+                    assert(r_u == state.get_block_map(r, false));
+                    if (r_u != state.get_block_map(r, false))
+                        return false;
+                    assert(r_u == _lcoupled_state->get_layer_node(l, r));
+                    if (r_u != _lcoupled_state->get_layer_node(l, r))
+                        return false;
+                    assert(_lcoupled_state->get_vweight(l, r_u) == (state._wr[r_u] > 0));
+                    if (_lcoupled_state->get_vweight(l, r_u) != (state._wr[r_u] > 0))
+                        return false;
+                }
+            }
+
+            for (size_t l = 0; l < _layers.size(); ++l)
+            {
+                auto& state = _layers[l];
+                for (auto r_u : vertices_range(state._bg))
+                {
+                    assert(_lcoupled_state->get_vweight(l, r_u) == (state._wr[r_u] > 0));
+                    if (state._wr[r_u] == 0)
+                        continue;
+                    auto r = state._block_rmap[r_u];
+                    assert(r_u == state.get_block_map(r, false));
+                    if (r_u != state.get_block_map(r, false))
+                        return false;
+                    assert(r_u == _lcoupled_state->get_layer_node(l, r));
+                    if (r_u != _lcoupled_state->get_layer_node(l, r))
+                        return false;
+                }
+            }
+            return _lcoupled_state->check_layers();
         }
     };
 };

@@ -63,15 +63,14 @@ def cleanup_cache(b_cache, B_min, B_max):
     for Bi in del_Bs:
         del b_cache[Bi]
 
-def get_ent(state, mcmc_multilevel_args, extra_entropy_args):
+def get_ent(state, mcmc_multilevel_args):
     mcmc_equilibrate_args = mcmc_multilevel_args.get("mcmc_equilibrate_args", {})
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
     entropy_args = mcmc_args.get("entropy_args", {})
-    S = state.entropy(**dict(entropy_args, **extra_entropy_args))
+    S = state.entropy(**dict(entropy_args))
     return S
 
-def get_state_dl(B, b_cache, mcmc_multilevel_args={}, extra_entropy_args={},
-                 verbose=False):
+def get_state_dl(B, b_cache, mcmc_multilevel_args={}, verbose=False):
     if B in b_cache:
         return b_cache[B][0]
     Bs = sorted(b_cache.keys())
@@ -83,13 +82,12 @@ def get_state_dl(B, b_cache, mcmc_multilevel_args={}, extra_entropy_args={},
                                    verbose=verbose_push(verbose,
                                                         ("B: %d <- %d    " %
                                                          (B, B_prev)))))
-    dl = get_ent(state, mcmc_multilevel_args, extra_entropy_args)
+    dl = get_ent(state, mcmc_multilevel_args)
     b_cache[B] = (dl, state)
     return dl
 
 def bisection_minimize(init_states, random_bisection=False,
-                       mcmc_multilevel_args={}, extra_entropy_args={},
-                       verbose=False):
+                       mcmc_multilevel_args={}, verbose=False):
     r"""Find the best order (number of groups) given an initial set of states by
     performing a one-dimension minimization, using a Fibonacci (or golden
     section) search.
@@ -103,8 +101,6 @@ def bisection_minimize(init_states, random_bisection=False,
         instead of using the golden rule.
     mcmc_multilevel_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :func:`~graph_tool.inference.mcmc_multilevel`.
-    extra_entropy_args : ``dict`` (optional, default: ``{}``)
-        Extra arguments to be passed to ``state.entropy()``.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
@@ -137,8 +133,7 @@ def bisection_minimize(init_states, random_bisection=False,
 
     b_cache = {}
     for state in init_states:
-        b_cache[state.get_nonempty_B()] = (get_ent(state, mcmc_multilevel_args,
-                                                   extra_entropy_args),
+        b_cache[state.get_nonempty_B()] = (get_ent(state, mcmc_multilevel_args),
                                            state.copy())
 
     max_B = max(b_cache.keys())
@@ -148,7 +143,6 @@ def bisection_minimize(init_states, random_bisection=False,
     kwargs = dict(b_cache=b_cache,
                   mcmc_multilevel_args=dict(mcmc_multilevel_args,
                                             b_cache=b_cache),
-                  extra_entropy_args=extra_entropy_args,
                   verbose=verbose_push(verbose, (" " * 4)))
 
     # Initial bracketing

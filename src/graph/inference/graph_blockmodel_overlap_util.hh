@@ -335,6 +335,11 @@ public:
 
     size_t get_N() const { return _N; }
 
+    void add_block()
+    {
+        _block_nodes.emplace_back();
+    }
+
     static constexpr size_t _null = numeric_limits<size_t>::max();
 
 private:
@@ -1246,6 +1251,11 @@ struct overlap_partition_stats_t
     size_t get_actual_B()
     {
         return _actual_B;
+    }
+
+    void add_block()
+    {
+        _total_B++;
     }
 
 private:

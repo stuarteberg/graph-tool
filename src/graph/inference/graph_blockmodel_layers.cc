@@ -86,11 +86,11 @@ vector<std::reference_wrapper<Type>> from_any_list(boost::python::object list)
 };
 
 void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
-                  boost::any& arec, boost::any& adrec, boost::any& aeweight,
-                  boost::any& avweight, boost::any& avc, boost::any& avmap,
-                  boost::any& alweight, boost::python::object& ous,
-                  boost::python::object& oub, boost::python::object& ourec,
-                  boost::python::object& oudrec,
+                  boost::python::object& arec, boost::python::object& adrec,
+                  boost::any& aeweight, boost::any& avweight, boost::any& avc,
+                  boost::any& avmap, boost::any& alweight,
+                  boost::python::object& ous, boost::python::object& oub,
+                  boost::python::object& ourec, boost::python::object& oudrec,
                   boost::python::object& oueweight,
                   boost::python::object& ouvweight, vbmap_t& block_map,
                   boost::python::object& obrmap, boost::python::object& ouvmap)
@@ -98,12 +98,12 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
     typedef vprop_map_t<int32_t>::type vmap_t;
     typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
     typedef eprop_map_t<int32_t>::type emap_t;
-    typedef eprop_map_t<std::vector<double>>::type remap_t;
+    typedef eprop_map_t<double>::type remap_t;
 
     emap_t& ec = any_cast<emap_t&>(aec);
     vmap_t& b = any_cast<vmap_t&>(ab);
-    remap_t& rec = any_cast<remap_t&>(arec);
-    remap_t& drec = any_cast<remap_t&>(adrec);
+    auto rec = from_any_list<remap_t>(arec);
+    auto drec = from_any_list<remap_t>(adrec);
     vmap_t& vweight = any_cast<vmap_t&>(avweight);
     emap_t& eweight = any_cast<emap_t&>(aeweight);
     vvmap_t& vc = any_cast<vvmap_t&>(avc);
@@ -112,8 +112,11 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
 
     auto us = from_rlist<GraphInterface>(ous);
     auto ub = from_any_list<vmap_t>(oub);
-    auto urec = from_any_list<remap_t>(ourec);
-    auto udrec = from_any_list<remap_t>(oudrec);
+    vector<vector<std::reference_wrapper<remap_t>>> urec, udrec;
+    for (int i = 0; i < boost::python::len(ourec); ++i)
+        urec.push_back(from_any_list<remap_t>(ourec[i]));
+    for (int i = 0; i < boost::python::len(oudrec); ++i)
+        udrec.push_back(from_any_list<remap_t>(oudrec[i]));
     auto uvweight = from_any_list<vmap_t>(ouvweight);
     auto ueweight = from_any_list<emap_t>(oueweight);
 
@@ -150,9 +153,14 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                                    vmap[v].insert(vmap[v].begin() + pos, u);
                                    uvmap[l].get()[u] = v;
                                    if (lw[v].empty())
+                                   {
                                        uvweight[l].get()[u] = vweight[v];
+                                   }
                                    else
+                                   {
+                                       assert(lw[v].find(l) != lw[v].end());
                                        uvweight[l].get()[u] = lw[v][l];
+                                   }
                                    size_t r =  b[v];
                                    size_t u_r;
 
@@ -190,8 +198,104 @@ void split_layers(GraphInterface& gi, boost::any& aec, boost::any& ab,
                            auto u_t = get_v(t, l);
                            auto ne = add_edge(u_s, u_t, us[l].get().get_graph()).first;
                            ueweight[l].get()[ne] = eweight[e];
-                           urec[l].get()[ne] = rec[e];
-                           udrec[l].get()[ne] = drec[e];
+
+                           for (size_t i = 0; i < rec.size(); ++i)
+                           {
+                               urec[l][i].get()[ne] = rec[i].get()[e];
+                               udrec[l][i].get()[ne] = drec[i].get()[e];
+                           }
+
+                           assert(uvweight[l].get()[u_s] > 0 || eweight[e] == 0);
+                           assert(uvweight[l].get()[u_t] > 0 || eweight[e] == 0);
+                       }
+                   })();
+}
+
+void split_groups(boost::any& ab, boost::any& avc, boost::any& avmap,
+                  boost::python::object& ous, boost::python::object& oub,
+                  boost::python::object& ouvweight,
+                  vbmap_t& block_map, boost::python::object& obrmap,
+                  boost::python::object& ouvmap)
+{
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+
+    vmap_t& b = any_cast<vmap_t&>(ab);
+    vvmap_t& vc = any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
+
+    auto us = from_rlist<GraphInterface>(ous);
+    auto ub = from_any_list<vmap_t>(oub);
+
+    auto block_rmap = from_any_list<vmap_t>(obrmap);
+    auto uvmap = from_any_list<vmap_t>(ouvmap);
+    auto uvweight = from_any_list<vmap_t>(ouvweight);
+
+    block_map.resize(us.size());
+
+    for (size_t l = 0; l < us.size(); ++l)
+    {
+        auto& u = us[l].get().get_graph();
+        auto& uvmap_l = uvmap[l].get();
+        auto& ub_l =  ub[l].get();
+        auto& bmap = block_map[l];
+        auto& brmap = block_rmap[l].get();
+        auto& vweight_l = uvweight[l].get();
+
+        for (auto w : vertices_range(u))
+        {
+            if (vweight_l[w] == 0)
+                continue;
+
+            auto v = uvmap_l[w];
+            vc[v].push_back(l);
+            vmap[v].push_back(w);
+
+            size_t r = b[v];
+
+            size_t u_r;
+
+            auto riter = bmap.find(r);
+            if (riter == bmap.end())
+            {
+                u_r = bmap.size();
+                bmap[r] = u_r;
+                brmap[u_r] = r;
+            }
+            else
+            {
+                u_r = riter->second;
+            }
+
+            ub_l[w] = u_r;
+        }
+    }
+}
+
+void get_rvmap(GraphInterface& gi, boost::any& avc, boost::any& avmap,
+               boost::python::object& ouvmap)
+{
+    typedef vprop_map_t<int32_t>::type vmap_t;
+    typedef vprop_map_t<vector<int32_t>>::type vvmap_t;
+
+    vvmap_t& vc = any_cast<vvmap_t&>(avc);
+    vvmap_t& vmap = any_cast<vvmap_t&>(avmap);
+
+    auto uvmap = from_any_list<vmap_t>(ouvmap);
+
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       for (auto v : vertices_range(g))
+                       {
+                           auto& ls = vc[v];
+                           auto& vs = vmap[v];
+                           for (size_t i = 0; i < ls.size(); ++i)
+                           {
+                               auto l = ls[i];
+                               auto w = vs[i];
+                               uvmap[l].get()[w] = v;
+                           }
                        }
                    })();
 }
@@ -445,6 +549,8 @@ void export_layered_blockmodel_state()
 
     def("make_layered_block_state", &make_layered_block_state);
     def("split_layers", &split_layers);
+    def("split_groups", &split_groups);
+    def("get_rvmap", &get_rvmap);
     def("get_layered_block_degs", &get_layered_block_degs);
     def("get_mapped_block_degs", &get_mapped_block_degs);
     def("get_ldegs", &get_ldegs);

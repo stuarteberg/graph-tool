@@ -185,9 +185,9 @@ class OverlapBlockState(BlockState):
         rec_types = list(rec_types)
         rec_params = list(rec_params)
 
-        if len(rec_params) < len(rec_types):
-            rec_params += [{} for i in range((len(rec_types) -
-                                              len(rec_params)))]
+        # if len(rec_params) < len(rec_types):
+        #     rec_params += [{} for i in range((len(rec_types) -
+        #                                       len(rec_params)))]
 
         if len(self.rec) > 0 and rec_types[0] != libinference.rec_type.count:
             rec_types.insert(0, libinference.rec_type.count)
@@ -243,17 +243,19 @@ class OverlapBlockState(BlockState):
             self.Lrecdx = libcore.Vector_double(len(self.rec)+1)
             self.Lrecdx[0] = -1
         self.Lrecdx.resize(len(self.rec)+1)
-        self.epsilon = libcore.Vector_double(len(self.rec))
-        for i in range(len(self.rec)):
-            idx = self.rec[i].a != 0
-            if numpy.any(idx):
-                self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
+        self.epsilon = kwargs.pop("epsilon", None)
+        if self.epsilon is None:
+            self.epsilon = libcore.Vector_double(len(self.rec))
+            for i in range(len(self.rec)):
+                idx = self.rec[i].a != 0
+                if numpy.any(idx):
+                    self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
         self.max_BE = max_BE
 
         self.use_hash = self.B > self.max_BE
 
-        self.allow_empty = allow_empty
+        self.allow_empty = True
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_overlap_block_state(self, _get_rng())
@@ -264,7 +266,7 @@ class OverlapBlockState(BlockState):
         self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
                                   degree_dl=True, degree_dl_kind="distributed",
                                   edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True)
+                                  exact=True, recs=True, recs_dl=True)
 
         self._coupled_state = None
 
@@ -325,12 +327,18 @@ class OverlapBlockState(BlockState):
                                   eindex=kwargs.get("eindex", self.eindex),
                                   max_BE=kwargs.get("max_BE", self.max_BE),
                                   base_g=kwargs.get("base_g", self.base_g),
+                                  Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
+                                  epsilon=kwargs.pop("epsilon",
+                                                     self.epsilon.copy()),
                                   **dmask(kwargs, ["half_edges", "node_index",
                                                    "eindex", "base_g", "drec",
                                                    "max_BE"]))
         if self._coupled_state is not None:
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
-                                                      copy_bg=False),
+                                                      vweight="nonempty",
+                                                      copy_bg=False,
+                                                      Lrecdx=state.Lrecdx,
+                                                      allow_empty=False),
                                 self._coupled_state[1])
         return state
 
@@ -437,7 +445,7 @@ class OverlapBlockState(BlockState):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
-                exact=True, **kwargs):
+                recs_dl=True, exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -470,6 +478,9 @@ class OverlapBlockState(BlockState):
         recs : ``bool`` (optional, default: ``True``)
             If ``True``, the likelihood for real or discrete-valued edge
             covariates is computed.
+        recs_dl : ``bool`` (optional, default: ``True``)
+            If ``True``, and ``dl == True`` the edge covariate description
+            length will be included.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -577,7 +588,7 @@ class OverlapBlockState(BlockState):
                                   edges_dl=edges_dl, dense=dense,
                                   multigraph=multigraph,
                                   deg_entropy=deg_entropy, recs=recs,
-                                  exact=exact, **kwargs)
+                                  recs_dl=recs_dl, exact=exact, **kwargs)
 
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
@@ -665,7 +676,7 @@ class OverlapBlockState(BlockState):
             bstate.merge_sweep(bstate.get_nonempty_B() - B, **kwargs)
 
         continuous_map(bstate.b)
-        bstate = self.copy(b=bstate.b.a)
+        bstate = self.copy(b=bstate.b.a, Lrecdx=bstate.Lrecdx)
 
         if _bm_test():
             assert bstate.get_nonempty_B() == B, \
@@ -759,7 +770,7 @@ def half_edge_graph(g, b=None, B=None, rec=None):
     if rec is None:
         rec_ = g.new_edge_property("vector<double>")
     else:
-        rec_ = rec
+        rec_ = g.own_property(rec)
 
     # create half-edge graph
     libinference.get_eg_overlap(g._Graph__graph,

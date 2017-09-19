@@ -41,6 +41,9 @@ void export_lsbm()
 {
     using namespace boost::python;
 
+    class_<LayeredBlockStateVirtualBase, boost::noncopyable>
+        ("LayeredBlockStateVirtualBase", no_init);
+
     block_state::dispatch
         ([&](auto* bs)
          {
@@ -68,9 +71,13 @@ void export_lsbm()
                           &state_t::remove_vertices;
                       void (state_t::*add_vertices)(python::object, python::object) =
                           &state_t::add_vertices;
+                      void (state_t::*couple_state)(LayeredBlockStateVirtualBase&,
+                                                    entropy_args_t) =
+                          &state_t::couple_state;
 
-                      class_<state_t> c(name_demangle(typeid(state_t).name()).c_str(),
-                                        no_init);
+                      class_<state_t, bases<LayeredBlockStateVirtualBase>>
+                          c(name_demangle(typeid(state_t).name()).c_str(),
+                            no_init);
                       c.def("remove_vertex", &state_t::remove_vertex)
                           .def("add_vertex", &state_t::add_vertex)
                           .def("move_vertex", &state_t::move_vertex)
@@ -85,16 +92,32 @@ void export_lsbm()
                           .def("get_partition_dl", &state_t::get_partition_dl)
                           .def("get_deg_dl", &state_t::get_deg_dl)
                           .def("get_move_prob", get_move_prob)
+                          .def("couple_state", couple_state)
+                          .def("decouple_state",
+                               &state_t::decouple_state)
                           .def("get_B_E",
                                &state_t::get_B_E)
                           .def("get_B_E_D",
                                &state_t::get_B_E_D)
+                          .def("get_layer",
+                               +[](state_t& state, size_t l) -> python::object
+                                {
+                                    return python::object(block_state_t(state.get_layer(l)));
+                                })
                           .def("enable_partition_stats",
                                &state_t::enable_partition_stats)
                           .def("disable_partition_stats",
                                &state_t::disable_partition_stats)
                           .def("is_partition_stats_enabled",
-                               &state_t::is_partition_stats_enabled);
+                               &state_t::is_partition_stats_enabled)
+                          .def("clear_egroups",
+                               &state_t::clear_egroups)
+                          .def("rebuild_neighbour_sampler",
+                               &state_t::rebuild_neighbour_sampler)
+                          .def("sync_emat",
+                               &state_t::sync_emat)
+                          .def("sync_bclabel",
+                               &state_t::sync_bclabel);
                   });
          });
 }

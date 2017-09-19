@@ -111,12 +111,15 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         self.g = g
 
-        if kwargs.pop("ec_done", False):
+        if kwargs.pop("ec_done", False) or ec is None:
             self.ec = ec
         else:
             self.ec = ec = perfect_prop_hash([ec], "int32_t")[0]
 
-        self.C = ec.fa.max() + 1
+        if ec is not None:
+            self.C = ec.fa.max() + 1
+        else:
+            self.C = len(kwargs.get("gs"))
         self.layers = layers
 
         if "max_BE" in kwargs:
@@ -128,6 +131,11 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         if eweight is None:
             eweight = g.new_ep("int", 1)
+
+        self.Lrecdx = kwargs.pop("Lrecdx", [])
+        while len(self.Lrecdx) < self.C + 1:
+            self.Lrecdx.append(libcore.Vector_double(1))
+            self.Lrecdx[-1][0] = -1
 
         if not overlap:
             kwargs = dmask(kwargs, ["base_g", "node_index", "eindex",
@@ -141,14 +149,14 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 tdegs = None
 
-            agg_state = BlockState(GraphView(g, skip_properties=True), b=b, B=B,
+            agg_state = BlockState(g, b=b, B=B,
                                    eweight=eweight, vweight=vweight, recs=recs,
                                    rec_types=rec_types, rec_params=rec_params,
                                    clabel=clabel, pclabel=pclabel,
                                    deg_corr=deg_corr, allow_empty=allow_empty,
                                    max_BE=max_BE, degs=tdegs,
-                                   **dmask(kwargs, ["degs", "lweights",
-                                                    "layer_entropy"]))
+                                   Lrecdx=self.Lrecdx[0],
+                                   **dmask(kwargs, ["degs", "lweights", "gs"]))
         else:
             kwargs = dmask(kwargs, ["degs"])
             ldegs = None
@@ -157,28 +165,29 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                           rec_params=rec_params, clabel=clabel,
                                           pclabel=pclabel, deg_corr=deg_corr,
                                           allow_empty=allow_empty, max_BE=max_BE,
+                                          Lrecdx=self.Lrecdx[0],
                                           **dmask(kwargs, ["degs", "lweights",
-                                                           "layer_entropy"]))
+                                                           "gs"]))
             self.base_g = agg_state.base_g
             self.g = agg_state.g
+            eweight = self.g.new_ep("int", 1)
+            vweight = self.g.new_vp("int", 1)
             kwargs = dmask(kwargs, ["base_g", "node_index", "eindex",
                                     "half_edges"])
 
         self.agg_state = agg_state
 
-        if overlap:
-            self.base_ec = ec.copy()
+        if overlap and self.ec is not None:
+            self.base_ec = self.base_g.own_property(ec.copy())
             ec = agg_state.eindex.copy()
             pmap(ec, self.ec)
             self.ec = ec.copy("int")
 
+        self.eweight = eweight
+        self.vweight = vweight
         if not overlap:
-            self.eweight = agg_state.eweight
-            self.vweight = agg_state.vweight
             self.is_weighted = agg_state.is_weighted
         else:
-            self.eweight = agg_state.g.new_ep("int", 1)
-            self.vweight = agg_state.g.new_vp("int", 1)
             self.is_weighted = False
 
         self.allow_empty = agg_state.allow_empty
@@ -187,14 +196,13 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.drec = agg_state.drec
         self.rec_types = agg_state.rec_types
         self.rec_params = agg_state.rec_params
-        self.Lrecdx = agg_state.Lrecdx
         self.epsilon = agg_state.epsilon
 
         self.b = agg_state.b
         self.B = agg_state.B
         self.clabel = agg_state.clabel
-        self.bclabel = agg_state.bclabel
         self.pclabel = agg_state.pclabel
+        self.bclabel = agg_state.bclabel
 
         self.deg_corr = deg_corr
         self.overlap = overlap
@@ -202,47 +210,51 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.vc = self.g.new_vp("vector<int>")
         self.vmap = self.g.new_vp("vector<int>")
 
-        self.gs = []
+        self.gs = kwargs.pop("gs", [])
         self.block_map = libinference.bmap_t()
+        lweights = kwargs.pop("lweights", self.g.new_vp("vector<int>"))
 
-        lweights = kwargs.pop("lweights", g.new_vp("vector<int>"))
+        if len(self.gs) == 0:
+            for l in range(0, self.C):
+                u = Graph(directed=g.is_directed())
+                u.vp["b"] = u.new_vp("int")
+                u.vp["weight"] = u.new_vp("int")
+                u.ep["weight"] = u.new_ep("int")
+                u.gp["rec"] = u.new_gp("object", val=[u.new_ep("double") for i in range(len(self.rec))])
+                u.gp["drec"] = u.new_gp("object", val=[u.new_ep("double") for i in range(len(self.drec))])
+                u.vp["brmap"] = u.new_vp("int")
+                u.vp["vmap"] = u.new_vp("int")
+                self.gs.append(u)
 
-        for l in range(0, self.C):
-            u = Graph(directed=g.is_directed())
-            u.vp["b"] = u.new_vp("int")
-            u.vp["weight"] = u.new_vp("int")
-            u.ep["weight"] = u.new_ep("int")
-            u.ep["rec"] = u.new_ep("vector<double>")
-            u.ep["drec"] = u.new_ep("vector<double>")
-            u.vp["brmap"] = u.new_vp("int")
-            u.vp["vmap"] = u.new_vp("int")
-            self.gs.append(u)
-
-        if len(self.rec) > 0:
-            rec = group_vector_property(self.rec)
-            drec = group_vector_property(self.drec)
+            libinference.split_layers(self.g._Graph__graph,
+                                      _prop("e", self.g, self.ec),
+                                      _prop("v", self.g, self.b),
+                                      [_prop("e", self.g, x) for x in self.rec],
+                                      [_prop("e", self.g, x) for x in self.drec],
+                                      _prop("e", self.g, self.eweight),
+                                      _prop("v", self.g, self.vweight),
+                                      _prop("v", self.g, self.vc),
+                                      _prop("v", self.g, self.vmap),
+                                      _prop("v", self.g, lweights),
+                                      [u._Graph__graph for u in self.gs],
+                                      [_prop("v", u, u.vp["b"]) for u in self.gs],
+                                      [[_prop("e", u, x) for x in u.gp["rec"]] for u in self.gs],
+                                      [[_prop("e", u, x) for x in u.gp["drec"]] for u in self.gs],
+                                      [_prop("e", u, u.ep["weight"]) for u in self.gs],
+                                      [_prop("v", u, u.vp["weight"]) for u in self.gs],
+                                      self.block_map,
+                                      [_prop("v", u, u.vp["brmap"]) for u in self.gs],
+                                      [_prop("v", u, u.vp["vmap"]) for u in self.gs])
         else:
-            rec = self.g.new_ep("vector<double>")
-            drec = self.g.new_ep("vector<double>")
-        libinference.split_layers(self.g._Graph__graph,
-                                  _prop("e", self.g, self.ec),
-                                  _prop("v", self.g, self.b),
-                                  _prop("e", self.g, rec),
-                                  _prop("e", self.g, drec),
-                                  _prop("e", self.g, self.eweight),
-                                  _prop("v", self.g, self.vweight),
-                                  _prop("v", self.g, self.vc),
-                                  _prop("v", self.g, self.vmap),
-                                  _prop("v", self.g, lweights),
-                                  [u._Graph__graph for u in self.gs],
-                                  [_prop("v", u, u.vp["b"]) for u in self.gs],
-                                  [_prop("e", u, u.ep["rec"]) for u in self.gs],
-                                  [_prop("e", u, u.ep["drec"]) for u in self.gs],
-                                  [_prop("e", u, u.ep["weight"]) for u in self.gs],
-                                  [_prop("v", u, u.vp["weight"]) for u in self.gs],
-                                  self.block_map,
-                                  [_prop("v", u, u.vp["brmap"]) for u in self.gs],
-                                  [_prop("v", u, u.vp["vmap"]) for u in self.gs])
+            libinference.split_groups(_prop("v", self.g, self.b),
+                                      _prop("v", self.g, self.vc),
+                                      _prop("v", self.g, self.vmap),
+                                      [u._Graph__graph for u in self.gs],
+                                      [_prop("v", u, u.vp["b"]) for u in self.gs],
+                                      [_prop("v", u, u.vp["weight"]) for u in self.gs],
+                                      self.block_map,
+                                      [_prop("v", u, u.vp["brmap"]) for u in self.gs],
+                                      [_prop("v", u, u.vp["vmap"]) for u in self.gs])
 
         if self.g.get_vertex_filter()[0] is not None:
             for u in self.gs:
@@ -257,20 +269,30 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.layer_states = []
 
         self.max_BE = max_BE
-        for l, u in enumerate(self.gs):
-            state = self.__gen_state(l, u, ldegs)
-            self.layer_states.append(state)
-
         self.bg = agg_state.bg
         self.wr = agg_state.wr
         self.mrs = agg_state.mrs
         self.mrp = agg_state.mrp
         self.mrm = agg_state.mrm
+        self.brec = agg_state.brec
+        self.bdrec = agg_state.bdrec
+        self.rec_params = agg_state.rec_params
+        self.wparams = agg_state.wparams
+        self.epsilon = agg_state.epsilon
+        self._entropy_args = agg_state._entropy_args
+        self.recdx = agg_state.recdx
+        if not self.overlap:
+            self.empty_blocks = agg_state.empty_blocks
+            self.empty_pos = agg_state.empty_pos
 
-        self.block_list = Vector_size_t()
-        self.block_list.extend(arange(agg_state.B, dtype="int"))
+        self._coupled_state = None
 
-        self.__layer_entropy = kwargs.pop("layer_entropy", None)
+        for l, u in enumerate(self.gs):
+            state = self.__gen_state(l, u, ldegs)
+            self.layer_states.append(state)
+
+        if ec is None:
+            self.ec = self.g.new_ep("int")
 
         if not self.overlap:
             self._state = \
@@ -280,11 +302,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             self._state = \
                 libinference.make_layered_overlap_block_state(agg_state._state,
                                                               self)
-
-        self._entropy_args = self.agg_state._entropy_args
-        self.allow_empty = allow_empty
-        self.recdx = self.agg_state.recdx
-        self.Lrecdx = self.agg_state.Lrecdx
+        if ec is None:
+            self.ec = None
 
         if _bm_test():
             assert self.mrs.fa.sum() == self.eweight.fa.sum(), "inconsistent mrs!"
@@ -293,6 +312,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         kwargs.pop("drec", None)
         kwargs.pop("rec_params", None)
         kwargs.pop("Lrecdx", None)
+        kwargs.pop("epsilon", None)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -329,8 +349,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
     def __gen_state(self, l, u, ldegs):
         B = u.num_vertices() + 1
-        recs = ungroup_vector_property(u.ep["rec"], range(len(self.rec)))
-        drec = ungroup_vector_property(u.ep["drec"], range(len(self.rec)))
         if not self.overlap:
             if ldegs is not None:
                 degs = libinference.get_mapped_block_degs(u._Graph__graph,
@@ -341,23 +359,28 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                 degs = None
             state = BlockState(u, b=u.vp["b"],
                                B=B,
-                               recs=recs,
-                               drec=drec,
+                               recs=u.gp["rec"],
+                               drec=u.gp["drec"],
                                rec_types=self.rec_types,
                                rec_params=self.rec_params,
+                               epsilon=self.epsilon,
+                               Lrecdx=self.Lrecdx[l+1],
                                eweight=u.ep["weight"],
                                vweight=u.vp["weight"],
                                deg_corr=self.deg_corr,
                                degs=degs,
+                               allow_empty=self.allow_empty,
                                max_BE=self.max_BE)
         else:
             base_u, node_index = self.__get_base_u(u)
             state = OverlapBlockState(u, b=u.vp["b"].fa,
                                       B=B,
-                                      recs=recs,
-                                      drec=drec,
+                                      recs=u.gp["rec"],
+                                      drec=u.gp["drec"],
                                       rec_types=self.rec_types,
                                       rec_params=self.rec_params,
+                                      epsilon=self.epsilon,
+                                      Lrecdx=self.Lrecdx[l+1],
                                       node_index=node_index,
                                       base_g=base_u,
                                       deg_corr=self.deg_corr,
@@ -420,8 +443,21 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 degs = None
 
+        ec = self.ec if ec is None else ec
+        gs = [u.copy() for u in self.gs] if ec is None else []
+
+        if len(gs) > 0:
+            libinference.get_rvmap(self.g._Graph__graph,
+                                   _prop("v", self.g, self.vc),
+                                   _prop("v", self.g, self.vmap),
+                                   [_prop("v", u, u.vp.vmap) for u in gs])
+            for u in gs:
+                u.gp.rec = [u.own_property(x.copy()) for x in u.gp.rec]
+                if u.gp.drec is not None:
+                    u.gp.drec = [u.own_property(x.copy()) for x in u.gp.drec]
+
         state = LayeredBlockState(self.g if g is None else g,
-                                  ec=self.ec if ec is None else ec,
+                                  ec=ec, gs=gs,
                                   eweight=self.eweight if eweight is None else eweight,
                                   vweight=self.vweight if vweight is None else vweight,
                                   recs=kwargs.pop("recs", self.rec),
@@ -441,10 +477,20 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   half_edges=self.agg_state.half_edges if self.overlap else None,
                                   node_index=self.agg_state.node_index if self.overlap else None,
                                   eindex=self.agg_state.eindex if self.overlap else None,
-                                  ec_done=ec is None,
+                                  ec_done=ec is not None,
                                   degs=degs, lweights=lweights,
-                                  layer_entropy=self.__get_layer_entropy(),
+                                  Lrecdx=kwargs.pop("Lrecdx",
+                                                    [x.copy() for x in self.Lrecdx]),
+                                  epsilon=kwargs.pop("epsilon", self.epsilon.copy()),
                                   **kwargs)
+
+        if self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False,
+                                                      vweight="nonempty",
+                                                      Lrecdx=state.Lrecdx,
+                                                      allow_empty=False),
+                                self._coupled_state[1])
         return state
 
     def __repr__(self):
@@ -461,8 +507,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         r"""Returns the block graph."""
 
         bg = Graph(directed=self.g.is_directed())
-        mrs = bg.new_edge_property("int")
-        ec = bg.new_edge_property("int")
+        mrs = bg.new_ep("int")
+        ec = bg.new_ep("int")
         rec = bg.new_edge_property("vector<double>")
         drec = bg.new_edge_property("vector<double>")
 
@@ -470,7 +516,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             u = GraphView(self.g, efilt=self.ec.a == l)
             ug = get_block_graph(u, self.B, self.b, self.vweight, self.eweight,
                                  rec=self.rec, drec=self.drec)
-            uec = ug.new_edge_property("int")
+            uec = ug.new_ep("int")
             uec.a = l
             if len(ug.gp.rec) > 0:
                 urec = group_vector_property(ug.gp.rec)
@@ -496,15 +542,40 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         return bg, mrs, ec, rec, drec
 
     def get_block_state(self, b=None, vweight=False, deg_corr=False,
-                        overlap=False, layers=True, **kwargs):
+                        overlap=False, layers=None, **kwargs):
         r"""Returns a :class:`~graph_tool.inference.LayeredBlockState`` corresponding
         to the block graph. The parameters have the same meaning as the in the
         constructor."""
 
-        bg, mrs, ec, recs, drec = self.get_bg()
+
+        copy_bg = kwargs.pop("copy_bg", True)
+
+        if copy_bg:
+            bg, mrs, ec, brec, bdrec = self.get_bg()
+            gs = []
+        else:
+            gs = []
+            for l, s in enumerate(self.layer_states):
+                u = GraphView(s.bg)
+                u.ep.weight = s.mrs
+                u.vp.vmap = u.own_property(s.g.vp.brmap).copy()
+                u.vp.b = u.new_vp("int")
+                if vweight == True:
+                    u.vp.weight = u.own_property(s.wr)
+                else:
+                    u.vp.weight = u.new_vp("int", s.wr.a > 0)
+                u.vp.brmap = u.new_vp("int")
+                u.gp.rec = u.new_gp("object", val=s.brec)
+                u.gp.drec = u.new_gp("object", val=s.bdrec)
+                gs.append(u)
+            bg = self.agg_state.bg
+            mrs = self.agg_state.mrs
+            ec = None
+            brec = self.brec
+            bdrec = self.bdrec
 
         lweights = bg.new_vp("vector<int>")
-        if not overlap and vweight:
+        if not overlap and vweight == True:
             degs = libinference.get_layered_block_degs(self.g._Graph__graph,
                                                        _prop("e", self.g,
                                                              self.eweight),
@@ -524,16 +595,79 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         else:
             degs = None
 
-        if vweight:
-            layer_entropy = self.__get_layer_entropy()
+        copy_coupled = False
+        recs = False
+        if vweight == "nonempty":
+            vweight = bg.new_vp("int", self.wr.a > 0)
+            layers = True if layers is None else layers
+        elif vweight == "unity":
+            vweight = bg.new_vp("int", 1)
+            layers = True if layers is None else layers
+        elif vweight == True:
+            if copy_bg:
+                vweight = bg.own_property(self.wr.copy())
+            else:
+                vweight = self.wr
+            recs = True
+            copy_coupled = True
+            kwargs["Lrecdx"] = kwargs.get("Lrecdx",
+                                          [x.copy() for x in self.Lrecdx])
         else:
-            layer_entropy = None
+            vweight = None
+            layers = True if layers is None else layers
+
+        if recs:
+            rec_types = kwargs.pop("rec_types", self.rec_types)
+            recs = kwargs.pop("recs", brec)
+            drec = kwargs.pop("drec", bdrec)
+            rec_params = kwargs.pop("rec_params", self.rec_params)
+        else:
+            recs = []
+            drec = None
+            for u in gs:
+                u.gp.drec = None
+                u.gp.rec = []
+            rec_types = []
+            rec_params = []
+            for i, (rt, rp, r) in enumerate(zip(self.rec_types, self.wparams,
+                                                brec)):
+                if rt == libinference.rec_type.count:
+                    recs.append(bg.new_ep("double", mrs.fa > 0))
+                    for l, u in enumerate(gs):
+                        u.gp.rec.append(u.new_ep("double", u.ep.weight.fa > 0))
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif numpy.isnan(rp.a).sum() == 0:
+                    continue
+                elif rt in [libinference.rec_type.discrete_geometric,
+                            libinference.rec_type.discrete_binomial,
+                            libinference.rec_type.discrete_poisson]:
+                    recs.append(r)
+                    for l, u in enumerate(gs):
+                        u.gp.rec.append(self.layer_states[l].brec[i])
+                    rec_types.append(libinference.rec_type.discrete_geometric)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_exponential:
+                    recs.append(r)
+                    for l, u in enumerate(gs):
+                        u.gp.rec.append(self.layer_states[l].brec[i])
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+                elif rt == libinference.rec_type.real_normal:
+                    recs.append(r)
+                    for l, u in enumerate(gs):
+                        u.gp.rec.append(self.layer_states[l].brec[i])
+                    rec_types.append(rt)
+                    rec_params.append("microcanonical")
+            rec_params = kwargs.pop("rec_params", rec_params)
+
         state = LayeredBlockState(bg, ec, eweight=mrs,
-                                  vweight=bg.own_property(self.wr.copy()) if vweight else None,
-                                  rec_types=kwargs.pop("rec_types", self.rec_types if vweight else []),
-                                  recs=kwargs.pop("recs", recs if vweight else []),
-                                  drec=kwargs.pop("drec", drec if vweight else None),
-                                  rec_params=kwargs.pop("rec_params", self.rec_params),
+                                  vweight=vweight,
+                                  gs=gs,
+                                  rec_types=rec_types,
+                                  recs=recs,
+                                  drec=drec,
+                                  rec_params=rec_params,
                                   b=bg.vertex_index.copy("int") if b is None else b,
                                   deg_corr=deg_corr,
                                   overlap=overlap,
@@ -543,14 +677,29 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   layers=self.layers if layers is None else layers,
                                   ec_done=True,
                                   degs=degs, lweights=lweights,
-                                  layer_entropy=layer_entropy,
                                   clabel=kwargs.pop("clabel",
                                                     self.agg_state.get_bclabel()),
                                   pclabel=kwargs.pop("pclabel",
                                                      self.agg_state.get_bpclabel()),
+                                  epsilon=kwargs.pop("epsilon",
+                                                     self.epsilon.copy()),
                                   **kwargs)
+
+        if copy_coupled and self._coupled_state is not None:
+            state._couple_state(state.get_block_state(b=state.get_bclabel(),
+                                                      copy_bg=False,
+                                                      vweight="nonempty",
+                                                      Lrecdx=state.Lrecdx,
+                                                      allow_empty=False),
+                                self._coupled_state[1])
+
         return state
 
+    def _set_bclabel(self, bstate):
+        BlockState._set_bclabel(self, bstate)
+        self._state.sync_bclabel()
+        # for s, sn in zip(self.layer_states, bstate.layer_states):
+        #     s.bclabel.a = sn.b.a
 
     def get_edge_blocks(self):
         r"""Returns an edge property map which contains the block labels pairs for each
@@ -601,21 +750,40 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             return self.agg_state.get_majority_blocks()
 
     def _couple_state(self, state, entropy_args):
-        pass
+        if state is None:
+            self._coupled_state = None
+            self._state.decouple_state()
+        else:
+            if _bm_test():
+                assert state.g.base is self.bg.base
+                assert state.agg_state.g.base is self.agg_state.bg.base
+                for l, (s1, s2) in enumerate(zip(state.layer_states,
+                                                 self.layer_states)):
+                    assert s1.g.base is s2.bg.base, (l, s1, s2)
 
-    def __get_layer_entropy(self):
-        if self.__layer_entropy is None:
-            if self.layers:
-                # we need to include the membership of the nodes in each layer
-                g = self.base_g if self.overlap else self.g
-                ec = self.base_ec if self.overlap else self.ec
-                be = group_vector_property([ec, ec])
-                lstate = OverlapBlockState(g, b=be, deg_corr=False)
-                self.__layer_entropy = lstate.entropy(dl=True, edges_dl=False) - \
-                                       lstate.entropy(dl=False)
-            else:
-                self.__layer_entropy = 0
-        return self.__layer_entropy
+            self._coupled_state = (state, entropy_args)
+            eargs = get_entropy_args(dict(self._entropy_args,
+                                          **entropy_args))
+            self._state.couple_state(state._state, eargs)
+            self._set_bclabel(state)
+
+    def _set_bclabel(self, bstate):
+        BlockState._set_bclabel(self, bstate)
+        for s, bs in zip(self.layer_states,
+                         bstate.layer_states):
+            s._set_bclabel(bs)
+
+    def _check_clabel(self, clabel=None, b=None):
+        if not BlockState._check_clabel(self, clabel, b):
+            return False
+        if self._coupled_state is not None:
+            for s, bs in zip(self.layer_states,
+                             self._coupled_state[0].layer_states):
+                b = s.bclabel
+                mask = bs.vweight.fa > 0
+                if any(b.fa[mask] != bs.b.fa[mask]):
+                    return False
+        return True
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
@@ -640,23 +808,31 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                **dict(kwargs, test=False))
 
         if dl and edges_dl:
-            if self.allow_empty:
-                actual_B = self.B
+            if self.layers:
+                for state in self.layer_states:
+                    if not self.allow_empty:
+                        actual_B = (state.wr.a > 0).sum()
+                    else:
+                        actual_B = self.B
+                    S += model_entropy(actual_B, 0, state.get_E(),
+                                       directed=self.g.is_directed(),
+                                       nr=False)
             else:
-                actual_B = (self.wr.a > 0).sum()
-            for state in self.layer_states:
-                S += model_entropy(actual_B, 0, state.get_E(),
-                                   directed=self.g.is_directed(),
-                                   nr=False)
-
-        if dl:
-            S += self.__get_layer_entropy()
+                if not self.allow_empty:
+                    actual_B = (self.wr.a > 0).sum()
+                else:
+                    actual_B = self.B
+                for state in self.layer_states:
+                    S += model_entropy(actual_B, 0, state.get_E(),
+                                       directed=self.g.is_directed(),
+                                       nr=False)
 
         if _bm_test() and kwargs.get("test", True):
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
 
-            Salt = self.copy().entropy(test=False, **args)
+            state = self.copy()
+            Salt = state.entropy(test=False, **args)
             assert math.isclose(S, Salt, abs_tol=1e-8), \
                 "entropy discrepancy after copying (%g %g)" % (S, Salt)
 
