@@ -112,6 +112,11 @@ struct Layers
             size_t _l;
             size_t _E;
 
+            using BaseState::_bg;
+            using BaseState::_wr;
+            using BaseState::_bclabel;
+            using BaseState::add_block;
+
             size_t get_block_map(size_t r, bool put_new=true)
             {
                 size_t r_u;
@@ -121,9 +126,9 @@ struct Layers
                     if (_free_blocks.empty())
                         _free_blocks.push_back(_block_map.size());
                     r_u = _free_blocks.back();
-                    while (r_u >= num_vertices(BaseState::_bg))
+                    while (r_u >= num_vertices(_bg))
                         add_block();
-                    assert(r_u < num_vertices(BaseState::_bg));
+                    assert(r_u < num_vertices(_bg));
 
                     if (put_new)
                     {
@@ -132,18 +137,18 @@ struct Layers
                         if (_lstate->_lcoupled_state != nullptr)
                         {
                             _lstate->_lcoupled_state->add_layer_node(_l, r, r_u);
-                            BaseState::_bclabel[r_u] =
+                            _bclabel[r_u] =
                                 _lstate->_lcoupled_state->get_block_map(_l, _lstate->_bclabel[r]);
                             assert(_lstate->_lcoupled_state->get_vweight(_l, r_u) == (_wr[r_u] > 0));
                             if (_wr[r_u] == 0)
-                                _lstate->_lcoupled_state->set_block(_l, r_u, BaseState::_bclabel[r_u]);
-                            assert(_lstate->_lcoupled_state->get_block(_l, r_u) == size_t(BaseState::_bclabel[r_u]));
+                                _lstate->_lcoupled_state->set_block(_l, r_u, _bclabel[r_u]);
+                            assert(_lstate->_lcoupled_state->get_block(_l, r_u) == size_t(_bclabel[r_u]));
                         }
                         _free_blocks.pop_back();
                         assert(_lstate->_lcoupled_state == nullptr ||
                                r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
                         assert(_lstate->_lcoupled_state == nullptr ||
-                               size_t(BaseState::_bclabel[r_u]) ==
+                               size_t(_bclabel[r_u]) ==
                                _lstate->_lcoupled_state->
                                get_block_map(_l, _lstate->_bclabel[r], false));
                     }
@@ -155,7 +160,7 @@ struct Layers
                     assert(_lstate->_lcoupled_state == nullptr ||
                            r_u == _lstate->_lcoupled_state->get_layer_node(_l, r));
                 }
-                assert(r_u < num_vertices(BaseState::_bg));
+                assert(r_u < num_vertices(_bg));
                 return r_u;
             }
 
