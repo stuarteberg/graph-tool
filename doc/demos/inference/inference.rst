@@ -459,6 +459,10 @@ As mentioned above, one can select the best model according to the
 choice that yields the smallest description length. For instance, in
 case of the `C. elegans` network we have
 
+.. testsetup:: model-selection
+
+   gt.seed_rng(42)
+
 .. testcode:: model-selection
 
    g = gt.collection.data["celegansneural"]
