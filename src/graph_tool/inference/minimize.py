@@ -495,12 +495,21 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
                                          **mcmc_multilevel_args)
                 bs.append(bstate.b.a)
                 bstate = bstate.get_block_state()
+        State = type(min_state)
+    else:
+        if layers:
+            State = LayeredBlockState
+            state_args = dict(state_args, overlap=overlap)
+        elif overlap:
+            State = OverlapBlockState
+        else:
+            State = BlockState
 
     if layers:
         state_args = dict(state_args, overlap=overlap)
 
     state = NestedBlockState(g, bs=bs,
-                             base_type=type(min_state),
+                             base_type=State,
                              deg_corr=deg_corr,
                              **dmask(state_args, ["deg_corr"]))
 
