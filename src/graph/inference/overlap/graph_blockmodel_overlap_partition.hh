@@ -18,12 +18,51 @@
 #ifndef GRAPH_BLOCKMODEL_OVERLAP_PARTITION_HH
 #define GRAPH_BLOCKMODEL_OVERLAP_PARTITION_HH
 
+#include <functional>
 #include "graph_blockmodel_overlap_util.hh"
+#include "boost/container/small_vector.hpp"
+
+namespace std
+{
+
+template <class Value, size_t N>
+struct hash<boost::container::small_vector<Value, N>>
+{
+    size_t operator()(const boost::container::small_vector<Value, N>& v) const
+    {
+        std::size_t seed = 0;
+        for (auto& x : v)
+            _hash_combine(seed, x);
+        return seed;
+    }
+};
+}
+
+template <class Value, size_t N>
+struct empty_key<boost::container::small_vector<Value, N>>
+{
+    static boost::container::small_vector<Value, N> get()
+    {
+        boost::container::small_vector<Value, N> key(1);
+        key[0] = empty_key<Value>::get();
+        return key;
+    }
+};
+
+template <class Value, size_t N>
+struct deleted_key<boost::container::small_vector<Value, N>>
+{
+    static boost::container::small_vector<Value, N> get()
+    {
+        boost::container::small_vector<Value, N> key(1);
+        key[0] = deleted_key<Value>::get();
+        return key;
+    }
+};
+
 
 namespace graph_tool
 {
-
-using namespace boost;
 
 //=============================
 // Partition Description length
@@ -32,9 +71,9 @@ using namespace boost;
 struct overlap_partition_stats_t
 {
     typedef std::tuple<int, int> deg_t;
-    typedef vector<deg_t> cdeg_t;
+    typedef boost::container::small_vector<deg_t, 64> cdeg_t;
 
-    typedef vector<int> bv_t;
+    typedef boost::container::small_vector<int, 64> bv_t;
 
     typedef gt_hash_map<bv_t, size_t> bhist_t;
     typedef gt_hash_map<cdeg_t, size_t, std::hash<cdeg_t>> cdeg_hist_t;
