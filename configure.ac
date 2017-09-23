@@ -19,7 +19,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR(src)
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_INIT_AUTOMAKE([foreign subdir-objects tar-pax])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PROG_CC_C_O
 AC_CONFIG_HEADERS([config.h])
