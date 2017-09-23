@@ -461,7 +461,7 @@ case of the `C. elegans` network we have
 
 .. testsetup:: model-selection
 
-   gt.seed_rng(42)
+   gt.seed_rng(43)
 
 .. testcode:: model-selection
 
@@ -476,8 +476,8 @@ case of the `C. elegans` network we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:      8557.215637...
-   Degree-corrected DL:          8229.533915...
+   Non-degree-corrected DL:	 8511.005312...
+   Degree-corrected DL:	 8225.167736...
    
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -503,7 +503,7 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -327.681722...
+   ln Λ:  -285.837575...
 
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
@@ -530,12 +530,12 @@ example, for the American football network above, we have:
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:      1755.860047...
-   Degree-corrected DL:          1780.576716...
-   ln Λ:                         -24.716669...
+   Non-degree-corrected DL:      1733.525685...
+   Degree-corrected DL:          1791.750418...
+   ln Λ:                         -58.224733...
 
-Hence, with a posterior odds ratio of :math:`\Lambda \approx \mathrm{e}^{-24} \approx
-10^{-10}` in favor of the non-degree-corrected model, it seems like the
+Hence, with a posterior odds ratio of :math:`\Lambda \approx \mathrm{e}^{-58} \approx
+10^{-26}` in favor of the non-degree-corrected model, it seems like the
 degree-corrected variant is an unnecessarily complex description for
 this network.
 
