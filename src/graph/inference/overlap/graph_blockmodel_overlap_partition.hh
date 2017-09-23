@@ -129,7 +129,7 @@ struct overlap_partition_stats_t
             cdh[cdeg]++;
 
             size_t d = bv.size();
-            _D = max(_D, d);
+            _D = std::max(_D, d);
             _dhist[d]++;
             _bhist[bv]++;
 
@@ -361,7 +361,8 @@ struct overlap_partition_stats_t
         size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
         size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
 
-        gt_hash_map<size_t, std::pair<int, int>> deg_delta;
+        static gt_hash_map<size_t, std::pair<int, int>> deg_delta;
+        static vector<size_t> rs;
 
         auto& d_r = deg_delta[r];
         d_r.first -= kin;
@@ -388,9 +389,10 @@ struct overlap_partition_stats_t
 
             if (s == r)
                 has_r = true;
-
-            if (s == nr)
+            else if (s == nr)
                 has_nr = true;
+            else
+                rs.push_back(s);
 
             if ((get<0>(k_s) + get<1>(k_s)) > 0)
             {
@@ -421,6 +423,13 @@ struct overlap_partition_stats_t
                 n_deg.insert(dpos, make_pair(kin, kout));
             }
         }
+
+        deg_delta[r] = {0, 0};
+        deg_delta[nr] = {0, 0};
+        for (auto s : rs)
+            deg_delta[s] = {0, 0};
+        rs.clear();
+
         return is_same_bv;
     }
 
@@ -481,18 +490,18 @@ struct overlap_partition_stats_t
         size_t n_d = n_bv.size();
         size_t n_D = _D;
 
-        if (d == _D && n_d < d && _dhist[d] == 1)
+        if (d == _D && n_d < d && _dhist[d] == 1 && _D > 1)
         {
-            n_D = 1;
-            for (auto& bc : _bhist)
+            n_D = _D - 1;
+            while (_dhist[n_D] == 0)
             {
-                if (bc.first.size() == d || bc.second == 0)
-                    continue;
-                n_D = max(n_D, bc.first.size());
+                if (n_D == 0)
+                    break;
+                n_D--;
             }
         }
 
-        n_D = max(n_D, n_d);
+        n_D = std::max(n_D, n_d);
 
         double S_a = 0, S_b = 0;
 
@@ -776,8 +785,8 @@ struct overlap_partition_stats_t
             S_b += lbinom_fast(_r_count[s] + _ephist[s] - 1, _ephist[s]);
         }
 
-        gt_hash_map<size_t, pair<int, int>> deg_delta;
-        gt_hash_map<size_t, int> r_count_delta;
+        static gt_hash_map<size_t, pair<int, int>> deg_delta;
+        static gt_hash_map<size_t, int> r_count_delta;
 
         if (bv != n_bv)
         {
@@ -827,6 +836,35 @@ struct overlap_partition_stats_t
             }
         }
 
+        if (bv != n_bv)
+        {
+            if (n_bv_count == 0)
+            {
+                for (auto s : n_bv)
+                    r_count_delta[s] -= 1;
+            }
+
+            if (bv_count == 1)
+            {
+                for (auto s : bv)
+                   r_count_delta[s] += 1;
+            }
+        }
+
+        if (r != nr)
+        {
+            size_t kin = (in_deg + out_deg == 0) ? in_degreeS()(v, g) : in_deg;
+            size_t kout = (in_deg + out_deg == 0) ? out_degreeS()(v, g) : out_deg;
+
+            auto& d_r = deg_delta[r];
+            d_r.first += kin;
+            d_r.second += kout;
+
+            auto& d_nr = deg_delta[nr];
+            d_nr.first -= kin;
+            d_nr.second -= kout;
+        }
+
         return S_a - S_b;
     }
 
@@ -871,14 +909,14 @@ struct overlap_partition_stats_t
                 }
             }
 
-            if (d == _D && _dhist[d] == 0)
+            if (d == _D && _dhist[d] == 0 && _D > 1)
             {
-                _D = 1;
-                for (auto& bc : _bhist)
+                _D--;
+                while (_dhist[_D] == 0)
                 {
-                    if (bc.second == 0)
-                        continue;
-                    _D = max(_D, bc.first.size());
+                    if (_D == 0)
+                        break;
+                    _D--;
                 }
             }
 
