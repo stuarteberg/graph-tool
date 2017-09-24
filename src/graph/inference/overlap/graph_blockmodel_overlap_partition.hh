@@ -111,14 +111,13 @@ struct overlap_partition_stats_t
 
             get_bv_deg(v, b, eweight, g, rs, in_hist, out_hist);
 
+            bv_t bv;
             cdeg_t cdeg;
             for (auto r : rs)
             {
-                deg_t deg = std::make_tuple(in_hist[r], out_hist[r]);
-                cdeg.push_back(deg);
+                cdeg.emplace_back(in_hist[r], out_hist[r]);
+                bv.push_back(r);
             }
-
-            bv_t bv(rs.begin(), rs.end());
 
             assert(bv.size() > 0);
 
@@ -141,10 +140,11 @@ struct overlap_partition_stats_t
             for (size_t i = 0; i < bv.size(); ++i)
             {
                 size_t r = bv[i];
-                _emhist[r] += get<0>(cdeg[i]);
-                _ephist[r] += get<1>(cdeg[i]);
-                bmh[i] += get<0>(cdeg[i]);
-                bph[i] += get<1>(cdeg[i]);
+                auto& deg = cdeg[i];
+                _emhist[r] += get<0>(deg);
+                _ephist[r] += get<1>(deg);
+                bmh[i] += get<0>(deg);
+                bph[i] += get<1>(deg);
             }
         }
 
