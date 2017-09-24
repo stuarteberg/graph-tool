@@ -235,12 +235,12 @@ def random_graph(N, deg_sampler, directed=True,
     >>> ylabel("out-degree")
     <...>
     >>> tight_layout()
-    >>> savefig("combined-deg-hist.pdf")
+    >>> savefig("combined-deg-hist.svg")
 
     .. testcode::
        :hide:
 
-       savefig("combined-deg-hist.png")
+       savefig("combined-deg-hist.pdf")
 
     .. figure:: combined-deg-hist.*
         :align: center
@@ -268,7 +268,7 @@ def random_graph(N, deg_sampler, directed=True,
 
     Lets plot the average degree correlations to check.
 
-    >>> figure()
+    >>> figure(figsize=(6,3))
     <...>
     >>> corr = gt.avg_neighbour_corr(g, "in", "in")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
@@ -286,19 +286,21 @@ def random_graph(N, deg_sampler, directed=True,
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{out}\right>$ vs out")
     <...>
-    >>> legend(loc="lower right", borderaxespad=0., framealpha=0.8)
+    >>> legend(loc='center left', bbox_to_anchor=(1, 0.5))
     <...>
     >>> xlabel("Source degree")
     <...>
     >>> ylabel("Average target degree")
     <...>
     >>> tight_layout()
-    >>> savefig("deg-corr-dir.pdf")
+    >>> box = gca().get_position()
+    >>> gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    >>> savefig("deg-corr-dir.svg")
 
     .. testcode::
        :hide:
 
-       savefig("deg-corr-dir.png")
+       savefig("deg-corr-dir.pdf")
 
     .. figure:: deg-corr-dir.*
         :align: center
@@ -675,7 +677,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
 
     We can try with larger graphs to get better statistics, as follows.
 
-    >>> figure()
+    >>> figure(figsize=(6,3))
     <...>
     >>> g = gt.random_graph(30000, lambda: sample_k(20), model="probabilistic-configuration",
     ...                     edge_probs=lambda i, j: exp(abs(i-j)), directed=False,
@@ -699,15 +701,17 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     <...>
     >>> ylabel(r"$\left<k_{nn}\right>$")
     <...>
-    >>> legend(loc="best")
+    >>> legend(loc='center left', bbox_to_anchor=(1, 0.5))
     <...>
+    >>> box = gca().get_position()
+    >>> gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
     >>> tight_layout()
-    >>> savefig("shuffled-stats.pdf")
+    >>> savefig("shuffled-stats.svg")
 
     .. testcode::
        :hide:
 
-       savefig("shuffled-stats.png")
+       savefig("shuffled-stats.pdf")
 
 
     .. figure:: shuffled-stats.*
@@ -725,7 +729,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     ...                     model="probabilistic-configuration",
     ...                     edge_probs=lambda a, b: (p.pmf(a[0], b[1]) * p.pmf(a[1], 20 - b[0])),
     ...                     n_iter=100)
-    >>> figure()
+    >>> figure(figsize=(6,3))
     <...>
     >>> corr = gt.avg_neighbour_corr(g, "in", "out")
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
@@ -753,19 +757,21 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     >>> errorbar(corr[2][:-1], corr[0], yerr=corr[1], fmt="o-",
     ...          label=r"$\left<\text{i}\right>$ vs o, uncorr.")
     <...>
-    >>> legend(loc="lower right", borderaxespad=0., framealpha=0.8)
+    >>> legend(loc='center left', bbox_to_anchor=(1, 0.5))
     <...>
     >>> xlabel("Source degree")
     <...>
     >>> ylabel("Average target degree")
     <...>
     >>> tight_layout()
-    >>> savefig("shuffled-deg-corr-dir.pdf")
+    >>> box = gca().get_position()
+    >>> gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    >>> savefig("shuffled-deg-corr-dir.svg")
 
     .. testcode::
        :hide:
 
-       savefig("shuffled-deg-corr-dir.png")
+       savefig("shuffled-deg-corr-dir.pdf")
 
     .. figure:: shuffled-deg-corr-dir.*
         :align: center

@@ -177,7 +177,7 @@ Edges and vertices can also be removed at any time with the
    the rest of the list. Thus, fast :math:`O(1)` removals are only
    possible either if one can guarantee that only vertices in the end of
    the list are removed (the ones last added to the graph), or if the
-   relative vertex ordering is invalidated. This last behavior can be
+   relative vertex ordering is invalidated. The latter behavior can be
    achieved by passing the option ``fast == True``, to
    :meth:`~graph_tool.Graph.remove_vertex`, which causes the vertex
    being deleted to be 'swapped' with the last vertex (i.e. with the
@@ -206,7 +206,8 @@ Edges and vertices can also be removed at any time with the
    performed internally (in C++).
 
    Note that property map values (see :ref:`sec_property_maps`) are
-   unaffected by the index changes due to vertex removal.
+   unaffected by the index changes due to vertex removal, as they are
+   modified accordingly by the library.
 
 .. note::
 
@@ -217,11 +218,12 @@ Edges and vertices can also be removed at any time with the
    `True`, in which case it becomes :math:`O(1)`, at the expense of
    additional data of size :math:`O(E)`.
 
-   No edge descriptors are ever invalidated after edge removal.
+   No edge descriptors are ever invalidated after edge removal, with the
+   exception of the edge being removed.
 
 Since vertices are uniquely identifiable by their indexes, there is no
 need to keep the vertex descriptor lying around to access them at a
-later point. If we know its index, one can obtain the descriptor of a
+later point. If we know its index, we can obtain the descriptor of a
 vertex with a given index using the :meth:`~graph_tool.Graph.vertex`
 method,
 
@@ -231,7 +233,7 @@ method,
 
 which takes an index, and returns a vertex descriptor. Edges cannot be
 directly obtained by its index, but if the source and target vertices of
-a given edge is known, it can be obtained with the
+a given edge are known, it can be retrieved with the
 :meth:`~graph_tool.Graph.edge` method
 
 .. doctest::
@@ -259,8 +261,8 @@ any specific range. If no edges are ever removed, the indexes will be in
 the range :math:`[0, E-1]`, where :math:`E` is the number of edges, and
 edges added earlier have lower indexes. However if an edge is removed,
 its index will be "vacant", and the remaining indexes will be left
-unmodified, and thus will not lie in the range :math:`[0, E-1]`.  If a
-new edge is added, it will reuse old indexes, in an increasing order.
+unmodified, and thus will not all lie in the range :math:`[0, E-1]`.  If
+a new edge is added, it will reuse old indexes, in an increasing order.
 
 
 .. _sec_iteration:
@@ -505,10 +507,10 @@ and a custom binary format ``gt`` (see :ref:`sec_gt_format`).
 
 .. warning::
 
-    The binary format ``gt`` and ``graphml`` are the preferred formats,
-    since they are by far the most complete. Both these formats are
-    equally complete, but the ``gt`` format is faster and requires less
-    storage.
+    The binary format ``gt`` and the text-based ``graphml`` are the
+    preferred formats, since they are by far the most complete. Both
+    these formats are equally complete, but the ``gt`` format is faster
+    and requires less storage.
 
     The ``dot`` and ``gml`` formats are fully supported, but since they
     contain no precise type information, all properties are read as
@@ -579,9 +581,9 @@ The following is what should happen when the program is run.
     vertex: 0 in-degree: 210 out-degree: 0 age: 0
     Nowhere else to go... We found the main hub!
 
-Below is the degree distribution, with 100000 nodes. If you want to see
-a broader power law, try to increase the number of vertices to something
-like :math:`10^6` or :math:`10^7`.
+Below is the degree distribution, with :math:`10^5` nodes (in order to
+the asymptotic behavior to be even clearer, the number of vertices needs
+to be increased to something like :math:`10^6` or :math:`10^7`).
 
 .. figure:: price-deg-dist.*
    :align: center
@@ -645,13 +647,13 @@ edge filtering.
 
    g, pos = triangulation(random((500, 2)) * 4, type="delaunay")
    tree = min_spanning_tree(g)
-   graph_draw(g, pos=pos, edge_color=tree, output="min_tree.pdf")
+   graph_draw(g, pos=pos, edge_color=tree, output="min_tree.svg")
 
 .. testcode::
    :hide:
 
    graph_draw(g, pos=pos, edge_color=tree, output_size=(400, 400),
-              output="min_tree.png")
+              output="min_tree.pdf")
 
 
 The ``tree`` property map has a bool type, with value "1" if the edge belongs to
@@ -660,23 +662,25 @@ marked edges.
 
 .. figure:: min_tree.*
    :align: center
+   :figwidth: 400
 
 We can now filter out the edges which don't belong to the minimum spanning tree.
 
 .. testcode::
 
    g.set_edge_filter(tree)
-   graph_draw(g, pos=pos, output="min_tree_filtered.pdf")
+   graph_draw(g, pos=pos, output="min_tree_filtered.svg")
 
 .. testcode::
    :hide:
 
-   graph_draw(g, pos=pos, output_size=(400, 400), output="min_tree_filtered.png")
+   graph_draw(g, pos=pos, output_size=(400, 400), output="min_tree_filtered.pdf")
 
 This is how the graph looks when filtered:
 
 .. figure:: min_tree_filtered.*
    :align: center
+   :figwidth: 400
 
 Everything should work transparently on the filtered graph, simply as if the
 masked edges were removed. For instance, the following code will calculate the
@@ -688,16 +692,17 @@ and draws them as colors and line thickness in the graph.
     bv, be = betweenness(g)
     be.a /= be.a.max() / 5
     graph_draw(g, pos=pos, vertex_fill_color=bv, edge_pen_width=be,
-               output="filtered-bt.pdf")
+               output="filtered-bt.svg")
 
 .. testcode::
    :hide:
 
    graph_draw(g, pos=pos, vertex_fill_color=bv, edge_pen_width=be,
-              output_size=(400, 400), output="filtered-bt.png")
+              output_size=(400, 400), output="filtered-bt.pdf")
 
 .. figure:: filtered-bt.*
    :align: center
+   :figwidth: 400
 
 
 The original graph can be recovered by setting the edge filter to ``None``.
@@ -708,16 +713,17 @@ The original graph can be recovered by setting the edge filter to ``None``.
     bv, be = betweenness(g)
     be.a /= be.a.max() / 5
     graph_draw(g, pos=pos, vertex_fill_color=bv, edge_pen_width=be,
-               output="nonfiltered-bt.pdf")
+               output="nonfiltered-bt.svg")
 
 .. testcode::
    :hide:
 
    graph_draw(g, pos=pos, vertex_fill_color=bv, edge_pen_width=be,
-              output_size=(400, 400), output="nonfiltered-bt.png")
+              output_size=(400, 400), output="nonfiltered-bt.pdf")
 
 .. figure:: nonfiltered-bt.*
    :align: center
+   :figwidth: 400
 
 Everything works in analogous fashion with vertex filtering.
 
@@ -770,7 +776,7 @@ Like above, the result should be the isolated minimum spanning tree:
     >>> bv, be = betweenness(tv)
     >>> be.a /= be.a.max() / 5
     >>> graph_draw(tv, pos=pos, vertex_fill_color=bv,
-    ...            edge_pen_width=be, output="mst-view.pdf")
+    ...            edge_pen_width=be, output="mst-view.svg")
     <...>
 
 .. testcode::
@@ -778,10 +784,11 @@ Like above, the result should be the isolated minimum spanning tree:
 
    graph_draw(tv, pos=pos, vertex_fill_color=bv,
               edge_pen_width=be, output_size=(400, 400),
-              output="mst-view.png")
+              output="mst-view.pdf")
 
 .. figure:: mst-view.*
    :align: center
+   :figwidth: 400
 
    A view of the Delaunay graph, isolating only the minimum spanning tree.
 
@@ -821,18 +828,19 @@ The graph view constructed above can be visualized as
 .. doctest::
 
     >>> be.a /= be.a.max() / 5
-    >>> graph_draw(u, pos=pos, vertex_fill_color=bv, output="central-edges-view.pdf")
+    >>> graph_draw(u, pos=pos, vertex_fill_color=bv, output="central-edges-view.svg")
     <...>
 
 .. testcode::
    :hide:
 
    graph_draw(u, pos=pos, vertex_fill_color=bv, output_size=(400, 400),
-              output="central-edges-view.png")
+              output="central-edges-view.pdf")
 
 
 .. figure:: central-edges-view.*
    :align: center
+   :figwidth: 400
 
    A view of the Delaunay graph, isolating only the edges with
    normalized betweenness centrality larger than 0.01.
@@ -855,16 +863,17 @@ The resulting graph view can be visualized as
 
 .. doctest::
 
-    >>> graph_draw(u, pos=pos, output="composed-filter.pdf")
+    >>> graph_draw(u, pos=pos, output="composed-filter.svg")
     <...>
 
 .. testcode::
    :hide:
 
-   graph_draw(u, pos=pos, output_size=(400, 400), output="composed-filter.png")
+   graph_draw(u, pos=pos, output_size=(400, 400), output="composed-filter.pdf")
 
 .. figure:: composed-filter.*
    :align: center
+   :figwidth: 400
 
    A composed view, obtained as the minimum spanning tree of all vertices
    in the graph which have a degree larger than four.

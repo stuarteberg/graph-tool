@@ -190,8 +190,8 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
 
     .. testsetup:: mdl
 
-       gt.seed_rng(42)
-       np.random.seed(42)
+       gt.seed_rng(43)
+       np.random.seed(43)
 
     .. doctest:: mdl
 

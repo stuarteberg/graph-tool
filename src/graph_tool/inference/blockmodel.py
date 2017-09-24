@@ -1081,6 +1081,8 @@ class BlockState(object):
            structures and high-resolution model selection in large networks ",
            Phys. Rev. X 4, 011047 (2014), :doi:`10.1103/PhysRevX.4.011047`,
            :arxiv:`1310.4377`.
+        .. [peixoto-weighted-2017] Tiago P. Peixoto, "Nonparametric weighted
+           stochastic block models", :arxiv:`1708.01432`
 
         """
 

@@ -266,12 +266,12 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
        <...>
        >>> colorbar()
        <...>
-       >>> savefig("corr.pdf")
+       >>> savefig("corr.svg")
 
     .. testcode:: corr_hist
        :hide:
 
-       savefig("corr.png")
+       savefig("corr.pdf")
 
     .. figure:: corr.*
         :align: center
@@ -363,12 +363,12 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
        <...>
        >>> colorbar()
        <...>
-       >>> savefig("combined_corr.pdf")
+       >>> savefig("combined_corr.svg")
 
     .. testcode:: combined_corr_hist
        :hide:
 
-       savefig("combined_corr.png")
+       savefig("combined_corr.pdf")
 
     .. figure:: combined_corr.*
         :align: center
@@ -466,12 +466,12 @@ def avg_neighbour_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
        <...>
        >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
        <...>
-       >>> savefig("avg_corr.pdf")
+       >>> savefig("avg_corr.svg")
 
     .. testcode:: avg_neighbour_corr
        :hide:
 
-       savefig("avg_corr.png")
+       savefig("avg_corr.pdf")
 
     .. figure:: avg_corr.*
         :align: center
@@ -555,12 +555,12 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
        <...>
        >>> errorbar(h[2][:-1], h[0], yerr=h[1], fmt="o")
        <...>
-       >>> savefig("combined_avg_corr.pdf")
+       >>> savefig("combined_avg_corr.svg")
 
     .. testcode:: avg_combined_corr
        :hide:
 
-       savefig("combined_avg_corr.png")
+       savefig("combined_avg_corr.pdf")
 
     .. figure:: combined_avg_corr.*
         :align: center
