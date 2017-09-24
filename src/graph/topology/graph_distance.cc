@@ -30,7 +30,10 @@
 #include <boost/graph/bellman_ford_shortest_paths.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python.hpp>
-#include <boost/math/special_functions/relative_difference.hpp>
+
+#if (BOOST_VERSION >= 106000)
+# include <boost/math/special_functions/relative_difference.hpp>
+#endif
 
 using namespace std;
 using namespace boost;
@@ -464,15 +467,20 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds,
             for (auto e : in_or_out_edges_range(v, g))
             {
                 auto u = boost::is_directed(g) ? source(e, g) : target(e, g);
-                if (std::is_floating_point<dist_t>::value)
+                if (!std::is_floating_point<dist_t>::value)
                 {
                     if (dist_t(dist[u] + get(weight, e)) == d)
                         preds[v].push_back(u);
                 }
                 else
                 {
+#if (BOOST_VERSION >= 106000)
                     if (boost::math::relative_difference(dist_t(dist[u] + get(weight, e)), d) < epsilon)
                         preds[v].push_back(u);
+#else
+                    if (abs(dist_t(dist[u] + get(weight, e)) - d) < epsilon)
+                        preds[v].push_back(u);
+#endif
                 }
             }
          });
