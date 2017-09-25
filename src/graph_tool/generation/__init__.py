@@ -703,9 +703,9 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     <...>
     >>> legend(loc='center left', bbox_to_anchor=(1, 0.5))
     <...>
+    >>> tight_layout()
     >>> box = gca().get_position()
     >>> gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
-    >>> tight_layout()
     >>> savefig("shuffled-stats.svg")
 
     .. testcode::
@@ -765,7 +765,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     <...>
     >>> tight_layout()
     >>> box = gca().get_position()
-    >>> gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    >>> gca().set_position([box.x0, box.y0, box.width * 0.55, box.height])
     >>> savefig("shuffled-deg-corr-dir.svg")
 
     .. testcode::
