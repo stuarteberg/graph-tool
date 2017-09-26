@@ -52,9 +52,9 @@ like ``less`` or ``hexdump``:
 The adjacency list now follows, beginning with a Boolean byte specifying
 whether or not the graph is directed (``0x00``: undirected, ``0x01``:
 directed), and 8 bytes (``uint64_t``) containing the number of nodes,
-``N``. It is followed by the list of out-neighbours of all ``N`` nodes
+``N``. It is followed by the list of out-neighbors of all ``N`` nodes
 in sequence. The sequence itself determines implicitly the index of the
-nodes, in the range from ``0`` to ``N-1``. The list of out-neighbours of
+nodes, in the range from ``0`` to ``N-1``. The list of out-neighbors of
 a given node is composed of a length (8 bytes, ``uint64_t``) and a
 sequence of node indexes with this length. The number of bytes ``d``
 used to encode the node indexes in this list is determined by the value
@@ -62,7 +62,7 @@ of ``N``, and will be the smallest value of the set ``{1, 2, 4, 8}``
 (i.e. ``{uint8_t, uint16_t, uint32_t, uint64_t}``, respectively) which
 is sufficient to accommodate all ``N`` nodes. For undirected graphs,
 here it is important that each edge appears only once, i.e. if node
-``u`` appears in the list of neighbours of ``v``, then ``v`` **should
+``u`` appears in the list of neighbors of ``v``, then ``v`` **should
 not** appear in the list of ``u`` again, otherwise it will be considered
 as a different (parallel) edge. In this way, the total number of bytes
 used for the adjacency is ``1 + 8 + N * 8 + E * d`` with ``E`` being the

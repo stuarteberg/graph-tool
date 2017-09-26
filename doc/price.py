@@ -70,7 +70,7 @@ while True:
         break
 
     n_list = []
-    for w in v.out_neighbours():
+    for w in v.out_neighbors():
         n_list.append(w)
     v = n_list[randint(0, len(n_list))]
 

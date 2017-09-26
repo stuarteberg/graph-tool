@@ -69,7 +69,7 @@ def update_state():
         if (norm(pos[s1].a - pos[t2].a) <= norm(pos[s1].a - pos[t1].a) and
             s1 != t2 and                      # no self-loops
             t1.out_degree() > 1 and           # no isolated vertices
-            t2 not in s1.out_neighbours()):   # no parallel edges
+            t2 not in s1.out_neighbors()):    # no parallel edges
 
             g.remove_edge(edges[i])
             edges[i] = g.add_edge(s1, t2)

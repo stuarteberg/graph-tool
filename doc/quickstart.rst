@@ -292,13 +292,13 @@ methods should be used:
 The code above will print the vertices and edges of the graph in the order they
 are found.
 
-Iterating over the neighbourhood of a vertex
+Iterating over the neighborhood of a vertex
 """"""""""""""""""""""""""""""""""""""""""""
 
-The out- and in-edges of a vertex, as well as the out- and in-neighbours can be
+The out- and in-edges of a vertex, as well as the out- and in-neighbors can be
 iterated through with the :meth:`~graph_tool.Vertex.out_edges`,
-:meth:`~graph_tool.Vertex.in_edges`, :meth:`~graph_tool.Vertex.out_neighbours`
-and :meth:`~graph_tool.Vertex.in_neighbours` methods, respectively.
+:meth:`~graph_tool.Vertex.in_edges`, :meth:`~graph_tool.Vertex.out_neighbors`
+and :meth:`~graph_tool.Vertex.in_neighbors` methods, respectively.
 
 .. doctest::
 
@@ -306,14 +306,14 @@ and :meth:`~graph_tool.Vertex.in_neighbours` methods, respectively.
    for v in g.vertices():
       for e in v.out_edges():
           print(e)
-      for w in v.out_neighbours():
+      for w in v.out_neighbors():
           print(w)
 
-      # the edge and neighbours order always match
-      for e, w in izip(v.out_edges(), v.out_neighbours()):
+      # the edge and neighbors order always match
+      for e, w in izip(v.out_edges(), v.out_neighbors()):
           assert(e.target() == w)
 
-The code above will print the out-edges and out-neighbours of all
+The code above will print the out-edges and out-neighbors of all
 vertices in the graph.
 
 .. warning::
@@ -338,8 +338,8 @@ done with the :meth:`~graph_tool.Graph.get_vertices`,
 :meth:`~graph_tool.Graph.get_edges`,
 :meth:`~graph_tool.Graph.get_out_edges`,
 :meth:`~graph_tool.Graph.get_in_edges`,
-:meth:`~graph_tool.Graph.get_out_neighbours`,
-:meth:`~graph_tool.Graph.get_in_neighbours`,
+:meth:`~graph_tool.Graph.get_out_neighbors`,
+:meth:`~graph_tool.Graph.get_in_neighbors`,
 :meth:`~graph_tool.Graph.get_out_degrees` and
 :meth:`~graph_tool.Graph.get_in_degrees` methods, which return
 :class:`numpy.ndarray` instances instead of iterators.

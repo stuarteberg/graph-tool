@@ -5,7 +5,7 @@
 # simple simulation of an S->I->R->S epidemic model, where each vertex can be in
 # one of the following states: Susceptible (S), infected (I), recovered (R). A
 # vertex in the S state becomes infected either spontaneously with a probability
-# 'x' or because a neighbour is infected. An infected node becomes recovered
+# 'x' or because a neighbor is infected. An infected node becomes recovered
 # with probability 'r', and a recovered vertex becomes again susceptible with
 # probability 's'.
 
@@ -41,7 +41,7 @@ r = 0.1      # I->R probability
 s = 0.01     # R->S probability
 
 # (Note that the S->I transition happens simultaneously for every vertex with a
-#  probability equal to the fraction of non-recovered neighbours which are
+#  probability equal to the fraction of non-recovered neighbors which are
 #  infected.)
 
 S = 0
@@ -116,9 +116,9 @@ def update_state():
             if random() < x:
                 state[v] = I
             else:
-                ns = list(v.out_neighbours())
+                ns = list(v.out_neighbors())
                 if len(ns) > 0:
-                    w = ns[randint(0, len(ns))]  # choose a random neighbour
+                    w = ns[randint(0, len(ns))]  # choose a random neighbor
                     if state[w] == I:
                         state[v] = I
                         newly_infected[v] = True
@@ -128,7 +128,7 @@ def update_state():
             removed[v] = True
 
         if state[v] == S:
-            if I in [state[w] for w in v.out_neighbours()]:
+            if I in [state[w] for w in v.out_neighbors()]:
                 vertex_sfcs[v] = Simg_fear
             else:
                 vertex_sfcs[v] = Simg
