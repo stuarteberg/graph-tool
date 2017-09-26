@@ -3345,12 +3345,9 @@ Edge.__name__ = "Edge"
 
 VertexBase.__doc__ = Vertex.__doc__
 VertexBase.out_neighbors = Vertex.out_neighbors
-VertexBase.out_neighbours = Vertex.out_neighbors
 VertexBase.in_neighbors = Vertex.in_neighbors
-VertexBase.in_neighbours = Vertex.in_neighbors
 VertexBase.all_edges = Vertex.all_edges
 VertexBase.all_neighbors = Vertex.all_neighbors
-VertexBase.all_neighbours = Vertex.all_neighbors
 VertexBase.in_degree = Vertex.in_degree
 VertexBase.out_degree = Vertex.out_degree
 VertexBase.is_valid = Vertex.is_valid
