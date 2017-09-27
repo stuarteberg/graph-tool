@@ -43,7 +43,6 @@ void init_q_cache(size_t n_max)
     if (old_n >= n_max)
         return;
 
-    __q_cache.resize(boost::extents[0][0]);
     __q_cache.resize(boost::extents[n_max + 1][n_max + 1]);
     std::fill(__q_cache.data(), __q_cache.data() + __q_cache.num_elements(),
               -std::numeric_limits<double>::infinity());
