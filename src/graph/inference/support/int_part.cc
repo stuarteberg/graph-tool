@@ -32,6 +32,11 @@ using namespace std;
 
 boost::multi_array<double, 2> __q_cache;
 
+double log_sum(double a, double b)
+{
+    return std::max(a, b) + std::log1p(exp(-abs(a-b)));
+}
+
 void init_q_cache(size_t n_max)
 {
     size_t old_n = __q_cache.shape()[0];
@@ -40,24 +45,17 @@ void init_q_cache(size_t n_max)
 
     __q_cache.resize(boost::extents[0][0]);
     __q_cache.resize(boost::extents[n_max + 1][n_max + 1]);
+    std::fill(__q_cache.data(), __q_cache.data() + __q_cache.num_elements(),
+              -std::numeric_limits<double>::infinity());
 
     for (size_t n = 1; n <= n_max; ++n)
     {
-        __q_cache[n][1] = 1;
+        __q_cache[n][1] = 0;
         for (size_t k = 2; k <= n; ++k)
         {
-            __q_cache[n][k] += __q_cache[n][k - 1];
+            __q_cache[n][k] = log_sum(__q_cache[n][k], __q_cache[n][k - 1]);
             if (n > k)
-                __q_cache[n][k] += __q_cache[n - k][k];
-        }
-    }
-
-    for (size_t n = 0; n < __q_cache.shape()[0]; ++n)
-    {
-        for (size_t k = 0; k < __q_cache.shape()[1]; ++k)
-        {
-            auto& x = __q_cache[n][k];
-            x = log(x);
+                __q_cache[n][k] = log_sum(__q_cache[n][k], __q_cache[n - k][k]);
         }
     }
 }
