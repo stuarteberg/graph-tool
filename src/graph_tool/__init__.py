@@ -2955,7 +2955,7 @@ def load_graph_from_csv(file_name, directed=True, eprop_types=None,
     eprop_names : list of ``str`` (optional, default: ``None``)
         List of edge property names to be used for the remaining columns (if this
         is ``None``, the properties will be called "c1, c2, ...").
-    string_vals : ``bool`` (optional, default: ``False``)
+    string_vals : ``bool`` (optional, default: ``True``)
         If ``True``, the vertex values are assumed to be arbitrary strings,
         otherwise they will be assumed to correspond to integers.
     hashed : ``bool`` (optional, default: ``False``)
