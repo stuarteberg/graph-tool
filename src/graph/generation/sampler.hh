@@ -94,8 +94,8 @@ public:
     }
 
     size_t size() const { return _items.size(); }
-    bool empty() const { return _items.empty(); }
     double prob_sum() const { return _S; }
+    bool empty() const { return _S == 0; }
 
     const Value& operator[](size_t i) const
     {

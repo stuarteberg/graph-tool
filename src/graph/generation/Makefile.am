@@ -48,4 +48,5 @@ libgraph_tool_generation_la_include_HEADERS = \
     graph_sbm.hh \
     graph_triangulation.hh \
     graph_union.hh \
-    sampler.hh
+    sampler.hh \
+    urn_sampler.hh

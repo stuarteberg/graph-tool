@@ -26,6 +26,7 @@
 #include "graph_filtering.hh"
 #include "graph_util.hh"
 #include "sampler.hh"
+#include "urn_sampler.hh"
 
 #include "random.hh"
 
@@ -36,55 +37,78 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-template <class Graph, class VProp, class IVec, class FVec, class VDProp,
-          class RNG>
+template <bool micro_deg, class Graph, class VProp, class IVec, class FVec,
+          class VDProp, class RNG>
 void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
-             VDProp out_deg, RNG& rng)
+             VDProp out_deg, bool micro_ers, RNG& rng)
 {
+    constexpr bool is_dir = is_directed::apply<Graph>::type::value;
+    typedef typename std::conditional_t<micro_deg,size_t,double> dtype;
     vector<vector<size_t>> rvs;
-    vector<vector<double>> v_in_probs, v_out_probs;
+    vector<vector<dtype>> v_in_probs, v_out_probs;
     for (auto v : vertices_range(g))
     {
         size_t r = b[v];
-        if (r >= v_in_probs.size())
+        if (r >= v_out_probs.size())
         {
-            v_in_probs.resize(r+1);
+            if (is_dir)
+                v_in_probs.resize(r+1);
             v_out_probs.resize(r+1);
             rvs.resize(r+1);
         }
         rvs[r].push_back(v);
-        v_in_probs[r].push_back(in_deg[v]);
+        if (is_dir)
+            v_in_probs[r].push_back(in_deg[v]);
         v_out_probs[r].push_back(out_deg[v]);
     }
 
-    vector<Sampler<size_t>> v_in_sampler, v_out_sampler;
+    typedef typename std::conditional_t<micro_deg,
+                                        UrnSampler<size_t, false>,
+                                        Sampler<size_t>> vsampler_t;
+    vector<vsampler_t> v_in_sampler_, v_out_sampler;
     for (size_t r = 0; r < rvs.size(); ++r)
     {
-        v_in_sampler.emplace_back(rvs[r], v_in_probs[r]);
+        if (is_dir)
+            v_in_sampler_.emplace_back(rvs[r], v_in_probs[r]);
         v_out_sampler.emplace_back(rvs[r], v_out_probs[r]);
     }
+
+    auto& v_in_sampler = (is_dir) ? v_in_sampler_ : v_out_sampler;
 
     for (size_t i = 0; i < rs.shape()[0]; ++i)
     {
         size_t r = rs[i];
         size_t s = ss[i];
-        double p = probs[i];
+        auto p = probs[i];
 
-        if (!is_directed::apply<Graph>::type::value && r == s)
+        if (!is_dir && r == s)
             p /= 2;
 
-        if (r >= v_out_sampler.size() || v_out_sampler[r].prob_sum() == 0 ||
-            s >= v_in_sampler.size() || v_in_sampler[s].prob_sum() == 0)
-            throw GraphException("Inconsistent SBM parameters: edge probabilities given for empty groups");
+        if (p > 0 && (r >= v_out_sampler.size() || v_out_sampler[r].empty() ||
+                      s >= v_in_sampler.size()  || v_in_sampler[s].empty()))
+            throw GraphException("Inconsistent SBM parameters: nonzero edge probabilities given for empty groups");
 
         auto& r_sampler = v_out_sampler[r];
         auto& s_sampler = v_in_sampler[s];
 
-        std::poisson_distribution<> poi(p);
-        size_t ers = poi(rng);
+        size_t ers;
+        if (micro_ers)
+        {
+            ers = p;
+        }
+        else
+        {
+            std::poisson_distribution<> poi(p);
+            ers = poi(rng);
+        }
+
         for (size_t j = 0; j < ers; ++j)
         {
+            if (r_sampler.empty())
+                throw GraphException("Inconsistent SBM parameters: node degrees do not agree with matrix of edge counts between groups");
             size_t u = r_sampler.sample(rng);
+            if (s_sampler.empty())
+                throw GraphException("Inconsistent SBM parameters: node degrees do not agree with matrix of edge counts between groups");
             size_t v = s_sampler.sample(rng);
             add_edge(u, v, g);
         }

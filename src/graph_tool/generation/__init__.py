@@ -836,8 +836,10 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
                                                     _get_rng(), verbose)
     return pcount
 
-def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
-    r"""Generate a random graph by sampling from the Poisson stochastic block model.
+def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
+                 micro_ers=False, micro_degs=False):
+    r"""Generate a random graph by sampling from the Poisson or microcanonical
+    stochastic block model.
 
     Parameters
     ----------
@@ -858,6 +860,17 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
         if they are not already so.
     directed : ``bool`` (optional, default: ``False``)
         Whether the graph is directed.
+    micro_ers : ``bool`` (optional, default: ``False``)
+        If true, the `microcanonical` version of the model will be evoked, where
+        the numbers of edges between groups will be given `exactly` by the
+        parameter ``probs``, and this will not fluctuate between samples.
+    micro_degs : ``bool`` (optional, default: ``False``)
+        If true, the `microcanonical` version of the degree-corrected model will
+        be evoked, where the degrees of nodes will be given `exactly` by the
+        parameters ``out_degs`` and ``in_degs``, and they will not fluctuate
+        between samples. (If ``micro_degs == True`` it implies ``micro_ers ==
+        True``.)
+
 
     Returns
     -------
@@ -875,7 +888,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
 
     .. math::
 
-        P({\boldsymbol A}|{\boldsymbol \lambda},{\boldsymbol \theta},{\boldsymbol b})
+        P({\boldsymbol A}|{\boldsymbol \theta},{\boldsymbol \lambda},{\boldsymbol b})
             = \prod_{i<j}\frac{e^{-\lambda_{b_ib_j}\theta_i\theta_j}(\lambda_{b_ib_j}\theta_i\theta_j)^{A_{ij}}}{A_{ij}!}
               \times\prod_i\frac{e^{-\lambda_{b_ib_i}\theta_i^2/2}(\lambda_{b_ib_i}\theta_i^2/2)^{A_{ij}/2}}{(A_{ij}/2)!},
 
@@ -900,7 +913,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
 
     .. math::
 
-        P({\boldsymbol A}|{\boldsymbol \lambda},{\boldsymbol \theta},{\boldsymbol b})
+        P({\boldsymbol A}|{\boldsymbol \theta},{\boldsymbol \lambda},{\boldsymbol b})
             = \prod_{ij}\frac{e^{-\lambda_{b_ib_j}\theta^+_i\theta^-_j}(\lambda_{b_ib_j}\theta^+_i\theta^-_j)^{A_{ij}}}{A_{ij}!}.
 
     Again, the same normalization is assumed:
@@ -912,8 +925,47 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     such that the value :math:`\lambda_{rs}` will correspond to the average
     number of directed edges between groups :math:`r` and :math:`s`.
 
-    The graph is generated in time :math:`O(V + E + B)`, where :math:`B` is the
-    number of groups.
+    In case the parameter ``micro_degs == True`` is passed, a `microcanical
+    <https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ model is used
+    instead, where both the number of edges between groups as well as the
+    degrees of the nodes are preserved `exactly`, instead of only on
+    expectation. In this case, the parameters are interpreted as
+    :math:`{\boldsymbol\lambda}\equiv{\boldsymbol e}` and
+    :math:`{\boldsymbol\theta}\equiv{\boldsymbol k}`, where :math:`e_{rs}` is
+    the number of edges between groups :math:`r` and :math:`s` (or twice that if
+    :math:`r=s` in the undirected case), and :math:`k_i` is the degree of node
+    :math:`i`. The multigraphs are then sampled with probability
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol k},{\boldsymbol e},{\boldsymbol b}) =
+        \frac{\prod_{r<s}e_{rs}!\prod_re_{rr}!!\prod_ik_i!}{\prod_re_r!\prod_{i<j}A_{ij}!\prod_iA_{ii}!!}.
+
+    and in the directed case with probability
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol k}^+,{\boldsymbol k}^-,{\boldsymbol e},{\boldsymbol b}) =
+        \frac{\prod_{rs}e_{rs}!\prod_ik^+_i!k^-_i!}{\prod_re^+_r!e^-_r!\prod_{ij}A_{ij}!}.
+
+
+    In the non-degree-corrected case, if ``micro_ers == True``, the
+    microcanonical model corresponds to
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol e},{\boldsymbol b}) =
+        \frac{\prod_{r<s}e_{rs}!\prod_re_{rr}!!}{\prod_rn_r^{e_r}\prod_{i<j}A_{ij}!\prod_iA_{ii}!!},
+
+    and in the directed case to
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol e},{\boldsymbol b}) =
+        \frac{\prod_{rs}e_{rs}!}{\prod_rn_r^{e_r^+ + e_r^-}\prod_{ij}A_{ij}!}.
+
+    In every case above, the final graph is generated in time :math:`O(V + E +
+    B)`, where :math:`B` is the number of groups.
 
     Examples
     --------
@@ -923,7 +975,7 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     >>> g = gt.Graph(g, prune=True)
     >>> state = gt.minimize_blockmodel_dl(g)
     >>> u = gt.generate_sbm(state.b.a, gt.adjacency(state.get_bg(),
-    ...                                             state.get_ers()),
+    ...                                             state.get_ers()).T,
     ...                     g.degree_property_map("out").a,
     ...                     g.degree_property_map("in").a, directed=True)
     >>> gt.graph_draw(g, g.vp.pos, output="polblogs-sbm.png")
@@ -944,6 +996,9 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     .. [karrer-stochastic-2011] Brian Karrer and M. E. J. Newman, "Stochastic
        blockmodels and community structure in networks," Physical Review E 83,
        no. 1: 016107 (2011) :doi:`10.1103/PhysRevE.83.016107` :arxiv:`1008.3926`
+    .. [peixoto-nonparametric-2017] Tiago P. Peixoto, "Nonparametric Bayesian
+       inference of the microcanonical stochastic block model", Phys. Rev. E 95
+       012317 (2017). :doi:`10.1103/PhysRevE.95.012317`, :arxiv:`1610.02703`
 
     """
 
@@ -951,20 +1006,22 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
     g.add_vertex(len(b))
     b = g.new_vp("int", b)
 
+    deg_type = "double" if not micro_degs else "int64_t"
+    p_type = "double" if not micro_degs else "uint64"
     if not directed:
         if out_degs is None:
-            out_degs = in_degs = g.new_vp("double", 1)
+            out_degs = in_degs = g.new_vp(deg_type, 1)
         else:
-            out_degs = in_degs = g.new_vp("double", out_degs)
+            out_degs = in_degs = g.new_vp(deg_type, out_degs)
     else:
         if out_degs is None:
-            out_degs = g.new_vp("double", 1)
+            out_degs = g.new_vp(deg_type, 1)
         else:
-            out_degs = g.new_vp("double", out_degs)
+            out_degs = g.new_vp(deg_type, out_degs)
         if in_degs is None:
-            in_degs = g.new_vp("double", 1)
+            in_degs = g.new_vp(deg_type, 1)
         else:
-            in_degs = g.new_vp("double", in_degs)
+            in_degs = g.new_vp(deg_type, in_degs)
 
     r, s = probs.nonzero()
     if not directed:
@@ -980,11 +1037,13 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False):
 
     libgraph_tool_generation.gen_sbm(g._Graph__graph,
                                      _prop("v", g, b),
-                                     numpy.array(r, dtype="int64"),
-                                     numpy.array(s, dtype="int64"),
-                                     numpy.array(p, dtype="double"),
+                                     numpy.asarray(r, dtype="int64"),
+                                     numpy.asarray(s, dtype="int64"),
+                                     numpy.asarray(p, dtype=p_type),
                                      _prop("v", g, in_degs),
                                      _prop("v", g, out_degs),
+                                     micro_ers,
+                                     micro_degs,
                                      _get_rng())
     return g
 

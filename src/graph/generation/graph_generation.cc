@@ -70,7 +70,8 @@ void generate_graph(GraphInterface& gi, size_t N,
 
 void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
                   boost::python::object oss, boost::python::object oprobs,
-                  boost::any ain_deg, boost::any aout_deg, rng_t& rng);
+                  boost::any ain_deg, boost::any aout_deg, bool micro_ers,
+                  bool micro_degs, rng_t& rng);
 
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,

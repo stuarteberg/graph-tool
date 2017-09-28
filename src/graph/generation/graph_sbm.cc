@@ -24,19 +24,33 @@ using namespace graph_tool;
 
 void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
                   boost::python::object oss, boost::python::object oprobs,
-                  boost::any ain_deg, boost::any aout_deg, rng_t& rng)
+                  boost::any ain_deg, boost::any aout_deg, bool micro_ers,
+                  bool micro_degs, rng_t& rng)
 {
     auto rs = get_array<int64_t, 1>(ors);
     auto ss = get_array<int64_t, 1>(oss);
-    auto probs = get_array<double, 1>(oprobs);
 
     typedef vprop_map_t<int32_t>::type bmap_t;
     auto b = any_cast<bmap_t>(ab).get_unchecked();
 
-    typedef vprop_map_t<double>::type dmap_t;
-    auto in_deg = any_cast<dmap_t>(ain_deg).get_unchecked();
-    auto out_deg = any_cast<dmap_t>(aout_deg).get_unchecked();
-
-    run_action<>()
-        (gi, [&](auto& g) { gen_sbm(g, b, rs, ss, probs, in_deg, out_deg, rng); })();
+    if (micro_degs)
+    {
+        auto probs = get_array<uint64_t, 1>(oprobs);
+        typedef vprop_map_t<int64_t>::type dmap_t;
+        auto in_deg = any_cast<dmap_t>(ain_deg).get_unchecked();
+        auto out_deg = any_cast<dmap_t>(aout_deg).get_unchecked();
+        run_action<>()
+            (gi, [&](auto& g) { gen_sbm<true>(g, b, rs, ss, probs, in_deg,
+                                              out_deg, true, rng); })();
+    }
+    else
+    {
+        auto probs = get_array<double, 1>(oprobs);
+        typedef vprop_map_t<double>::type dmap_t;
+        auto in_deg = any_cast<dmap_t>(ain_deg).get_unchecked();
+        auto out_deg = any_cast<dmap_t>(aout_deg).get_unchecked();
+        run_action<>()
+            (gi, [&](auto& g) { gen_sbm<false>(g, b, rs, ss, probs, in_deg,
+                                               out_deg, micro_ers, rng); })();
+    }
 }

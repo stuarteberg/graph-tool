@@ -2201,15 +2201,15 @@ class BlockState(object):
                                            "vertex_color",
                                            "edge_gradient"]))
 
-    def sample_graph(self, canonical=False, niter=100, multigraph=True,
-                     self_loops=True):
+    def sample_graph(self, canonical=False, niter=100, poisson=True,
+                     multigraph=True, self_loops=True):
         r"""Sample a new graph from the fitted model.
 
         Parameters
         ----------
         canonical : ``bool`` (optional, default: ``False``)
             If ``canonical == True``, the graph will be sampled from the
-            maximum-likelihood estimate of the Poisson stochastic block
+            maximum-likelihood estimate of the canonical stochastic block
             model. Otherwise, it will be sampled from the microcanonical model.
         niter : ``int`` (optional, default: ``None``)
             Number of MCMC steps. This value is ignored if ``canonical ==
@@ -2218,6 +2218,9 @@ class BlockState(object):
             If ``True``, parallel edges will be allowed.
         self-loops : ``bool`` (optional, default: ``True``)
             If ``True``, self-loops will be allowed.
+        poisson : ``bool`` (optional, default: ``True``)
+            If ``True``, the Poisson model will be used, otherwise the graph
+            will be sampled from the corresponding maximum entropy ensemble.
 
         Returns
         -------
@@ -2227,8 +2230,8 @@ class BlockState(object):
         Notes
         -----
         This function is just a convenience wrapper to
-        :func:`~graph_tool.generation.random_rewire` (if ``canonical == False``)
-        and :func:`~graph_tool.generation.generate_sbm` (if ``canonical ==
+        :func:`~graph_tool.generation.random_rewire` (if ``poisson == False``)
+        and :func:`~graph_tool.generation.generate_sbm` (if ``poisson ==
         True``).
 
         Examples
@@ -2253,7 +2256,7 @@ class BlockState(object):
         SBM fitted to the original network.
 
         """
-        if canonical:
+        if poisson:
             in_degs = out_degs = None
             if self.deg_corr:
                 out_degs = self.g.degree_property_map("out").fa
@@ -2261,10 +2264,12 @@ class BlockState(object):
                     in_degs = self.g.degree_property_map("in").fa
                 else:
                     in_degs = None
-            probs = adjacency(self.bg, weight=self.mrs)
+            probs = adjacency(self.bg, weight=self.mrs).T
             g = generate_sbm(b=self.b.fa, probs=probs,
                              in_degs=in_degs, out_degs=out_degs,
-                             directed=self.g.is_directed())
+                             directed=self.g.is_directed(),
+                             micro_ers=not canonical,
+                             micro_degs=not canonical and self.deg_corr)
             if not multigraph:
                 remove_parallel_edges(g)
             if not self_loops:
@@ -2272,7 +2277,7 @@ class BlockState(object):
         else:
             g = self.g.copy()
             if self.deg_corr:
-                model = "constrained-configuration"
+                model = "constrained-configuration" if not canonical else "blockmodel-degree"
                 probs = None
             else:
                 model = "blockmodel"
