@@ -464,7 +464,9 @@ struct gen_graph
         set<deg_t, cmp_in<greater<size_t> > > targets;
 
         // vertices with a given degree
-        gt_hash_map<deg_t, vector<size_t>> vset;
+        unordered_map<deg_t, vector<size_t>> vset; // can't use gt_hash_map, as
+                                                   // internal pointers are
+                                                   // invalidated after insert
 
         size_t num_e = 0;
         for (size_t i = 0; i < vertices.size();  ++i)

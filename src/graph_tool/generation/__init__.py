@@ -454,11 +454,12 @@ def random_graph(N, deg_sampler, directed=True,
 
 @_limit_args({"model": ["erdos", "configuration", "constrained-configuration",
                         "probabilistic-configuration", "blockmodel-degree",
-                        "blockmodel"]})
+                        "blockmodel", "blockmodel-micro"]})
 def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
-                  parallel_edges=False, self_loops=False, edge_probs=None,
-                  block_membership=None, alias=True, cache_probs=True,
-                  persist=False, pin=None, ret_fail=False, verbose=False):
+                  parallel_edges=False, self_loops=False, configuration=True,
+                  edge_probs=None, block_membership=None, alias=True,
+                  cache_probs=True, persist=False, pin=None, ret_fail=False,
+                  verbose=False):
     r"""Shuffle the graph in-place, following a variety of possible statistical
     models, chosen via the parameter ``model``.
 
@@ -495,6 +496,9 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         ``blockmodel``
            This is just like ``blockmodel-degree``, but the degree sequence *is
            not* preserved during rewiring.
+        ``blockmodel-micro``
+           This is like ``blockmodel``, but the exact number of edges between
+           groups is preserved as well.
     n_iter : int (optional, default: ``1``)
         Number of iterations. If ``edge_sweep == True``, each iteration
         corresponds to an entire "sweep" over all edges. Otherwise this
@@ -508,6 +512,12 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         If ``True``, parallel edges are allowed.
     self_loops : bool (optional, default: ``False``)
         If ``True``, self-loops are allowed.
+    configuration : bool (optional, default: ``True``)
+        If ``True``, graphs are sampled from the corresponding maximum-entropy
+        ensemble of configurations (i.e. distinguishable half-edge pairings),
+        otherwise they are sampled from the maximum-entropy ensemble of graphs
+        (i.e. indistinguishable half-edge pairings). The distinction is only
+        relevant if parallel edges are allowed.
     edge_probs : function or sequence of triples (optional, default: ``None``)
         A function which determines the edge probabilities in the graph. In
         general it should have the following signature:
@@ -814,9 +824,13 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         n_iter *= g.num_edges()
 
     traditional = True
+    micro = False
     if model == "blockmodel-degree":
         model = "blockmodel"
         traditional = False
+    if model == "blockmodel-micro":
+        model = "blockmodel"
+        micro = True
 
     if pin is None:
         pin = g.new_edge_property("bool")
@@ -824,16 +838,21 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     if pin.value_type() != "bool":
         pin = pin.copy(value_type="bool")
 
+    fast = g.get_fast_edge_removal()
+    if not fast:
+        g.set_fast_edge_removal(True)
     pcount = libgraph_tool_generation.random_rewire(g._Graph__graph,
                                                     _c_str(model),
                                                     n_iter, not edge_sweep,
                                                     self_loops, parallel_edges,
-                                                    alias, traditional, persist,
-                                                    corr,
+                                                    configuration, alias,
+                                                    traditional, micro, persist, corr,
                                                     _prop("e", g, pin),
                                                     _prop("v", g, block_membership),
                                                     cache_probs,
                                                     _get_rng(), verbose)
+    if not fast:
+        g.set_fast_edge_removal(False)
     return pcount
 
 def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,

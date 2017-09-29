@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#define BOOST_PYTHON_MAX_ARITY 40
+
 #include "graph.hh"
 #include "graph_util.hh"
 #include "graph_filtering.hh"
@@ -75,9 +77,10 @@ void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
 
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
-                     bool alias, bool traditional, bool persist,
-                     boost::python::object corr_prob, boost::any apin,
-                     boost::any block, bool cache, rng_t& rng, bool verbose);
+                     bool configuration, bool alias, bool traditional,
+                     bool micro, bool persist, boost::python::object corr_prob,
+                     boost::any apin, boost::any block, bool cache, rng_t& rng,
+                     bool verbose);
 void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
                        boost::any pred_map);
 void line_graph(GraphInterface& gi, GraphInterface& lgi,

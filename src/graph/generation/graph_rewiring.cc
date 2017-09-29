@@ -75,34 +75,45 @@ private:
 
 struct graph_rewire_block
 {
-    graph_rewire_block(bool alias, bool traditional) : alias(alias), traditional(traditional) {}
+    graph_rewire_block(bool alias, bool traditional, bool micro) :
+        alias(alias), traditional(traditional), micro(micro) {}
     bool alias;
     bool traditional;
+    bool micro;
 
     template <class Graph, class EdgeIndexMap, class CorrProb, class PinMap,
               class BlockProp>
     void operator()(Graph& g, EdgeIndexMap edge_index, CorrProb corr_prob,
-                    PinMap pin, pair<bool, bool> rest, BlockProp block_prop,
-                    pair<size_t, bool> iter_sweep,
-                    std::tuple<bool, bool, bool> cache_verbose, size_t& pcount, rng_t& rng)
-        const
+                    PinMap pin, pair<bool, bool> rest, bool configuration,
+                    BlockProp block_prop, pair<size_t, bool> iter_sweep,
+                    std::tuple<bool, bool, bool> cache_verbose, size_t& pcount,
+                    rng_t& rng) const
     {
         if (traditional)
         {
-            graph_rewire<TradBlockRewireStrategy>()
-                (g, edge_index, corr_prob, pin, rest.first, rest.second, iter_sweep,
-                 cache_verbose, pcount, rng, PropertyBlock<BlockProp>(block_prop));
+            if (micro)
+                graph_rewire<MicroTradBlockRewireStrategy>()
+                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
+                     configuration, iter_sweep, cache_verbose, pcount, rng,
+                     PropertyBlock<BlockProp>(block_prop));
+            else
+                graph_rewire<CanTradBlockRewireStrategy>()
+                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
+                     configuration, iter_sweep, cache_verbose, pcount, rng,
+                     PropertyBlock<BlockProp>(block_prop));
         }
         else
         {
             if (alias)
                 graph_rewire<AliasProbabilisticRewireStrategy>()
-                    (g, edge_index, corr_prob, pin, rest.first, rest.second, iter_sweep,
-                     cache_verbose, pcount, rng, PropertyBlock<BlockProp>(block_prop));
+                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
+                     configuration, iter_sweep,cache_verbose, pcount, rng,
+                     PropertyBlock<BlockProp>(block_prop));
             else
                 graph_rewire<ProbabilisticRewireStrategy>()
-                    (g, edge_index, corr_prob, pin,  rest.first, rest.second, iter_sweep,
-                     cache_verbose, pcount, rng, PropertyBlock<BlockProp>(block_prop));
+                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
+                     configuration, iter_sweep, cache_verbose, pcount, rng,
+                     PropertyBlock<BlockProp>(block_prop));
         }
     }
 };
@@ -114,22 +125,24 @@ struct graph_rewire_correlated
               class BlockProp>
     void operator()(Graph& g, EdgeIndexMap edge_index, CorrProb corr_prob,
                     PinMap pin, bool self_loops, bool parallel_edges,
-                    pair<size_t, bool> iter_sweep,
-                    std::tuple<bool, bool, bool> cache_verbose,
-                    size_t& pcount, rng_t& rng, BlockProp block_prop) const
+                    bool configuration, pair<size_t, bool> iter_sweep,
+                    std::tuple<bool, bool, bool> cache_verbose, size_t& pcount,
+                    rng_t& rng, BlockProp block_prop) const
     {
         graph_rewire<CorrelatedRewireStrategy>()
-            (g, edge_index, corr_prob, pin, self_loops, parallel_edges, iter_sweep,
-             cache_verbose, pcount, rng, PropertyBlock<BlockProp>(block_prop));
+            (g, edge_index, corr_prob, pin, self_loops, parallel_edges,
+             configuration, iter_sweep, cache_verbose, pcount, rng,
+             PropertyBlock<BlockProp>(block_prop));
     }
 };
 
 
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
-                     bool alias, bool traditional, bool persist,
-                     boost::python::object corr_prob, boost::any apin,
-                     boost::any block, bool cache, rng_t& rng, bool verbose)
+                     bool configuration, bool alias, bool traditional,
+                     bool micro, bool persist, boost::python::object corr_prob,
+                     boost::any apin, boost::any block, bool cache, rng_t& rng,
+                     bool verbose)
 {
     PythonFuncWrap corr(corr_prob);
     size_t pcount = 0;
@@ -145,7 +158,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
             (gi, std::bind(graph_rewire<ErdosRewireStrategy>(),
                            std::placeholders::_1, gi.get_edge_index(),
                            std::ref(corr), pin,
-                           self_loops, parallel_edges,
+                           self_loops, parallel_edges, configuration,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)))();
@@ -155,7 +168,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         run_action<graph_tool::detail::never_reversed>()
             (gi, std::bind(graph_rewire<RandomRewireStrategy>(),
                            std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
-                           pin, self_loops, parallel_edges,
+                           pin, self_loops, parallel_edges, configuration,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)))();
@@ -167,7 +180,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
             run_action<graph_tool::detail::never_reversed>()
                 (gi, std::bind(graph_rewire<CorrelatedRewireStrategy>(),
                                std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
-                               pin, self_loops, parallel_edges,
+                               pin, self_loops, parallel_edges, configuration,
                                make_pair(niter, no_sweep),
                                std::make_tuple(persist, cache, verbose),
                                std::ref(pcount), std::ref(rng)))();
@@ -177,7 +190,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
             run_action<graph_tool::detail::never_reversed>()
                 (gi, std::bind(graph_rewire_correlated(),
                                std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
-                               pin, self_loops, parallel_edges,
+                               pin, self_loops, parallel_edges, configuration,
                                make_pair(niter, no_sweep),
                                std::make_tuple(persist, cache, verbose),
                                std::ref(pcount), std::ref(rng),
@@ -190,7 +203,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
         run_action<>()
             (gi, std::bind(graph_rewire<ProbabilisticRewireStrategy>(),
                            std::placeholders::_1, gi.get_edge_index(), std::ref(corr),
-                           pin, self_loops, parallel_edges,
+                           pin, self_loops, parallel_edges, configuration,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
                            std::ref(pcount), std::ref(rng)))();
@@ -198,10 +211,11 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     else if (strat == "blockmodel")
     {
         run_action<>()
-            (gi, std::bind(graph_rewire_block(alias, traditional),
+            (gi, std::bind(graph_rewire_block(alias, traditional, micro),
                            std::placeholders::_1, gi.get_edge_index(),
                            std::ref(corr), pin,
                            make_pair(self_loops, parallel_edges),
+                           configuration,
                            std::placeholders::_2,
                            make_pair(niter, no_sweep),
                            std::make_tuple(persist, cache, verbose),
