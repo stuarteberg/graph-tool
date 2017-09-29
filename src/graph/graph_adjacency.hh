@@ -467,6 +467,39 @@ public:
         _epos.shrink_to_fit();
     }
 
+    void reverse_edge(edge_descriptor& e) const
+    {
+        auto& elist = _edges[e.s];
+        auto pos = elist.first;
+        auto& es = elist.second;
+        if (_keep_epos)
+        {
+            auto& epos = _epos[e.idx];
+            if (epos.first >= pos ||
+                es[epos.first].second != e.idx)
+            {
+                std::swap(e.s, e.t);
+                assert(epos.first < pos &&
+                       es[epos.first].first == e.t &&
+                       es[epos.first].second == e.idx);
+            }
+        }
+        else
+        {
+            bool found = false;
+            for (size_t i = 0; i < pos; ++i)
+            {
+                if (es[i].second == e.idx)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                std::swap(e.s, e.t);
+        }
+    }
+
 private:
     vertex_list_t _edges;
     size_t _n_edges;
@@ -963,7 +996,6 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
     auto& t_pos = t_pes.first;
     auto& t_es  = t_pes.second;
 
-    bool found = false;
     if (!g._keep_epos) // O(k_s + k_t)
     {
         // remove and shift
@@ -973,28 +1005,18 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
                                          [&] (const auto& ei) -> bool
                                          { return v == ei.first &&
                                                   idx == ei.second; });
-                if (iter != end)
-                {
-                    elist.erase(iter);
-                    found = true;
-                }
+                assert(iter != end);
+                elist.erase(iter);
             };
 
         remove_e(s_es, s_es.begin(), s_es.begin() + s_pos, t);
-        if (found)
-            s_pos--;
+        s_pos--;
         remove_e(t_es, t_es.begin() + t_pos, t_es.end(), s);
     }
     else // O(1)
     {
         //g.check_epos();
-
-        if (idx >= g._epos.size())
-            return;
-        auto& i = g._epos[idx];
-        if (i.first >= s_es.size() || s_es[i.first].first != t ||
-            i.second >= t_es.size() || t_es[i.second].first != s)
-            return;
+        assert (idx < g._epos.size());
 
         // swap with back, and pop back
         auto remove_e = [&] (auto& elist, auto&& begin, auto&& end,
@@ -1004,6 +1026,7 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
             auto& back = *back_iter;
             auto j = get_pos(idx);
             assert(j < elist.size());
+            assert(elist[j].second == idx);
             elist[j] = back;
             get_pos(back.second) = j;
             if (swap_back && end != elist.end())
@@ -1021,15 +1044,11 @@ void remove_edge(const typename adj_list<Vertex>::edge_descriptor& e,
         remove_e(t_es, t_es.begin() + t_pos, t_es.end(),
                  [&](size_t i) -> auto& {return g._epos[i].second;}, false);
 
-        found = true;
         //g.check_epos();
     }
 
-    if (found)
-    {
-        g._free_indexes.push_back(idx);
-        g._n_edges--;
-    }
+    g._free_indexes.push_back(idx);
+    g._n_edges--;
 }
 
 template <class Vertex>

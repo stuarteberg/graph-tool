@@ -465,8 +465,7 @@ void remove_edge(typename graph_traits<undirected_adaptor<Graph> >::edge_descrip
                  undirected_adaptor<Graph>& g)
 {
     auto& u = g.original_graph();
-    remove_edge(e, u);
-    std::swap(e.s, e.t);
+    u.reverse_edge(e);
     remove_edge(e, u);
 }
 
