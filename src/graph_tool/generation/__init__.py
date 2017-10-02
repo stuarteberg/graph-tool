@@ -457,9 +457,8 @@ def random_graph(N, deg_sampler, directed=True,
                         "blockmodel", "blockmodel-micro"]})
 def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
                   parallel_edges=False, self_loops=False, configuration=True,
-                  edge_probs=None, block_membership=None, alias=True,
-                  cache_probs=True, persist=False, pin=None, ret_fail=False,
-                  verbose=False):
+                  edge_probs=None, block_membership=None, cache_probs=True,
+                  persist=False, pin=None, ret_fail=False, verbose=False):
     r"""Shuffle the graph in-place, following a variety of possible statistical
     models, chosen via the parameter ``model``.
 
@@ -554,13 +553,6 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         If supplied, the graph will be rewired to conform to a blockmodel
         ensemble. The value must be a vertex property map which defines the
         block of each vertex.
-    alias : bool (optional, default: ``True``)
-        If ``True``, and ``model`` is any of ``probabilistic-configuration``,
-        ``blockmodel-degree``, or ``blockmodel``, the alias method will be used
-        to sample the candidate edges. In the case of ``blockmodel``, if
-        ``parallel_edges == True`` and ``self_loops == True`` this makes the
-        sampling of the edges direct (not rejection based), so that ``n_iter ==
-        1`` is enough to get an uncorrelated sample.
     cache_probs : bool (optional, default: ``True``)
         If ``True``, the probabilities returned by the ``edge_probs`` parameter
         will be cached internally. This is crucial for good performance, since
@@ -819,10 +811,6 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
     elif edge_probs is None:
         raise ValueError("A function must be supplied as the 'edge_probs' parameter")
 
-    if model == "blockmodel-degree" and alias and edge_sweep:
-        edge_sweep = False
-        n_iter *= g.num_edges()
-
     traditional = True
     micro = False
     if model == "blockmodel-degree":
@@ -845,7 +833,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
                                                     _c_str(model),
                                                     n_iter, not edge_sweep,
                                                     self_loops, parallel_edges,
-                                                    configuration, alias,
+                                                    configuration,
                                                     traditional, micro, persist, corr,
                                                     _prop("e", g, pin),
                                                     _prop("v", g, block_membership),

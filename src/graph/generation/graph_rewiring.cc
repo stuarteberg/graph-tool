@@ -75,9 +75,8 @@ private:
 
 struct graph_rewire_block
 {
-    graph_rewire_block(bool alias, bool traditional, bool micro) :
-        alias(alias), traditional(traditional), micro(micro) {}
-    bool alias;
+    graph_rewire_block(bool traditional, bool micro) :
+        traditional(traditional), micro(micro) {}
     bool traditional;
     bool micro;
 
@@ -104,16 +103,10 @@ struct graph_rewire_block
         }
         else
         {
-            if (alias)
-                graph_rewire<AliasProbabilisticRewireStrategy>()
-                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
-                     configuration, iter_sweep,cache_verbose, pcount, rng,
-                     PropertyBlock<BlockProp>(block_prop));
-            else
-                graph_rewire<ProbabilisticRewireStrategy>()
-                    (g, edge_index, corr_prob, pin, rest.first, rest.second,
-                     configuration, iter_sweep, cache_verbose, pcount, rng,
-                     PropertyBlock<BlockProp>(block_prop));
+            graph_rewire<ProbabilisticRewireStrategy>()
+                (g, edge_index, corr_prob, pin, rest.first, rest.second,
+                 configuration, iter_sweep, cache_verbose, pcount, rng,
+                 PropertyBlock<BlockProp>(block_prop));
         }
     }
 };
@@ -139,8 +132,8 @@ struct graph_rewire_correlated
 
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
-                     bool configuration, bool alias, bool traditional,
-                     bool micro, bool persist, boost::python::object corr_prob,
+                     bool configuration, bool traditional, bool micro,
+                     bool persist, boost::python::object corr_prob,
                      boost::any apin, boost::any block, bool cache, rng_t& rng,
                      bool verbose)
 {
@@ -211,7 +204,7 @@ size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
     else if (strat == "blockmodel")
     {
         run_action<>()
-            (gi, std::bind(graph_rewire_block(alias, traditional, micro),
+            (gi, std::bind(graph_rewire_block(traditional, micro),
                            std::placeholders::_1, gi.get_edge_index(),
                            std::ref(corr), pin,
                            make_pair(self_loops, parallel_edges),

@@ -77,8 +77,8 @@ void generate_sbm(GraphInterface& gi, boost::any ab, boost::python::object ors,
 
 size_t random_rewire(GraphInterface& gi, string strat, size_t niter,
                      bool no_sweep, bool self_loops, bool parallel_edges,
-                     bool configuration, bool alias, bool traditional,
-                     bool micro, bool persist, boost::python::object corr_prob,
+                     bool configuration, bool traditional, bool micro,
+                     bool persist, boost::python::object corr_prob,
                      boost::any apin, boost::any block, bool cache, rng_t& rng,
                      bool verbose);
 void predecessor_graph(GraphInterface& gi, GraphInterface& gpi,
