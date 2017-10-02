@@ -136,6 +136,8 @@ simple_degs_t copy_simple_degs(simple_degs_t& degs)
 
 void export_sbm_state();
 
+double spence(double);
+
 void export_blockmodel_state()
 {
     using namespace boost::python;
@@ -192,6 +194,7 @@ void export_blockmodel_state()
     def("log_q_approx", log_q_approx);
     def("log_q_approx_big", log_q_approx_big);
     def("log_q_approx_small", log_q_approx_small);
+    def("spence", spence);
 
     def("positive_w_log_P", positive_w_log_P<size_t>);
     def("signed_w_log_P", signed_w_log_P<size_t>);

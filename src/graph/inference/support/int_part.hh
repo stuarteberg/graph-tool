@@ -23,9 +23,9 @@ using namespace boost;
 void init_q_cache(size_t n_max);
 double q_rec(int n, int k);
 double q_rec_memo(int n, int k);
-double log_q_approx(int n, int k);
-double log_q_approx_big(int n, int k);
-double log_q_approx_small(int n, int k);
+double log_q_approx(size_t n, size_t k);
+double log_q_approx_big(size_t n, size_t k);
+double log_q_approx_small(size_t n, size_t k);
 
 extern boost::multi_array<double, 2> __q_cache;
 

@@ -143,7 +143,7 @@ double spence(double x)
     y = -w * polevl(w, A, 7) / polevl(w, B, 7);
 
     if (flag & 1)
-        y = (M_PI * M_PI) / 6.0 - std::log(x) * std::log(1.0 - x) - y;
+        y = (M_PI * M_PI) / 6.0 - std::log(x) * std::log1p(-x) - y;
 
     if (flag & 2) {
         z = std::log(x);

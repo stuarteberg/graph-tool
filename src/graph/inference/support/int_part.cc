@@ -89,9 +89,9 @@ double q_rec_memo(int n, int k)
     return res;
 }
 
-double log_q_approx_big(int n, int k)
+double log_q_approx_big(size_t n, size_t k)
 {
-    double C = M_PI * sqrt(2/3.);
+    constexpr double C = M_PI * sqrt(2/3.);
     double S = C * sqrt(n) - log(4 * sqrt(3) * n);
     if (k < n)
     {
@@ -101,7 +101,7 @@ double log_q_approx_big(int n, int k)
     return S;
 }
 
-double log_q_approx_small(int n, int k)
+double log_q_approx_small(size_t n, size_t k)
 {
     return lbinom_fast(n - 1, k - 1) - lgamma_fast(k + 1);
 }
@@ -112,22 +112,23 @@ double get_v(double u, double epsilon=1e-8)
     double delta = 1;
     while (delta > epsilon)
     {
-        double n_v = u * sqrt(-v*v/2 - spence(exp(v)));
+        // spence(exp(v)) = -spence(exp(-v)) - (v*v)/2
+        double n_v = u * sqrt(spence(exp(-v)));
         delta = abs(n_v - v);
         v = n_v;
     }
     return v;
 }
 
-double log_q_approx(int n, int k)
+double log_q_approx(size_t n, size_t k)
 {
     if (k < pow(n, 1/4.))
         return log_q_approx_small(n, k);
     double u = k / sqrt(n);
     double v = get_v(u);
-    double lf = log(v) - log(1 - exp(-v) * (1 + u * u/2)) / 2 - log(2) * 3 / 2
+    double lf = log(v) - log1p(- exp(-v) * (1 + u * u/2)) / 2 - log(2) * 3 / 2
         - log(u) - log(M_PI);
-    double g = 2 * v / u - u * log(1-exp(-v));
+    double g = 2 * v / u - u * log1p(-exp(-v));
     return lf - log(n) + sqrt(n) * g;
 }
 
