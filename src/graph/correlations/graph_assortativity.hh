@@ -22,6 +22,10 @@
 #include "graph_util.hh"
 #include "hash_map_wrap.hh"
 
+#if (BOOST_VERSION >= 106000)
+# include <boost/math/special_functions/relative_difference.hpp>
+#endif
+
 namespace graph_tool
 {
 using namespace std;
@@ -76,7 +80,15 @@ struct get_assortativity_coefficient
         }
         t2 /= n_edges * n_edges;
 
-        r = (t1 - t2)/(1.0 - t2);
+
+#if (BOOST_VERSION >= 106000)
+        if (boost::math::relative_difference(1., t2) > 1e-8)
+#else
+        if (abs(1.-t2) > 1e-8)
+#endif
+            r = (t1 - t2)/(1.0 - t2);
+        else
+            r = std::numeric_limits<double>::quiet_NaN();
 
         // "jackknife" variance
         double err = 0;
@@ -104,7 +116,14 @@ struct get_assortativity_coefficient
              });
         if (!is_directed::apply<Graph>::type::value)
             err /= 2;
-        r_err = sqrt(err);
+#if (BOOST_VERSION >= 106000)
+        if (boost::math::relative_difference(1., t2) > 1e-8)
+#else
+        if (abs(1.-t2) > 1e-8)
+#endif
+            r_err = sqrt(err);
+        else
+            r_err = std::numeric_limits<double>::quiet_NaN();
     }
 };
 
@@ -127,7 +146,7 @@ struct get_scalar_assortativity_coefficient
             (g,
              [&](auto v)
              {
-                 double k1 = double(deg(v, g));
+                 auto k1 = deg(v, g);
                  for (auto u : out_neighbors_range(v, g))
                  {
                      auto k2 = deg(u, g);
@@ -143,13 +162,33 @@ struct get_scalar_assortativity_coefficient
         double t1 = e_xy/n_edges;
         a /= n_edges;
         b /= n_edges;
-        double stda = sqrt(da/n_edges - a*a);
-        double stdb = sqrt(db/n_edges - b*b);
+        double stda;
+        double stdb;
+
+#if (BOOST_VERSION >= 106000)
+        if (boost::math::relative_difference(da/n_edges, a*a) < 1e-8)
+            stda = 0;
+        else
+            stda = sqrt(da/n_edges - a*a);
+        if (boost::math::relative_difference(db/n_edges, b*b) < 1e-8)
+            stdb = 0;
+        else
+            stdb = sqrt(db/n_edges - b*b);
+#else
+        if (sqrt(abs(da/n_edges - a*a)) < 1e-8)
+            stda = 0;
+        else
+            stda = sqrt(da/n_edges - a*a);
+        if (sqrt(abs(db/n_edges - b*b)) < 1e-8)
+            stdb = 0;
+        else
+            stdb = sqrt(db/n_edges - b*b);
+#endif
 
         if (stda*stdb > 0)
             r = (t1 - a*b)/(stda*stdb);
         else
-            r = (t1 - a*b);
+            r = std::numeric_limits<double>::quiet_NaN();
 
         // "jackknife" variance
         r_err = 0.0;
@@ -182,7 +221,10 @@ struct get_scalar_assortativity_coefficient
              });
         if (!is_directed::apply<Graph>::type::value)
             err /= 2;
-        r_err = sqrt(err);
+        if (stda*stdb > 0)
+            r_err = sqrt(err);
+        else
+            r_err = std::numeric_limits<double>::quiet_NaN();
     }
 };
 
