@@ -62,9 +62,9 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         v_out_probs[r].push_back(out_deg[v]);
     }
 
-    typedef typename std::conditional_t<micro_deg,
-                                        UrnSampler<size_t, false>,
-                                        Sampler<size_t>> vsampler_t;
+    typedef std::conditional_t<micro_deg,
+                               UrnSampler<size_t, false>,
+                               Sampler<size_t>> vsampler_t;
     vector<vsampler_t> v_in_sampler_, v_out_sampler;
     for (size_t r = 0; r < rvs.size(); ++r)
     {
