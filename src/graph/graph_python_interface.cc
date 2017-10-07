@@ -218,25 +218,12 @@ python::object add_edge(GraphInterface& gi, size_t s, size_t t)
     return new_e;
 }
 
-void remove_edge(GraphInterface& gi, const python::object& e)
+void remove_edge(GraphInterface& gi, EdgeBase& e)
 {
-    bool found = false;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       typedef typename std::remove_reference<decltype(g)>::type g_t;
-                       python::extract<PythonEdge<g_t>&> get_e(e);
-                       if (get_e.check())
-                       {
-                           PythonEdge<g_t>& pe = get_e();
-                           pe.check_valid();
-                           auto edge = pe.get_descriptor();
-                           remove_edge(edge, g);
-                           found = true;
-                       }
-                   })();
-    if (!found)
-        throw ValueException("invalid edge descriptor");
+    e.check_valid();
+    auto edge = e.get_descriptor();
+    run_action<>()(gi, [&](auto& g) { remove_edge(edge, g); })();
+    e.invalidate();
 }
 
 struct get_edge_dispatch
@@ -687,7 +674,7 @@ void export_python_interface()
     using namespace boost::python;
 
     class_<VertexBase>("VertexBase", no_init);
-    class_<EdgeBase>("EdgeBase", no_init);
+    class_<EdgeBase, boost::noncopyable>("EdgeBase", no_init);
 
     typedef boost::mpl::transform<graph_tool::all_graph_views,
                                   boost::mpl::quote1<std::add_const> >::type const_graph_views;

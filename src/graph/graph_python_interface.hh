@@ -293,7 +293,14 @@ private:
 
 // below are classes related to the PythonEdge type
 
-class EdgeBase {}; // useful to unite all edge types
+class EdgeBase // useful to unite all edge types
+{
+public:
+    virtual bool is_valid() const = 0;
+    virtual void check_valid() const = 0;
+    virtual void invalidate() = 0;
+    virtual GraphInterface::edge_t get_descriptor() const = 0;
+};
 
 template <class Graph>
 class PythonEdge : public EdgeBase
@@ -303,7 +310,7 @@ public:
     PythonEdge(std::weak_ptr<Graph> g, edge_descriptor e)
         : _g(g), _e(e) {}
 
-    bool is_valid() const
+    virtual bool is_valid() const
     {
         if (_g.expired())
             return false;
@@ -316,13 +323,18 @@ public:
         return ((s < num_vertices(g)) && (t < num_vertices(g)));
     }
 
-    void check_valid() const
+    virtual void check_valid() const
     {
         if (!is_valid())
             throw ValueException("invalid edge descriptor");
     }
 
-    GraphInterface::edge_t get_descriptor() const
+    virtual void invalidate()
+    {
+        _g.reset();
+    }
+
+    virtual GraphInterface::edge_t get_descriptor() const
     {
         return _e;
     }
