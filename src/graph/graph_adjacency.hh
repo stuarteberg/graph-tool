@@ -475,14 +475,8 @@ public:
         if (_keep_epos)
         {
             auto& epos = _epos[e.idx];
-            if (epos.first >= pos ||
-                es[epos.first].second != e.idx)
-            {
+            if (epos.first >= pos || es[epos.first].second != e.idx)
                 std::swap(e.s, e.t);
-                assert(epos.first < pos &&
-                       es[epos.first].first == e.t &&
-                       es[epos.first].second == e.idx);
-            }
         }
         else
         {

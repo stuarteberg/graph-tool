@@ -218,27 +218,23 @@ python::object add_edge(GraphInterface& gi, size_t s, size_t t)
     return new_e;
 }
 
-struct get_edge_descriptor
-{
-    template <class Graph>
-    void operator()(const Graph&, const python::object& e,
-                    typename GraphInterface::edge_t& edge,
-                    bool& found)  const
-    {
-        PythonEdge<Graph>& pe = python::extract<PythonEdge<Graph>&>(e);
-        pe.check_valid();
-        edge = pe.get_descriptor();
-        found = true;
-    }
-};
-
 void remove_edge(GraphInterface& gi, const python::object& e)
 {
-    GraphInterface::edge_t de;
     bool found = false;
-    run_action<>()(gi, std::bind(get_edge_descriptor(), std::placeholders::_1,
-                                 std::ref(e), std::ref(de), std::ref(found)))();
-    remove_edge(de, gi.get_graph());
+    run_action<>()(gi,
+                   [&](auto& g)
+                   {
+                       typedef typename std::remove_reference<decltype(g)>::type g_t;
+                       python::extract<PythonEdge<g_t>&> get_e(e);
+                       if (get_e.check())
+                       {
+                           PythonEdge<g_t>& pe = get_e();
+                           pe.check_valid();
+                           auto edge = pe.get_descriptor();
+                           remove_edge(edge, g);
+                           found = true;
+                       }
+                   })();
     if (!found)
         throw ValueException("invalid edge descriptor");
 }
