@@ -891,7 +891,11 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     Notes
     -----
 
-    The graphs are generated with probability
+    The algorithm generates multigraphs with self-loops, according to the
+    Poisson degree-corrected stochastic block model (SBM), which includes the
+    traditional SBM as a special case.
+
+    The multigraphs are generated with probability
 
     .. math::
 
@@ -932,6 +936,11 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     such that the value :math:`\lambda_{rs}` will correspond to the average
     number of directed edges between groups :math:`r` and :math:`s`.
 
+    The traditional (i.e. non-degree-corrected) SBM is recovered from the above
+    model by setting :math:`\theta_i=1/n_{b_i}` (or
+    :math:`\theta^+_i=\theta^-_i=1/n_{b_i}` in the directed case), which is done
+    automatically if ``out_degs`` and ``in_degs`` are not specified.
+
     In case the parameter ``micro_degs == True`` is passed, a `microcanical
     <https://en.wikipedia.org/wiki/Microcanonical_ensemble>`_ model is used
     instead, where both the number of edges between groups as well as the
@@ -941,7 +950,8 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
     :math:`{\boldsymbol\theta}\equiv{\boldsymbol k}`, where :math:`e_{rs}` is
     the number of edges between groups :math:`r` and :math:`s` (or twice that if
     :math:`r=s` in the undirected case), and :math:`k_i` is the degree of node
-    :math:`i`. The multigraphs are then sampled with probability
+    :math:`i`. This model is a generalization of the configuration model, where
+    multigraphs are sampled with probability
 
     .. math::
 
@@ -955,6 +965,8 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
         P({\boldsymbol A}|{\boldsymbol k}^+,{\boldsymbol k}^-,{\boldsymbol e},{\boldsymbol b}) =
         \frac{\prod_{rs}e_{rs}!\prod_ik^+_i!k^-_i!}{\prod_re^+_r!e^-_r!\prod_{ij}A_{ij}!}.
 
+    where :math:`e^+_r = \sum_se_{rs}`, :math:`e^-_r = \sum_se_{sr}`,
+    :math:`k^+_i = \sum_jA_{ij}` and :math:`k^-_i = \sum_jA_{ji}`.
 
     In the non-degree-corrected case, if ``micro_ers == True``, the
     microcanonical model corresponds to
