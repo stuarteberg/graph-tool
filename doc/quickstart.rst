@@ -47,7 +47,7 @@ method. The "directedness" of the graph can be queried with the
 
    >>> ug = Graph()
    >>> ug.set_directed(False)
-   >>> assert(ug.is_directed() == False)
+   >>> assert ug.is_directed() == False
 
 A graph can also be created by providing another graph, in which case
 the entire graph (and its internal property maps, see
@@ -311,7 +311,7 @@ and :meth:`~graph_tool.Vertex.in_neighbors` methods, respectively.
 
       # the edge and neighbors order always match
       for e, w in izip(v.out_edges(), v.out_neighbors()):
-          assert(e.target() == w)
+          assert e.target() == w
 
 The code above will print the out-edges and out-neighbors of all
 vertices in the graph.
