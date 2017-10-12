@@ -1297,8 +1297,12 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
     for p1, p2 in props:
         if p1 is None:
             p1 = g1.new_property(p2.key_type(), p2.value_type())
+        else:
+            p1 = u1.own_property(p1)
         if p2 is None:
             p2 = g2.new_property(p1.key_type(), p1.value_type())
+        else:
+            p2 = u2.own_property(p2)
         if not include:
             p1 = g1.copy_property(p1)
         if p2.value_type() != p1.value_type():
