@@ -90,7 +90,9 @@ class CoroGenerator
 public:
     template <class Dispatch>
     CoroGenerator(Dispatch& dispatch)
-        : _coro(std::make_shared<coro_t::pull_type>(dispatch)),
+        : _coro(std::make_shared<coro_t::pull_type>
+                (coroutines::fixedsize_stack(BOOST_COROUTINE_STACK_SIZE),
+                 dispatch)),
           _iter(begin(*_coro)), _end(end(*_coro)), _first(true) {}
     boost::python::object next()
     {

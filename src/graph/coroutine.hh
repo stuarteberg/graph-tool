@@ -37,6 +37,7 @@
              namespace coroutines = boost::coroutines;
          }
 #    endif
+
 #endif // HAVE_BOOST_COROUTINE
 
 #endif // COROUTINE_HH
