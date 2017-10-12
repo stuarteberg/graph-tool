@@ -2040,7 +2040,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
             widget.regenerate_surface(reset=True)
             widget.queue_draw()
 
-    if "output" not in kwargs:
+    if "output" not in kwargs and not is_draw_inline:
         kwargs["layout_callback"] = update_cts
         kwargs["key_press_callback"] = draw_branch
 
