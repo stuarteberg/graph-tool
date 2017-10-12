@@ -631,7 +631,7 @@ public:
         size = get_user_dist(cr, size);
 
         string text = _attrs.template get<string>(VERTEX_TEXT);
-        if (text != "")
+        if (!text.empty())
         {
             double text_pos = _attrs.template get<double>(VERTEX_TEXT_POSITION);
             if (text_pos == -1)
@@ -962,7 +962,7 @@ public:
         if (!outline)
         {
             string text = _attrs.template get<string>(VERTEX_TEXT);
-            if (text != "")
+            if (!text.empty())
             {
                 cr.save();
 
@@ -1310,7 +1310,7 @@ public:
         }
 
         string text = _attrs.template get<string>(EDGE_TEXT);
-        if (text != "")
+        if (!text.empty())
         {
             cr.save();
             cr.select_font_face(_attrs.template get<string>(EDGE_FONT_FAMILY),
@@ -1321,9 +1321,6 @@ public:
             text_dist = get_user_dist(cr, text_dist);
 
             bool text_parallel = _attrs.template get<uint8_t>(EDGE_TEXT_PARALLEL);
-
-            Cairo::TextExtents extents;
-            cr.get_text_extents(text, extents);
 
             pos_t origin;
             if (controls.size() < 8)
@@ -1359,6 +1356,9 @@ public:
                     angle += M_PI;
                 cr.rotate(angle);
                 cr.translate(0, -text_dist);
+
+                Cairo::TextExtents extents;
+                cr.get_text_extents(text, extents);
                 cr.translate(-extents.width / 2, 0);
             }
             else
@@ -1578,7 +1578,7 @@ template <class Graph, class EdgeIterator, class PosMap, class Time,
 void draw_edges(Graph& g, pair<EdgeIterator, EdgeIterator> e_range,
                 PosMap pos_map, attrs_t& eattrs, attrs_t& edefaults,
                 attrs_t& vattrs, attrs_t& vdefaults, double res, Time max_time,
-                int64_t dt, size_t& count, Cairo::Context& cr, Yield && yield)
+                int64_t dt, size_t& count, Cairo::Context& cr, Yield&& yield)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
@@ -1763,7 +1763,7 @@ struct do_cairo_draw_edges
             edge_range(edges(g));
         draw_edges(g, edge_range.get_range(edge_order), pos, eattrs,
                    edefaults, vattrs, vdefaults, res, max_time, dt, count, cr,
-                   yield);
+                   std::forward<Yield>(yield));
     }
 };
 
@@ -1779,7 +1779,8 @@ struct do_cairo_draw_vertices
         ordered_range<typename graph_traits<Graph>::vertex_iterator>
             vertex_range(vertices(g));
         draw_vertices(g, vertex_range.get_range(vertex_order), pos, vattrs,
-                      vdefaults, max_time, dt, count, cr, yield);
+                      vdefaults, max_time, dt, count, cr,
+                      std::forward<Yield>(yield));
     }
 };
 
@@ -1796,7 +1797,7 @@ boost::python::object cairo_draw(GraphInterface& gi,
                                  int64_t max_time,
                                  boost::python::object ocr)
 {
-    auto dispatch = [=,&gi] (auto& yield) mutable
+    auto dispatch = [=,&gi] (auto&& yield) mutable
         {
             attrs_t vattrs, eattrs, vdefaults, edefaults;
 
@@ -1853,13 +1854,17 @@ boost::python::object cairo_draw(GraphInterface& gi,
                 run_action<>()
                     (gi, std::bind(do_cairo_draw_vertices(), std::placeholders::_1,
                                    std::placeholders::_2, std::placeholders::_3,
-                           std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
+                                   std::ref(vattrs), std::ref(eattrs), std::ref(vdefaults),
                                    std::ref(edefaults), mtime, dt, std::ref(count),
                                    std::ref(cr), std::ref(yield)),
                      vertex_scalar_vector_properties(),
                      vorder_t())(pos, vorder);
             }
         };
+
+    // dispatch([](auto){});
+    // auto fake_dispatch = [](auto&& yield){};
+    // return boost::python::object(CoroGenerator(fake_dispatch));
     return boost::python::object(CoroGenerator(dispatch));
 }
 
