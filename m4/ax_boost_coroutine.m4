@@ -1,5 +1,5 @@
 # ===========================================================================
-#    http://www.gnu.org/software/autoconf-archive/ax_boost_coroutine.html
+#    https://www.gnu.org/software/autoconf-archive/ax_boost_coroutine.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -31,7 +31,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 1
+#serial 2
 
 AC_DEFUN([AX_BOOST_COROUTINE],
 [
@@ -70,7 +70,7 @@ AC_DEFUN([AX_BOOST_COROUTINE],
 
                         AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
                                 [[@%:@include <boost/coroutine/all.hpp>]],
-                                [[boost::coroutines::asymmetric_coroutine< void() > f;]])],
+                                [[boost::coroutines::coroutine< void() > f;]])],
                                 ax_cv_boost_coroutine=yes, ax_cv_boost_coroutine=no)
                                 CXXFLAGS=$CXXFLAGS_SAVE
                         AC_LANG_POP([C++])
@@ -79,10 +79,11 @@ AC_DEFUN([AX_BOOST_COROUTINE],
                 if test "x$ax_cv_boost_coroutine" = "xyes"; then
                         AC_SUBST(BOOST_CPPFLAGS)
 
+                        AC_DEFINE(HAVE_BOOST_COROUTINE,,[define if the Boost::Coroutine library is available])
                         BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
 
                         if test "x$ax_boost_user_coroutine_lib" = "x"; then
-                                for libextension in `ls $BOOSTLIBDIR/libboost_coroutine*.so* $BOOSTLIBDIR/libboost_coroutine*.dylib* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_coroutine.*\)\.so.*$;\1;' -e 's;^lib\(boost_coroutine.*\)\.dylib.*$;\1;'` ; do
+                                for libextension in `ls $BOOSTLIBDIR/libboost_coroutine*.so* $BOOSTLIBDIR/libboost_coroutine*.dylib* $BOOSTLIBDIR/libboost_coroutine*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_coroutine.*\)\.so.*$;\1;' -e 's;^lib\(boost_coroutine.*\)\.dylib.*$;\1;' -e 's;^lib\(boost_coroutine.*\)\.a.*$;\1;'` ; do
                                         ax_lib=${libextension}
                                         AC_CHECK_LIB($ax_lib, exit,
                                                 [BOOST_COROUTINE_LIB="-l$ax_lib"; AC_SUBST(BOOST_COROUTINE_LIB) link_coroutine="yes"; break],
@@ -113,11 +114,6 @@ AC_DEFUN([AX_BOOST_COROUTINE],
                         if test "x$link_coroutine" = "xno"; then
                                 AC_MSG_ERROR(Could not link against $ax_lib !)
                         fi
-
-                        if test "x$BOOST_COROUTINE_LIB" != "x"; then
-                                AC_DEFINE(HAVE_BOOST_COROUTINE,,[define if the Boost::Coroutine library is available])
-                        fi
-
                 fi
 
                 CPPFLAGS="$CPPFLAGS_SAVED"
