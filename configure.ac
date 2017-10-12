@@ -153,6 +153,10 @@ AX_BOOST_REGEX
 if test "$BOOST_REGEX_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::regex found])
 fi
+AX_BOOST_CONTEXT
+if test "$BOOST_CONTEXT_LIB" = ""; then
+   AC_MSG_WARN([No usable boost::context found! Some functionality will be disabled in the library.])
+fi
 AX_BOOST_COROUTINE
 if test "$BOOST_COROUTINE_LIB" = ""; then
    AC_MSG_WARN([No usable boost::coroutine found! Some functionality will be disabled in the library.])
@@ -166,7 +170,7 @@ if test "$BOOST_THREAD_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::thread found])
 fi
 
-[BOOST_LIBS="${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_COROUTINE_LIB}"]
+[BOOST_LIBS="${BOOST_IOSTREAMS_LIB} -l${BOOST_PYTHON_LIB} ${BOOST_REGEX_LIB} ${BOOST_CONTEXT_LIB} ${BOOST_COROUTINE_LIB}"]
 
 dnl GNU MP library (needed by CGAL)
 AC_CHECK_LIB(gmp, __gmpz_init, ,
