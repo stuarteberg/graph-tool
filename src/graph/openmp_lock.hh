@@ -41,6 +41,7 @@ private:
 
 class openmp_mutex
 {
+public:
    void lock() {}
    void unlock() {}
 };
