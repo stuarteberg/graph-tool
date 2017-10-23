@@ -467,6 +467,7 @@ public:
         _epos.shrink_to_fit();
     }
 
+    __attribute__((always_inline))
     void reverse_edge(edge_descriptor& e) const
     {
         auto& elist = _edges[e.s];
@@ -694,7 +695,7 @@ vertices(const adj_list<Vertex>& g)
 
 
 template <class Vertex>
-inline  __attribute__((flatten))
+inline  __attribute__((always_inline)) __attribute__((flatten))
 std::pair<typename adj_list<Vertex>::edge_iterator,
           typename adj_list<Vertex>::edge_iterator>
 edges(const adj_list<Vertex>& g)
@@ -1226,7 +1227,7 @@ void remove_vertex_fast(Vertex v, adj_list<Vertex>& g)
 
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 Vertex source(const typename adj_list<Vertex>::edge_descriptor& e,
               const adj_list<Vertex>&)
 {
@@ -1234,7 +1235,7 @@ Vertex source(const typename adj_list<Vertex>::edge_descriptor& e,
 }
 
 template <class Vertex>
-inline
+inline __attribute__((always_inline))
 Vertex target(const typename adj_list<Vertex>::edge_descriptor& e,
               const adj_list<Vertex>&)
 {
@@ -1312,6 +1313,7 @@ template <class Vertex>
 struct hash<boost::detail::adj_edge_descriptor<Vertex>>
 {
     template <class Edge>
+    __attribute__((always_inline))
     std::size_t operator()(Edge const& e) const
     {
         return _h(e.idx);
