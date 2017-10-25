@@ -272,8 +272,11 @@ if test "$USING_SPARSEHASH" = "yes"; then
                       [Sparsehash include prefix])
    AC_DEFINE_UNQUOTED([SPARSEHASH_INCLUDE(f)], [<${SPARSEHASH_PREFIX}/f>],
                       [Sparsehash include macro])
+   [CPPFLAGS_TEMP="${CPPFLAGS}"]
+   [CPPFLAGS="${SPARSEHASH_CFLAGS} ${CPPFLAGS}"]
    AC_CHECK_HEADER([${SPARSEHASH_PREFIX}/dense_hash_set], [],
                    [AC_MSG_ERROR([sparsehash headers not found])])
+   [CPPFLAGS="${CPPFLAGS_TEMP}"]
 fi
 
 dnl Checks for typedefs, structures, and compiler characteristics.
