@@ -69,6 +69,8 @@ namespace detail { namespace graph {
     void edge_relaxed(const edge_descriptor& e, const Graph& g)
     {
       vertex_descriptor v = source(e, g), w = target(e, g);
+      if (v == w)
+          return;
       incoming[w].clear();
       incoming[w].push_back(e);
       put(path_count, w, get(path_count, v));
@@ -85,6 +87,8 @@ namespace detail { namespace graph {
       typedef typename property_traits<WeightMap>::value_type weight_type;
       typedef typename property_traits<DistanceMap>::value_type distance_type;
       vertex_descriptor v = source(e, g), w = target(e, g);
+      if (v == w)
+          return;
       distance_type d_v = get(distance, v), d_w = get(distance, w);
       weight_type w_e = get(weight, e);
 
@@ -202,6 +206,8 @@ namespace detail { namespace graph {
       {
         vertex_descriptor v = source(e, g);
         vertex_descriptor w = target(e, g);
+        if (v == w)
+          return;
         if (get(distance, w) == get(distance, v) + 1) {
           put(path_count, w, get(path_count, w) + get(path_count, v));
           incoming[w].push_back(e);
