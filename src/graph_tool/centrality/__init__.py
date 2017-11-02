@@ -49,7 +49,7 @@ from __future__ import division, absolute_import, print_function
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_centrality")
 
-from .. import _prop, ungroup_vector_property
+from .. import _prop, ungroup_vector_property, Vector_size_t
 from .. topology import shortest_distance
 import sys
 import numpy
@@ -228,14 +228,18 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
         return prop
 
 
-def betweenness(g, vprop=None, eprop=None, weight=None, norm=True):
-    r"""
-    Calculate the betweenness centrality for each vertex and edge.
+def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
+    r"""Calculate the betweenness centrality for each vertex and edge.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
+    pivots : list or :class:`~numpy.ndarray`, optional (default: None)
+        If provided, the betweenness will be estimated using the vertices in
+        this list as pivots. If the list contains all nodes (the default) the
+        algorithm will be exact, and if the vertices are randomly chosen the
+        result will be an unbiased estimator.
     vprop : :class:`~graph_tool.PropertyMap`, optional (default: None)
         Vertex property map to store the vertex betweenness values.
     eprop : :class:`~graph_tool.PropertyMap`, optional (default: None)
@@ -268,15 +272,19 @@ def betweenness(g, vprop=None, eprop=None, weight=None, norm=True):
         C_B(v)= \sum_{s \neq v \neq t \in V \atop s \neq t}
                 \frac{\sigma_{st}(v)}{\sigma_{st}}
 
-    where :math:`\sigma_{st}` is the number of shortest geodesic paths from s to
-    t, and :math:`\sigma_{st}(v)` is the number of shortest geodesic paths from
-    s to t that pass through a vertex v.  This may be normalised by dividing
-    through the number of pairs of vertices not including v, which is
-    :math:`(n-1)(n-2)/2`.
+    where :math:`\sigma_{st}` is the number of shortest paths from s to t, and
+    :math:`\sigma_{st}(v)` is the number of shortest paths from s to t that pass
+    through a vertex :math:`v`. This may be normalised by dividing through the
+    number of pairs of vertices not including v, which is :math:`(n-1)(n-2)/2`,
+    for undirected graphs, or :math:`(n-1)(n-2)` for directed ones.
 
     The algorithm used here is defined in [brandes-faster-2001]_, and has a
-    complexity of :math:`O(VE)` for unweighted graphs and :math:`O(VE + V(V+E)
-    \log V)` for weighted graphs. The space complexity is :math:`O(VE)`.
+    complexity of :math:`O(VE)` for unweighted graphs and :math:`O(VE +
+    V(V+E)\log V)` for weighted graphs. The space complexity is :math:`O(VE)`.
+
+    If the ``pivots`` parameter is given, the complexity will be instead
+    :math:`O(PE)` for unweighted graphs and :math:`O(PE + P(V+E)\log V)` for
+    weighted graphs, where :math:`P` is the number of pivot vertices.
 
     If enabled during compilation, this algorithm runs in parallel.
 
@@ -319,9 +327,13 @@ def betweenness(g, vprop=None, eprop=None, weight=None, norm=True):
     .. [betweenness-wikipedia] http://en.wikipedia.org/wiki/Centrality#Betweenness_centrality
     .. [brandes-faster-2001] U. Brandes, "A faster algorithm for betweenness
        centrality", Journal of Mathematical Sociology, 2001, :doi:`10.1080/0022250X.2001.9990249`
+    .. [brandes-centrality-2007] U. Brandes, C. Pich, "Centrality estimation in
+       large networks", Int. J. Bifurcation Chaos 17, 2303 (2007).
+       :DOI:`10.1142/S0218127407018403`
     .. [adamic-polblogs] L. A. Adamic and N. Glance, "The political blogosphere
        and the 2004 US Election", in Proceedings of the WWW-2005 Workshop on the
        Weblogging Ecosystem (2005). :DOI:`10.1145/1134271.1134277`
+
     """
     if vprop is None:
         vprop = g.new_vertex_property("double")
@@ -331,8 +343,14 @@ def betweenness(g, vprop=None, eprop=None, weight=None, norm=True):
         nw = g.new_edge_property(eprop.value_type())
         g.copy_property(weight, nw)
         weight = nw
+    if pivots is not None:
+        pivots = numpy.asarray(pivots, dtype="uint64")
+    else:
+        pivots = g.get_vertices()
+    vpivots = Vector_size_t(len(pivots))
+    vpivots.a = pivots
     libgraph_tool_centrality.\
-            get_betweenness(g._Graph__graph, _prop("e", g, weight),
+            get_betweenness(g._Graph__graph, vpivots, _prop("e", g, weight),
                             _prop("e", g, eprop), _prop("v", g, vprop), norm)
     return vprop, eprop
 

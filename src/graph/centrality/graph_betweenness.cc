@@ -30,24 +30,40 @@ using namespace graph_tool;
 
 template <class Graph, class EdgeBetweenness, class VertexBetweenness>
 void normalize_betweenness(const Graph& g,
+                           std::vector<size_t>& pivots,
                            EdgeBetweenness edge_betweenness,
                            VertexBetweenness vertex_betweenness,
                            size_t n)
 {
-    double vfactor = (n > 2) ? 1.0 / ((n - 1) * (n - 2)) : 1.0;
-    double efactor = (n > 1) ? 1.0 / (n * (n - 1)) : 1.0;
+    size_t p = pivots.size();
+    double pfactor = (p > 1 && n > 2) ? ((p - 1) * (n - 2)) : .0;
+    double vfactor = (p > 0 && n > 2) ? (p * (n - 2)) : .0;
+    double efactor = (p > 0 && n > 1) ? (p * (n - 1)) : .0;
     if (std::is_convertible<typename graph_traits<Graph>::directed_category,
                             undirected_tag>::value)
     {
-        vfactor *= 2;
-        efactor *= 2;
+        pfactor /= 2;
+        vfactor /= 2;
+        efactor /= 2;
     }
+
+    pfactor = (pfactor > 0) ? 1./pfactor : 0;
+    vfactor = (vfactor > 0) ? 1./vfactor : 0;
+    efactor = (efactor > 0) ? 1./efactor : 0;
+
+    typedef typename vprop_map_t<bool>::type::unchecked_t vprop_t;
+    vprop_t is_pivot(get(vertex_index, g), num_vertices(g));
+
+    parallel_loop(pivots, [&](size_t, auto v){ is_pivot[v] = true;});
 
     parallel_vertex_loop
         (g,
          [&](auto v)
          {
-             put(vertex_betweenness, v, vfactor * get(vertex_betweenness, v));
+             if (is_pivot[v])
+                 put(vertex_betweenness, v, pfactor * get(vertex_betweenness, v));
+             else
+                 put(vertex_betweenness, v, vfactor * get(vertex_betweenness, v));
          });
 
     parallel_edge_loop
@@ -63,6 +79,7 @@ struct get_betweenness
     typedef void result_type;
     template <class Graph, class EdgeBetweenness, class VertexBetweenness>
     void operator()(Graph& g,
+                    std::vector<size_t>& pivots,
                     GraphInterface::vertex_index_map_t index_map,
                     EdgeBetweenness edge_betweenness,
                     VertexBetweenness vertex_betweenness,
@@ -75,14 +92,14 @@ struct get_betweenness
             dependency_map(num_vertices(g));
         vector<size_t> path_count_map(num_vertices(g));
         brandes_betweenness_centrality
-            (g, vertex_betweenness, edge_betweenness,
+            (g, pivots, vertex_betweenness, edge_betweenness,
              make_iterator_property_map(incoming_map.begin(), index_map),
              make_iterator_property_map(distance_map.begin(), index_map),
              make_iterator_property_map(dependency_map.begin(), index_map),
              make_iterator_property_map(path_count_map.begin(), index_map),
              index_map);
         if (normalize)
-            normalize_betweenness(g, edge_betweenness, vertex_betweenness, n);
+            normalize_betweenness(g, pivots, edge_betweenness, vertex_betweenness, n);
     }
 };
 
@@ -91,11 +108,12 @@ struct get_weighted_betweenness
     typedef void result_type;
     template <class Graph, class EdgeBetweenness, class VertexBetweenness,
               class VertexIndexMap>
-        void operator()(Graph& g, VertexIndexMap vertex_index,
-                        EdgeBetweenness edge_betweenness,
-                        VertexBetweenness vertex_betweenness,
-                        boost::any weight_map, bool normalize,
-                        size_t n, size_t max_eindex) const
+    void operator()(Graph& g, std::vector<size_t>& pivots,
+                    VertexIndexMap vertex_index,
+                    EdgeBetweenness edge_betweenness,
+                    VertexBetweenness vertex_betweenness,
+                    boost::any weight_map, bool normalize,
+                    size_t n, size_t max_eindex) const
     {
         vector<vector<typename graph_traits<Graph>::edge_descriptor> >
             incoming_map(num_vertices(g));
@@ -109,18 +127,19 @@ struct get_weighted_betweenness
             any_cast<typename EdgeBetweenness::checked_t>(weight_map);
 
         brandes_betweenness_centrality
-            (g, vertex_betweenness, edge_betweenness,
+            (g, pivots, vertex_betweenness, edge_betweenness,
              make_iterator_property_map(incoming_map.begin(), vertex_index),
              make_iterator_property_map(distance_map.begin(), vertex_index),
              make_iterator_property_map(dependency_map.begin(), vertex_index),
              make_iterator_property_map(path_count_map.begin(), vertex_index),
              vertex_index, weight.get_unchecked(max_eindex+1));
         if (normalize)
-            normalize_betweenness(g, edge_betweenness, vertex_betweenness, n);
+            normalize_betweenness(g, pivots, edge_betweenness, vertex_betweenness, n);
     }
 };
 
-void betweenness(GraphInterface& g, boost::any weight,
+void betweenness(GraphInterface& g, std::vector<size_t>& pivots,
+                 boost::any weight,
                  boost::any edge_betweenness,
                  boost::any vertex_betweenness,
                  bool normalize)
@@ -137,7 +156,9 @@ void betweenness(GraphInterface& g, boost::any weight,
     {
         run_action<>()
             (g, std::bind<>(get_weighted_betweenness(),
-                            std::placeholders::_1, g.get_vertex_index(),
+                            std::placeholders::_1,
+                            std::ref(pivots),
+                            g.get_vertex_index(),
                             std::placeholders::_2,
                             std::placeholders::_3, weight, normalize,
                             g.get_num_vertices(), g.get_edge_index_range()),
@@ -149,6 +170,7 @@ void betweenness(GraphInterface& g, boost::any weight,
     {
         run_action<>()
             (g, std::bind<void>(get_betweenness(), std::placeholders::_1,
+                                std::ref(pivots),
                                 g.get_vertex_index(), std::placeholders::_2,
                                 std::placeholders::_3, normalize,
                                 g.get_num_vertices()),

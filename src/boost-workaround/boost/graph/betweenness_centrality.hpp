@@ -299,6 +299,7 @@ namespace detail { namespace graph {
            typename VertexIndexMap, typename ShortestPaths>
   void
   brandes_betweenness_centrality_impl(const Graph& g,
+                                      std::vector<size_t>& pivots,
                                       CentralityMap centrality,     // C_B
                                       EdgeCentralityMap edge_centrality_map,
                                       IncomingMap, //incoming, // P
@@ -320,13 +321,13 @@ namespace detail { namespace graph {
     std::vector<typename property_traits<DependencyMap>::value_type> vdependency(num_vertices(g));
     std::vector<typename property_traits<PathCountMap>::value_type> vpath_count(num_vertices(g));
 
-    int i, N = num_vertices(g);
+    int i, N = pivots.size();
     #pragma omp parallel for default(shared) private(i) \
         firstprivate(vincoming, vdistance, vdependency, vpath_count) \
         schedule(runtime)
     for (i = 0; i < N; ++i)
     {
-      auto s = vertex(i, g);
+      auto s = vertex(pivots[i], g);
       if (s == graph_traits<Graph>::null_vertex())
           continue;
 
@@ -394,6 +395,7 @@ template<typename Graph, typename CentralityMap, typename EdgeCentralityMap,
          typename VertexIndexMap>
 void
 brandes_betweenness_centrality(const Graph& g,
+                               std::vector<size_t>& pivots,
                                CentralityMap centrality,     // C_B
                                EdgeCentralityMap edge_centrality_map,
                                IncomingMap incoming, // P
@@ -404,7 +406,7 @@ brandes_betweenness_centrality(const Graph& g,
 {
   detail::graph::brandes_unweighted_shortest_paths shortest_paths;
 
-  detail::graph::brandes_betweenness_centrality_impl(g, centrality,
+  detail::graph::brandes_betweenness_centrality_impl(g, pivots, centrality,
                                                      edge_centrality_map,
                                                      incoming, distance,
                                                      dependency, path_count,
@@ -418,6 +420,7 @@ template<typename Graph, typename CentralityMap, typename EdgeCentralityMap,
          typename VertexIndexMap, typename WeightMap>
 void
 brandes_betweenness_centrality(const Graph& g,
+                               std::vector<size_t>& pivots,
                                CentralityMap centrality,     // C_B
                                EdgeCentralityMap edge_centrality_map,
                                IncomingMap incoming, // P
@@ -430,7 +433,7 @@ brandes_betweenness_centrality(const Graph& g,
   detail::graph::brandes_dijkstra_shortest_paths<WeightMap>
     shortest_paths(weight_map);
 
-  detail::graph::brandes_betweenness_centrality_impl(g, centrality,
+  detail::graph::brandes_betweenness_centrality_impl(g, pivots, centrality,
                                                      edge_centrality_map,
                                                      incoming, distance,
                                                      dependency, path_count,
@@ -443,6 +446,7 @@ namespace detail { namespace graph {
            typename WeightMap, typename VertexIndexMap>
   void
   brandes_betweenness_centrality_dispatch2(const Graph& g,
+                                           std::vector<size_t>& pivots,
                                            CentralityMap centrality,
                                            EdgeCentralityMap edge_centrality_map,
                                            WeightMap weight_map,
@@ -465,7 +469,7 @@ namespace detail { namespace graph {
     std::vector<degree_size_type> path_count(V);
 
     brandes_betweenness_centrality(
-      g, centrality, edge_centrality_map,
+      g, pivots, centrality, edge_centrality_map,
       make_iterator_property_map(incoming.begin(), vertex_index),
       make_iterator_property_map(distance.begin(), vertex_index),
       make_iterator_property_map(dependency.begin(), vertex_index),
@@ -479,6 +483,7 @@ namespace detail { namespace graph {
            typename VertexIndexMap>
   void
   brandes_betweenness_centrality_dispatch2(const Graph& g,
+                                           std::vector<size_t>& pivots,
                                            CentralityMap centrality,
                                            EdgeCentralityMap edge_centrality_map,
                                            VertexIndexMap vertex_index)
@@ -500,7 +505,7 @@ namespace detail { namespace graph {
     std::vector<degree_size_type> path_count(V);
 
     brandes_betweenness_centrality(
-      g, centrality, edge_centrality_map,
+      g, pivots, centrality, edge_centrality_map,
       make_iterator_property_map(incoming.begin(), vertex_index),
       make_iterator_property_map(distance.begin(), vertex_index),
       make_iterator_property_map(dependency.begin(), vertex_index),
@@ -514,12 +519,13 @@ namespace detail { namespace graph {
     template<typename Graph, typename CentralityMap,
              typename EdgeCentralityMap, typename VertexIndexMap>
     static void
-    run(const Graph& g, CentralityMap centrality,
+    run(const Graph& g, std::vector<size_t>& pivots, CentralityMap centrality,
         EdgeCentralityMap edge_centrality_map, VertexIndexMap vertex_index,
         WeightMap weight_map)
     {
-      brandes_betweenness_centrality_dispatch2(g, centrality, edge_centrality_map,
-                                               weight_map, vertex_index);
+        brandes_betweenness_centrality_dispatch2(g, pivots, centrality,
+                                                 edge_centrality_map,
+                                                 weight_map, vertex_index);
     }
   };
 
@@ -529,12 +535,13 @@ namespace detail { namespace graph {
     template<typename Graph, typename CentralityMap,
              typename EdgeCentralityMap, typename VertexIndexMap>
     static void
-    run(const Graph& g, CentralityMap centrality,
+    run(const Graph& g, std::vector<size_t>& pivots, CentralityMap centrality,
         EdgeCentralityMap edge_centrality_map, VertexIndexMap vertex_index,
         error_property_not_found)
     {
-      brandes_betweenness_centrality_dispatch2(g, centrality, edge_centrality_map,
-                                               vertex_index);
+        brandes_betweenness_centrality_dispatch2(g, pivots, centrality,
+                                                 edge_centrality_map,
+                                                 vertex_index);
     }
   };
 
@@ -543,13 +550,14 @@ namespace detail { namespace graph {
 template<typename Graph, typename Param, typename Tag, typename Rest>
 void
 brandes_betweenness_centrality(const Graph& g,
+                               std::vector<size_t>& pivots,
                                const bgl_named_params<Param,Tag,Rest>& params)
 {
   typedef bgl_named_params<Param,Tag,Rest> named_params;
 
   typedef typename property_value<named_params, edge_weight_t>::type ew;
   detail::graph::brandes_betweenness_centrality_dispatch1<ew>::run(
-    g,
+    g, pivots,
     choose_param(get_param(params, vertex_centrality),
                  dummy_property_map()),
     choose_param(get_param(params, edge_centrality),
@@ -560,19 +568,21 @@ brandes_betweenness_centrality(const Graph& g,
 
 template<typename Graph, typename CentralityMap>
 void
-brandes_betweenness_centrality(const Graph& g, CentralityMap centrality)
+brandes_betweenness_centrality(const Graph& g, std::vector<size_t>& pivots,
+                               CentralityMap centrality)
 {
-  detail::graph::brandes_betweenness_centrality_dispatch2(
-    g, centrality, dummy_property_map(), get(vertex_index, g));
+    detail::graph::brandes_betweenness_centrality_dispatch2(
+        g, pivots, centrality, dummy_property_map(), get(vertex_index, g));
 }
 
 template<typename Graph, typename CentralityMap, typename EdgeCentralityMap>
 void
-brandes_betweenness_centrality(const Graph& g, CentralityMap centrality,
+brandes_betweenness_centrality(const Graph& g, std::vector<size_t>& pivots,
+                               CentralityMap centrality,
                                EdgeCentralityMap edge_centrality_map)
 {
   detail::graph::brandes_betweenness_centrality_dispatch2(
-    g, centrality, edge_centrality_map, get(vertex_index, g));
+      g, pivots, centrality, edge_centrality_map, get(vertex_index, g));
 }
 
 /**
