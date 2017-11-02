@@ -415,7 +415,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     :math:`V-1`.
 
     The algorithm complexity of :math:`O(V(V + E))` for unweighted graphs and
-    :math:`O(V(v+E) \log V)` for weighted graphs. If the option ``source`` is
+    :math:`O(V(V+E) \log V)` for weighted graphs. If the option ``source`` is
     specified, this drops to :math:`O(V + E)` and :math:`O((V+E)\log V)`
     respectively.
 
