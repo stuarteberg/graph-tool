@@ -161,7 +161,7 @@ AX_BOOST_COROUTINE
 if test "$BOOST_COROUTINE_LIB" = ""; then
    AC_MSG_WARN([No usable boost::coroutine found! Some functionality will be disabled in the library.])
 fi
-AC_DEFINE([BOOST_COROUTINE_STACK_SIZE], 1000000, [Stack size in bytes])
+AC_DEFINE([BOOST_COROUTINE_STACK_SIZE], 5242880, [Stack size in bytes])
 AX_BOOST_GRAPH
 if test "$BOOST_GRAPH_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::graph found])
