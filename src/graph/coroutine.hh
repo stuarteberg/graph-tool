@@ -30,11 +30,27 @@
          {
              namespace coroutines = boost::coroutines2;
          }
+
+         template <class Coro, class Dispatch>
+         auto make_coro(Dispatch&& dispatch)
+         {
+             return std::make_shared<Coro>
+                 (graph_tool::coroutines::fixedsize_stack(BOOST_COROUTINE_STACK_SIZE),
+                  dispatch);
+         }
 #    else
 #        include <boost/coroutine/all.hpp>
          namespace graph_tool
          {
              namespace coroutines = boost::coroutines;
+         }
+
+         template <class Coro, class Dispatch>
+         auto make_coro(Dispatch&& dispatch)
+         {
+             return std::make_shared<Coro>
+                 (dispatch,
+                  graph_tool::coroutines::attributes(BOOST_COROUTINE_STACK_SIZE));
          }
 #    endif
 
