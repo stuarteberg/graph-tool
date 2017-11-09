@@ -339,7 +339,6 @@ public:
 
                         if (n_mrs > 1)
                         {
-
                             if (Add && mrs < 2)
                             {
                                 if (_B_E_D == 0 && this->_Lrecdx[0] >= 0)
@@ -625,8 +624,8 @@ public:
         typedef typename graph_traits<g_t>::edge_descriptor edges_t;
 
         gt_hash_set<vertex_t> vset(vs.begin(), vs.end());
-
         gt_hash_set<edges_t> eset;
+
         for (auto v : vset)
         {
             for (auto e : all_edges_range(v, _g))
@@ -670,8 +669,8 @@ public:
                 }
             }
 
-            if (_mrs[me] == 0)
-                _emat.remove_me(me, _bg);
+            // if (_mrs[me] == 0)
+            //     _emat.remove_me(me, _bg);
         }
     }
 
