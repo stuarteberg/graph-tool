@@ -79,7 +79,7 @@ struct get_hits
                      for (const auto& ie : in_or_out_edges_range(v, g))
                      {
                          typename graph_traits<Graph>::vertex_descriptor s;
-                         if (is_directed::apply<Graph>::type::value)
+                         if (graph_tool::is_directed(g))
                              s = source(ie, g);
                          else
                              s = target(ie, g);

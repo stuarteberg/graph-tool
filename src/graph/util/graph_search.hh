@@ -127,7 +127,7 @@ struct find_edges
             (g,
              [&](auto e)
              {
-                 if (!is_directed::apply<Graph>::type::value)
+                 if (!graph_tool::is_directed(g))
                  {
                      if (edge_set.find(eindex[e]) == edge_set.end())
                          edge_set.insert(eindex[e]);

@@ -62,18 +62,18 @@ target(const pair<size_t, bool>& e,
 
 
 template <class Nmap, class Graph>
-void add_count(size_t s, size_t t, Nmap& nvmap, Graph&)
+void add_count(size_t s, size_t t, Nmap& nvmap, Graph& g)
 {
-    if (!is_directed::apply<Graph>::type::value && s > t)
+    if (!graph_tool::is_directed(g) && s > t)
         std::swap(s, t);
     auto& nmap = nvmap[s];
     nmap[t]++;
 }
 
 template <class Nmap, class Graph>
-void remove_count(size_t s, size_t t, Nmap& nvmap, Graph&)
+void remove_count(size_t s, size_t t, Nmap& nvmap, Graph& g)
 {
-    if (!is_directed::apply<Graph>::type::value && s > t)
+    if (!graph_tool::is_directed(g) && s > t)
         std::swap(s, t);
     auto& nmap = nvmap[s];
     auto iter = nmap.find(t);
@@ -83,9 +83,9 @@ void remove_count(size_t s, size_t t, Nmap& nvmap, Graph&)
 }
 
 template <class Nmap, class Graph>
-size_t get_count(size_t s, size_t t, Nmap& nvmap, Graph&)
+size_t get_count(size_t s, size_t t, Nmap& nvmap, Graph& g)
 {
-    if (!is_directed::apply<Graph>::type::value && s > t)
+    if (!graph_tool::is_directed(g) && s > t)
         std::swap(s, t);
     auto& nmap = nvmap[s];
     auto iter = nmap.find(t);
@@ -157,12 +157,12 @@ struct swap_edge
         remove_edge(edges[e.first], g);
         remove_edge(edges[te.first], g);
 
-        if (is_directed::apply<Graph>::type::value || !e.second)
+        if (graph_tool::is_directed(g) || !e.second)
             ne = add_edge(s_e, t_te, g).first;
         else // keep invertedness (only for undirected graphs)
             ne = add_edge(t_te, s_e, g).first;
         edges[e.first] = ne;
-        if (is_directed::apply<Graph>::type::value || !te.second)
+        if (graph_tool::is_directed(g) || !te.second)
             nte = add_edge(s_te, t_e, g).first;
         else // keep invertedness (only for undirected graphs)
             nte = add_edge(t_e, s_te,  g).first;
@@ -402,7 +402,7 @@ public:
         size_t e_s = source(_edges[ei], _g);
         size_t e_t = target(_edges[ei], _g);
 
-        if (!is_directed::apply<Graph>::type::value && e_s > e_t)
+        if (!graph_tool::is_directed(_g) && e_s > e_t)
             std::swap(e_s, e_t);
 
         //try randomly drawn pairs of vertices
@@ -418,7 +418,7 @@ public:
                     continue;
 
             }
-            else if (!is_directed::apply<Graph>::type::value && self_loops)
+            else if (!graph_tool::is_directed(_g) && self_loops)
             {
                 // sample self-loops w/ correct probability for undirected
                 // graphs
@@ -429,7 +429,7 @@ public:
             break;
         }
 
-        if (!is_directed::apply<Graph>::type::value && s > t)
+        if (!graph_tool::is_directed(_g) && s > t)
             std::swap(s, t);
 
         if (s == e_s && t == e_t)
@@ -540,7 +540,7 @@ public:
 
         double a = 0;
 
-        if (!is_directed::apply<Graph>::type::value)
+        if (!graph_tool::is_directed(_g))
         {
             a -= log(2 + (s == t) + (ts == tt));
             a += log(2 + (s == tt) + (ts == t));
@@ -562,7 +562,7 @@ public:
                 int d = e_d.second;
                 size_t m = get_count(u,  v,  _nmap, _g);
                 a -= lgamma(m + 1) - lgamma((m + 1) + d);
-                if (!is_directed::apply<Graph>::type::value && u == v)
+                if (!graph_tool::is_directed(_g) && u == v)
                     a += d * log(2);
             }
 
@@ -644,7 +644,7 @@ public:
     {
         std::uniform_int_distribution<> sample(0, base_t::_edges.size() - 1);
         pair<size_t, bool> et = make_pair(sample(base_t::_rng), false);
-        if (!is_directed::apply<Graph>::type::value)
+        if (!graph_tool::is_directed(_g))
         {
             std::bernoulli_distribution coin(0.5);
             et.second = coin(base_t::_rng);
@@ -700,7 +700,7 @@ public:
             deg_t tdeg = get_deg(t, _g);;
             _edges_by_target[tdeg].push_back(make_pair(ei, false));
 
-            if (!is_directed::apply<Graph>::type::value)
+            if (!graph_tool::is_directed(_g))
             {
                 t = source(e, _g);
                 deg_t tdeg = get_deg(t, _g);
@@ -711,7 +711,7 @@ public:
 
     pair<size_t,bool> get_target_edge(pair<size_t, bool>& e, bool)
     {
-        if (!is_directed::apply<Graph>::type::value)
+        if (!graph_tool::is_directed(_g))
         {
             std::bernoulli_distribution coin(0.5);
             e.second = coin(base_t::_rng);
@@ -836,7 +836,7 @@ public:
 
     pair<size_t, bool> get_target_edge(pair<size_t, bool>& e, bool)
     {
-        if (!is_directed::apply<Graph>::type::value)
+        if (!graph_tool::is_directed(_g))
         {
             std::bernoulli_distribution coin(0.5);
             e.second = coin(base_t::_rng);
@@ -848,7 +848,7 @@ public:
         std::uniform_int_distribution<> sample(0, base_t::_edges.size() - 1);
         size_t epi = sample(base_t::_rng);
         pair<size_t, bool> ep = make_pair(epi, false);
-        if (!is_directed::apply<Graph>::type::value)
+        if (!graph_tool::is_directed(_g))
         {
             // for undirected graphs we must select a random direction
             std::bernoulli_distribution coin(0.5);
@@ -1000,7 +1000,7 @@ public:
             s = uniform_sample(svs, _rng);
             t = uniform_sample(tvs, _rng);
 
-            if (!is_directed::apply<Graph>::type::value &&
+            if (!graph_tool::is_directed(_g) &&
                 deg.first == deg.second && s != t && self_loops)
             {
                 // sample self-loops w/ correct probability for undirected

@@ -47,7 +47,7 @@ struct get_line_graph
             vertex_map[v] = edge_index[e];
         }
 
-        if (boost::is_directed(g))
+        if (graph_tool::is_directed(g))
         {
             for (auto v : vertices_range(g))
             {

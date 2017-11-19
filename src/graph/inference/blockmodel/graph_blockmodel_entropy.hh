@@ -53,11 +53,11 @@ struct entropy_args_t
 
 // exact microcanonical deg-corr entropy
 template <class Graph>
-inline double eterm_exact(size_t r, size_t s, size_t mrs, const Graph&)
+inline double eterm_exact(size_t r, size_t s, size_t mrs, const Graph& g)
 {
     double val = lgamma_fast(mrs + 1);
 
-    if (is_directed::apply<Graph>::type::value || r != s)
+    if (graph_tool::is_directed(g) || r != s)
     {
         return -val;
     }
@@ -74,18 +74,18 @@ inline double eterm_exact(size_t r, size_t s, size_t mrs, const Graph&)
 
 template <class Graph>
 inline double vterm_exact(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
-                          const Graph&)
+                          const Graph& g)
 {
     if (deg_corr)
     {
-        if (is_directed::apply<Graph>::type::value)
+        if (graph_tool::is_directed(g))
             return lgamma_fast(mrp + 1) + lgamma_fast(mrm + 1);
         else
             return lgamma_fast(mrp + 1);
     }
     else
     {
-        if (is_directed::apply<Graph>::type::value)
+        if (graph_tool::is_directed(g))
             return (mrp + mrm) * safelog(wr);
         else
             return mrp * safelog(wr);
@@ -94,14 +94,14 @@ inline double vterm_exact(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
 
 // "edge" term of the entropy
 template <class Graph>
-inline double eterm(size_t r, size_t s, size_t mrs, const Graph&)
+inline double eterm(size_t r, size_t s, size_t mrs, const Graph& g)
 {
-    if (!is_directed::apply<Graph>::type::value && r == s)
+    if (!graph_tool::is_directed(g) && r == s)
         mrs *= 2;
 
     double val = xlogx(mrs);
 
-    if (is_directed::apply<Graph>::type::value || r != s)
+    if (graph_tool::is_directed(g) || r != s)
         return -val;
     else
         return -val / 2;
@@ -110,11 +110,11 @@ inline double eterm(size_t r, size_t s, size_t mrs, const Graph&)
 // "vertex" term of the entropy
 template <class Graph>
 inline double vterm(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
-                    Graph&)
+                    Graph& g)
 {
     double one = 0.5;
 
-    if (is_directed::apply<Graph>::type::value)
+    if (graph_tool::is_directed(g))
         one = 1;
 
     if (deg_corr)
@@ -131,7 +131,7 @@ inline double vterm(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
 // "edge" term of the entropy
 template <class Graph>
 inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
-                          double wr_s, bool multigraph, const Graph&)
+                          double wr_s, bool multigraph, const Graph& g)
 {
     // we should not use integers here, since they may overflow
     double nrns;
@@ -141,7 +141,7 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
 
     assert(wr_r + wr_s > 0);
 
-    if (r != s || is_directed::apply<Graph>::type::value)
+    if (r != s || graph_tool::is_directed(g))
     {
         nrns = wr_r * wr_s;
     }

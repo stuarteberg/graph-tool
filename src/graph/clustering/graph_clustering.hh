@@ -75,7 +75,7 @@ get_triangles(typename graph_traits<Graph>::vertex_descriptor v, VProp& mark,
         mark[n] = false;
 
     size_t k = out_degree(v, g);
-    if (is_directed::apply<Graph>::type::value)
+    if (graph_tool::is_directed(g))
         return make_pair(triangles, (k * (k - 1)));
     else
         return make_pair(triangles / 2, (k * (k - 1)) / 2);

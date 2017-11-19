@@ -91,7 +91,7 @@ public:
                 {
                     if (!self_loops)
                         continue;
-                    if (!is_directed::apply<Graph>::type::value)
+                    if (!graph_tool::is_directed(g))
                         w /= 2;
                 }
                 us.emplace_back(u, 0);

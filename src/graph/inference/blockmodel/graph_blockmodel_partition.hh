@@ -267,7 +267,7 @@ public:
 
     template <class VProp, class Graph>
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, VProp& vweight,
-                              size_t actual_B, Graph&)
+                              size_t actual_B, Graph& g)
     {
         if (r == nr || _allow_empty)
             return 0;
@@ -297,9 +297,9 @@ public:
 
         if (dB != 0)
         {
-            auto get_x = [](size_t B)
+            auto get_x = [&g](size_t B)
                 {
-                    if (is_directed::apply<Graph>::type::value)
+                    if (graph_tool::is_directed(g))
                         return B * B;
                     else
                         return (B * (B + 1)) / 2;

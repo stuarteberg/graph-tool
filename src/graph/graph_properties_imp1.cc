@@ -61,7 +61,7 @@ struct do_edge_endpoint
                  {
                      auto s = v;
                      auto t = target(e, g);
-                     if (!is_directed::apply<Graph>::type::value && s > t)
+                     if (!graph_tool::is_directed(g) && s > t)
                          continue;
                      if (src)
                          eprop[e] = prop[s];

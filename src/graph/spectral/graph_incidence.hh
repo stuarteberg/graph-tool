@@ -39,7 +39,7 @@ struct get_incidence
         {
             for (const auto& e : out_edges_range(v, g))
             {
-                if (is_directed::apply<Graph>::type::value)
+                if (graph_tool::is_directed(g))
                     data[pos] = -1;
                 else
                     data[pos] = 1;

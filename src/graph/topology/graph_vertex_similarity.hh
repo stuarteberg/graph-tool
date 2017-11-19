@@ -83,7 +83,7 @@ double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Graph& g)
     {
         if (mark[w])
         {
-            if (is_directed::apply<Graph>::type::value)
+            if (graph_tool::is_directed(g))
                 count += 1. / log(in_degreeS()(w, g));
             else
                 count += 1. / log(out_degree(w, g));

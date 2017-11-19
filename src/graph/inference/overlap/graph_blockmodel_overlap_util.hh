@@ -87,7 +87,7 @@ public:
                 auto w = _out_neighbors[u];
                 if (w == _null)
                     continue;
-                if (!is_directed::apply<Graph>::type::value && size_t(node_index[w]) < i)
+                if (!graph_tool::is_directed(g) && size_t(node_index[w]) < i)
                     continue;
                 out_us[node_index[w]].push_back(u);
             }
@@ -105,9 +105,9 @@ public:
                         _mi[u] = _mi[w] = _parallel_bundles.size() - 1;
                         size_t r = b[u];
                         size_t s = b[w];
-                        if (!is_directed::apply<Graph>::type::value && r > s)
+                        if (!graph_tool::is_directed(g) && r > s)
                             std::swap(r, s);
-                        h[std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == w)]++;
+                        h[std::make_tuple(r, s, !graph_tool::is_directed(g) && u == w)]++;
                     }
                 }
             }
@@ -115,7 +115,7 @@ public:
     }
 
     template <class Graph, class VProp>
-    void add_half_edge(size_t v, size_t v_r, VProp& b, Graph&)
+    void add_half_edge(size_t v, size_t v_r, VProp& b, Graph& g)
     {
         size_t u = _node_index[v];
         size_t kin = (_in_neighbors[v] != _null);
@@ -142,14 +142,14 @@ public:
                 s = b[u];
             }
             auto& h = _parallel_bundles[m];
-            if (!is_directed::apply<Graph>::type::value && r > s)
+            if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            h[std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == v)]++;
+            h[std::make_tuple(r, s, !graph_tool::is_directed(g) && u == v)]++;
         }
     }
 
     template <class Graph, class VProp>
-    void remove_half_edge(size_t v, size_t v_r, VProp& b, Graph&)
+    void remove_half_edge(size_t v, size_t v_r, VProp& b, Graph& g)
     {
         size_t u = _node_index[v];
         size_t kin = (_in_neighbors[v] != _null);
@@ -179,9 +179,9 @@ public:
                 s = b[u];
             }
             auto& h = _parallel_bundles[m];
-            if (!is_directed::apply<Graph>::type::value && r > s)
+            if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            auto iter = h.find(std::make_tuple(r, s, !is_directed::apply<Graph>::type::value && u == v));
+            auto iter = h.find(std::make_tuple(r, s, !graph_tool::is_directed(g) && u == v));
             assert(iter->second > 0);
             iter->second--;
             if (iter->second == 0)
@@ -230,7 +230,7 @@ public:
         size_t u_kin = ((in_deg + out_deg) > 0) ? in_deg : in_degreeS()(v, g);
         size_t u_kout = ((in_deg + out_deg) > 0) ? out_deg : out_degreeS()(v, g);
 
-        auto deg =  _block_nodes[r].find(u)->second;
+        auto deg = _block_nodes[r].find(u)->second;
         auto ndeg = deg;
         ndeg.first -= u_kin;
         ndeg.second -= u_kout;
@@ -255,7 +255,7 @@ public:
 
     template <class Graph, class VProp>
     double virtual_move_parallel_dS(size_t v, size_t v_r, size_t v_nr, VProp& b,
-                                    Graph&, bool bundled=false) const
+                                    Graph& g, bool bundled=false) const
     {
         int m = _mi[v];
         if (m == -1)
@@ -279,9 +279,9 @@ public:
             ns = s;
         }
 
-        if (!is_directed::apply<Graph>::type::value && r > s)
+        if (!graph_tool::is_directed(g) && r > s)
             std::swap(r, s);
-        if (!is_directed::apply<Graph>::type::value && nr > ns)
+        if (!graph_tool::is_directed(g) && nr > ns)
             std::swap(nr, ns);
 
         auto& h = _parallel_bundles[m];
@@ -294,7 +294,7 @@ public:
                 return iter->second;
             };
 
-        bool is_loop = !is_directed::apply<Graph>::type::value && u == v;
+        bool is_loop = !graph_tool::is_directed(g) && u == v;
         int c  = get_h(std::make_tuple(r,  s, is_loop));
         int nc = get_h(std::make_tuple(nr, ns, is_loop));
 

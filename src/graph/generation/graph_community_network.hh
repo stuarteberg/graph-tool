@@ -140,7 +140,7 @@ struct get_community_network_edges
                 }
                 else
                 {
-                    if (!is_directed::apply<Graph>::type::value)
+                    if (!graph_tool::is_directed(g))
                     {
                         iter = comm_edges[ct].find(cs);
                         if (iter != comm_edges[ct].end())
@@ -296,7 +296,7 @@ struct get_edge_community_property_sum
                 continue;  // self-loops not allowed
 
             auto* ces = &comm_edges[make_pair(cs, ct)];
-            if (ces->empty() && !is_directed::apply<Graph>::type::value)
+            if (ces->empty() && !graph_tool::is_directed(g))
                 ces = &comm_edges[make_pair(ct, cs)];
             if (ces->empty())
             {

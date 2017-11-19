@@ -251,7 +251,6 @@ private:
     vector<std::tuple<EVals...>> _delta;
     vector<bedge_t> _mes;
     size_t _dummy;
-
 };
 
 template <class Graph, class BGraph, class... EVals>
@@ -274,7 +273,7 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     auto& self_weight = m_entries._self_weight;
-    if (!is_directed::apply<Graph>::type::value)
+    if (!graph_tool::is_directed(g))
     {
         tuple_apply([&](auto&&... vals)
                     {
@@ -299,13 +298,13 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         m_entries.template insert_delta<Add>(r, s, ew,
                                              make_vadapter(eprops, e)...);
 
-        if ((u == v || is_loop(v)) && !is_directed::apply<Graph>::type::value)
-            tuple_op(self_weight, [&](auto& r, auto& v){ r += v; },
+        if ((u == v || is_loop(v)) && !graph_tool::is_directed(g))
+            tuple_op(self_weight, [&](auto& x, auto& val){ x += val; },
                      ew, make_vadapter(eprops, e)...);
     }
 
     if (get<0>(self_weight) > 0 && get<0>(self_weight) % 2 == 0 &&
-        !is_directed::apply<Graph>::type::value)
+        !graph_tool::is_directed(g))
     {
         tuple_apply([&](auto&&... vals)
                     {
@@ -315,18 +314,21 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
                     }, self_weight);
     }
 
-    for (auto e : in_edges_range(v, g))
+    if (graph_tool::is_directed(g))
     {
-        if (efilt(e))
-            continue;
-        vertex_t u = source(e, g);
-        if (u == v)
-            continue;
-        vertex_t s = _b[u];
-        int ew = eweights[e];
+        for (auto e : in_edges_range(v, g))
+        {
+            if (efilt(e))
+                continue;
+            vertex_t u = source(e, g);
+            if (u == v)
+                continue;
+            vertex_t s = _b[u];
+            int ew = eweights[e];
 
-        m_entries.template insert_delta<Add>(s, r, ew,
-                                             make_vadapter(eprops, e)...);
+            m_entries.template insert_delta<Add>(s, r, ew,
+                                                 make_vadapter(eprops, e)...);
+        }
     }
 }
 

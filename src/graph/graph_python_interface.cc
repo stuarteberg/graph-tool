@@ -233,7 +233,7 @@ struct get_edge_dispatch
                     bool all_edges, boost::python::list& es) const
     {
         auto gp = retrieve_graph_view<Graph>(gi, g);
-        size_t k_t = is_directed::apply<Graph>::type::value ?
+        size_t k_t = graph_tool::is_directed(g) ?
             in_degreeS()(t, g) : out_degree(t, g);
         if (out_degree(s, g) <= k_t)
         {
@@ -251,11 +251,11 @@ struct get_edge_dispatch
         {
             for (auto e : in_or_out_edges_range(vertex(t, g), g))
             {
-                auto w = is_directed::apply<Graph>::type::value ?
+                auto w = graph_tool::is_directed(g) ?
                     source(e, g) : target(e, g);
                 if (w == vertex(s, g))
                 {
-                    if (!is_directed::apply<Graph>::type::value && e.s != s)
+                    if (!graph_tool::is_directed(g) && e.s != s)
                         std::swap(e.s, e.t);
                     es.append(PythonEdge<Graph>(gp, e));
                     if (!all_edges)

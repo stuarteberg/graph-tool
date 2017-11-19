@@ -212,7 +212,7 @@ void make_subgraph
             auto viter = lower_bound(vlist.begin(), vlist.end(), ot);
             size_t ot_index = viter - vlist.begin();
             if (viter != vlist.end() && vlist[ot_index] == ot &&
-                (is_directed::apply<Graph>::type::value || ot < ov))
+                (graph_tool::is_directed(g) || ot < ov))
                 add_edge(nv, vertex(ot_index, sub), sub);
         }
     }
@@ -283,12 +283,12 @@ void get_sig(Graph& g, std::vector<size_t>& sig)
     sig.clear();
     size_t N = num_vertices(g);
     if (N > 0)
-        sig.resize(is_directed::apply<Graph>::type::value ? 2 * N : N);
+        sig.resize(graph_tool::is_directed(g) ? 2 * N : N);
     for (size_t i = 0; i < N; ++i)
     {
         auto v = vertex(i, g);
         sig[i] = out_degree(v, g);
-        if(is_directed::apply<Graph>::type::value)
+        if(graph_tool::is_directed(g))
             sig[i + N] = in_degreeS()(v, g);
     }
     sort(sig.begin(), sig.end());

@@ -34,7 +34,7 @@ template <class Edge, class Graph>
 inline typename graph_traits<Graph>::vertex_descriptor
 get_source(const Edge& e, const Graph &g)
 {
-    if (is_directed::apply<Graph>::type::value)
+    if (graph_tool::is_directed(g))
         return source(e, g);
     return std::min(source(e, g), target(e, g));
 }
@@ -43,7 +43,7 @@ template <class Edge, class Graph>
 inline typename graph_traits<Graph>::vertex_descriptor
 get_target(const Edge& e, const Graph &g)
 {
-    if (is_directed::apply<Graph>::type::value)
+    if (graph_tool::is_directed(g))
         return target(e, g);
     return std::max(source(e, g), target(e, g));
 }

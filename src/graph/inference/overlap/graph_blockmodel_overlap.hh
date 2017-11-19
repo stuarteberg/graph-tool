@@ -542,7 +542,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g);
         size_t kin = 0;
-        if (is_directed::apply<g_t>::type::value)
+        if (graph_tool::is_directed(_g))
             kin = in_degreeS()(v, _g);
 
         double dS = entries_dS<exact>(m_entries, _mrs, _emat, _bg);
@@ -556,7 +556,7 @@ public:
         if (multigraph)
             dS += _overlap_stats.virtual_move_parallel_dS(v, r, nr, _b, _g);
 
-        if (!is_directed::apply<g_t>::type::value)
+        if (!graph_tool::is_directed(_g))
             kin = kout;
 
         auto vt = [&](auto mrp, auto mrm, auto nr)
@@ -938,7 +938,7 @@ public:
             if (c > 0)
             {
                 size_t B = num_vertices(_bg);
-                if (is_directed::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
@@ -995,7 +995,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
-        if (is_directed::apply<g_t>::type::value)
+        if (graph_tool::is_directed(_g))
             kin = in_degreeS()(v, _g, _eweight);
 
         size_t vi = _overlap_stats.get_node(v);
@@ -1006,7 +1006,7 @@ public:
             for (auto e : all_edges_range(v, _g))
             {
                 vertex_t u = target(e, _g);
-                if (is_directed::apply<g_t>::type::value && u == v)
+                if (graph_tool::is_directed(_g) && u == v)
                     u = source(e, _g);
                 vertex_t t = _b[u];
                 if (u == v)
@@ -1022,7 +1022,7 @@ public:
                 int mst = mts;
                 int mtm = mtp;
 
-                if (is_directed::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                 {
                     mst = 0;
                     const auto& me = m_entries.get_me(s, t, _emat);
@@ -1035,7 +1035,7 @@ public:
                 {
                     int dts = get<0>(m_entries.get_delta(t, s));
                     int dst = dts;
-                    if (is_directed::apply<g_t>::type::value)
+                    if (graph_tool::is_directed(_g))
                         dst = get<0>(m_entries.get_delta(s, t));
 
                     mts += dts;
@@ -1054,7 +1054,7 @@ public:
                     }
                 }
 
-                if (is_directed::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                 {
                     p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
                 }
@@ -1371,7 +1371,7 @@ public:
             {
                 if (!be[e].empty() || target(e, g) != t)
                     continue;
-                if (is_directed::apply<Graph>::type::value || s < target(e, g))
+                if (graph_tool::is_directed(g) || s < target(e, g))
                     be[e] = {_b[u], _b[v]};
                 else
                     be[e] = {_b[v], _b[u]};
@@ -1522,7 +1522,7 @@ public:
         {
             size_t r = _b[source(e, _g)];
             size_t s = _b[target(e, _g)];
-            if (!is_directed::apply<g_t>::type::value && s < r)
+            if (!graph_tool::is_directed(_g) && s < r)
                 std::swap(r, s);
             mrs[std::make_pair(r, s)] += _eweight[e];
         }

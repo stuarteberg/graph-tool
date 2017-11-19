@@ -42,7 +42,7 @@ template <bool micro_deg, class Graph, class VProp, class IVec, class FVec,
 void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
              VDProp out_deg, bool micro_ers, RNG& rng)
 {
-    constexpr bool is_dir = is_directed::apply<Graph>::type::value;
+    constexpr bool is_dir = graph_tool::is_directed(g);
     typedef typename std::conditional_t<micro_deg,size_t,double> dtype;
     vector<vector<size_t>> rvs;
     vector<vector<dtype>> v_in_probs, v_out_probs;

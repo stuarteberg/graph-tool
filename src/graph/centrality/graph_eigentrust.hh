@@ -43,7 +43,7 @@ struct get_eigentrust
 
         // Norm c values
         InferredTrustMap c_sum(vertex_index);
-        if (is_directed::apply<Graph>::type::value)
+        if (graph_tool::is_directed(g))
         {
             TrustMap c_temp(edge_index, c.get_storage().size());
             parallel_vertex_loop
@@ -93,11 +93,11 @@ struct get_eigentrust
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
                          typename graph_traits<Graph>::vertex_descriptor s;
-                         if (is_directed::apply<Graph>::type::value)
+                         if (graph_tool::is_directed(g))
                              s = source(e, g);
                          else
                              s = target(e, g);
-                         if (!is_directed::apply<Graph>::type::value)
+                         if (!graph_tool::is_directed(g))
                              t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
                          else
                              t_temp[v] += get(c, e) * t[s];

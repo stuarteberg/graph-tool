@@ -92,7 +92,7 @@ struct overlap_partition_stats_t
                               bool allow_empty)
         : _overlap_stats(ostats), _bmap(bmap), _vmap(vmap),
           _allow_empty(allow_empty),
-          _directed(is_directed::apply<Graph>::type::value)
+          _directed(graph_tool::is_directed(g))
 
     {
         _D = 0;
@@ -587,7 +587,7 @@ struct overlap_partition_stats_t
 
     template <class Graph>
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, size_t actual_B,
-                              const Graph&)
+                              const Graph& g)
     {
         if (r == nr || _allow_empty)
             return 0;
@@ -602,9 +602,9 @@ struct overlap_partition_stats_t
 
         if (dB != 0)
         {
-            auto get_x = [](size_t B) -> size_t
+            auto get_x = [&g](size_t B) -> size_t
                 {
-                    if (is_directed::apply<Graph>::type::value)
+                    if (graph_tool::is_directed(g))
                         return B * B;
                     else
                         return (B * (B + 1)) / 2;

@@ -49,7 +49,7 @@ struct label_parallel_edges
                      vertex_t u = target(*e, g);
 
                      // do not visit edges twice in undirected graphs
-                     if (!is_directed::apply<Graph>::type::value && u < v)
+                     if (!graph_tool::is_directed(g) && u < v)
                          continue;
 
                      if (u == v)

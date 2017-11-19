@@ -68,6 +68,11 @@ struct is_directed
     };
 };
 
+template <class Graph>
+constexpr bool is_directed(const Graph&)
+{
+    return is_directed::apply<std::remove_reference_t<Graph>>::type::value;
+}
 
 // This will count "by hand" the number of vertices on a graph. Always O(V).
 struct HardNumVertices
