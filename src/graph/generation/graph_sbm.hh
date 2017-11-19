@@ -81,34 +81,33 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         size_t s = ss[i];
         auto p = probs[i];
 
+        if (p == 0)
+            continue;
+
         if (!is_dir && r == s)
             p /= 2;
-
-        if (p > 0 && (r >= v_out_sampler.size() || v_out_sampler[r].empty() ||
-                      s >= v_in_sampler.size()  || v_in_sampler[s].empty()))
-            throw GraphException("Inconsistent SBM parameters: nonzero edge probabilities given for empty groups");
 
         auto& r_sampler = v_out_sampler[r];
         auto& s_sampler = v_in_sampler[s];
 
-        size_t ers;
+        size_t mrs;
         if (micro_ers)
         {
-            ers = p;
+            mrs = p;
         }
         else
         {
             std::poisson_distribution<> poi(p);
-            ers = poi(rng);
+            mrs = poi(rng);
         }
 
-        for (size_t j = 0; j < ers; ++j)
+        size_t ers = (&r_sampler != &s_sampler) ? mrs : 2 * mrs;
+        if (!r_sampler.has_n(ers) || !s_sampler.has_n(ers))
+            throw GraphException("Inconsistent SBM parameters: node degrees do not agree with matrix of edge counts between groups");
+
+        for (size_t j = 0; j < mrs; ++j)
         {
-            if (r_sampler.empty())
-                throw GraphException("Inconsistent SBM parameters: node degrees do not agree with matrix of edge counts between groups");
             size_t u = r_sampler.sample(rng);
-            if (s_sampler.empty())
-                throw GraphException("Inconsistent SBM parameters: node degrees do not agree with matrix of edge counts between groups");
             size_t v = s_sampler.sample(rng);
             add_edge(u, v, g);
         }

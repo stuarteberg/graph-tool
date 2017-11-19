@@ -94,8 +94,9 @@ public:
     }
 
     size_t size() const { return _items.size(); }
-    double prob_sum() const { return _S; }
     bool empty() const { return _S == 0; }
+    bool has_n(size_t n) const { return (n == 0 || !empty()); }
+    double prob_sum() const { return _S; }
 
     const Value& operator[](size_t i) const
     {
@@ -127,6 +128,7 @@ private:
     vector<size_t> _alias;
     uniform_int_distribution<size_t> _sample;
     double _S;
+    size_t _size;
 };
 
 // uniform sampling from containers
