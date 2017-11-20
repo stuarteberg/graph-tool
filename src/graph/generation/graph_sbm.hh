@@ -42,7 +42,6 @@ template <bool micro_deg, class Graph, class VProp, class IVec, class FVec,
 void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
              VDProp out_deg, bool micro_ers, RNG& rng)
 {
-    constexpr bool is_dir = graph_tool::is_directed(g);
     typedef typename std::conditional_t<micro_deg,size_t,double> dtype;
     vector<vector<size_t>> rvs;
     vector<vector<dtype>> v_in_probs, v_out_probs;
@@ -51,13 +50,13 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         size_t r = b[v];
         if (r >= v_out_probs.size())
         {
-            if (is_dir)
+            if (graph_tool::is_directed(g))
                 v_in_probs.resize(r+1);
             v_out_probs.resize(r+1);
             rvs.resize(r+1);
         }
         rvs[r].push_back(v);
-        if (is_dir)
+        if (graph_tool::is_directed(g))
             v_in_probs[r].push_back(in_deg[v]);
         v_out_probs[r].push_back(out_deg[v]);
     }
@@ -68,12 +67,12 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
     vector<vsampler_t> v_in_sampler_, v_out_sampler;
     for (size_t r = 0; r < rvs.size(); ++r)
     {
-        if (is_dir)
+        if (graph_tool::is_directed(g))
             v_in_sampler_.emplace_back(rvs[r], v_in_probs[r]);
         v_out_sampler.emplace_back(rvs[r], v_out_probs[r]);
     }
 
-    auto& v_in_sampler = (is_dir) ? v_in_sampler_ : v_out_sampler;
+    auto& v_in_sampler = (graph_tool::is_directed(g)) ? v_in_sampler_ : v_out_sampler;
 
     for (size_t i = 0; i < rs.shape()[0]; ++i)
     {
@@ -84,7 +83,7 @@ void gen_sbm(Graph& g, VProp b, IVec& rs, IVec& ss, FVec probs, VDProp in_deg,
         if (p == 0)
             continue;
 
-        if (!is_dir && r == s)
+        if (!graph_tool::is_directed(g) && r == s)
             p /= 2;
 
         auto& r_sampler = v_out_sampler[r];
