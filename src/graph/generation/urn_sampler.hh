@@ -68,7 +68,7 @@ public:
     }
 
     bool empty() const { return _urn.empty(); }
-    bool size() const { return _urn.size(); }
+    size_t size() const { return _urn.size(); }
     bool has_n(size_t n) const { return (n == 0 || size() >= (replacement ? 1 : n)); }
 
 private:
