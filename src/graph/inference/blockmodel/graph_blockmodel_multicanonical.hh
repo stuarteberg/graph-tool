@@ -71,6 +71,7 @@ struct Multicanonical
 
         int _i;
         double _dS;
+        size_t _null_move = null_group;
 
         int get_bin(double S)
         {

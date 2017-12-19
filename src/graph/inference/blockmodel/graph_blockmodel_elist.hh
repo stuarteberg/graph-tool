@@ -54,15 +54,15 @@ class EGroups
 {
 public:
     template <class Vprop, class Eprop, class BGraph>
-    void init(Vprop b, Eprop eweight, Graph& g, BGraph& bg)
+    void init(Vprop b, Eprop& eweight, Graph& g, BGraph& bg)
     {
         _egroups.clear();
         _egroups.resize(num_vertices(bg));
 
         for (auto e : edges_range(g))
         {
-            _epos[e] = make_pair(numeric_limits<size_t>::max(),
-                                 numeric_limits<size_t>::max());
+            _epos[e] = {numeric_limits<size_t>::max(),
+                        numeric_limits<size_t>::max()};
             insert_edge(e, eweight[e], b, g);
         }
     }
@@ -77,12 +77,31 @@ public:
         return _egroups.empty();
     }
 
-    template <class Vprop>
-    bool check(Vprop b, Graph& g)
+    template <class Vprop, class Eprop>
+    bool check(Vprop b, Eprop& eweight, Graph& g) const
     {
+        for (auto e : edges_range(g))
+        {
+            if (eweight[e] == 0)
+                continue;
+            auto r = b[get_source(e, g)];
+            auto s = b[get_target(e, g)];
+            const auto& pos = _epos[e];
+            if (!(pos.first < _egroups[r].size() &&
+                  is_valid(pos.first, _egroups[r]) &&
+                  get<0>(_egroups[r][pos.first]) == e &&
+                  pos.second < _egroups[s].size() &&
+                  is_valid(pos.second, _egroups[s]) &&
+                  get<0>(_egroups[s][pos.second]) == e))
+            {
+                assert(false);
+                return false;
+            }
+        }
+
         for (size_t r = 0; r < _egroups.size(); ++r)
         {
-            auto& edges = _egroups[r];
+            const auto& edges = _egroups[r];
             for (size_t i = 0; i < edges.size(); ++i)
             {
                 const auto& e = edges[i];
@@ -100,13 +119,13 @@ public:
     }
 
     template <class Edge>
-    bool is_valid(size_t i, DynamicSampler<Edge>& elist)
+    bool is_valid(size_t i, const DynamicSampler<Edge>& elist) const
     {
         return elist.is_valid(i);
     }
 
     template <class Edge>
-    bool is_valid(size_t, vector<Edge>&)
+    bool is_valid(size_t, const vector<Edge>&) const
     {
         return true;
     }

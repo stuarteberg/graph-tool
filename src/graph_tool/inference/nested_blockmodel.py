@@ -108,6 +108,9 @@ class NestedBlockState(object):
 
         self._regen_Lrecdx()
 
+        if self.sampling:
+            self._couple_levels()
+
         if _bm_test():
             self._consistency_check()
 
@@ -673,6 +676,13 @@ class NestedBlockState(object):
         state._couple_state(None, None)
         return state
 
+    def _couple_levels(self):
+        for l in range(len(self.levels) - 1):
+            eargs = dict(self.hentropy_args,
+                         edges_dl=(l + 1 == len(self.levels) - 1),
+                         recs=False)
+            self.levels[l]._couple_state(self.levels[l + 1], eargs)
+
     def _h_sweep_gen(self, **kwargs):
 
         if not self.sampling:
@@ -681,11 +691,7 @@ class NestedBlockState(object):
         verbose = kwargs.get("verbose", False)
         entropy_args = kwargs.get("entropy_args", {})
 
-        for l in range(len(self.levels) - 1):
-            eargs = dict(self.hentropy_args,
-                         edges_dl=(l + 1 == len(self.levels) - 1),
-                         recs=False)
-            self.levels[l]._couple_state(self.levels[l + 1], eargs)
+        self._couple_levels()
 
         c = kwargs.get("c", None)
 

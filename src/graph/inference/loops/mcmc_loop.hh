@@ -50,9 +50,8 @@ bool metropolis_accept(double dS, double mP, double beta, RNG& rng)
         }
         else
         {
-            typedef std::uniform_real_distribution<> rdist_t;
-            double sample = rdist_t()(rng);
-            return sample < exp(a);
+            std::uniform_real_distribution<> sample;
+            return sample(rng) < exp(a);
         }
     }
 }
@@ -75,19 +74,17 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
 
         for (size_t vi = 0; vi < vlist.size(); ++vi)
         {
-            size_t v;
-            if (state.is_sequential())
-                v = vlist[vi];
-            else
-                v = uniform_sample(vlist, rng);
+            auto&& v = (state.is_sequential()) ?
+                vlist[vi] : uniform_sample(vlist, rng);
 
             if (state.skip_node(v))
                 continue;
 
-            auto r = state.node_state(v);
-            auto s = state.move_proposal(v, rng);
+            auto r = (state._verbose) ? state.node_state(v)
+                : decltype(state.node_state(v))();
+            auto&& s = state.move_proposal(v, rng);
 
-            if (s == null_group)
+            if (s == state._null_move)
                 continue;
 
             double dS, mP;

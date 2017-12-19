@@ -54,6 +54,10 @@ libgraph_tool_inference_la_SOURCES = \
     layers/graph_blockmodel_layers_overlap_multicanonical_multiflip.cc \
     layers/graph_blockmodel_layers_overlap_multiflip_mcmc.cc \
     layers/graph_blockmodel_layers_overlap_vacate.cc \
+    uncertain/graph_blockmodel_measured.cc \
+    uncertain/graph_blockmodel_measured_mcmc.cc \
+    uncertain/graph_blockmodel_uncertain.cc \
+    uncertain/graph_blockmodel_uncertain_mcmc.cc \
     support/cache.cc \
     support/int_part.cc \
     support/spence.cc \
@@ -76,22 +80,25 @@ libgraph_tool_inference_la_include_HEADERS = \
     blockmodel/graph_blockmodel_partition.hh \
     blockmodel/graph_blockmodel_util.hh \
     blockmodel/graph_blockmodel_weights.hh \
-    graph_modularity.hh \
-    layers/graph_blockmodel_layers.hh \
-    layers/graph_blockmodel_layers_util.hh \
-    loops/bundled_vacate_loop.hh \
-    loops/exhaustive_loop.hh \
-    loops/gibbs_loop.hh \
-    loops/mcmc_loop.hh \
-    loops/merge_loop.hh \
     overlap/graph_blockmodel_overlap.hh \
     overlap/graph_blockmodel_overlap_mcmc_bundled.hh \
     overlap/graph_blockmodel_overlap_util.hh \
     overlap/graph_blockmodel_overlap_vacate.hh \
     overlap/graph_blockmodel_overlap_partition.hh \
+    layers/graph_blockmodel_layers.hh \
+    layers/graph_blockmodel_layers_util.hh \
+    uncertain/graph_blockmodel_measured.hh \
+    uncertain/graph_blockmodel_uncertain.hh \
+    uncertain/graph_blockmodel_uncertain_mcmc.hh \
+    loops/bundled_vacate_loop.hh \
+    loops/exhaustive_loop.hh \
+    loops/gibbs_loop.hh \
+    loops/mcmc_loop.hh \
+    loops/merge_loop.hh \
     support/cache.hh \
     support/graph_neighbor_sampler.hh \
     support/graph_state.hh \
     support/int_part.hh \
     support/parallel_rng.hh \
-    support/util.hh
+    support/util.hh \
+    graph_modularity.hh

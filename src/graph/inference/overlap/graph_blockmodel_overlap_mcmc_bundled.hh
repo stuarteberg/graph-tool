@@ -105,6 +105,7 @@ struct MCMC
         std::vector<std::vector<size_t>> _half_edges;
         std::vector<std::vector<size_t>> _bundles;
         bool _parallel;
+        size_t _null_move = null_group;
 
         size_t node_state(size_t i)
         {

@@ -71,6 +71,7 @@ graph_tool_inference_PYTHON = \
     inference/layered_blockmodel.py \
     inference/nested_blockmodel.py \
     inference/overlap_blockmodel.py \
+    inference/uncertain_blockmodel.py \
     inference/mcmc.py \
     inference/minimize.py \
     inference/modularity.py \

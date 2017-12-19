@@ -104,6 +104,10 @@ extern void export_blockmodel_exhaustive();
 extern void export_overlap_blockmodel_exhaustive();
 extern void export_layered_blockmodel_exhaustive();
 extern void export_layered_overlap_blockmodel_exhaustive();
+extern void export_uncertain_state();
+extern void export_uncertain_mcmc();
+extern void export_measured_state();
+extern void export_measured_mcmc();
 extern void export_marginals();
 extern void export_modularity();
 
@@ -145,6 +149,10 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_overlap_blockmodel_exhaustive();
     export_layered_blockmodel_exhaustive();
     export_layered_overlap_blockmodel_exhaustive();
+    export_uncertain_state();
+    export_uncertain_mcmc();
+    export_measured_state();
+    export_measured_mcmc();
     export_marginals();
     export_modularity();
 

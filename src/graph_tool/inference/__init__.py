@@ -133,6 +133,8 @@ __all__ = ["minimize_blockmodel_dl",
            "OverlapBlockState",
            "LayeredBlockState",
            "NestedBlockState",
+           "UncertainBlockState",
+           "MeasuredBlockState",
            "mcmc_equilibrate",
            "mcmc_anneal",
            "mcmc_multilevel",
@@ -158,6 +160,7 @@ from . blockmodel import *
 from . overlap_blockmodel import *
 from . layered_blockmodel import *
 from . nested_blockmodel import *
+from . uncertain_blockmodel import *
 from . mcmc import *
 from . bisection import *
 from . minimize import *

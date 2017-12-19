@@ -25,6 +25,8 @@
 
 #include "cache.hh"
 
+#include <boost/range/counting_range.hpp>
+
 namespace graph_tool
 {
 using namespace boost;

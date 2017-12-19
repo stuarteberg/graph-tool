@@ -79,6 +79,7 @@ struct MCMC
 
         typename state_t::g_t& _g;
         typename state_t::m_entries_t _m_entries;
+        size_t _null_move = null_group;
 
         size_t node_state(size_t v)
         {

@@ -729,7 +729,7 @@ public:
 
     void remove_vertex(size_t v, size_t r)
     {
-        remove_vertex(v, r,  [](auto&) { return false; });
+        remove_vertex(v, r, [](auto&) { return false; });
     }
 
     void remove_vertex(size_t v)
@@ -894,6 +894,164 @@ public:
         multi_array_ref<uint64_t, 1> vs = get_array<uint64_t, 1>(ovs);
         multi_array_ref<uint64_t, 1> rs = get_array<uint64_t, 1>(ors);
         add_vertices(vs, rs);
+    }
+
+    template <bool Add, bool Deplete=true>
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                     const std::vector<double>& rec)
+    {
+        size_t r = _b[u];
+        size_t s = _b[v];
+
+        if (is_partition_stats_enabled())
+        {
+            get_partition_stats(u).remove_vertex(u, r, _deg_corr, _g,
+                                                 _vweight, _eweight,
+                                                 _degs);
+            if (u != v)
+                get_partition_stats(v).remove_vertex(v, s, _deg_corr, _g,
+                                                     _vweight, _eweight,
+                                                     _degs);
+        }
+
+        auto me = _emat.get_me(r, s);
+        if (Add)
+        {
+            if (me == _emat.get_null_edge())
+            {
+                me = boost::add_edge(r, s, _bg).first;
+                _emat.put_me(r, s, me);
+                _c_mrs[me] = 0;
+                for (size_t i = 0; i < _rec_types.size(); ++i)
+                {
+                    _c_brec[i][me] = 0;
+                    _c_bdrec[i][me] = 0;
+                }
+            }
+
+            if (_coupled_state == nullptr)
+                _mrs[me]++;
+            _mrp[r]++;
+            _mrm[s]++;
+        }
+        else
+        {
+            assert(me != _emat.get_null_edge());
+            if (_coupled_state == nullptr)
+                _mrs[me]--;
+            _mrp[r]--;
+            _mrm[s]--;
+        }
+
+        // constexpr auto one = (Add) ? 1 : -1;
+        // for (size_t i = 0; i < _rec_types.size(); ++i)
+        // {
+        //     switch (_rec_types[i])
+        //     {
+        //     case weight_type::REAL_NORMAL: // signed weights
+        //         _bdrec[i][me] += one * std::pow(rec[i], 2);
+        //         throw GraphException("Lrecdx, etc...");
+        //         [[gnu::fallthrough]];
+        //     default:
+        //         _brec[i][me] += one * rec[i];
+        //     }
+        // }
+
+        modify_edge<Add, Deplete>(u, v, e, _is_weighted);
+
+        if (is_partition_stats_enabled())
+        {
+            get_partition_stats(u).add_vertex(u, r, _deg_corr, _g,
+                                              _vweight, _eweight,
+                                              _degs);
+            if (u != v)
+                get_partition_stats(v).add_vertex(v, s, _deg_corr, _g,
+                                                  _vweight, _eweight,
+                                                  _degs);
+            get_partition_stats(u).change_E(Add ? 1 : -1); // FIXME: wrong for multiple partition stats
+        }
+
+        if (_coupled_state != nullptr)
+        {
+            if (Add)
+                _coupled_state->add_edge(r, s, me, rec);
+            else
+                _coupled_state->remove_edge(r, s, me, rec);
+        }
+    }
+
+    template <bool Add, bool Deplete>
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                     std::false_type)
+    {
+        if (Add)
+        {
+            e = boost::add_edge(u, v, _g).first;
+        }
+        else
+        {
+            if (Deplete)
+            {
+                boost::remove_edge(e, _g);
+                e = GraphInterface::edge_t();
+            }
+        }
+    }
+
+    template <bool Add, bool Deplete>
+    void modify_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                     std::true_type)
+    {
+        if (Add)
+        {
+            if (e == GraphInterface::edge_t())
+            {
+                e = boost::add_edge(u, v, _g).first;
+                auto c_eweight = _eweight.get_checked();
+                c_eweight[e] = 1;
+            }
+            else
+            {
+                _eweight[e]++;
+            }
+            if (_deg_corr)
+            {
+                get<1>(_degs[u].front())++;
+                if (graph_tool::is_directed(_g))
+                    get<0>(_degs[v].front())++;
+                else
+                    get<1>(_degs[v].front())++;
+            }
+        }
+        else
+        {
+            _eweight[e]--;
+            if (_eweight[e] == 0 && Deplete)
+            {
+                boost::remove_edge(e, _g);
+                e = GraphInterface::edge_t();
+            }
+            if (_deg_corr)
+            {
+                get<1>(_degs[u].front())--;
+                if (graph_tool::is_directed(_g))
+                    get<0>(_degs[v].front())--;
+                else
+                    get<1>(_degs[v].front())--;
+            }
+        }
+    }
+
+    void add_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                  const std::vector<double>& rec)
+    {
+        modify_edge<true, false>(u, v, e, rec);
+    }
+
+    void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                     const std::vector<double>& rec)
+    {
+        modify_edge<false, false>(u, v, e, rec);
     }
 
     bool allow_move(size_t r, size_t nr, bool allow_empty = true)
@@ -1073,7 +1231,7 @@ public:
             if (t == u)
             {
                 t = v;
-                if (!is_directed_::apply<g_t>::type::value)
+                if (!graph_tool::is_directed(_g))
                 {
                     assert(w % 2 == 0);
                     w /= 2;
@@ -1112,7 +1270,7 @@ public:
             }
         }
 
-        if (is_directed_::apply<g_t>::type::value)
+        if (graph_tool::is_directed(_g))
         {
             ns_u.clear();
             ns_v.clear();
@@ -1274,7 +1432,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
-        if (is_directed_::apply<g_t>::type::value)
+        if (graph_tool::is_directed(_g))
             kin = in_degreeS()(v, _g, _eweight);
 
         int dwr = _vweight[v];
@@ -1340,7 +1498,7 @@ public:
             else
                 deltap[s] += _eweight[e];
         }
-        if (!is_directed_::apply<g_t>::type::value)
+        if (!graph_tool::is_directed(_g))
             deltal /= 2;
 
         vector<int> deltam(num_vertices(_bg), 0);
@@ -1376,7 +1534,7 @@ public:
             int ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
             int enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
 
-            if (!is_directed_::apply<g_t>::type::value)
+            if (!graph_tool::is_directed(_g))
             {
                 if (s != nr && s != r)
                 {
@@ -1807,7 +1965,6 @@ public:
                 dS_dl += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
             }
         }
-
         return dS + ea.beta_dl * dS_dl;
     }
 
@@ -2034,7 +2191,7 @@ public:
             if (c > 0)
             {
                 size_t B = _candidate_blocks.size() - 1;
-                if (is_directed_::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
@@ -2446,16 +2603,16 @@ public:
         return S;
     }
 
-    double get_parallel_entropy()
+    double get_parallel_entropy(auto&& vs, auto&& skip)
     {
         double S = 0;
-        for (auto v : vertices_range(_g))
+        for (auto v : vs)
         {
             gt_hash_map<decltype(v), size_t> us;
             for (auto e : out_edges_range(v, _g))
             {
                 auto u = target(e, _g);
-                if (u < v && !is_directed_::apply<g_t>::type::value)
+                if (skip(v, u))
                     continue;
                 us[u] += _eweight[e];
             }
@@ -2466,7 +2623,7 @@ public:
                 auto& m = uc.second;
                 if (m > 1)
                 {
-                    if (u == v && !is_directed_::apply<g_t>::type::value)
+                    if (u == v && !graph_tool::is_directed(_g))
                     {
                         assert(m % 2 == 0);
                         S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
@@ -2479,6 +2636,219 @@ public:
             }
         }
         return S;
+    }
+
+    double get_parallel_entropy()
+    {
+        return get_parallel_entropy(vertices_range(_g),
+                                    [](auto u, auto v)
+                                    { return (u < v &&
+                                              !is_directed_::apply<g_t>::type::value); 
+                                    });
+    }
+
+    template <bool Add>
+    double edge_entropy_term(size_t u, size_t v, entropy_args_t ea)
+    {
+        double S = 0, S_dl = 0;
+        size_t r = _b[u];
+        size_t s = _b[v];
+
+        if (is_partition_stats_enabled() && ea.degree_dl && _deg_corr)
+        {
+            if (r != s || u == v)
+            {
+                std::array<std::pair<size_t, size_t>, 2> degs;
+
+                degs_op(u, _vweight, _eweight, _degs, _g,
+                        [&] (size_t kin, size_t kout, auto)
+                        {
+                            degs[0] = {kin, kout};
+                            if (u != v)
+                            {
+                                if (Add)
+                                    degs[1] = {kin, kout + 1};
+                                else
+                                    degs[1] = {kin, kout - 1};
+                            }
+                            else
+                            {
+                                if (!graph_tool::is_directed(this->_g))
+                                {
+                                    if (Add)
+                                        degs[1] = {kin, kout + 2};
+                                    else
+                                        degs[1] = {kin, kout - 2};
+                                }
+                                else
+                                {
+                                    if (Add)
+                                        degs[1] = {kin + 1, kout + 1};
+                                    else
+                                        degs[1] = {kin - 1, kout - 1};
+                                }
+                            }
+                        });
+
+                S_dl += get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
+                                                          std::array<size_t,1>({r}),
+                                                          degs);
+
+                if (u != v) // r != s
+                {
+                    std::array<std::pair<size_t, size_t>, 2> degs;
+
+                    degs_op(v, _vweight, _eweight, _degs, _g,
+                            [&] (size_t kin, size_t kout, auto)
+                            {
+                                degs[0] = {kin, kout};
+                                if (!graph_tool::is_directed(this->_g))
+                                {
+                                    if (Add)
+                                        degs[1] = {kin, kout + 1};
+                                    else
+                                        degs[1] = {kin, kout - 1};
+                                }
+                                else
+                                {
+                                    if (Add)
+                                        degs[1] = {kin + 1, kout};
+                                    else
+                                        degs[1] = {kin - 1, kout};
+                                }
+                            });
+
+                    S_dl += get_partition_stats(v).get_deg_dl(ea.degree_dl_kind,
+                                                              std::array<size_t,1>({s}),
+                                                              degs);
+                }
+            }
+            else // r == s && u != v
+            {
+                std::array<std::pair<size_t, size_t>, 4> degs;
+
+                degs_op(u, _vweight, _eweight, _degs, _g,
+                        [&] (size_t kin, size_t kout, auto)
+                        {
+                            degs[0] = {kin, kout};
+                            if (Add)
+                                degs[1] = {kin, kout + 1};
+                            else
+                                degs[1] = {kin, kout - 1};
+                        });
+
+                degs_op(v, _vweight, _eweight, _degs, _g,
+                        [&] (size_t kin, size_t kout, auto)
+                        {
+                            degs[2] = {kin, kout};
+
+                            if (!graph_tool::is_directed(this->_g))
+                            {
+                                if (Add)
+                                    degs[3] = {kin, kout + 1};
+                                else
+                                    degs[3] = {kin, kout - 1};
+                            }
+                            else
+                            {
+                                if (Add)
+                                    degs[3] = {kin + 1, kout};
+                                else
+                                    degs[3] = {kin - 1, kout};
+                            }
+
+                            for (size_t i = 0; i < 2; ++i)
+                            {
+                                if (degs[2] == degs[i])
+                                    degs[2] = {0, numeric_limits<size_t>::max()};
+                                if (degs[3] == degs[i])
+                                    degs[3] = {0, numeric_limits<size_t>::max()};
+                            }
+                        });
+
+                S_dl += get_partition_stats(u).get_deg_dl(ea.degree_dl_kind,
+                                                          std::array<size_t,1>({r}),
+                                                          degs);
+            }
+        }
+
+        auto& me = _emat.get_me(r, s);
+        size_t mrs = 0;
+        if (me != _emat.get_null_edge())
+            mrs = _mrs[me];
+
+        if (ea.adjacency)
+        {
+            if (ea.dense)
+            {
+                S += eterm_dense(r, s, mrs, _wr[r], _wr[s], ea.multigraph, _bg);
+            }
+            else
+            {
+                if (ea.exact)
+                {
+                    S += eterm_exact(r, s, mrs, _bg);
+                    S += vterm_exact(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                    if (s != r)
+                        S += vterm_exact(_mrp[s], _mrm[s], _wr[s], _deg_corr, _bg);
+                }
+                else
+                {
+                    S += eterm(r, s, mrs, _bg);
+                    S += vterm(_mrp[r], _mrm[r], _wr[r], _deg_corr, _bg);
+                    if (s != r)
+                        S += vterm(_mrp[s], _mrm[s], _wr[s], _deg_corr, _bg);
+                }
+
+                if (ea.multigraph)
+                {
+                    S += get_parallel_entropy(std::array<size_t, 1>({u}),
+                                              [&](auto, auto w){ return w != v; });
+                }
+
+                if (_deg_corr)
+                {
+                    S += get_deg_entropy(u, _degs);
+                    if (u != v)
+                        S += get_deg_entropy(v, _degs);
+                }
+            }
+        }
+
+        if (_coupled_state != nullptr)
+        {
+            S_dl += _coupled_state->edge_entropy_term(r, s, _coupled_entropy_args);
+        }
+        else
+        {
+            if (ea.edges_dl && is_partition_stats_enabled())
+            {
+                size_t actual_B = 0;
+                for (auto& psi : _partition_stats)
+                    actual_B += psi.get_actual_B();
+                auto& ps = get_partition_stats(u);
+                S_dl += ps.get_edges_dl(actual_B, _g);
+            }
+        }
+
+        return S + S_dl * ea.beta_dl;
+    }
+
+    double edge_entropy_term(size_t u, size_t v, entropy_args_t ea)
+    {
+        return edge_entropy_term<true>(u, v, ea);
+    }
+
+    template <bool Add>
+    double modify_edge_dS(size_t u, size_t v, GraphInterface::edge_t& e,
+                          const std::vector<double>& recs, entropy_args_t ea)
+    {
+        double dS = 0;
+        dS -= edge_entropy_term<Add>(u, v, ea);
+        modify_edge<Add>(u, v, e, recs);
+        dS += edge_entropy_term<!Add>(u, v, ea);
+        modify_edge<!Add>(u, v, e, recs);
+        return dS;
     }
 
     void enable_partition_stats()

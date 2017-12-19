@@ -505,6 +505,16 @@ public:
         move_vertices(vs, rs);
     }
 
+    void add_edge(size_t, size_t, GraphInterface::edge_t&,
+                  const std::vector<double>&)
+    {
+    }
+
+    void remove_edge(size_t, size_t, GraphInterface::edge_t&,
+                     const std::vector<double>&)
+    {
+    }
+
     template <class VMap>
     void set_partition(VMap&& b)
     {
@@ -1325,6 +1335,8 @@ public:
         return S;
     }
 
+    double edge_entropy_term(size_t u, size_t v, entropy_args_t ea) { return 0; }
+
     void enable_partition_stats()
     {
         if (_partition_stats.empty())
@@ -1624,8 +1636,8 @@ public:
     void remove_partition_node(size_t, size_t) { }
     void set_vertex_weight(size_t, int) { }
     void coupled_resize_vertex(size_t) { }
-    void update_edge(const GraphInterface::edge_t&,
-                     const std::vector<double>&) { }
+    void update_block_edge(const GraphInterface::edge_t&,
+                           const std::vector<double>&) { }
 
 //private:
     typedef typename

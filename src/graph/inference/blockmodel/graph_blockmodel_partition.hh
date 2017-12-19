@@ -36,6 +36,7 @@ typedef vprop_map_t<std::vector<std::tuple<size_t, size_t, size_t>>>::type
 struct simple_degs_t {};
 
 template <class Graph, class Vprop, class Eprop, class F>
+__attribute__((always_inline)) __attribute__((flatten)) inline
 void degs_op(size_t v, Vprop& vweight, Eprop& eweight, const simple_degs_t&,
              Graph& g, F&& f)
 {
@@ -43,6 +44,7 @@ void degs_op(size_t v, Vprop& vweight, Eprop& eweight, const simple_degs_t&,
 }
 
 template <class Graph, class Vprop, class Eprop, class F>
+__attribute__((always_inline)) __attribute__((flatten)) inline
 void degs_op(size_t v, Vprop& vweight, Eprop& eweight,
              const typename degs_map_t::unchecked_t& degs, Graph& g, F&& f)
 {
@@ -139,65 +141,109 @@ public:
         return S;
     }
 
-    double get_deg_dl_ent()
+    double get_deg_dl_ent(auto&& rs, auto&& ks)
     {
         double S = 0;
-        for (size_t r = 0; r < _ep.size(); ++r)
+        for (auto r : rs)
         {
+            r = get_r(r);
             size_t total = 0;
-            for (auto& k_c : _hist[r])
+            if (ks.empty())
             {
-                S -= xlogx_fast(k_c.second);
-                total += k_c.second;
+                for (auto& k_c : _hist[r])
+                {
+                    S -= xlogx_fast(k_c.second);
+                    total += k_c.second;
+                }
+            }
+            else
+            {
+                auto& h = _hist[r];
+                for (auto& k : ks)
+                {
+                    auto iter = h.find(k);
+                    auto k_c = (iter != h.end()) ? iter->second : 0;
+                    S -= xlogx(k_c);
+                }
+                total = _total[r];
             }
             S += xlogx_fast(total);
         }
         return S;
     }
 
-    double get_deg_dl_uniform()
+    double get_deg_dl_uniform(auto&& rs, auto&&)
     {
         double S = 0;
-        for (size_t r = 0; r < _ep.size(); ++r)
+        for (auto r : rs)
         {
+            r = get_r(r);
             S += lbinom(_total[r] + _ep[r] - 1, _ep[r]);
             S += lbinom(_total[r] + _em[r] - 1, _em[r]);
         }
         return S;
     }
 
-    double get_deg_dl_dist()
+    double get_deg_dl_dist(auto&& rs, auto&& ks)
     {
         double S = 0;
-        for (size_t r = 0; r < _ep.size(); ++r)
+        for (auto r : rs)
         {
+            r = get_r(r);
             S += log_q(_ep[r], _total[r]);
             S += log_q(_em[r], _total[r]);
 
             size_t total = 0;
-            for (auto& k_c : _hist[r])
+            if (ks.empty())
             {
-                S -= lgamma_fast(k_c.second + 1);
-                total += k_c.second;
+                for (auto& k_c : _hist[r])
+                {
+                    S -= lgamma_fast(k_c.second + 1);
+                    total += k_c.second;
+                }
+            }
+            else
+            {
+                auto& h = _hist[r];
+                for (auto& k : ks)
+                {
+                    auto iter = h.find(k);
+                    auto k_c = (iter != h.end()) ? iter->second : 0;
+                    S -= lgamma_fast(k_c + 1);
+                }
+                total = _total[r];
             }
             S += lgamma_fast(total + 1);
         }
         return S;
     }
 
-    double get_deg_dl(int kind)
+    double get_deg_dl(int kind, auto&& rs, auto&& ks)
     {
         switch (kind)
         {
         case deg_dl_kind::ENT:
-            return get_deg_dl_ent();
+            return get_deg_dl_ent(rs, ks);
         case deg_dl_kind::UNIFORM:
-            return get_deg_dl_uniform();
+            return get_deg_dl_uniform(rs, ks);
         case deg_dl_kind::DIST:
-            return get_deg_dl_dist();
+            return get_deg_dl_dist(rs, ks);
         default:
             return numeric_limits<double>::quiet_NaN();
         }
+    }
+
+    double get_deg_dl(int kind)
+    {
+        return get_deg_dl(kind, boost::counting_range(size_t(0), _total_B),
+                          std::array<std::pair<size_t,size_t>,0>());
+    }
+
+    template <class Graph>
+    double get_edges_dl(size_t B, Graph& g)
+    {
+        size_t BB = (graph_tool::is_directed(g)) ? B * B : (B * (B + 1)) / 2;
+        return lbinom(BB + _E - 1, _E);
     }
 
     template <class VProp>
@@ -297,16 +343,8 @@ public:
 
         if (dB != 0)
         {
-            auto get_x = [&g](size_t B)
-                {
-                    if (graph_tool::is_directed(g))
-                        return B * B;
-                    else
-                        return (B * (B + 1)) / 2;
-                };
-
-            S_b += lbinom_fast<false>(get_x(actual_B) + _E - 1, _E);
-            S_a += lbinom_fast<false>(get_x(actual_B + dB) + _E - 1, _E);
+            S_b += get_edges_dl(actual_B, g);
+            S_a += get_edges_dl(actual_B + dB, g);
         }
 
         return S_a - S_b;
@@ -558,7 +596,10 @@ public:
             if (_ignore_degree[v] == 2)
                 kout = 0;
             auto deg = make_pair(kin, kout);
-            _hist[r][deg] += diff * vweight;
+            auto iter = _hist[r].insert({deg, 0}).first;
+            iter->second += diff * vweight;
+            if (iter->second == 0)
+                _hist[r].erase(iter);
             _em[r] += diff * deg.first * vweight;
             _ep[r] += diff * deg.second * vweight;
         }
@@ -589,6 +630,50 @@ public:
         _total_B++;
     }
 
+    template <class Graph, class VProp, class VWeight, class EWeight, class Degs>
+    bool check_degs(Graph& g, VProp& b, VWeight& vweight, EWeight& eweight, Degs& degs)
+    {
+        vector<map_t> dhist;
+        for (auto v : vertices_range(g))
+        {
+            degs_op(v, vweight, eweight, degs, g,
+                    [&](auto kin, auto kout, auto n)
+                    {
+                        auto r = get_r(b[v]);
+                        if (r >= dhist.size())
+                            dhist.resize(r + 1);
+                        dhist[r][{kin, kout}] += n;
+                    });
+        }
+
+        for (size_t r = 0; r < dhist.size(); ++r)
+        {
+            for (auto& kn : dhist[r])
+            {
+                auto count = (r >= _hist.size()) ? 0 : _hist[r][kn.first];
+                if (kn.second != count)
+                {
+                    assert(false);
+                    return false;
+                }
+            }
+        }
+
+        for (size_t r = 0; r < _hist.size(); ++r)
+        {
+            for (auto& kn : _hist[r])
+            {
+                auto count = (r >= dhist.size()) ? 0 : dhist[r][kn.first];
+                if (kn.second != count)
+                {
+                    assert(false);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 
 private:
     vector<size_t>& _bmap;

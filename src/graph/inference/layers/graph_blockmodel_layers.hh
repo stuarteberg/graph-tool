@@ -763,6 +763,8 @@ struct Layers
             }
         }
 
+        double edge_entropy_term(size_t u, size_t v, entropy_args_t ea) { return 0; }
+
         void enable_partition_stats()
         {
             if (!_is_partition_stats_enabled)
@@ -967,6 +969,16 @@ struct Layers
                              const std::vector<double>& delta)
         {
             BaseState::update_edge_rec(e, delta);
+        }
+
+        void add_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                      const std::vector<double>& rec)
+        {
+        }
+
+        void remove_edge(size_t u, size_t v, GraphInterface::edge_t& e,
+                         const std::vector<double>& rec)
+        {
         }
 
         double recs_dS(size_t, size_t,
