@@ -105,8 +105,9 @@ public:
         else
         {
             pos = _free.back();
-            _items[_idx[pos]] = v;
-            _valid[_idx[pos]] = true;
+            auto i = _idx[pos];
+            _items[i] = v;
+            _valid[i] = true;
             _tree[pos] = w;
             _free.pop_back();
         }
@@ -160,7 +161,7 @@ public:
         return _items[i];
     }
 
-    bool is_valid(size_t i)
+    bool is_valid(size_t i) const
     {
         return (i < _items.size() && _valid[i]);
     }

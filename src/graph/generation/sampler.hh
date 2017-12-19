@@ -134,7 +134,7 @@ private:
 // uniform sampling from containers
 
 template <class Iter, class RNG>
-auto& uniform_sample(Iter begin, const Iter& end, RNG& rng)
+auto&& uniform_sample(Iter begin, const Iter& end, RNG& rng)
 {
     auto N = end - begin;
     std::uniform_int_distribution<size_t> i_rand(0, N - 1);
@@ -143,7 +143,7 @@ auto& uniform_sample(Iter begin, const Iter& end, RNG& rng)
 }
 
 template <class Container, class RNG>
-auto& uniform_sample(Container& v, RNG& rng)
+auto&& uniform_sample(Container& v, RNG& rng)
 {
     return uniform_sample(v.begin(), v.end(), rng);
 }
