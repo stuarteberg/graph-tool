@@ -101,6 +101,7 @@ struct in_degreeS
     }
 
     template <class Graph, class Key, class Value>
+    inline __attribute__((always_inline))
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type,
                        const ConstantPropertyMap<Value, Key>& weight) const
@@ -109,6 +110,7 @@ struct in_degreeS
     }
 
     template <class Graph, class Key, class Value>
+    inline __attribute__((always_inline))
     auto get_in_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                        const Graph& g, std::true_type,
                        const UnityPropertyMap<Value, Key>&) const
@@ -160,6 +162,7 @@ struct out_degreeS
     }
 
     template <class Graph, class Key, class Value>
+    inline __attribute__((always_inline))
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g,
                         const ConstantPropertyMap<Value, Key>& weight) const
@@ -168,6 +171,7 @@ struct out_degreeS
     }
 
     template <class Graph, class Key, class Value>
+    inline __attribute__((always_inline))
     auto get_out_degree(typename boost::graph_traits<Graph>::vertex_descriptor v,
                         const Graph& g,
                         const UnityPropertyMap<Value, Key>&) const
