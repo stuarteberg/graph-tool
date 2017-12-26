@@ -52,7 +52,10 @@ auto merge_sweep(MergeState state, RNG& rng_)
                    make_tuple(size_t(0), size_t(0),
                               numeric_limits<double>::max()));
 
-    #pragma omp parallel firstprivate(state) if (state._parallel)
+    size_t nattempts = 0;
+
+    #pragma omp parallel firstprivate(state) reduction(+:nattempts) \
+        if (state._parallel)
     parallel_loop_no_spawn
         (state._available,
          [&](size_t, auto v)
@@ -78,6 +81,7 @@ auto merge_sweep(MergeState state, RNG& rng_)
                          if (dS < get<2>(best_merge[v]))
                              best_merge[v] = make_tuple(v, s, dS);
                      }
+                     nattempts += state._niter;
                  };
 
              find_candidates(false);
@@ -129,7 +133,7 @@ auto merge_sweep(MergeState state, RNG& rng_)
     // collapse merge tree
     state.finalize();
 
-    return make_pair(S, nmerges);
+    return std::make_tuple(S, nattempts, nmerges);
 }
 
 } // graph_tool namespace

@@ -37,7 +37,9 @@ template <class MergeState, class RNG>
 auto bundled_vacate_sweep(MergeState& state, RNG& rng)
 {
     if (state._nmerges == 0)
-        return make_pair(double(0), size_t(0));
+        return std::make_tuple(double(0), size_t(0), size_t(0));
+
+    size_t nattempts = 0;
 
     // individual bundles can move in different directions
     auto get_best_move = [&] (auto& bundle, auto& past_moves)
@@ -64,6 +66,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
                         get<1>(best_move) = dS;
                     }
                 }
+                nattempts += state._niter;
             };
 
             find_candidates(false);
@@ -115,6 +118,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
                         get<1>(best_move) = dS;
                     }
                 }
+                nattempts += state._niter;
             };
 
             find_candidates(false);
@@ -244,7 +248,7 @@ auto bundled_vacate_sweep(MergeState& state, RNG& rng)
         nmerges++;
     }
 
-    return make_pair(S, nmerges);
+    return std::make_tuple(S, nattempts, nmerges);
 }
 
 } // graph_tool namespace

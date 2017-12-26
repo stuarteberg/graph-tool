@@ -63,7 +63,7 @@ python::object vacate_layered_overlap_sweep(python::object ovacate_state,
                       [&](auto& s)
                       {
                           auto ret_ = bundled_vacate_sweep(s, rng);
-                          ret = python::make_tuple(ret_.first, ret_.second);
+                          ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                       });
              },
              false);

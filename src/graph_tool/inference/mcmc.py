@@ -60,9 +60,9 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     mcmc_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to ``state.mcmc_sweep`` (or ``state.gibbs_sweep``).
     history : ``bool`` (optional, default: ``False``)
-        If ``True``, a list of tuples of the form ``(entropy, nmoves)`` will
-        be kept and returned, where ``entropy`` is the current entropy and
-        ``nmoves`` is the number of vertices moved.
+        If ``True``, a list of tuples of the form ``(nattempts, nmoves,
+        entropy)`` will be kept and returned, where ``entropy`` is the current
+        entropy and ``nmoves`` is the number of vertices moved.
     callback : ``function`` (optional, default: ``None``)
         If given, this function will be called after each iteration. The
         function must accept the current state as an argument, and its return
@@ -91,11 +91,13 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     Returns
     -------
 
-    history : list of tuples of the form ``(entropy, nmoves)``
+    history : list of tuples of the form ``(nattempts, nmoves, entropy)``
         Summary of the MCMC run. This is returned only if ``history == True``.
     entropy : ``float``
         Current entropy value after run. This is returned only if ``history ==
         False``.
+    nattempts : ``int``
+        Number of node move attempts.
     nmoves : ``int``
         Number of node moves.
 
@@ -106,27 +108,30 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
        greedy heuristic for the inference of stochastic block models", Phys.
        Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
        :arxiv:`1310.4378`
+
     """
 
     count = 0
     break_count = 0
     niter = 0
     total_nmoves = 0
+    total_nattempts = 0
     S = state.entropy(**mcmc_args.get("entropy_args", {}))
     min_S = max_S = S
     m_eps = 1e-6
     hist = []
     while count < wait:
         if gibbs:
-            delta, nmoves = state.gibbs_sweep(**mcmc_args)[:2]
+            delta, nattempts, nmoves = state.gibbs_sweep(**mcmc_args)
         elif multiflip:
-            delta, nmoves = state.multiflip_mcmc_sweep(**mcmc_args)
+            delta, nattempts, nmoves = state.multiflip_mcmc_sweep(**mcmc_args)
         else:
-            delta, nmoves = state.mcmc_sweep(**mcmc_args)
+            delta, nattempts, nmoves = state.mcmc_sweep(**mcmc_args)
 
         S += delta
         niter += 1
         total_nmoves += nmoves
+        total_nattempts += nattempts
 
         if force_niter is not None:
             if niter >= force_niter:
@@ -164,7 +169,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
                     str(extra) if len(extra) > 0 else ""))
 
         if history:
-            hist.append(tuple([S, nmoves] + extra))
+            hist.append(tuple([nattempts, nmoves, S] + extra))
 
         if niter >= max_niter:
             break
@@ -172,7 +177,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     if history:
         return hist
     else:
-        return (S, total_nmoves)
+        return (S, total_nattempts, total_nmoves)
 
 def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
                 mcmc_equilibrate_args={}, verbose=False):
@@ -189,7 +194,7 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
         Number of steps (in logspace) from the starting temperature to the final
         one.
     history : ``bool`` (optional, default: ``False``)
-        If ``True``, a list of tuples of the form ``(iteration, beta, entropy)``
+        If ``True``, a list of tuples of the form ``(nattempts, nmoves, beta, entropy)``
     mcmc_equilibrate_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to :func:`~graph_tool.inference.mcmc_equilibrate`.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
@@ -214,11 +219,13 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     Returns
     -------
 
-    history : list of tuples of the form ``(iteration, beta, entropy)``
+    history : list of tuples of the form ``(nattempts, nmoves, beta, entropy)``
         Summary of the MCMC run. This is returned only if ``history == True``.
     entropy : ``float``
         Current entropy value after run. This is returned only if ``history ==
         False``.
+    nattempts : ``int``
+        Number of node move attempts.
     nmoves : ``int``
         Number of node moves.
 
@@ -232,7 +239,8 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
     """
 
     beta = beta_range[0]
-    hist = ([], [], [])
+    hist = ([], [], [], [])
+    nattempts = 0
     nmoves = 0
     speed = exp((log(beta_range[1]) - log(beta_range[0])) / niter)
     mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
@@ -247,20 +255,22 @@ def mcmc_anneal(state, beta_range=(1., 10.), niter=100, history=False,
                                                             beta))))
         if history:
             ret = list(zip(*ret))
-            hist[0].extend([beta] * len(ret[0]))
-            hist[1].extend(ret[0])
-            hist[2].extend(ret[1])
+            hist[0].extend(ret[0])
+            hist[1].extend(ret[1])
+            hist[2].extend([beta] * len(ret[0]))
+            hist[3].extend(ret[2])
             S = ret[0][-1]
         else:
             S = ret[0]
-            nmoves += ret[1]
+            attempts += ret[1]
+            nmoves += ret[2]
 
         beta *= speed
 
     if history:
         return list(zip(hist))
     else:
-        return S, nmoves
+        return S, nattempts, nmoves
 
 
 def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
@@ -647,13 +657,15 @@ class TemperingState(object):
         attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
         dS = 0
         nmoves = 0
+        nattempts = 0
         for state, beta in zip(self.states, self.betas):
             entropy_args = dict(kwargs.get("entropy_args", {}))
             ret = sweep_algo(state, beta=beta,
-                             **dict(kwargs, entropy_args=entropy_args))[:2]
+                             **dict(kwargs, entropy_args=entropy_args))
             dS += ret[0] * beta
-            nmoves += ret[1]
-        return dS, nmoves
+            nattempts += ret[1]
+            nmoves += ret[2]
+        return dS, nattempts, nmoves
 
     def _sweep(self, algo, **kwargs):
         if numpy.random.random() < .5:

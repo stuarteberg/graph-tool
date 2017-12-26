@@ -65,6 +65,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
     auto beta = state.get_beta();
 
     double S = 0;
+    size_t nattempts = 0;
     size_t nmoves = 0;
 
     for (size_t iter = 0; iter < state.get_niter(); ++iter)
@@ -92,6 +93,8 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
             double dS, mP;
             std::tie(dS, mP) = state.virtual_move_dS(v, s);
 
+            nattempts += state.node_weight(v);
+
             if (metropolis_accept(dS, mP, beta, rng))
             {
                 state.perform_move(v, s);
@@ -108,7 +111,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
         if (state.is_sequential() && state.is_deterministic())
             std::reverse(vlist.begin(), vlist.end());
     }
-    return make_pair(S, nmoves);
+    return make_tuple(S, nattempts, nmoves);
 }
 
 
@@ -127,9 +130,9 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
     auto& vlist = state._vlist;
     auto& beta = state._beta;
 
-
     double S = 0;
     size_t nmoves = 0;
+    size_t nattempts = 0;
 
     for (size_t iter = 0; iter < state._niter; ++iter)
     {
@@ -175,8 +178,10 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
                      cout << v << ": " << r << " -> " << s << " " << S << endl;
              });
 
+        size_t nattempts = 0;
         for (auto v : vlist)
         {
+            nattempts++;
             auto s = best_move[v].first;
             double dS = best_move[v].second;
             if (dS != numeric_limits<double>::max())
@@ -192,7 +197,7 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
             }
         }
     }
-    return make_pair(S, nmoves);
+    return std::make_tuple(S, nattempts, nmoves);
 }
 
 

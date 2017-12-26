@@ -49,7 +49,7 @@ python::object do_merge_sweep(python::object omerge_state,
             [&](auto& s)
             {
                 auto ret_ = merge_sweep(s, rng);
-                ret = python::make_tuple(ret_.first, ret_.second);
+                ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
             });
     };
     block_state::dispatch(oblock_state, dispatch);

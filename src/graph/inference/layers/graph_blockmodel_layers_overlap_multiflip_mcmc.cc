@@ -62,7 +62,7 @@ python::object multiflip_mcmc_layered_overlap_sweep(python::object omcmc_state,
                       [&](auto& s)
                       {
                           auto ret_ = mcmc_sweep(s, rng);
-                          ret = python::make_tuple(ret_.first, ret_.second);
+                          ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                       });
              },
              false);

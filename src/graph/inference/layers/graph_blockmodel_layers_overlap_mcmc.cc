@@ -64,12 +64,12 @@ python::object mcmc_layered_overlap_sweep(python::object omcmc_state,
                           if (s._parallel)
                           {
                               auto ret_ = mcmc_sweep_parallel(s, rng);
-                              ret = python::make_tuple(ret_.first, ret_.second);
+                              ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                           }
                           else
                           {
                               auto ret_ = mcmc_sweep(s, rng);
-                              ret = python::make_tuple(ret_.first, ret_.second);
+                              ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                           }
                       });
              },

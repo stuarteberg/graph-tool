@@ -144,8 +144,8 @@ for directed in [True, False]:
                     continue
             except TypeError:
                 pass
-            Ss1 = array(list(zip(*hists[c1]))[0])
-            Ss2 = array(list(zip(*hists[c2]))[0])
+            Ss1 = array(list(zip(*hists[c1]))[2])
+            Ss2 = array(list(zip(*hists[c2]))[2])
             # add very small normal noise, to solve discreteness issue
             Ss1 += numpy.random.normal(0, 1e-2, len(Ss1))
             Ss2 += numpy.random.normal(0, 1e-2, len(Ss2))

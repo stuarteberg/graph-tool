@@ -78,7 +78,7 @@ python::object multicanonical_layered_multiflip_sweep(python::object omulticanon
                                [&](auto& mc_state)
                                {
                                    auto ret_ = mcmc_sweep(mc_state, rng);
-                                   ret = python::make_tuple(ret_.first, ret_.second);
+                                   ret = tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret_);
                                });
                       });
              },

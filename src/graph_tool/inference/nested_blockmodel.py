@@ -683,6 +683,7 @@ class NestedBlockState(object):
             self.levels[l]._couple_state(self.levels[l + 1], eargs)
 
         dS = 0
+        nattempts = 0
         nmoves = 0
 
         c = kwargs.get("c", None)
@@ -741,9 +742,10 @@ class NestedBlockState(object):
             ret = algo(self.levels[l], **args)
 
             dS += ret[0]
-            nmoves += ret[1]
+            nattempts += ret[1]
+            nmoves += ret[2]
 
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
@@ -768,8 +770,8 @@ class NestedBlockState(object):
             Si = self.entropy(**entropy_args)
             ddS = [-self.level_entropy(l, **dict(entropy_args, test=False)) for l in range(len(self.levels))]
 
-        dS, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c,
-                                   **kwargs)
+        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c,
+                                              **kwargs)
 
         if _bm_test():
             Sf = self.entropy(**entropy_args)
@@ -777,7 +779,7 @@ class NestedBlockState(object):
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def multiflip_mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection MCMC
@@ -802,14 +804,14 @@ class NestedBlockState(object):
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a),
-                                   c=c, **kwargs)
+        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a),
+                                              c=c, **kwargs)
         if _bm_test():
             Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def gibbs_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs MCMC to sample network
@@ -823,14 +825,14 @@ class NestedBlockState(object):
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
+        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
 
         if _bm_test():
             Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def multicanonical_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
@@ -844,14 +846,14 @@ class NestedBlockState(object):
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
+        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.multicanonical_sweep(**a))
 
         if _bm_test():
             Sf = self.entropy(**entropy_args)
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def collect_partition_histogram(self, h=None, update=1):
         r"""Collect a histogram of partitions.

@@ -175,7 +175,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
             std::reverse(vlist.begin(), vlist.end());
 
     }
-    return std::make_tuple(S, nmoves, nattempts);
+    return std::make_tuple(S, nattempts, nmoves);
 }
 
 } // graph_tool namespace

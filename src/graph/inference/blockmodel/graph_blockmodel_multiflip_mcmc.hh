@@ -74,9 +74,7 @@ struct MCMC
             _vpos(get(vertex_index_t(), _state._g),
                   num_vertices(_state._g)),
             _rpos(get(vertex_index_t(), _state._bg),
-                  num_vertices(_state._bg)),
-            _sequential(false),
-            _deterministic(false)
+                  num_vertices(_state._bg))
         {
             _state.init_mcmc(_c,
                              (_entropy_args.partition_dl ||
@@ -102,8 +100,7 @@ struct MCMC
         std::vector<size_t> _vlist;
         std::vector<size_t> _vs;
 
-        bool _sequential;
-        bool _deterministic;
+        size_t _null_move = null_group;
 
         size_t node_state(size_t r)
         {
@@ -267,12 +264,12 @@ struct MCMC
 
         bool is_deterministic()
         {
-            return _deterministic;
+            return false;
         }
 
         bool is_sequential()
         {
-            return _sequential;
+            return false;
         }
 
         auto& get_vlist()

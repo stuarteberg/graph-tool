@@ -1447,6 +1447,8 @@ class BlockState(object):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of vertex moves attempted.
         nmoves : ``int``
             Number of vertices moved.
 
@@ -1490,7 +1492,7 @@ class BlockState(object):
                 assert self._check_clabel(), "invalid clabel before sweep"
                 Si = self.entropy(**entropy_args)
             try:
-                dS, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
+                dS, nattempts, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
             finally:
                 self.B = max(int(self.b.fa.max()) + 1, self.B)
 
@@ -1509,7 +1511,7 @@ class BlockState(object):
         if not dispatch:
             return mcmc_state
 
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
         return libinference.multiflip_mcmc_sweep(mcmc_state, self._state,
@@ -1555,6 +1557,8 @@ class BlockState(object):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of vertex moves attempted.
         nmoves : ``int``
             Number of vertices moved.
 
@@ -1592,14 +1596,10 @@ class BlockState(object):
                 assert self._check_clabel(), "invalid clabel before sweep"
                 Si = self.entropy(**entropy_args)
 
-            nmoves = -(mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
-
             try:
-                dS, rnmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
+                dS, nattempts, nmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
             finally:
                 self.B = max(int(self.b.fa.max()) + 1, self.B)
-
-            nmoves += (mcmc_state.maccept.a * arange(len(mcmc_state.maccept.a))).sum()
 
             if "mproposals" in kwargs:
                 kwargs["mproposals"][:M] = mcmc_state.mproposals.a
@@ -1622,7 +1622,7 @@ class BlockState(object):
         if not dispatch:
             return mcmc_state
 
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def _gibbs_sweep_dispatch(self, gibbs_state):
         return libinference.gibbs_sweep(gibbs_state, self._state,
@@ -1674,10 +1674,10 @@ class BlockState(object):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of vertex moves attempted.
         nmoves : ``int``
             Number of vertices moved.
-        nattempts : ``int``
-            Number of attempted moves.
 
         Notes
         -----
@@ -1707,7 +1707,7 @@ class BlockState(object):
             Si = self.entropy(**entropy_args)
 
         try:
-            dS, nmoves, nattempts = self._gibbs_sweep_dispatch(gibbs_state)
+            dS, nattempts, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
         finally:
             self.B = max(int(self.b.fa.max()) + 1, self.B)
 
@@ -1722,7 +1722,7 @@ class BlockState(object):
             raise ValueError("unrecognized keyword arguments: " +
                              str(list(kwargs.keys())))
 
-        return dS, nmoves, nattempts
+        return dS, nattempts, nmoves
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
         if multicanonical_state.multiflip:
@@ -1753,6 +1753,8 @@ class BlockState(object):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of vertex moves attempted.
         nmoves : ``int``
             Number of vertices moved.
 
@@ -1801,7 +1803,7 @@ class BlockState(object):
                               multi_state.S_max))
 
         try:
-            S, nmoves = self._multicanonical_sweep_dispatch(multi_state)
+            S, nattempts, nmoves = self._multicanonical_sweep_dispatch(multi_state)
         finally:
             self.B = max(int(self.b.fa.max()) + 1, self.B)
 
@@ -1812,7 +1814,7 @@ class BlockState(object):
                 "inconsistent entropy after sweep %g (%g): %s" % \
                 (S, Sf, str(entropy_args))
 
-        return S, nmoves
+        return S, nattempts, nmoves
 
     def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
         if callback is not None:
@@ -1961,6 +1963,8 @@ class BlockState(object):
         -------
         dS : ``float``
             Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of attempted merges.
         nmoves : ``int``
             Number of vertices merged.
 
@@ -1982,7 +1986,7 @@ class BlockState(object):
             assert self._check_clabel(), "invalid clabel before sweep"
             Si = self.entropy(**entropy_args)
 
-        dS, nmoves = self._merge_sweep_dispatch(merge_state)
+        dS, nattempts, nmoves = self._merge_sweep_dispatch(merge_state)
 
         if _bm_test():
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1991,7 +1995,7 @@ class BlockState(object):
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))
 
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def shrink(self, B, **kwargs):
         """Reduces the order of current state by progressively merging groups, until

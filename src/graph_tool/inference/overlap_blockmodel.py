@@ -592,16 +592,18 @@ class OverlapBlockState(BlockState):
 
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
-        dS, nmoves = libinference.overlap_mcmc_sweep(mcmc_state, self._state,
-                                                     _get_rng())
+        dS, nattempts, nmoves = \
+                    libinference.overlap_mcmc_sweep(mcmc_state, self._state,
+                                                    _get_rng())
         if self.__bundled:
             ret = libinference.overlap_mcmc_bundled_sweep(mcmc_state,
                                                           self._state,
                                                           _get_rng())
             dS += ret[0]
-            nmoves += ret[1]
+            nattempts += ret[1]
+            nmoves += ret[2]
         del self.__bundled
-        return dS, nmoves
+        return dS, nattempts, nmoves
 
     def mcmc_sweep(self, bundled=False, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings rejection sampling MCMC to sample
