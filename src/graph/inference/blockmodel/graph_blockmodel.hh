@@ -1169,14 +1169,20 @@ public:
 
         if (r != null_group)
         {
-            dS += vt(_mrp[r]  - kout, _mrm[r]  - kin, _wr[r]  - dwr );
-            dS -= vt(_mrp[r]        , _mrm[r]       , _wr[r]        );
+            auto mrp_r = _mrp[r];
+            auto mrm_r = _mrm[r];
+            auto wr_r = _wr[r];
+            dS += vt(mrp_r - kout, mrm_r - kin, wr_r - dwr);
+            dS -= vt(mrp_r       , mrm_r      , wr_r      );
         }
 
         if (nr != null_group)
         {
-            dS += vt(_mrp[nr] + kout, _mrm[nr] + kin, _wr[nr] + dwnr);
-            dS -= vt(_mrp[nr]       , _mrm[nr]      , _wr[nr]       );
+            auto mrp_nr = _mrp[nr];
+            auto mrm_nr = _mrm[nr];
+            auto wr_nr = _wr[nr];
+            dS += vt(mrp_nr + kout, mrm_nr + kin, wr_nr + dwnr);
+            dS -= vt(mrp_nr       , mrm_nr      , wr_nr       );
         }
 
         return dS;
@@ -1197,11 +1203,6 @@ public:
 
         if (r == nr)
             return 0;
-
-        int kin = 0, kout = 0;
-        kout += out_degreeS()(v, _g, _eweight);
-        if (is_directed::apply<g_t>::type::value)
-            kin += in_degreeS()(v, _g, _eweight);
 
         vector<int> deltap(num_vertices(_bg), 0);
         int deltal = 0;
@@ -1969,10 +1970,17 @@ public:
         double p = 0;
         size_t w = 0;
 
-        size_t kout = out_degreeS()(v, _g, _eweight);
-        size_t kin = kout;
-        if (is_directed::apply<g_t>::type::value)
-            kin = in_degreeS()(v, _g, _eweight);
+        size_t kout = 0, kin = 0;
+        degs_op(v, _vweight, _eweight, _degs, _g,
+                [&] (size_t din, size_t dout, auto c)
+                {
+                    kout += dout * c;
+                    if (graph_tool::is_directed(this->_g))
+                        kin += din * c;
+                });
+        if (!graph_tool::is_directed(_g))
+            kin = kout;
+
         m_entries.get_mes(_emat);
 
         auto sum_prob = [&](auto& e, auto u)
@@ -2089,7 +2097,7 @@ public:
         return S * _vweight[v];
     }
 
-    double get_deg_entropy(size_t v, typename degs_map_t::unchecked_t& degs)
+    double get_deg_entropy(size_t v, const typename degs_map_t::unchecked_t& degs)
     {
         if (_ignore_degrees[v] == 1)
             return 0;

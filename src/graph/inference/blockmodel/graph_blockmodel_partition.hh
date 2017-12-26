@@ -44,7 +44,7 @@ void degs_op(size_t v, Vprop& vweight, Eprop& eweight, const simple_degs_t&,
 
 template <class Graph, class Vprop, class Eprop, class F>
 void degs_op(size_t v, Vprop& vweight, Eprop& eweight,
-             typename degs_map_t::unchecked_t& degs, Graph& g, F&& f)
+             const typename degs_map_t::unchecked_t& degs, Graph& g, F&& f)
 {
     auto& ks = degs[v];
     if (ks.empty())
@@ -485,11 +485,38 @@ public:
                        VWeight& vweight, EWeight& eweight, Degs& degs,
                        int diff)
     {
-        degs_op(v, vweight, eweight, degs, g,
-                [&](auto kin, auto kout, auto n)
-                {
-                    this->change_k(v, r, deg_corr, n, kin, kout, diff);
-                });
+        int vw = vweight[v];
+        int dv = vw * diff;
+
+        if (_total[r] == 0 && dv > 0)
+            _actual_B++;
+
+        if (_total[r] == vw && dv < 0)
+            _actual_B--;
+
+        _total[r] += dv;
+        _N += dv;
+
+        assert(_total[r] >= 0);
+
+        if (deg_corr && _ignore_degree[v] != 1)
+        {
+            degs_op(v, vweight, eweight, degs, g,
+                    [&](auto kin, auto kout, auto n)
+                    {
+                        int dk = diff * n;
+                        if (_ignore_degree[v] == 2)
+                            kout = 0;
+                        auto& h = _hist[r];
+                        auto deg = make_pair(kin, kout);
+                        auto iter = h.insert({deg, 0}).first;
+                        iter->second += dk;
+                        if (iter->second == 0)
+                            h.erase(iter);
+                        _em[r] += dk * deg.first;
+                        _ep[r] += dk * deg.second;
+                    });
+        }
     }
 
     template <class Graph, class VWeight, class EWeight, class Degs>
@@ -535,6 +562,11 @@ public:
             _em[r] += diff * deg.first * vweight;
             _ep[r] += diff * deg.second * vweight;
         }
+    }
+
+    void change_E(int dE)
+    {
+        _E += dE;
     }
 
     size_t get_N()
