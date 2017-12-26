@@ -1516,7 +1516,7 @@ class BlockState(object):
                                                  _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, a=1., beta=1., c=1., d=.1, niter=1,
+    def multiflip_mcmc_sweep(self, a1=.9, an=.9, beta=1., c=1., d=.1, niter=1,
                              entropy_args={}, allow_vacate=True,
                              sequential=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
@@ -1525,10 +1525,11 @@ class BlockState(object):
 
         Parameters
         ----------
-        a : ``float`` (optional, default: ``1.``)
-            Parameter controlling the number of multiple moves. The number
-            :math:`m` of nodes that will be moved together is sampled with
-            probability proportional to :math:`1/m^a`.
+        a1 : ``float`` (optional, default: ``.9``)
+            Probability of single moves.
+        an : ``float`` (optional, default: ``.9``)
+            Relative probability of group merges. The complementary probability
+            will correspond to multiple moves within a group.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature.
         c : ``float`` (optional, default: ``1.``)

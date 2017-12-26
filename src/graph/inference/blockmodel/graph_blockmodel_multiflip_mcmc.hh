@@ -40,7 +40,8 @@ using namespace std;
     ((beta,, double, 0))                                                       \
     ((c,, double, 0))                                                          \
     ((d,, double, 0))                                                          \
-    ((a,, double, 0))                                                          \
+    ((a1,, double, 0))                                                         \
+    ((an,, double, 0))                                                         \
     ((entropy_args,, entropy_args_t, 0))                                       \
     ((mproposals, & ,std::vector<size_t>&, 0))                                 \
     ((maccept, & ,std::vector<size_t>&, 0))                                    \
@@ -74,7 +75,6 @@ struct MCMC
                   num_vertices(_state._g)),
             _rpos(get(vertex_index_t(), _state._bg),
                   num_vertices(_state._bg)),
-            _mprobs(num_vertices(_state._g) + 1),
             _sequential(false),
             _deterministic(false)
         {
@@ -91,9 +91,6 @@ struct MCMC
             for (auto r : vertices_range(_state._bg))
                 if (_state._wr[r] > 0)
                     add_element(_vlist, _rpos, r);
-
-            for (size_t m = 1; m < _mprobs.size(); ++m)
-                _mprobs[m] = _mprobs[m-1] + std::pow(m, -_a);
         }
 
         typename state_t::g_t& _g;
@@ -104,7 +101,6 @@ struct MCMC
 
         std::vector<size_t> _vlist;
         std::vector<size_t> _vs;
-        std::vector<double> _mprobs;
 
         bool _sequential;
         bool _deterministic;
@@ -127,17 +123,38 @@ struct MCMC
         template <class RNG>
         size_t sample_m(size_t n, RNG& rng)
         {
-            double M = _mprobs[n];
-            std::uniform_real_distribution<> u_sample(0, M);
-            auto u = u_sample(rng);
-            auto iter = std::lower_bound(_mprobs.begin(),
-                                         _mprobs.begin() + n + 1, u);
-            return iter - _mprobs.begin();
+            if (n == 1)
+                return 1;
+
+            std::bernoulli_distribution single(_a1);
+            if (single(rng))
+                return 1;
+
+            if (n == 2)
+                return 2;
+
+            std::bernoulli_distribution merge((1. - _a1) * _an);
+            if (merge(rng))
+                return n;
+
+            std::uniform_int_distribution<size_t> split(2, n - 1);
+
+            return split(rng);
         }
 
         double log_pm(size_t m, size_t n)
         {
-            return - _a * log(m) - log(_mprobs[n]);
+            if (n == 1)
+                return 0;
+            if (m == 1)
+                return log(_a1);
+            if (m == n)
+            {
+                if (n == 2)
+                    return log1p(-_a1);
+                return log1p(-_a1) + log(_an);
+            }
+            return log1p(-(1. - _a1) * _an) - log(n-2);
         }
 
         template <class RNG>
