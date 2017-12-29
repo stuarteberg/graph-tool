@@ -99,7 +99,7 @@ for pvals in iter_ranges(pranges):
           state.mcmc_sweep(beta=0,
                            entropy_args=dict(dl=dl,
                                              degree_dl_kind=degree_dl_kind,
-                                             exact=exact)),
+                                             exact=exact, beta_dl=0.95)),
           state.get_nonempty_B(), file=out)
 
     if overlap:
@@ -107,7 +107,7 @@ for pvals in iter_ranges(pranges):
               state.mcmc_sweep(beta=0, bundled=True,
                                entropy_args=dict(dl=dl,
                                                  degree_dl_kind=degree_dl_kind,
-                                                 exact=exact)),
+                                                 exact=exact, beta_dl=0.95)),
               state.get_nonempty_B(), file=out)
 
     state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
@@ -120,21 +120,21 @@ for pvals in iter_ranges(pranges):
               bstate.mcmc_sweep(beta=0,
                                 entropy_args=dict(dl=dl,
                                                   degree_dl_kind=degree_dl_kind,
-                                                  exact=exact)),
+                                                  exact=exact, beta_dl=0.95)),
               bstate.get_nonempty_B(), file=out)
 
         print("\t\t",
               bstate.mcmc_sweep(beta=0,
                                 entropy_args=dict(dl=dl,
                                                   degree_dl_kind=degree_dl_kind,
-                                                  exact=exact)),
+                                                  exact=exact, beta_dl=0.95)),
               bstate.get_nonempty_B(), file=out)
 
         print("\t\t",
               bstate.gibbs_sweep(beta=0,
                                  entropy_args=dict(dl=dl,
                                                    degree_dl_kind=degree_dl_kind,
-                                                   exact=exact)),
+                                                   exact=exact, beta_dl=0.95)),
               bstate.get_nonempty_B(), file=out)
 
     print("\t merge", file=out)
@@ -149,7 +149,7 @@ for pvals in iter_ranges(pranges):
                                  entropy_args=dict(dl=dl,
                                                    degree_dl_kind=degree_dl_kind,
                                                    multigraph=False,
-                                                   exact=exact)),
+                                                   exact=exact, beta_dl=0.95)),
               file=out)
 
         bstate = bstate.copy()
@@ -158,13 +158,13 @@ for pvals in iter_ranges(pranges):
               bstate.mcmc_sweep(beta=0,
                                 entropy_args=dict(dl=dl,
                                                   degree_dl_kind=degree_dl_kind,
-                                                  exact=exact)),
+                                                  exact=exact, beta_dl=0.95)),
               file=out)
         print("\t\t",
               bstate.gibbs_sweep(beta=0,
                                  entropy_args=dict(dl=dl,
                                                    degree_dl_kind=degree_dl_kind,
-                                                   exact=exact)),
+                                                   exact=exact, beta_dl=0.95)),
               file=out)
     else:
         print("\t\t",
@@ -172,7 +172,7 @@ for pvals in iter_ranges(pranges):
                                 entropy_args=dict(dl=dl,
                                                   degree_dl_kind=degree_dl_kind,
                                                   multigraph=False,
-                                                  exact=exact)),
+                                                  exact=exact, beta_dl=0.95)),
               file=out)
 
     print("\t shrink", file=out)
@@ -181,7 +181,7 @@ for pvals in iter_ranges(pranges):
     state = state.shrink(B=5, entropy_args=dict(dl=dl,
                                                 degree_dl_kind=degree_dl_kind,
                                                 multigraph=False,
-                                                exact=exact))
+                                                exact=exact, beta_dl=0.95))
     print("\t\t", state.B, "\n", file=out)
 
 
@@ -224,7 +224,7 @@ for pvals in iter_ranges(pranges):
     else:
         state_args = dict(recs=rec_, rec_types=rec)
 
-    entropy_args = dict(exact=exact)
+    entropy_args = dict(exact=exact, beta_dl=0.95)
 
     state = minimize_blockmodel_dl(GraphView(g, directed=directed),
                                    verbose=(1, "\t") if verbose else False,

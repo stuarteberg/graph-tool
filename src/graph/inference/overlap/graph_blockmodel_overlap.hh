@@ -613,20 +613,21 @@ public:
                 dS = virtual_move_sparse<false>(v, nr, ea.multigraph, m_entries);
         }
 
+        double dS_dl = 0;
         if (ea.partition_dl || ea.degree_dl || ea.edges_dl)
         {
             enable_partition_stats();
             auto& ps = get_partition_stats(v);
             if (ea.partition_dl)
-                dS += ps.get_delta_partition_dl(v, r, nr, _g);
+                dS_dl += ps.get_delta_partition_dl(v, r, nr, _g);
             if (_deg_corr && ea.degree_dl)
-                dS += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
+                dS_dl += ps.get_delta_deg_dl(v, r, nr, _eweight, _g);
             if (ea.edges_dl)
             {
                 size_t actual_B = 0;
                 for (auto& ps : _partition_stats)
                     actual_B += ps.get_actual_B();
-                dS += ps.get_delta_edges_dl(v, r, nr, actual_B, _g);
+                dS_dl += ps.get_delta_edges_dl(v, r, nr, actual_B, _g);
             }
         }
 
@@ -666,8 +667,8 @@ public:
                     if (dB_E != 0 && ea.recs_dl && std::isnan(_wparams[i][0])
                         && std::isnan(_wparams[i][1]))
                     {
-                        dS -= -w_log_prior(_B_E);
-                        dS += -w_log_prior(_B_E + dB_E);
+                        dS_dl -= -w_log_prior(_B_E);
+                        dS_dl += -w_log_prior(_B_E + dB_E);
                     }
                 };
 
@@ -796,13 +797,13 @@ public:
                         {
                             if (ea.recs_dl && (dB_E != 0 || dBx2 != 0))
                             {
-                                dS -= -signed_w_log_P(_B_E, _recsum[i],
-                                                      _recx2[i], wp[0], wp[1],
-                                                      wp[2], wp[3], _epsilon[i]);
-                                dS += -signed_w_log_P(_B_E + dB_E, _recsum[i],
-                                                      _recx2[i] + dBx2, wp[0],
-                                                      wp[1], wp[2], wp[3],
-                                                      _epsilon[i]);
+                                dS_dl -= -signed_w_log_P(_B_E, _recsum[i],
+                                                         _recx2[i], wp[0], wp[1],
+                                                         wp[2], wp[3], _epsilon[i]);
+                                dS_dl += -signed_w_log_P(_B_E + dB_E, _recsum[i],
+                                                         _recx2[i] + dBx2, wp[0],
+                                                         wp[1], wp[2], wp[3],
+                                                         _epsilon[i]);
                             }
 
                             if (dB_E_D != 0 || _dBdx[i] != 0)
@@ -828,21 +829,21 @@ public:
                             {
                                 size_t N_B_E_D = _B_E_D + dB_E_D;
 
-                                dS -= -safelog(_B_E_D);
-                                dS += -safelog(N_B_E_D);
+                                dS_dl -= -safelog(_B_E_D);
+                                dS_dl += -safelog(N_B_E_D);
 
                                 _dBdx[i] = _recdx[i] * dB_E_D + _dBdx[i] * N_B_E_D;
 
                                 if (_coupled_state == nullptr)
                                 {
                                     size_t L = _Lrecdx[0];
-                                    dS -= -positive_w_log_P(L, _Lrecdx[i+1],
-                                                            wp[2], wp[3],
-                                                            _epsilon[i]);
-                                    dS += -positive_w_log_P(L + dL,
-                                                            _Lrecdx[i+1] +
-                                                            _dBdx[i], wp[2],
-                                                            wp[3], _epsilon[i]);
+                                    dS_dl -= -positive_w_log_P(L, _Lrecdx[i+1],
+                                                               wp[2], wp[3],
+                                                               _epsilon[i]);
+                                    dS_dl += -positive_w_log_P(L + dL,
+                                                               _Lrecdx[i+1] +
+                                                               _dBdx[i], wp[2],
+                                                               wp[3], _epsilon[i]);
                                 }
                             }
                         }
@@ -864,18 +865,18 @@ public:
                 scoped_lock lck(_lock);
                 if (r_vacate)
                 {
-                    dS += _coupled_state->virtual_move(r,
-                                                       _bclabel[r],
-                                                       null_group,
-                                                       _coupled_entropy_args);
+                    dS_dl += _coupled_state->virtual_move(r,
+                                                          _bclabel[r],
+                                                          null_group,
+                                                          _coupled_entropy_args);
                 }
 
                 if (nr_occupy)
                 {
-                    dS += _coupled_state->virtual_move(nr,
-                                                       null_group,
-                                                       _bclabel[r],
-                                                       _coupled_entropy_args);
+                    dS_dl += _coupled_state->virtual_move(nr,
+                                                          null_group,
+                                                          _bclabel[r],
+                                                          _coupled_entropy_args);
                 }
             }
 
@@ -891,11 +892,11 @@ public:
                                                          get<1>(delta));
                            });
                 scoped_lock lck(_lock);
-                dS += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
+                dS_dl += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
             }
         }
 
-        return dS;
+        return dS + ea.beta_dl * dS_dl;
     }
 
     double virtual_move(size_t v, size_t r, size_t nr, entropy_args_t ea)
@@ -1143,19 +1144,46 @@ public:
         throw GraphException("Dense entropy for overlapping model not implemented!");
     }
 
-    double entropy(bool dense, bool multigraph, bool deg_entropy, bool exact,
-                   bool recs, bool recs_dl, bool adjacency)
+    double entropy(entropy_args_t ea)
     {
-        double S = 0;
-        if (adjacency)
+        double S = 0, S_dl = 0;
+        if (ea.adjacency)
         {
-            if (dense)
-                S = dense_entropy(multigraph);
+            if (ea.dense)
+                S = dense_entropy(ea.multigraph);
             else
-                S = sparse_entropy(multigraph, deg_entropy, exact);
+                S = sparse_entropy(ea.multigraph, ea.deg_entropy, ea.exact);
+
+            if (!ea.dense && !ea.exact)
+            {
+                size_t E = 0;
+                for (auto e : edges_range(_g))
+                    E += _eweight[e];
+                if (ea.multigraph)
+                    S -= E;
+                else
+                    S += E;
+            }
         }
 
-        if (recs)
+        if (ea.partition_dl)
+            S_dl += get_partition_dl();
+
+        if (_deg_corr && ea.degree_dl)
+            S_dl += get_deg_dl(ea.degree_dl_kind);
+
+        if (ea.edges_dl)
+        {
+            enable_partition_stats();
+            size_t actual_B = 0;
+            for (auto& ps : _partition_stats)
+                actual_B += ps.get_actual_B();
+            if (_allow_empty)
+                actual_B = num_vertices(_bg);
+            S_dl += get_edges_dl(actual_B, _partition_stats.front().get_E(), _g);
+        }
+
+        if (ea.recs)
         {
             for (size_t i = 0; i < _rec_types.size(); ++i)
             {
@@ -1172,9 +1200,9 @@ public:
                         S += -positive_w_log_P(ers, xrs, wp[0], wp[1],
                                                _epsilon[i]);
                     }
-                    if (recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
-                        S += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1],
-                                               _epsilon[i]);
+                    if (ea.recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
+                        S_dl += -positive_w_log_P(_B_E, _recsum[i], wp[0], wp[1],
+                                                  _epsilon[i]);
                     break;
                 case weight_type::DISCRETE_GEOMETRIC:
                     for (auto me : edges_range(_bg))
@@ -1183,8 +1211,8 @@ public:
                         auto xrs = _brec[i][me];
                         S += -geometric_w_log_P(ers, xrs, wp[0], wp[1]);
                     }
-                    if (recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
-                        S += -geometric_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
+                    if (ea.recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
+                        S_dl += -geometric_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
                     break;
                 case weight_type::DISCRETE_POISSON:
                     for (auto me : edges_range(_bg))
@@ -1195,8 +1223,8 @@ public:
                     }
                     for (auto e : edges_range(_g))
                         S += lgamma(_rec[i][e] + 1);
-                    if (recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
-                        S += -geometric_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
+                    if (ea.recs_dl && std::isnan(wp[0]) && std::isnan(wp[1]))
+                        S_dl += -geometric_w_log_P(_B_E, _recsum[i], wp[0], wp[1]);
                     break;
                 case weight_type::DISCRETE_BINOMIAL:
                     for (auto me : edges_range(_bg))
@@ -1207,8 +1235,8 @@ public:
                     }
                     for (auto e : edges_range(_g))
                         S -= lbinom(wp[0], _rec[i][e]);
-                    if (recs_dl && std::isnan(wp[1]) && std::isnan(wp[2]))
-                        S += -geometric_w_log_P(_B_E, _recsum[i], wp[1], wp[2]);
+                    if (ea.recs_dl && std::isnan(wp[1]) && std::isnan(wp[2]))
+                        S_dl += -geometric_w_log_P(_B_E, _recsum[i], wp[1], wp[2]);
                     break;
                 case weight_type::REAL_NORMAL:
                     for (auto me : edges_range(_bg))
@@ -1221,10 +1249,10 @@ public:
                     }
                     if (std::isnan(wp[0]) && std::isnan(wp[1]))
                     {
-                        if (recs_dl)
-                            S += -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
-                                                 wp[0], wp[1], wp[2], wp[3],
-                                                 _epsilon[i]);
+                        if (ea.recs_dl)
+                            S_dl += -signed_w_log_P(_B_E, _recsum[i], _recx2[i],
+                                                    wp[0], wp[1], wp[2], wp[3],
+                                                    _epsilon[i]);
                         S += -positive_w_log_P(_B_E_D, _recdx[i], wp[2], wp[3],
                                                _epsilon[i]);
                     }
@@ -1234,7 +1262,7 @@ public:
                 }
             }
         }
-        return S;
+        return S + S_dl * ea.beta_dl;
     }
 
     double get_partition_dl()

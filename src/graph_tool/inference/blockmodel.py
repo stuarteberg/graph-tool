@@ -118,7 +118,7 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
 
     return cg
 
-def get_entropy_args(kargs):
+def get_entropy_args(kargs, ignore=None):
     kargs = kargs.copy()
     args = DictState(kargs)
     deg_dl_kind = args.degree_dl_kind
@@ -134,11 +134,13 @@ def get_entropy_args(kargs):
     ea.dense = args.dense
     ea.multigraph = args.multigraph
     ea.adjacency = args.adjacency
+    ea.deg_entropy = args.deg_entropy
     ea.recs = args.recs
     del kargs["exact"]
     del kargs["dense"]
     del kargs["multigraph"]
     del kargs["adjacency"]
+    del kargs["deg_entropy"]
     del kargs["recs"]
     if args.dl:
         ea.partition_dl = args.partition_dl
@@ -151,12 +153,17 @@ def get_entropy_args(kargs):
         ea.edges_dl = False
         ea.recs_dl = False
     ea.degree_dl_kind = kind
+    ea.beta_dl = args.beta_dl
     del kargs["dl"]
     del kargs["partition_dl"]
     del kargs["degree_dl"]
     del kargs["edges_dl"]
     del kargs["recs_dl"]
+    del kargs["beta_dl"]
     kargs.pop("callback", None)
+    if ignore is not None:
+        for a in ignore:
+            del kargs[a]
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
                          str(list(kargs.keys())))
@@ -459,10 +466,11 @@ class BlockState(object):
         if deg_corr:
             init_q_cache(max(2 * max(self.get_E(), self.get_N()), 100))
 
-        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
-                                  degree_dl=True, degree_dl_kind="distributed",
-                                  edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True, recs_dl=True)
+        self._entropy_args = dict(adjacency=True, deg_entropy=True, dl=True,
+                                  partition_dl=True, degree_dl=True,
+                                  degree_dl_kind="distributed", edges_dl=True,
+                                  dense=False, multigraph=True, exact=True,
+                                  recs=True, recs_dl=True, beta_dl=1.)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -911,7 +919,7 @@ class BlockState(object):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True,
-                recs=True, recs_dl=True, exact=True, **kwargs):
+                recs=True, recs_dl=True, beta_dl=1., exact=True, **kwargs):
         r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
         with the current block partition.
 
@@ -948,6 +956,8 @@ class BlockState(object):
         recs_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge covariate description
             length will be included.
+        beta_dl : ``double`` (optional, default: ``1.``)
+            Prior inverse temperature.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -1086,56 +1096,25 @@ class BlockState(object):
 
         """
 
+        eargs = get_entropy_args(locals(), ignore=["self", "kwargs"])
+
         if _bm_test() and kwargs.get("test", True):
             args = dict(**locals())
             args.update(**kwargs)
+            del args["eargs"]
             del args["self"]
             del args["kwargs"]
 
         kwargs = kwargs.copy()
 
-        E = self.get_E()
-        N = self.get_N()
-
-        if not dl:
-            edges_dl = partition_dl = degree_dl = recs_dl = dl
-
-        S = self._state.entropy(dense, multigraph, deg_entropy, exact,
-                                recs, recs_dl, adjacency)
-
-        if adjacency and not dense and not exact:
-            if multigraph:
-                S -= E
-            else:
-                S += E
-
+        S = self._state.entropy(eargs)
         dl_S = 0
-
-        if partition_dl:
-            dl_S += self._state.get_partition_dl()
-
-        if edges_dl:
-            if self.allow_empty:
-                actual_B = self.B
-            else:
-                actual_B = self.get_nonempty_B()
-            dl_S += model_entropy(actual_B, N, E,
-                                  directed=self.g.is_directed(), nr=False)
-
-        if self.deg_corr and degree_dl:
-            if degree_dl_kind == "entropy":
-                kind = libinference.deg_dl_kind.ent
-            elif degree_dl_kind == "uniform":
-                kind = libinference.deg_dl_kind.uniform
-            elif degree_dl_kind == "distributed":
-                kind = libinference.deg_dl_kind.dist
-            dl_S += self._state.get_deg_dl(kind)
 
         callback = kwargs.pop("callback", None)
         if callback is not None:
             dl_S += callback(self)
 
-        S += dl_S
+        S += beta_dl * dl_S
 
         if kwargs.pop("test", True) and _bm_test():
             assert not isnan(S) and not isinf(S), \

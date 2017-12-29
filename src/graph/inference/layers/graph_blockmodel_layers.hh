@@ -490,7 +490,7 @@ struct Layers
                 dS -= virtual_move_covariate(v, r, s, *this, m_entries, false);
 
                 if (ea.edges_dl)
-                    dS += get_delta_edges_dl(v, r, s);
+                    dS += ea.beta_dl * get_delta_edges_dl(v, r, s);
             }
 
             // assert(check_layers());
@@ -542,13 +542,13 @@ struct Layers
                 bool nr_occupy = (s != null_group) && (_wr[s] == 0);
 
                 int L = _layers.size();
-                dS -= _actual_B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
+                dS -= ea.beta_dl * _actual_B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
                 size_t B = _actual_B;
                 if (r_vacate)
                     B--;
                 if (nr_occupy)
                     B++;
-                dS += B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
+                dS += ea.beta_dl * B * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
             }
             // assert(check_layers());
 
@@ -635,43 +635,82 @@ struct Layers
             // assert(check_edge_counts());
         }
 
-        double entropy(bool dense, bool multigraph, bool deg_entropy,
-                       bool exact, bool recs, bool recs_dl, bool adjacency)
+        double entropy(entropy_args_t ea)
         {
-            double S = 0;
+            double S = 0, S_dl = 0;
             if (_master)
             {
-                S += BaseState::entropy(dense, multigraph, deg_entropy, exact,
-                                        false, false, adjacency);
-                if (adjacency)
+                entropy_args_t mea(ea);
+                mea.edges_dl = false;
+                mea.recs = false;
+                mea.recs_dl = false;
+
+                S += BaseState::entropy(mea);
+
+                if (ea.adjacency)
                 {
                     S -= covariate_entropy(_bg, _mrs);
-                    if (multigraph)
+                    if (ea.multigraph)
                         S -= BaseState::get_parallel_entropy();
                     for (auto& state : _layers)
                     {
                         S += covariate_entropy(state._bg, state._mrs);
-                        if (multigraph)
+                        if (ea.multigraph)
                             S += state.get_parallel_entropy();
                     }
                 }
 
-                if (recs)
+                if (ea.edges_dl)
                 {
+                    size_t actual_B = _actual_B;
+                    if (BaseState::_allow_empty)
+                        actual_B = num_vertices(BaseState::_bg);
                     for (auto& state : _layers)
-                        S += state.entropy(false, false, false, false,
-                                           true, recs_dl, false);
+                        S_dl += get_edges_dl(actual_B, state._E, _g);
+                }
+
+                if (ea.recs)
+                {
+                    entropy_args_t mea = {false, false, false, false, true,
+                                          false, false, false,
+                                          ea.degree_dl_kind, false, ea.recs_dl,
+                                          ea.beta_dl};
+                    for (auto& state : _layers)
+                        S += state.entropy(mea);
                 }
             }
             else
             {
+                entropy_args_t mea(ea);
+                mea.partition_dl = false;
+                mea.edges_dl = false;
                 for (auto& state : _layers)
-                    S += state.entropy(dense, multigraph, deg_entropy, exact,
-                                       recs, recs_dl, adjacency);
+                    S += state.entropy(mea);
+                if (ea.partition_dl)
+                    S_dl += BaseState::get_partition_dl();
+                if (ea.edges_dl)
+                {
+                    for (auto& state : _layers)
+                    {
+                        size_t actual_B = 0;
+                        if (BaseState::_allow_empty)
+                        {
+                            actual_B = num_vertices(_bg);
+                        }
+                        else
+                        {
+                            for (auto r : vertices_range(state._bg))
+                                if (state._wr[r] > 0)
+                                    actual_B++;
+                        }
+                        S_dl += get_edges_dl(actual_B, state._E, _g);
+                    }
+                }
                 int L = _layers.size();
-                S += _N * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
+                S_dl += _N * (L * std::log(2) + std::log1p(-std::pow(2., -L)));
             }
-            return S;
+
+            return S + S_dl * ea.beta_dl;
         }
 
         double get_delta_edges_dl(size_t v, size_t r, size_t s)

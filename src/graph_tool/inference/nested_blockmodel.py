@@ -95,7 +95,8 @@ class NestedBlockState(object):
                                   edges_dl=True,
                                   exact=True,
                                   recs=True,
-                                  recs_dl=True)
+                                  recs_dl=True,
+                                  beta_dl=1.)
         self.levels = [base_type(g, b=bs[0], **self.state_args)]
         for i, b in enumerate(bs[1:]):
             state = self.levels[-1]
@@ -316,9 +317,13 @@ class NestedBlockState(object):
         else:
             eargs = kwargs
 
-        S = bstate.entropy(**dict(eargs, dl=True,
-                                  edges_dl=(l == (len(self.levels) - 1)),
-                                  recs_dl=(l == (len(self.levels) - 1))))
+        top = (l == (len(self.levels) - 1))
+
+        S = bstate.entropy(**dict(eargs, dl=True, edges_dl=top, recs_dl=top))
+
+        if l > 0:
+            S *= kwargs.get("beta_dl", 1.)
+
         return S
 
     def _Lrecdx_entropy(self, Lrecdx=None):
@@ -378,7 +383,7 @@ class NestedBlockState(object):
         for l in range(len(self.levels)):
             S += self.level_entropy(l, **dict(kwargs, test=False))
 
-        S += self._Lrecdx_entropy()
+        S += kwargs.get("entropy_args", {}).get("beta_dl", 1.) * self._Lrecdx_entropy()
 
         if _bm_test() and kwargs.pop("test", True):
             state = self.copy()
@@ -698,16 +703,15 @@ class NestedBlockState(object):
             else:
                 eargs = entropy_args
 
-            eargs = dict(eargs, dl=True,
-                         edges_dl=(l == len(self.levels) - 1),
-                         recs_dl=(l == len(self.levels) - 1))
+            top = (l == len(self.levels) - 1)
+            eargs = dict(eargs, dl=True, edges_dl=top, recs_dl=top)
 
             if l < len(self.levels) - 1:
                 def callback(s):
                     s = self.levels[l + 1]
-                    S = s.entropy(**dict(self.hentropy_args,
-                                         edges_dl=(l + 1 == len(self.levels) - 1),
-                                         recs_dl=(l + 1 == len(self.levels) - 1)))
+                    s_top = (l + 1 == len(self.levels) - 1)
+                    S = s.entropy(**dict(self.hentropy_args, edges_dl=s_top,
+                                         recs_dl=s_top))
                     return S
                 eargs = dict(eargs, callback=callback)
 
@@ -729,6 +733,8 @@ class NestedBlockState(object):
                 args = dict(kwargs, entropy_args=eargs, c=c[l])
 
             if l > 0:
+                if "beta_dl" in entropy_args:
+                    args = dict(args, beta=args.get("beta", 1.) * entropy_args["beta_dl"])
                 N_ = self.levels[l].get_N()
                 idx_ = self.levels[l].wr.a == 0
                 rs = arange(len(idx_), dtype="int")
@@ -741,7 +747,10 @@ class NestedBlockState(object):
 
             ret = algo(self.levels[l], **args)
 
-            dS += ret[0]
+            if l > 0 and "beta_dl" in entropy_args:
+                dS += ret[0] * entropy_args["beta_dl"]
+            else:
+                dS += ret[0]
             nattempts += ret[1]
             nmoves += ret[2]
 
@@ -768,14 +777,12 @@ class NestedBlockState(object):
             kwargs = dict(kwargs, test=False)
             entropy_args = kwargs.get("entropy_args", {})
             Si = self.entropy(**entropy_args)
-            ddS = [-self.level_entropy(l, **dict(entropy_args, test=False)) for l in range(len(self.levels))]
 
-        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a), c=c,
-                                              **kwargs)
+        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a),
+                                              c=c, **kwargs)
 
         if _bm_test():
             Sf = self.entropy(**entropy_args)
-            ddS = [ddS[l] + self.level_entropy(l, **dict(entropy_args, test=False)) for l in range(len(self.levels))]
             assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
                 "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
                                                             str(entropy_args))

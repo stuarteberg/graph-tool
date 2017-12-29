@@ -263,10 +263,11 @@ class OverlapBlockState(BlockState):
         if deg_corr:
             init_q_cache(max(self.get_E(), self.get_N()) + 1)
 
-        self._entropy_args = dict(adjacency=True, dl=True, partition_dl=True,
-                                  degree_dl=True, degree_dl_kind="distributed",
-                                  edges_dl=True, dense=False, multigraph=True,
-                                  exact=True, recs=True, recs_dl=True)
+        self._entropy_args = dict(adjacency=True, deg_entropy=True, dl=True,
+                                  partition_dl=True, degree_dl=True,
+                                  degree_dl_kind="distributed", edges_dl=True,
+                                  dense=False, multigraph=True, exact=True,
+                                  recs=True, recs_dl=True, beta_dl=1.)
 
         self._coupled_state = None
 
@@ -445,7 +446,7 @@ class OverlapBlockState(BlockState):
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
                 dense=False, multigraph=True, deg_entropy=True, recs=True,
-                recs_dl=True, exact=True, **kwargs):
+                recs_dl=True, beta_dl=1., exact=True, **kwargs):
         r"""Calculate the entropy associated with the current block partition.
 
         Parameters
@@ -481,6 +482,8 @@ class OverlapBlockState(BlockState):
         recs_dl : ``bool`` (optional, default: ``True``)
             If ``True``, and ``dl == True`` the edge covariate description
             length will be included.
+        beta_dl : ``double`` (optional, default: ``1.``)
+            Prior inverse temperature.
         exact : ``bool`` (optional, default: ``True``)
             If ``True``, the exact expressions will be used. Otherwise,
             Stirling's factorial approximation will be used for some terms.
@@ -588,7 +591,8 @@ class OverlapBlockState(BlockState):
                                   edges_dl=edges_dl, dense=dense,
                                   multigraph=multigraph,
                                   deg_entropy=deg_entropy, recs=recs,
-                                  recs_dl=recs_dl, exact=exact, **kwargs)
+                                  recs_dl=recs_dl, beta_dl=beta_dl, exact=exact,
+                                  **kwargs)
 
 
     def _mcmc_sweep_dispatch(self, mcmc_state):

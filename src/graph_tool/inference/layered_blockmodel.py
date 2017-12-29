@@ -802,30 +802,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         S = BlockState.entropy(self, adjacency=adjacency, dl=dl,
                                partition_dl=partition_dl, degree_dl=degree_dl,
-                               degree_dl_kind=degree_dl_kind, edges_dl=False,
+                               degree_dl_kind=degree_dl_kind, edges_dl=edges_dl,
                                dense=dense, multigraph=multigraph,
                                deg_entropy=deg_entropy, exact=exact,
                                **dict(kwargs, test=False))
-
-        if dl and edges_dl:
-            if self.layers:
-                for state in self.layer_states:
-                    if not self.allow_empty:
-                        actual_B = (state.wr.a > 0).sum()
-                    else:
-                        actual_B = self.B
-                    S += model_entropy(actual_B, 0, state.get_E(),
-                                       directed=self.g.is_directed(),
-                                       nr=False)
-            else:
-                if not self.allow_empty:
-                    actual_B = (self.wr.a > 0).sum()
-                else:
-                    actual_B = self.B
-                for state in self.layer_states:
-                    S += model_entropy(actual_B, 0, state.get_E(),
-                                       directed=self.g.is_directed(),
-                                       nr=False)
 
         if _bm_test() and kwargs.get("test", True):
             assert not isnan(S) and not isinf(S), \

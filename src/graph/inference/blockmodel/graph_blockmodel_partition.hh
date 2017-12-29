@@ -574,6 +574,11 @@ public:
         return _N;
     }
 
+    size_t get_E()
+    {
+        return _E;
+    }
+
     size_t get_actual_B()
     {
         return _actual_B;

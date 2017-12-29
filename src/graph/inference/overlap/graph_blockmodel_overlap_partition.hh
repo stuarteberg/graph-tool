@@ -991,6 +991,11 @@ struct overlap_partition_stats_t
         return _actual_B;
     }
 
+    size_t get_E()
+    {
+        return _E;
+    }
+
     void add_block()
     {
         _total_B++;

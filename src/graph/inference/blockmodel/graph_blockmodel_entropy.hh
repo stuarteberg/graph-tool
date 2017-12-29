@@ -41,11 +41,13 @@ struct entropy_args_t
     bool exact;
     bool adjacency;
     bool recs;
+    bool deg_entropy;
     bool partition_dl;
     bool degree_dl;
     deg_dl_kind  degree_dl_kind;
     bool edges_dl;
     bool recs_dl;
+    double beta_dl;
 };
 
 // Sparse entropy terms
@@ -159,6 +161,14 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
     else
         S = lbinom(nrns, ers);
     return S;
+}
+
+// Edges description length
+template <class Graph>
+double get_edges_dl(size_t B, size_t E, Graph& g)
+{
+    size_t NB = (graph_tool::is_directed(g)) ? B * B : (B * (B + 1)) / 2;
+    return lbinom(NB + E - 1, E);
 }
 
 } // namespace graph_tool

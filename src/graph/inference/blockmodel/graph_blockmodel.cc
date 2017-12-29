@@ -152,12 +152,14 @@ void export_blockmodel_state()
         .def_readwrite("dense", &entropy_args_t::dense)
         .def_readwrite("multigraph", &entropy_args_t::multigraph)
         .def_readwrite("adjacency", &entropy_args_t::adjacency)
+        .def_readwrite("deg_entropy", &entropy_args_t::deg_entropy)
         .def_readwrite("recs", &entropy_args_t::recs)
         .def_readwrite("partition_dl", &entropy_args_t::partition_dl)
         .def_readwrite("degree_dl", &entropy_args_t::degree_dl)
         .def_readwrite("degree_dl_kind", &entropy_args_t::degree_dl_kind)
         .def_readwrite("edges_dl", &entropy_args_t::edges_dl)
-        .def_readwrite("recs_dl", &entropy_args_t::recs_dl);
+        .def_readwrite("recs_dl", &entropy_args_t::recs_dl)
+        .def_readwrite("beta_dl", &entropy_args_t::beta_dl);
 
     enum_<deg_dl_kind>("deg_dl_kind")
         .value("ent", deg_dl_kind::ENT)
