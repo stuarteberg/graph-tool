@@ -611,7 +611,7 @@ class TemperingState(object):
         arguments are propagated to the individual states' `entropy()`
         method.
         """
-        return sum(beta * s.entropy(**kwargs) for
+        return sum(s.entropy(beta_dl=beta, **kwargs) for
                    s, beta in zip(self.states, self.betas))
 
     def states_swap(self, **kwargs):
@@ -632,11 +632,11 @@ class TemperingState(object):
             b1 = self.betas[i]
             b2 = self.betas[i + 1]
 
-            P1_f = -b2 * s1.entropy(**eargs)
-            P2_f = -b1 * s2.entropy(**eargs)
+            P1_f = -s1.entropy(beta_dl=b2, **eargs)
+            P2_f = -s2.entropy(beta_dl=b1, **eargs)
 
-            P1_b = -b1 * s1.entropy(**eargs)
-            P2_b = -b2 * s2.entropy(**eargs)
+            P1_b = -s1.entropy(beta_dl=b1, **eargs)
+            P2_b = -s2.entropy(beta_dl=b2, **eargs)
 
             ddS = -(P1_f + P2_f - P1_b - P2_b)
             a = exp(-ddS)
@@ -648,8 +648,8 @@ class TemperingState(object):
                 dS += ddS
                 if check_verbose(verbose):
                     print(verbose_pad(verbose)
-                          + u"swapped states: %d [β = (%g,%g)] <-> %d [β = (%g,%g)], a:" % \
-                          (i, b1, db1, i + 1, b2, db2, a))
+                          + u"swapped states: %d [β = %g] <-> %d [β = %g], a: %g" % \
+                            (i, b1, i + 1, b2, a))
         return dS, nswaps
 
     def states_move(self, sweep_algo, **kwargs):
@@ -660,9 +660,11 @@ class TemperingState(object):
         nattempts = 0
         for state, beta in zip(self.states, self.betas):
             entropy_args = dict(kwargs.get("entropy_args", {}))
-            ret = sweep_algo(state, beta=beta,
-                             **dict(kwargs, entropy_args=entropy_args))
-            dS += ret[0] * beta
+            ret = sweep_algo(state,
+                             **dict(kwargs,
+                                    entropy_args=dict(entropy_args,
+                                                      beta_dl=beta)))
+            dS += ret[0]
             nattempts += ret[1]
             nmoves += ret[2]
         return dS, nattempts, nmoves
