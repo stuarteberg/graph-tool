@@ -71,9 +71,84 @@ python::object multiflip_mcmc_layered_overlap_sweep(python::object omcmc_state,
     return ret;
 }
 
+class MCMC_sweep_base
+{
+public:
+    virtual std::tuple<double, size_t, size_t> run(rng_t&) = 0;
+};
+
+template <class State>
+class MCMC_sweep : public MCMC_sweep_base
+{
+public:
+    MCMC_sweep(State& s) : _s(s) {}
+
+    virtual std::tuple<double, size_t, size_t> run(rng_t& rng)
+    {
+        return mcmc_sweep(_s, rng);
+    }
+private:
+    State _s;
+};
+
+python::object multiflip_mcmc_layered_overlap_sweep_parallel(python::object omcmc_states,
+                                                             python::object olayered_states,
+                                                             rng_t& rng)
+{
+    std::vector<std::shared_ptr<MCMC_sweep_base>> sweeps;
+
+    size_t N = python::len(omcmc_states);
+    for (size_t i = 0; i < N; ++i)
+    {
+        auto dispatch = [&](auto* block_state)
+            {
+                typedef typename std::remove_pointer<decltype(block_state)>::type
+                    state_t;
+
+                layered_block_state<state_t>::dispatch
+                    (olayered_states[i],
+                     [&](auto& ls)
+                     {
+                         typedef typename std::remove_reference<decltype(ls)>::type
+                             layered_state_t;
+
+                         mcmc_block_state<layered_state_t>::make_dispatch
+                             (omcmc_states[i],
+                              [&](auto& s)
+                              {
+                                  typedef typename std::remove_reference<decltype(s)>::type
+                                      s_t;
+                                  sweeps.push_back(std::make_shared<MCMC_sweep<s_t>>(s));
+                              });
+                     },
+                     false);
+            };
+        overlap_block_state::dispatch(dispatch);
+    }
+
+    std::vector<std::shared_ptr<rng_t>> rngs;
+    init_rngs(rngs, rng);
+
+    std::vector<std::tuple<double, size_t, size_t>> rets(N);
+
+    #pragma omp parallel for schedule(runtime)
+    for (size_t i = 0; i < N; ++i)
+    {
+        auto& rng_ = get_rng(rngs, rng);
+        rets[i] = sweeps[i]->run(rng_);
+    }
+
+    python::list orets;
+    for (auto& ret : rets)
+        orets.append(tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret));
+    return orets;
+}
+
 void export_layered_overlap_blockmodel_multiflip_mcmc()
 {
     using namespace boost::python;
     def("multiflip_mcmc_layered_overlap_sweep",
         &multiflip_mcmc_layered_overlap_sweep);
+    def("multiflip_mcmc_layered_overlap_sweep_parallel",
+        &multiflip_mcmc_layered_overlap_sweep_parallel);
 }

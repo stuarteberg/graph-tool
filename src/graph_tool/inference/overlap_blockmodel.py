@@ -609,6 +609,11 @@ class OverlapBlockState(BlockState):
         del self.__bundled
         return dS, nattempts, nmoves
 
+    def _mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        return libinference.overlap_mcmc_sweep_parallel(mcmc_states,
+                                                        [s._state for s in states],
+                                                        _get_rng())
+
     def mcmc_sweep(self, bundled=False, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings rejection sampling MCMC to sample
         network partitions. If ``bundled == True``, the half-edges incident of
@@ -622,6 +627,11 @@ class OverlapBlockState(BlockState):
         return libinference.multiflip_mcmc_overlap_sweep(mcmc_state,
                                                          self._state,
                                                          _get_rng())
+
+    def _multiflip_mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        return libinference.multiflip_mcmc_overlap_sweep_parallel(mcmc_states,
+                                                                  [s._state for s in states],
+                                                                  _get_rng())
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
         if multicanonical_state.multiflip:
@@ -651,6 +661,11 @@ class OverlapBlockState(BlockState):
         return libinference.gibbs_overlap_sweep(multicanonical_state,
                                                 self._state,
                                                 _get_rng())
+
+    def _gibbs_sweep_parallel_dispatch(states, gibbs_states):
+        return libinference.gibbs_overlap_sweep_parallel(gibbs_states,
+                                                         [s._state for s in states],
+                                                         _get_rng())
 
     def _merge_sweep_dispatch(self, merge_state):
         return libinference.vacate_overlap_sweep(merge_state, self._state,

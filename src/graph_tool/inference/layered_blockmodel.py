@@ -973,6 +973,15 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                 nmoves += ret[2]
             return dS, nattempts, nmoves
 
+    def _mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        if not states[0].overlap:
+            return libinference.mcmc_layered_sweep_parallel(mcmc_states,
+                                                            [s._state for s in states],
+                                                            _get_rng())
+        else:
+            return libinference.mcmc_layered_overlap_sweep_parallel(mcmc_states,
+                                                                    [s._state for s in states],
+                                                                    _get_rng())
     def mcmc_sweep(self, bundled=False, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings rejection sampling MCMC to sample
         network partitions. If ``bundled == True`` and the state is an
@@ -993,6 +1002,16 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                                                      self._state,
                                                                      _get_rng())
 
+    def _multiflip_mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        if not states[0].overlap:
+            return libinference.multiflip_mcmc_layered_sweep_parallel(mcmc_states,
+                                                                      [s._state for s in states],
+                                                                      _get_rng())
+        else:
+            return libinference.multiflip_mcmc_layered_overlap_sweep_parallel(mcmc_states,
+                                                                              [s._state for s in states],
+                                                                              _get_rng())
+
     def _gibbs_sweep_dispatch(self, mcmc_state):
         if not self.overlap:
             return libinference.gibbs_layered_sweep(mcmc_state, self._state,
@@ -1001,6 +1020,16 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             return libinference.gibbs_layered_overlap_sweep(mcmc_state,
                                                             self._state,
                                                             _get_rng())
+
+    def _gibbs_sweep_parallel_dispatch(states, gibbs_states):
+        if not states[0].overlap:
+            return libinference.gibbs_layered_sweep_parallel(gibbs_states,
+                                                             [s._state for s in states],
+                                                             _get_rng())
+        else:
+            return libinference.gibbs_layered_overlap_sweep_parallel(gibbs_states,
+                                                                     [s._state for s in states],
+                                                                     _get_rng())
 
     def _multicanonical_sweep_dispatch(self, mcmc_state):
         if not self.overlap:

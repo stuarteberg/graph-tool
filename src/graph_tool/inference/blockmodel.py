@@ -1374,6 +1374,11 @@ class BlockState(object):
         return libinference.mcmc_sweep(mcmc_state, self._state,
                                        _get_rng())
 
+    def _mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        return libinference.mcmc_sweep_parallel(mcmc_states,
+                                                [s._state for s in states],
+                                                _get_rng())
+
     def mcmc_sweep(self, beta=1., c=1., d=.1, niter=1, entropy_args={},
                    allow_vacate=True, sequential=True, deterministic=False,
                    parallel=False, vertices=None, verbose=False, **kwargs):
@@ -1496,6 +1501,11 @@ class BlockState(object):
         return libinference.multiflip_mcmc_sweep(mcmc_state, self._state,
                                                  _get_rng())
 
+    def _multiflip_mcmc_sweep_parallel_dispatch(states, mcmc_states):
+        return libinference.multiflip_mcmc_sweep_parallel(mcmc_states,
+                                                          [s._state for s in states],
+                                                          _get_rng())
+
 
     def multiflip_mcmc_sweep(self, a1=.9, an=.9, beta=1., c=1., d=.1, niter=1,
                              entropy_args={}, allow_vacate=True,
@@ -1606,6 +1616,11 @@ class BlockState(object):
     def _gibbs_sweep_dispatch(self, gibbs_state):
         return libinference.gibbs_sweep(gibbs_state, self._state,
                                         _get_rng())
+
+    def _gibbs_sweep_parallel_dispatch(states, gibbs_states):
+        return libinference.gibbs_sweep_parallel(gibbs_states,
+                                                 [s._state for s in states],
+                                                 _get_rng())
 
     def gibbs_sweep(self, beta=1., niter=1, entropy_args={}, allow_vacate=True,
                     allow_new_group=True, sequential=True, deterministic=False,

@@ -56,8 +56,73 @@ python::object do_gibbs_sweep(python::object ogibbs_state,
     return ret;
 }
 
+class gibbs_sweep_base
+{
+public:
+    virtual std::tuple<double, size_t, size_t> run(rng_t&) = 0;
+};
+
+template <class State>
+class gibbs_sweep_dispatch : public gibbs_sweep_base
+{
+public:
+    gibbs_sweep_dispatch(State& s) : _s(s) {}
+
+    virtual std::tuple<double, size_t, size_t> run(rng_t& rng)
+    {
+        return gibbs_sweep(_s, rng);
+    }
+private:
+    State _s;
+};
+
+python::object do_gibbs_sweep_parallel(python::object ogibbs_states,
+                                       python::object oblock_states,
+                                       rng_t& rng)
+{
+    std::vector<std::shared_ptr<gibbs_sweep_base>> sweeps;
+
+    size_t N = python::len(ogibbs_states);
+    for (size_t i = 0; i < N; ++ i)
+    {
+        auto dispatch = [&](auto& block_state)
+        {
+            typedef typename std::remove_reference<decltype(block_state)>::type
+                state_t;
+
+            gibbs_block_state<state_t>::make_dispatch
+               (ogibbs_states[i],
+                [&](auto& s)
+                {
+                    typedef typename std::remove_reference<decltype(s)>::type
+                        s_t;
+                    sweeps.push_back(std::make_shared<gibbs_sweep_dispatch<s_t>>(s));
+                });
+        };
+        block_state::dispatch(oblock_states[i], dispatch);
+    }
+
+    std::vector<std::shared_ptr<rng_t>> rngs;
+    init_rngs(rngs, rng);
+
+    std::vector<std::tuple<double, size_t, size_t>> rets(N);
+
+    #pragma omp parallel for schedule(runtime)
+    for (size_t i = 0; i < N; ++i)
+    {
+        auto& rng_ = get_rng(rngs, rng);
+        rets[i] = sweeps[i]->run(rng_);
+    }
+
+    python::list orets;
+    for (auto& ret : rets)
+        orets.append(tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret));
+    return orets;
+}
+
 void export_blockmodel_gibbs()
 {
     using namespace boost::python;
     def("gibbs_sweep", &do_gibbs_sweep);
+    def("gibbs_sweep_parallel", &do_gibbs_sweep_parallel);
 }

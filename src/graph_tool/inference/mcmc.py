@@ -607,14 +607,22 @@ class TemperingState(object):
         self.betas = betas
 
     def entropy(self, **kwargs):
-        """Returns the weighted sum of the entropy of the parallel states. All keyword
+        """Returns the sum of the entropy of the parallel states. All keyword
         arguments are propagated to the individual states' `entropy()`
         method.
         """
-        return sum(s.entropy(beta_dl=beta, **kwargs) for
-                   s, beta in zip(self.states, self.betas))
+        return sum(s.entropy(beta_dl=beta, **kwargs) for s, beta in
+                   zip(self.states, self.betas))
 
-    def states_swap(self, **kwargs):
+    def entropies(self, **kwargs):
+        """Returns the entropies of the parallel states. All keyword
+        arguments are propagated to the individual states' `entropy()`
+        method.
+        """
+        return [s.entropy(beta_dl=beta, **kwargs) for s, beta in
+                zip(self.states, self.betas)]
+
+    def states_swap(self, adjacent=True, **kwargs):
         """Perform a full sweep of the parallel states, where swaps are attempted. All
         relevant keyword arguments are propagated to the individual states'
         `entropy()` method."""
@@ -622,15 +630,25 @@ class TemperingState(object):
         verbose = kwargs.get("verbose", False)
         eargs = kwargs.get("entropy_args", {})
 
-        idx = numpy.arange(len(self.states) - 1)
+        if adjacent:
+            idx = numpy.arange(len(self.states) - 1)
+        else:
+            idx = numpy.arange(len(self.states))
         numpy.random.shuffle(idx)
         nswaps = 0
         dS = 0
         for i in idx:
+            if adjacent:
+                j = i + 1
+            else:
+                j = i
+                while j == i:
+                    j = numpy.random.randint(0, len(idx))
+
             s1 = self.states[i]
-            s2 = self.states[i + 1]
+            s2 = self.states[j]
             b1 = self.betas[i]
-            b2 = self.betas[i + 1]
+            b2 = self.betas[j]
 
             P1_f = -s1.entropy(beta_dl=b2, **eargs)
             P2_f = -s2.entropy(beta_dl=b1, **eargs)
@@ -639,39 +657,36 @@ class TemperingState(object):
             P2_b = -s2.entropy(beta_dl=b2, **eargs)
 
             ddS = -(P1_f + P2_f - P1_b - P2_b)
-            a = exp(-ddS)
 
-            if numpy.random.random() < a:
-                self.states[i + 1], self.states[i] = \
-                            self.states[i], self.states[i + 1]
+            if ddS < 0 or numpy.random.random() < exp(-ddS):
+                self.states[j], self.states[i] = \
+                            self.states[i], self.states[j]
                 nswaps += 1
                 dS += ddS
                 if check_verbose(verbose):
                     print(verbose_pad(verbose)
                           + u"swapped states: %d [β = %g] <-> %d [β = %g], a: %g" % \
-                            (i, b1, i + 1, b2, a))
+                            (i, b1, j, b2, a))
         return dS, nswaps
 
     def states_move(self, sweep_algo, **kwargs):
         """Perform a full sweep of the parallel states, where state moves are
         attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
-        dS = 0
-        nmoves = 0
-        nattempts = 0
+        algo_states = []
         for state, beta in zip(self.states, self.betas):
             entropy_args = dict(kwargs.get("entropy_args", {}))
-            ret = sweep_algo(state,
-                             **dict(kwargs,
-                                    entropy_args=dict(entropy_args,
-                                                      beta_dl=beta)))
-            dS += ret[0]
-            nattempts += ret[1]
-            nmoves += ret[2]
-        return dS, nattempts, nmoves
+            algo_state = sweep_algo[0](state,
+                                       dispatch=False,
+                                       **dict(kwargs,
+                                              entropy_args=dict(entropy_args,
+                                                                beta_dl=beta)))
+            algo_states.append(algo_state)
 
-    def _sweep(self, algo, **kwargs):
+        return sweep_algo[1](self.states, algo_states)
+
+    def _sweep(self, algo, adjacent=True, **kwargs):
         if numpy.random.random() < .5:
-            return self.states_swap(**kwargs)
+            return self.states_swap(adjacent=adjacent, **kwargs)
         else:
             return self.states_move(algo, **kwargs)
 
@@ -679,14 +694,16 @@ class TemperingState(object):
         """Perform a full mcmc sweep of the parallel states, where swap or moves are
         chosen randomly. All keyword arguments are propagated to the individual
         states' `mcmc_sweep()` method."""
-        algo = lambda s, **kw: s.mcmc_sweep(**kw)
+        algo = (lambda s, **kw: s.mcmc_sweep(**kw),
+                lambda states, sweeps: type(self.states[0])._mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def multiflip_mcmc_sweep(self, **kwargs):
         """Perform a full mcmc sweep of the parallel states, where swap or moves are
         chosen randomly. All keyword arguments are propagated to the individual
         states' `mcmc_sweep()` method."""
-        algo = lambda s, **kw: s.multiflip_mcmc_sweep(**kw)
+        algo = (lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
+                lambda states, sweeps: type(self.states[0])._multiflip_mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def gibbs_sweep(self, **kwargs):
@@ -694,5 +711,6 @@ class TemperingState(object):
         are chosen randomly. All keyword arguments are propagated to the
         individual states' `gibbs_sweep()` method.
         """
-        algo = lambda s, **kw: s.gibbs_sweep(**kw)
+        algo = (lambda s, **kw: s.gibbs_sweep(**kw),
+                lambda states, sweeps: type(self.states[0])._gibbs_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
