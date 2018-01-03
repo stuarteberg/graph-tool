@@ -183,7 +183,7 @@ void graph_copy(const GraphOrig& g, GraphTarget& gt)
 // Parallel loops
 // ==============
 
-template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+template <class Graph, class F>
 void parallel_vertex_loop_no_spawn(const Graph& g, F&& f)
 {
     size_t N = num_vertices(g);
@@ -202,7 +202,7 @@ void parallel_vertex_loop(const Graph& g, F&& f)
 {
     #pragma omp parallel if (num_vertices(g) > thres)
     {
-        parallel_vertex_loop_no_spawn<Graph, F, thres>(g, std::forward<F>(f));
+        parallel_vertex_loop_no_spawn<Graph, F>(g, std::forward<F>(f));
     }
 }
 
@@ -225,7 +225,7 @@ auto get_dir(const boost::filt_graph<Graph, EPred, VPred>& g,
                                                 g._vertex_pred);
 }
 
-template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
+template <class Graph, class F>
 void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
 {
     auto&& u = get_dir(g, typename is_directed::apply<Graph>::type());
@@ -240,7 +240,7 @@ void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
                  f(e);
         };
     typedef decltype(dispatch) dispatch_t;
-    parallel_vertex_loop_no_spawn<graph_t, dispatch_t&, thres>(u, dispatch);
+    parallel_vertex_loop_no_spawn<graph_t, dispatch_t&>(u, dispatch);
 }
 
 template <class Graph, class F, size_t thres = OPENMP_MIN_THRESH>
@@ -248,11 +248,11 @@ void parallel_edge_loop(const Graph& g, F&& f)
 {
     #pragma omp parallel if (num_vertices(g) > thres)
     {
-        parallel_edge_loop_no_spawn<Graph, F, thres>(g, std::forward<F>(f));
+        parallel_edge_loop_no_spawn<Graph, F>(g, std::forward<F>(f));
     }
 }
 
-template <class Container, class F, size_t thres = OPENMP_MIN_THRESH>
+template <class Container, class F>
 void parallel_loop_no_spawn(Container&& v, F&& f)
 {
     size_t N = v.size();
@@ -266,8 +266,8 @@ void parallel_loop(Container&& v, F&& f)
 {
     #pragma omp parallel if (v.size() > thres)
     {
-        parallel_loop_no_spawn<Container, F, thres>(std::forward<Container>(v),
-                                                    std::forward<F>(f));
+        parallel_loop_no_spawn<Container, F>(std::forward<Container>(v),
+                                             std::forward<F>(f));
     }
 }
 
