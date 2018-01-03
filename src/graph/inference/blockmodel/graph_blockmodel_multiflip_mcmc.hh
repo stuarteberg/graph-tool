@@ -84,6 +84,7 @@ struct MCMC
             {
                 if (_state._vweight[v] > 0)
                     add_element(_groups[_state._b[v]], _vpos, v);
+                _N++;
             }
 
             for (auto r : vertices_range(_state._bg))
@@ -101,6 +102,9 @@ struct MCMC
         std::vector<size_t> _vs;
 
         size_t _null_move = null_group;
+
+        size_t _nproposals = 0;
+        size_t _N = 0;
 
         size_t node_state(size_t r)
         {
@@ -130,12 +134,11 @@ struct MCMC
             if (n == 2)
                 return 2;
 
-            std::bernoulli_distribution merge((1. - _a1) * _an);
+            std::bernoulli_distribution merge(_an);
             if (merge(rng))
                 return n;
 
             std::uniform_int_distribution<size_t> split(2, n - 1);
-
             return split(rng);
         }
 
@@ -164,6 +167,7 @@ struct MCMC
 
             assert(m <= _groups[r].size());
 
+            _nproposals += m;
             _vs.clear();
 
             while (_vs.size() < m)
@@ -284,7 +288,9 @@ struct MCMC
 
         size_t get_niter()
         {
-            return _niter;
+            if (_nproposals < _niter * _N)
+                return std::numeric_limits<size_t>::max();
+            return 0;
         }
 
         void step(size_t, size_t)
