@@ -27,6 +27,7 @@ from .. import Vector_size_t, Vector_double
 
 import numpy
 from . util import *
+from . nested_blockmodel import NestedBlockState
 
 def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
                      force_niter=None, epsilon=0, gibbs=False, multiflip=False,
@@ -673,6 +674,14 @@ class TemperingState(object):
         """Perform a full sweep of the parallel states, where state moves are
         attempted by calling `sweep_algo(state, beta=beta, **kwargs)`."""
         algo_states = []
+
+        if isinstance(self.states[0], NestedBlockState):
+            ls = list(kwargs.pop("ls", range(len(self.states[0].levels))))
+            if kwargs.pop("ls_shuffle", True):
+                numpy.random.shuffle(ls)
+            kwargs["ls"] = ls
+            kwargs["ls_shuffle"] = False
+
         for state, beta in zip(self.states, self.betas):
             entropy_args = dict(kwargs.get("entropy_args", {}))
             algo_state = sweep_algo[0](state,

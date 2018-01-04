@@ -673,7 +673,7 @@ class NestedBlockState(object):
         state._couple_state(None, None)
         return state
 
-    def _h_sweep(self, algo, **kwargs):
+    def _h_sweep_gen(self, **kwargs):
 
         if not self.sampling:
             raise ValueError("NestedBlockState must be constructed with 'sampling=True'")
@@ -687,14 +687,11 @@ class NestedBlockState(object):
                          recs=False)
             self.levels[l]._couple_state(self.levels[l + 1], eargs)
 
-        dS = 0
-        nattempts = 0
-        nmoves = 0
-
         c = kwargs.get("c", None)
 
         lrange = list(kwargs.pop("ls", range(len(self.levels))))
-        numpy.random.shuffle(lrange)
+        if kwargs.pop("ls_shuffle", True):
+            numpy.random.shuffle(lrange)
         for l in lrange:
             if check_verbose(verbose):
                 print(verbose_pad(verbose) + "level:", l)
@@ -745,6 +742,17 @@ class NestedBlockState(object):
                 if len(rs) > 0:
                     reverse_map(rs, self.levels[l].empty_pos)
 
+            yield l, self.levels[l], args
+
+    def _h_sweep(self, algo, **kwargs):
+        entropy_args = kwargs.get("entropy_args", {})
+
+        dS = 0
+        nattempts = 0
+        nmoves = 0
+
+        for l, lstate, args in self._h_sweep_gen(**kwargs):
+
             ret = algo(self.levels[l], **args)
 
             if l > 0 and "beta_dl" in entropy_args:
@@ -755,6 +763,30 @@ class NestedBlockState(object):
             nmoves += ret[2]
 
         return dS, nattempts, nmoves
+
+    def _h_sweep_states(self, algo, **kwargs):
+        entropy_args = kwargs.get("entropy_args", {})
+        for l, lstate, args in self._h_sweep_gen(**kwargs):
+            if l > 0 and "beta_dl" in entropy_args:
+                yield l, lstate, algo(self.levels[l], dispatch=False, **args), entropy_args["beta_dl"]
+            else:
+                yield l, lstate, algo(self.levels[l], dispatch=False, **args), 1
+
+    def _h_sweep_parallel_dispatch(states, sweeps, algo):
+        ret = None
+        for lsweep in zip(*sweeps):
+            ls = [x[0] for x in lsweep]
+            lstates = [x[1] for x in lsweep]
+            lsweep_states = [x[2] for x in lsweep]
+            beta_dl = [x[3] for x in lsweep]
+            lret = algo(type(lstates[0]), lstates, lsweep_states)
+            if ret is None:
+                ret = lret
+            else:
+                ret = [(ret[i][0] + lret[i][0] * beta_dl[i],
+                        ret[i][1] + lret[i][1],
+                        ret[i][2] + lret[i][2]) for i in range(len(lret))]
+        return ret
 
     def mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
@@ -773,20 +805,28 @@ class NestedBlockState(object):
         if not isinstance(c, collections.Iterable):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
-        if _bm_test():
-            kwargs = dict(kwargs, test=False)
-            entropy_args = kwargs.get("entropy_args", {})
-            Si = self.entropy(**entropy_args)
+        if kwargs.pop("dispatch", True):
+            if _bm_test():
+                kwargs = dict(kwargs, test=False)
+                entropy_args = kwargs.get("entropy_args", {})
+                Si = self.entropy(**entropy_args)
 
-        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a),
-                                              c=c, **kwargs)
+            dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.mcmc_sweep(**a),
+                                                  c=c, **kwargs)
 
-        if _bm_test():
-            Sf = self.entropy(**entropy_args)
-            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
-        return dS, nattempts, nmoves
+            if _bm_test():
+                Sf = self.entropy(**entropy_args)
+                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                str(entropy_args))
+            return dS, nattempts, nmoves
+        else:
+            return self._h_sweep_states(lambda s, **a: s.mcmc_sweep(**a),
+                                        c=c, **kwargs)
+
+    def _mcmc_sweep_parallel_dispatch(states, sweeps):
+        algo = lambda s, lstates, lsweep_states: s._mcmc_sweep_parallel_dispatch(lstates, lsweep_states)
+        return NestedBlockState._h_sweep_parallel_dispatch(states, sweeps, algo)
 
     def multiflip_mcmc_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection MCMC
@@ -806,19 +846,27 @@ class NestedBlockState(object):
         if not isinstance(c, collections.Iterable):
             c = [c] + [c * 2 ** l for l in range(1, len(self.levels))]
 
-        if _bm_test():
-            kwargs = dict(kwargs, test=False)
-            entropy_args = kwargs.get("entropy_args", {})
-            Si = self.entropy(**entropy_args)
+        if kwargs.pop("dispatch", True):
+            if _bm_test():
+                kwargs = dict(kwargs, test=False)
+                entropy_args = kwargs.get("entropy_args", {})
+                Si = self.entropy(**entropy_args)
 
-        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a),
-                                              c=c, **kwargs)
-        if _bm_test():
-            Sf = self.entropy(**entropy_args)
-            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
-        return dS, nattempts, nmoves
+            dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.multiflip_mcmc_sweep(**a),
+                                                  c=c, **kwargs)
+            if _bm_test():
+                Sf = self.entropy(**entropy_args)
+                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                str(entropy_args))
+            return dS, nattempts, nmoves
+        else:
+            return self._h_sweep_states(lambda s, **a: s.multiflip_mcmc_sweep(**a),
+                                        c=c, **kwargs)
+
+    def _multiflip_mcmc_sweep_parallel_dispatch(states, sweeps):
+        algo = lambda s, lstates, lsweep_states: s._multiflip_mcmc_sweep_parallel_dispatch(lstates, lsweep_states)
+        return NestedBlockState._h_sweep_parallel_dispatch(states, sweeps, algo)
 
     def gibbs_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a rejection-free Gibbs MCMC to sample network
@@ -827,19 +875,27 @@ class NestedBlockState(object):
         The arguments accepted are the same as in
         :method:`graph_tool.inference.BlockState.gibbs_sweep`.
         """
-        if _bm_test():
-            kwargs = dict(kwargs, test=False)
-            entropy_args = kwargs.get("entropy_args", {})
-            Si = self.entropy(**entropy_args)
+        if kwargs.pop("dispatch", True):
+            if _bm_test():
+                kwargs = dict(kwargs, test=False)
+                entropy_args = kwargs.get("entropy_args", {})
+                Si = self.entropy(**entropy_args)
 
-        dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
+            dS, nattempts, nmoves = self._h_sweep(lambda s, **a: s.gibbs_sweep(**a))
 
-        if _bm_test():
-            Sf = self.entropy(**entropy_args)
-            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                            str(entropy_args))
-        return dS, nattempts, nmoves
+            if _bm_test():
+                Sf = self.entropy(**entropy_args)
+                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                str(entropy_args))
+            return dS, nattempts, nmoves
+        else:
+            return self._h_sweep_states(lambda s, **a: s.gibbs_sweep(**a),
+                                        **kwargs)
+
+    def _gibbs_sweep_parallel_dispatch(states, sweeps):
+        algo = lambda s, lstates, lsweep_states: s._gibbs_sweep_parallel_dispatch(lstates, lsweep_states)
+        return NestedBlockState._h_sweep_parallel_dispatch(states, sweeps, algo)
 
     def multicanonical_sweep(self, **kwargs):
         r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
