@@ -1344,7 +1344,10 @@ public:
         assert(size_t(_b[v]) == r || r == null_group);
 
         if (r == nr)
+        {
+            m_entries.set_move(r, nr, num_vertices(_bg));
             return 0;
+        }
 
         if (r != null_group && nr != null_group && !allow_move(r, nr))
             return std::numeric_limits<double>::infinity();

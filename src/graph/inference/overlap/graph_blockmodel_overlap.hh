@@ -597,7 +597,10 @@ public:
                         MEntries& m_entries)
     {
         if (r == nr)
+        {
+            m_entries.set_move(r, nr, num_vertices(_bg));
             return 0;
+        }
 
         if (!allow_move(r, nr))
             return std::numeric_limits<double>::infinity();

@@ -468,7 +468,11 @@ struct Layers
                             MEntries& m_entries)
         {
             if (s == r)
+            {
+                m_entries.set_move(r, s, num_vertices(BaseState::_bg));
                 return 0;
+            }
+
             // assert(check_layers());
 
             double dS = 0;
