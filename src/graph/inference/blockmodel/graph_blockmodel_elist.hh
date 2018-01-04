@@ -173,6 +173,9 @@ public:
             _epos[get<0>(elist[pos])].second = numeric_limits<size_t>::max();
         elist[pos] = elist.back();
         elist.pop_back();
+
+        if (elist.empty())
+            elist.shrink_to_fit();
     }
 
     template <class Edge>
@@ -185,6 +188,9 @@ public:
         else
             _epos[get<0>(elist[pos])].second = numeric_limits<size_t>::max();
         elist.remove(pos);
+
+        if (elist.empty())
+            elist.rebuild();
     }
 
     template <class Vertex, class VProp>
