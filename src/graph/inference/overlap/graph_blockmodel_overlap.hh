@@ -849,8 +849,8 @@ public:
                             {
                                 size_t N_B_E_D = _B_E_D + dB_E_D;
 
-                                dS_dl -= -safelog(_B_E_D);
-                                dS_dl += -safelog(N_B_E_D);
+                                dS_dl -= -safelog_fast(_B_E_D);
+                                dS_dl += -safelog_fast(N_B_E_D);
 
                                 _dBdx[i] = _recdx[i] * dB_E_D + _dBdx[i] * N_B_E_D;
 

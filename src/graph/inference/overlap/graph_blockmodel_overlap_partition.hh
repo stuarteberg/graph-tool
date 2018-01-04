@@ -253,9 +253,9 @@ struct overlap_partition_stats_t
 
             size_t n_bv = _bhist.find(bv)->second;
 
-            S += xlogx(n_bv);
+            S += xlogx_fast(n_bv);
             for (auto& dh : cdeg_hist)
-                S -= xlogx(dh.second);
+                S -= xlogx_fast(dh.second);
         }
         return S;
     }

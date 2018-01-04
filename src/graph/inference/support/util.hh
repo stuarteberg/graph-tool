@@ -29,7 +29,7 @@ namespace graph_tool
 {
 using namespace boost;
 
-inline double lbinom(double N, double k)
+inline double lbinom(auto N, auto k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;
@@ -38,14 +38,15 @@ inline double lbinom(double N, double k)
     return ((lgamma(N + 1) - lgamma(k + 1)) - lgamma(N - k + 1));
 }
 
-inline double lbinom_fast(int N, int k)
+template <bool Init=true>
+inline double lbinom_fast(auto N, auto k)
 {
     if (N == 0 || k == 0 || k > N)
         return 0;
-    return ((lgamma_fast(N + 1) - lgamma_fast(k + 1)) - lgamma_fast(N - k + 1));
+    return ((lgamma_fast<Init>(N + 1) - lgamma_fast<Init>(k + 1)) - lgamma_fast<Init>(N - k + 1));
 }
 
-inline double lbinom_careful(double N, double k)
+inline double lbinom_careful(auto N, auto k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;

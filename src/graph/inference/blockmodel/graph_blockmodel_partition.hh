@@ -135,7 +135,7 @@ public:
         S += lgamma_fast(_N + 1);
         for (auto nr : _total)
             S -= lgamma_fast(nr + 1);
-        S += safelog(_N);
+        S += safelog_fast(_N);
         return S;
     }
 
@@ -147,10 +147,10 @@ public:
             size_t total = 0;
             for (auto& k_c : _hist[r])
             {
-                S -= xlogx(k_c.second);
+                S -= xlogx_fast(k_c.second);
                 total += k_c.second;
             }
-            S += xlogx(total);
+            S += xlogx_fast(total);
         }
         return S;
     }
@@ -258,8 +258,8 @@ public:
 
         if (dN != 0)
         {
-            S_b += safelog(_N);
-            S_a += safelog(_N + dN);
+            S_b += safelog_fast(_N);
+            S_a += safelog_fast(_N + dN);
         }
 
         return S_a - S_b;
@@ -305,8 +305,8 @@ public:
                         return (B * (B + 1)) / 2;
                 };
 
-            S_b += lbinom(get_x(actual_B) + _E - 1, _E);
-            S_a += lbinom(get_x(actual_B + dB) + _E - 1, _E);
+            S_b += lbinom_fast<false>(get_x(actual_B) + _E - 1, _E);
+            S_a += lbinom_fast<false>(get_x(actual_B + dB) + _E - 1, _E);
         }
 
         return S_a - S_b;
@@ -379,7 +379,7 @@ public:
                 if (iter != _hist[s].end())
                     nd = iter->second;
                 assert(nd + delta >= 0);
-                return -xlogx(nd + delta);
+                return -xlogx_fast(nd + delta);
             };
 
         double S_b = 0, S_a = 0;
@@ -393,8 +393,8 @@ public:
                 S_a += get_Sk(r, deg, diff * nk);
             });
 
-        S_b += xlogx(nr);
-        S_a += xlogx(nr + dn);
+        S_b += xlogx_fast(nr);
+        S_a += xlogx_fast(nr + dn);
 
         return S_a - S_b;
     }
@@ -406,8 +406,8 @@ public:
         auto get_Se = [&](int dn, int dkin, int dkout)
             {
                 double S = 0;
-                S += lbinom(_total[r] + dn + _ep[r] - 1 + dkout, _ep[r] + dkout);
-                S += lbinom(_total[r] + dn + _em[r] - 1 + dkin,  _em[r] + dkin);
+                S += lbinom_fast(_total[r] + dn + _ep[r] - 1 + dkout, _ep[r] + dkout);
+                S += lbinom_fast(_total[r] + dn + _em[r] - 1 + dkin,  _em[r] + dkin);
                 return S;
             };
 

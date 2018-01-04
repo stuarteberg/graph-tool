@@ -38,38 +38,58 @@ extern vector<double> __lgamma_cache;
 
 void init_safelog(size_t x);
 
-template <class Type>
-inline double safelog(Type x)
+inline double safelog(auto x)
 {
     if (x == 0)
         return 0;
     return log(x);
 }
 
-inline double safelog(size_t x)
+template <bool Init=true>
+inline double safelog_fast(auto x)
 {
-    if (x >= __safelog_cache.size())
-        init_safelog(x);
+    if (size_t(x) >= __safelog_cache.size())
+    {
+        if (Init)
+            init_safelog(x);
+        else
+            return safelog(x);
+    }
     return __safelog_cache[x];
 }
 
 void init_xlogx(size_t x);
 
-inline double xlogx(size_t x)
+inline double xlogx(auto x)
 {
-    //return x * safelog(x);
-    if (x >= __xlogx_cache.size())
-        init_xlogx(x);
+    return x * safelog(x);
+}
+
+template <bool Init=true>
+inline double xlogx_fast(auto x)
+{
+    if (size_t(x) >= __xlogx_cache.size())
+    {
+        if (Init)
+            init_xlogx(x);
+        else
+            return xlogx(x);
+    }
     return __xlogx_cache[x];
 }
 
 void init_lgamma(size_t x);
 
-inline double lgamma_fast(size_t x)
+template <bool Init=true>
+inline double lgamma_fast(auto x)
 {
-    //return lgamma(x);
-    if (x >= __lgamma_cache.size())
-        init_lgamma(x);
+    if (size_t(x) >= __lgamma_cache.size())
+    {
+        if (Init)
+            init_lgamma(x);
+        else
+            return lgamma(x);
+    }
     return __lgamma_cache[x];
 }
 

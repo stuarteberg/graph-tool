@@ -1643,8 +1643,8 @@ public:
                             {
                                 size_t N_B_E_D = _B_E_D + dB_E_D;
 
-                                dS_dl -= -safelog(_B_E_D);
-                                dS_dl += -safelog(N_B_E_D);
+                                dS_dl -= -safelog_fast(_B_E_D);
+                                dS_dl += -safelog_fast(N_B_E_D);
 
                                 _dBdx[i] = _recdx[i] * dB_E_D + _dBdx[i] * N_B_E_D;
 
@@ -1912,8 +1912,8 @@ public:
                             dS += -positive_w_log_P(L + dL + ddL,
                                                     _Lrecdx[i+1] + dx, wp[2],
                                                     wp[3], _epsilon[i]);
-                            dS -= -safelog(_B_E_D);
-                            dS += -safelog(N_B_E_D);
+                            dS -= -safelog_fast(_B_E_D);
+                            dS += -safelog_fast(N_B_E_D);
                         }
                      }
                 }

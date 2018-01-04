@@ -35,7 +35,7 @@ void init_safelog(size_t x)
         {
             __safelog_cache.resize(x + 1);
             for (size_t i = old_size; i < __safelog_cache.size(); ++i)
-                __safelog_cache[i] = safelog(double(i));
+                __safelog_cache[i] = safelog(i);
         }
     }
 }
@@ -55,7 +55,7 @@ void init_xlogx(size_t x)
         {
             __xlogx_cache.resize(x + 1);
             for (size_t i = old_size; i < __xlogx_cache.size(); ++i)
-                __xlogx_cache[i] = i * safelog(i);
+                __xlogx_cache[i] = xlogx(i);
         }
     }
 }

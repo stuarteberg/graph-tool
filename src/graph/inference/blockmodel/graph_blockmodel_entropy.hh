@@ -88,9 +88,9 @@ inline double vterm_exact(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
     else
     {
         if (graph_tool::is_directed(g))
-            return (mrp + mrm) * safelog(wr);
+            return (mrp + mrm) * safelog_fast(wr);
         else
-            return mrp * safelog(wr);
+            return mrp * safelog_fast(wr);
     }
 }
 
@@ -101,7 +101,7 @@ inline double eterm(size_t r, size_t s, size_t mrs, const Graph& g)
     if (!graph_tool::is_directed(g) && r == s)
         mrs *= 2;
 
-    double val = xlogx(mrs);
+    double val = xlogx_fast(mrs);
 
     if (graph_tool::is_directed(g) || r != s)
         return -val;
@@ -120,9 +120,9 @@ inline double vterm(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
         one = 1;
 
     if (deg_corr)
-        return one * (xlogx(mrm) + xlogx(mrp));
+        return one * (xlogx_fast(mrm) + xlogx_fast(mrp));
     else
-        return one * (mrm * safelog(wr) + mrp * safelog(wr));
+        return one * (mrm * safelog_fast(wr) + mrp * safelog_fast(wr));
 }
 
 
@@ -132,11 +132,10 @@ inline double vterm(size_t mrp, size_t mrm, size_t wr, bool deg_corr,
 
 // "edge" term of the entropy
 template <class Graph>
-inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
-                          double wr_s, bool multigraph, const Graph& g)
+inline double eterm_dense(size_t r, size_t s, uint64_t ers, uint64_t wr_r,
+                          uint64_t wr_s, bool multigraph, const Graph& g)
 {
-    // we should not use integers here, since they may overflow
-    double nrns;
+    uint64_t nrns; // avoid overflow for nr < 2^32
 
     if (ers == 0)
         return 0.;
@@ -157,9 +156,9 @@ inline double eterm_dense(size_t r, size_t s, int ers, double wr_r,
 
     double S;
     if (multigraph)
-        S = lbinom(nrns + ers - 1, ers); // do not use lbinom_fast!
+        S = lbinom_fast<false>(nrns + ers - 1, ers); // do not use lbinom_fast<true>!
     else
-        S = lbinom(nrns, ers);
+        S = lbinom_fast<false>(nrns, ers);
     return S;
 }
 
@@ -168,7 +167,7 @@ template <class Graph>
 double get_edges_dl(size_t B, size_t E, Graph& g)
 {
     size_t NB = (graph_tool::is_directed(g)) ? B * B : (B * (B + 1)) / 2;
-    return lbinom(NB + E - 1, E);
+    return lbinom_fast<false>(NB + E - 1, E);
 }
 
 } // namespace graph_tool
