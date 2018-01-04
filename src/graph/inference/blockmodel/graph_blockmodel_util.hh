@@ -42,8 +42,10 @@ public:
     virtual size_t add_block() = 0;
     virtual void add_edge(const GraphInterface::edge_t& e) = 0;
     virtual void remove_edge(const GraphInterface::edge_t& e) = 0;
-    virtual void update_edge(const GraphInterface::edge_t& e,
-                             const std::vector<double>& delta) = 0;
+    virtual void add_edge_rec(const GraphInterface::edge_t& e) = 0;
+    virtual void remove_edge_rec(const GraphInterface::edge_t& e) = 0;
+    virtual void update_edge_rec(const GraphInterface::edge_t& e,
+                                 const std::vector<double>& delta) = 0;
     virtual double recs_dS(size_t, size_t,
                            const std::vector<std::tuple<size_t, size_t,
                                              GraphInterface::edge_t, int,

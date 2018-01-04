@@ -953,10 +953,20 @@ struct Layers
             BaseState::remove_edge(e);
         }
 
-        void update_edge(const GraphInterface::edge_t& e,
-                         const std::vector<double>& delta)
+        void add_edge_rec(const GraphInterface::edge_t& e)
         {
-            BaseState::update_edge(e, delta);
+            BaseState::add_edge_rec(e);
+        }
+
+        void remove_edge_rec(const GraphInterface::edge_t& e)
+        {
+            BaseState::remove_edge_rec(e);
+        }
+
+        void update_edge_rec(const GraphInterface::edge_t& e,
+                             const std::vector<double>& delta)
+        {
+            BaseState::update_edge_rec(e, delta);
         }
 
         double recs_dS(size_t, size_t,

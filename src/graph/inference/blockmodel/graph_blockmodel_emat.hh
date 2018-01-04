@@ -74,7 +74,7 @@ public:
         _mat[r][s] = _null_edge;
         if (!is_directed::apply<BGraph>::type::value)
             _mat[s][r] = _null_edge;
-        remove_edge(me, bg);
+        //remove_edge(me, bg);
     }
 
     const auto& get_null_edge() const { return _null_edge; }
@@ -190,8 +190,11 @@ public:
         if (!is_directed::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
         assert(r < _hash.size());
-        _hash[r].erase(s);
-        remove_edge(me, bg);
+        auto& r_hash = _hash[r];
+        r_hash.erase(s);
+        if (r_hash.empty())
+            r_hash.resize(0);
+        //remove_edge(me, bg);
     }
 
     const auto& get_null_edge() const { return _null_edge; }

@@ -267,6 +267,8 @@ public:
                                        this->_c_brec[i][me] = 0;
                                        this->_c_bdrec[i][me] = 0;
                                    }
+                                   if (_coupled_state != nullptr)
+                                       _coupled_state->add_edge(me);
                                }
 
                                mid_op(me, delta);
@@ -280,6 +282,15 @@ public:
                                assert(this->_mrm[s] >= 0);
 
                                end_op(me, delta);
+
+                               if (!Add && this->_mrs[me] == 0)
+                               {
+                                   this->_emat.remove_me(me, this->_bg);
+                                   if (_coupled_state != nullptr)
+                                       _coupled_state->remove_edge(me);
+                                   else
+                                       boost::remove_edge(me, this->_bg);
+                               }
                            });
                    };
 
@@ -312,14 +323,14 @@ public:
                     {
                         _B_E++;
                         if (_coupled_state != nullptr)
-                            _coupled_state->add_edge(me);
+                            _coupled_state->add_edge_rec(me);
                     }
 
                     if (!Add && mrs > 0 && mrs + get<1>(delta)[0] == 0)
                     {
                         _B_E--;
                         if (_coupled_state != nullptr)
-                            _coupled_state->remove_edge(me);
+                            _coupled_state->remove_edge_rec(me);
                     }
                 };
 
@@ -393,7 +404,7 @@ public:
                     {
                         end_op(me, delta);
                         if (_coupled_state != nullptr)
-                            _coupled_state->update_edge(me, get<1>(delta));
+                            _coupled_state->update_edge_rec(me, get<1>(delta));
                     };
 
                 if (_Lrecdx[0] >= 0)
@@ -431,7 +442,42 @@ public:
             BlockState::remove_partition_node(v, r);
     }
 
+
     void add_edge(const GraphInterface::edge_t& e)
+    {
+        size_t r = _b[source(e, _g)];
+        size_t s = _b[target(e, _g)];
+        auto me = _emat.get_me(r, s);
+        if (me == _emat.get_null_edge())
+        {
+            me = boost::add_edge(r, s, _bg).first;
+            _emat.put_me(r, s, me);
+            _c_mrs[me] = 0;
+            for (size_t i = 0; i < _rec_types.size(); ++i)
+            {
+                _c_brec[i][me] = 0;
+                _c_bdrec[i][me] = 0;
+            }
+            if (_coupled_state != nullptr)
+                _coupled_state->add_edge(me);
+        }
+    }
+
+    void remove_edge(const GraphInterface::edge_t& e)
+    {
+        size_t r = _b[source(e, _g)];
+        size_t s = _b[target(e, _g)];
+        auto& me = _emat.get_me(r, s);
+        if (_mrs[me] == 0)
+        {
+            _emat.remove_me(me, _bg);
+            if (_coupled_state != nullptr)
+                _coupled_state->remove_edge(me);
+        }
+        boost::remove_edge(e, _g);
+    }
+
+    void add_edge_rec(const GraphInterface::edge_t& e)
     {
         if (_rec_types.empty())
             return;
@@ -483,9 +529,12 @@ public:
                     _Lrecdx[i+1] += _recdx[i] * _B_E_D;
             }
         }
+
+        if (_brec[0][me] == 1 && _coupled_state != nullptr)
+            _coupled_state->add_edge_rec(me);
     }
 
-    void remove_edge(const GraphInterface::edge_t& e)
+    void remove_edge_rec(const GraphInterface::edge_t& e)
     {
         if (_rec_types.empty())
             return;
@@ -528,10 +577,13 @@ public:
                     _Lrecdx[i+1] += _recdx[i] * _B_E_D;
             }
         }
+
+        if (_brec[0][me] == 0 && _coupled_state != nullptr)
+            _coupled_state->remove_edge_rec(me);
     }
 
-    void update_edge(const GraphInterface::edge_t& e,
-                     const std::vector<double>& delta)
+    void update_edge_rec(const GraphInterface::edge_t& e,
+                         const std::vector<double>& delta)
     {
         if (_rec_types.empty())
             return;
@@ -669,8 +721,12 @@ public:
                 }
             }
 
-            // if (_mrs[me] == 0)
-            //     _emat.remove_me(me, _bg);
+            if (_mrs[me] == 0)
+            {
+                _emat.remove_me(me, _bg);
+                if (_coupled_state != nullptr)
+                    _coupled_state->remove_edge(me);
+            }
         }
     }
 
