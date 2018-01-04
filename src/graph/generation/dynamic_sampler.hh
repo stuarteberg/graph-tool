@@ -50,8 +50,8 @@ public:
     template <class RNG>
     const Value& sample(RNG& rng) const
     {
-        uniform_real_distribution<> sample(0, 1);
-        double u = _tree[0] * sample(rng), c = 0;
+        uniform_real_distribution<> sample(0, _tree[0]);
+        double u = sample(rng), c = 0;
 
         size_t pos = 0;
         while (_idx[pos] == numeric_limits<size_t>::max())
@@ -127,13 +127,24 @@ public:
         _n_items--;
     }
 
-    void clear()
+    void clear(bool shrink)
     {
         _items.clear();
+        _ipos.clear();
         _tree.clear();
         _idx.clear();
-        _back = 0;
         _free.clear();
+        _valid.clear();
+        if (shrink)
+        {
+            _items.shrink_to_fit();
+            _ipos.shrink_to_fit();
+            _tree.shrink_to_fit();
+            _idx.shrink_to_fit();
+            _free.shrink_to_fit();
+            _valid.shrink_to_fit();
+        }
+        _back = 0;
         _n_items = 0;
     }
 
@@ -150,7 +161,7 @@ public:
             probs.push_back(_tree[i]);
         }
 
-        clear();
+        clear(true);
 
         for (size_t i = 0; i < items.size(); ++i)
             insert(items[i], probs[i]);
@@ -163,7 +174,7 @@ public:
 
     bool is_valid(size_t i) const
     {
-        return (i < _items.size() && _valid[i]);
+        return ((i < _items.size()) && _valid[i]);
     }
 
     const auto& items() const
@@ -228,7 +239,7 @@ private:
 
 
     vector<Value>  _items;
-    vector<size_t> _ipos;   // position of the item in the tree
+    vector<size_t> _ipos;  // position of the item in the tree
 
     vector<double> _tree;  // tree nodes with weight sums
     vector<size_t> _idx;   // index in _items
