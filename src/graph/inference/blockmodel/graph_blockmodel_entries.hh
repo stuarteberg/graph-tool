@@ -130,8 +130,11 @@ public:
     {
         _r_out_field.resize(B, _null);
         _nr_out_field.resize(B, _null);
-        _r_in_field.resize(B, _null);
-        _nr_in_field.resize(B, _null);
+        if (is_directed::apply<Graph>::type::value)
+        {
+            _r_in_field.resize(B, _null);
+            _nr_in_field.resize(B, _null);
+        }
     }
 
     void set_move(size_t r, size_t nr, size_t B)
@@ -142,53 +145,91 @@ public:
         {
             _r_out_field.resize(B, _null);
             _nr_out_field.resize(B, _null);
-            _r_in_field.resize(B, _null);
-            _nr_in_field.resize(B, _null);
+            if (is_directed::apply<Graph>::type::value)
+            {
+                _r_in_field.resize(B, _null);
+                _nr_in_field.resize(B, _null);
+            }
+        }
+    }
+
+    const pair<size_t, size_t>& get_move() { return _rnr; }
+
+    template <bool First, bool Source>
+    size_t& get_field_rnr(size_t s, size_t t)
+    {
+        auto& out_field = First ? _r_out_field : _nr_out_field;
+        if (is_directed::apply<Graph>::type::value)
+        {
+            auto& in_field =  (First ? _r_in_field : _nr_in_field);
+            return (Source || s == t) ? out_field[t] : in_field[s];
+        }
+        else
+        {
+            return (Source) ? out_field[t] : out_field[s];
         }
     }
 
     size_t& get_field(size_t s, size_t t)
     {
-        if (!is_directed::apply<Graph>::type::value && s > t)
-            std::swap(s, t);
-
         if (s == _rnr.first)
-            return _r_out_field[t];
-        else if (s == _rnr.second)
-            return _nr_out_field[t];
-        else if (t == _rnr.first)
-            return _r_in_field[s];
-        else if (t == _rnr.second)
-            return _nr_in_field[s];
-        else
-            return _dummy;
+            return get_field_rnr<true, true>(s, t);
+        if (t == _rnr.first)
+            return get_field_rnr<true, false>(s, t);
+        if (s == _rnr.second)
+            return get_field_rnr<false, true>(s, t);
+        if (t == _rnr.second)
+            return get_field_rnr<false, false>(s, t);
+        return _dummy;
     }
 
     template <bool Add, class... DVals>
-    __attribute__((flatten))
-    void insert_delta(size_t s, size_t t, DVals&&... delta)
+    void insert_delta_dispatch(size_t s, size_t t, size_t& f, int d, DVals&&... delta)
     {
-        auto& f = get_field(s, t);
         if (f == _null)
         {
             f = _entries.size();
             _entries.emplace_back(s, t);
             _delta.emplace_back();
+            if (sizeof...(delta) > 0)
+                _edelta.emplace_back();
         }
 
         if (Add)
-            tuple_op(_delta[f], [&](auto& r, auto& v){ r += v; },
+        {
+            _delta[f] += d;
+            tuple_op(_edelta[f], [&](auto& r, auto& v){ r += v; },
                      delta...);
+        }
         else
-            tuple_op(_delta[f], [&](auto& r, auto& v){ r -= v; },
+        {
+            _delta[f] -= d;
+            tuple_op(_edelta[f], [&](auto& r, auto& v){ r -= v; },
                      delta...);
+        }
     }
 
-    const auto& get_delta(size_t r, size_t s)
+    template <bool First, bool Source, bool Add, class... DVals>
+    __attribute__((flatten))
+    void insert_delta_rnr(size_t s, size_t t, int d, DVals&&... delta)
+    {
+        auto& f = get_field_rnr<First, Source>(s, t);
+        insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
+    }
+
+    template <bool Add, class... DVals>
+    __attribute__((flatten))
+    void insert_delta(size_t s, size_t t, int d, DVals&&... delta)
+    {
+        auto& f = get_field(s, t);
+        insert_delta_dispatch<Add>(s, t, f, d, std::forward<DVals>(delta)...);
+    }
+
+    int get_delta(size_t r, size_t s)
     {
         size_t f = get_field(r, s);
         if (f == _null)
-            return _null_delta;
+            return 0;
         return _delta[f];
     }
 
@@ -203,12 +244,14 @@ public:
         }
         _entries.clear();
         _delta.clear();
+        _edelta.clear();
         _mes.clear();
         _recs_entries.clear();
     }
 
-    const vector<pair<size_t, size_t> >& get_entries() { return _entries; }
-    const vector<std::tuple<EVals...>>& get_delta() { return _delta; }
+    const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
+    const vector<int>&                  get_delta()   { return _delta;   }
+    const vector<std::tuple<EVals...>>& get_edelta()  { return _edelta;  }
 
     template <class Emat>
     vector<bedge_t>& get_mes(Emat& emat)
@@ -232,7 +275,7 @@ public:
         return _mes[field];
     }
 
-    std::tuple<EVals...> _self_weight;
+    std::tuple<EVals...> _self_eweight;
 
     std::vector<std::tuple<size_t, size_t,
                            GraphInterface::edge_t, int, std::vector<double>>>
@@ -240,7 +283,6 @@ public:
 
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
-    static const std::tuple<EVals...> _null_delta;
 
     pair<size_t, size_t> _rnr;
     vector<size_t> _r_out_field;
@@ -248,7 +290,8 @@ private:
     vector<size_t> _nr_out_field;
     vector<size_t> _nr_in_field;
     vector<pair<size_t, size_t>> _entries;
-    vector<std::tuple<EVals...>> _delta;
+    vector<int> _delta;
+    vector<std::tuple<EVals...>> _edelta;
     vector<bedge_t> _mes;
     size_t _dummy;
 };
@@ -256,31 +299,29 @@ private:
 template <class Graph, class BGraph, class... EVals>
 constexpr size_t EntrySet<Graph, BGraph, EVals...>::_null;
 
-template <class Graph, class BGraph, class... EVals>
-const std::tuple<EVals...> EntrySet<Graph, BGraph, EVals...>::_null_delta;
-
 struct is_loop_nop
 {
     bool operator()(size_t) const { return false; }
 };
 
-template <bool Add, class Vertex, class Graph, class Vprop,
+template <bool Remove, bool Add, class Vertex, class Graph, class Vprop,
           class Eprop, class MEntries, class Efilt, class IL, class... Eprops>
 __attribute__((flatten))
-void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
-                    MEntries& m_entries, Efilt&& efilt, IL&& is_loop,
-                    Eprops&... eprops)
+void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
+                    Eprop& eweights, MEntries& m_entries, Efilt&& efilt,
+                    IL&& is_loop, Eprops&... eprops)
 {
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
-    auto& self_weight = m_entries._self_weight;
-    if (!graph_tool::is_directed(g))
+    auto& eself_weight = m_entries._self_eweight;
+    int self_weight = 0;
+    if (!graph_tool::is_directed(g) && sizeof...(Eprops) > 0)
     {
         tuple_apply([&](auto&&... vals)
                     {
                         auto op = [](auto& x) -> auto& { x *= 0; return x; };
                         auto f = [](auto&...) {};
                         f(op(vals)...);
-                    }, self_weight);
+                    }, eself_weight);
     }
 
     for (auto e : out_edges_range(v, g))
@@ -290,28 +331,59 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
         vertex_t u = target(e, g);
         vertex_t s = _b[u];
         int ew = eweights[e];
-        //assert(ew > 0);
 
-        if (Add && u == v)
-            s = r;
+        if (Remove)
+            m_entries.template insert_delta_rnr<true, true, false>
+                (r, s, ew, make_vadapter(eprops, e)...);
 
-        m_entries.template insert_delta<Add>(r, s, ew,
-                                             make_vadapter(eprops, e)...);
+        if (Add)
+        {
+            if (u == v)
+                s = nr;
+
+            if (s != r)
+                m_entries.template insert_delta_rnr<false, true, true>
+                    (nr, s, ew, make_vadapter(eprops, e)...);
+            else
+                m_entries.template insert_delta_rnr<true, false, true>
+                    (nr, s, ew, make_vadapter(eprops, e)...);
+        }
 
         if ((u == v || is_loop(v)) && !graph_tool::is_directed(g))
-            tuple_op(self_weight, [&](auto& x, auto& val){ x += val; },
-                     ew, make_vadapter(eprops, e)...);
+        {
+            self_weight += ew;
+            tuple_op(eself_weight, [&](auto& x, auto& val){ x += val; },
+                     make_vadapter(eprops, e)...);
+        }
     }
 
-    if (get<0>(self_weight) > 0 && get<0>(self_weight) % 2 == 0 &&
-        !graph_tool::is_directed(g))
+    if (self_weight > 0 && self_weight % 2 == 0 && !graph_tool::is_directed(g))
     {
-        tuple_apply([&](auto&&... vals)
-                    {
-                        auto op = [](auto& x) -> auto& { x /= 2; return x; };
-                        m_entries.template insert_delta<!Add>(r, r,
-                                                              op(vals)...);
-                    }, self_weight);
+        if (sizeof...(Eprops) > 0)
+        {
+            tuple_apply([&](auto&&... vals)
+                        {
+                            auto op = [](auto& x) -> auto& { x /= 2; return x; };
+                            auto f = [](auto&...) {};
+                            f(op(vals)...);
+
+                            if (Add)
+                                m_entries.template insert_delta_rnr<false, true, false>
+                                    (nr, nr, self_weight / 2, vals...);
+                            if (Remove)
+                                m_entries.template insert_delta_rnr<true, true, true>
+                                    (r, r, self_weight / 2, vals...);
+                        }, eself_weight);
+        }
+        else
+        {
+            if (Add)
+                m_entries.template insert_delta_rnr<false, true, false>
+                    (nr, nr, self_weight / 2);
+            if (Remove)
+                m_entries.template insert_delta_rnr<true, true, true>
+                    (r, r, self_weight / 2);
+        }
     }
 
     if (graph_tool::is_directed(g))
@@ -326,11 +398,22 @@ void modify_entries(Vertex v, Vertex r, Vprop& _b, Graph& g, Eprop& eweights,
             vertex_t s = _b[u];
             int ew = eweights[e];
 
-            m_entries.template insert_delta<Add>(s, r, ew,
-                                                 make_vadapter(eprops, e)...);
+            if (Remove)
+                m_entries.template insert_delta_rnr<true, false, false>
+                    (s, r, ew, make_vadapter(eprops, e)...);
+            if (Add)
+            {
+                if (s != r)
+                    m_entries.template insert_delta_rnr<false, false, true>
+                        (s, nr, ew, make_vadapter(eprops, e)...);
+                else
+                    m_entries.template insert_delta_rnr<true, true, true>
+                        (s, nr, ew, make_vadapter(eprops, e)...);
+            }
         }
     }
 }
+
 
 // obtain the necessary entries in the e_rs matrix which need to be modified
 // after the move
@@ -343,13 +426,22 @@ void move_entries(Vertex v, size_t r, size_t nr, VProp& _b, Graph& g,
     m_entries.set_move(r, nr, B);
 
     if (r != null_group)
-        modify_entries<false>(v, r, _b, g, eweights, m_entries,
-                              std::forward<EFilt>(efilt),
-                              std::forward<IL>(is_loop), eprops...);
-    if (nr != null_group)
-        modify_entries<true>(v, nr, _b, g, eweights, m_entries,
-                             std::forward<EFilt>(efilt),
-                             std::forward<IL>(is_loop), eprops...);
+    {
+        if (nr != null_group)
+            modify_entries<true, true>(v, r, nr, _b, g, eweights, m_entries,
+                                       std::forward<EFilt>(efilt),
+                                       std::forward<IL>(is_loop), eprops...);
+        else
+            modify_entries<true, false>(v, r, nr, _b, g, eweights, m_entries,
+                                        std::forward<EFilt>(efilt),
+                                        std::forward<IL>(is_loop), eprops...);
+    }
+    else
+    {
+        modify_entries<false, true>(v, r, nr, _b, g, eweights, m_entries,
+                                    std::forward<EFilt>(efilt),
+                                    std::forward<IL>(is_loop), eprops...);
+    }
 }
 
 
@@ -359,6 +451,7 @@ void entries_op(MEntries& m_entries, EMat& emat, OP&& op)
 {
     const auto& entries = m_entries.get_entries();
     const auto& delta = m_entries.get_delta();
+    const auto& edelta = m_entries.get_edelta();
     auto& mes = m_entries.get_mes(emat);
 
     for (size_t i = 0; i < entries.size(); ++i)
@@ -366,7 +459,9 @@ void entries_op(MEntries& m_entries, EMat& emat, OP&& op)
         auto& entry = entries[i];
         auto er = entry.first;
         auto es = entry.second;
-        op(er, es, mes[i], delta[i]);
+        op(er, es, mes[i], delta[i], edelta[i]); // warning: edelta may be
+                                                 // empty, but should be
+                                                 // eliminated after compilation
     }
 }
 
@@ -376,12 +471,11 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
 {
     double dS = 0;
     entries_op(m_entries, emat,
-               [&](auto r, auto s, auto& me, auto& delta)
+               [&](auto r, auto s, auto& me, auto d, auto&)
                {
                    size_t ers = 0;
                    if (me != emat.get_null_edge())
                        ers = mrs[me];
-                   int d = get<0>(delta);
                    assert(int(ers) + d >= 0);
                    if (exact)
                        dS += eterm_exact(r, s, ers + d, bg) - eterm_exact(r, s, ers, bg);

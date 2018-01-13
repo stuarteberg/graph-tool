@@ -969,6 +969,12 @@ struct Layers
             BaseState::update_edge_rec(e, delta);
         }
 
+        void propagate_delta(size_t r, size_t s, std::vector<std::tuple<size_t, size_t,
+                             int, std::vector<double> >> & delta)
+        {
+            BaseState::propagate_delta(r, s, delta);
+        }
+
         double recs_dS(size_t, size_t,
                        const std::vector<std::tuple<size_t, size_t,
                                                     GraphInterface::edge_t, int,

@@ -372,22 +372,28 @@ public:
 
     void set_move(size_t, size_t, size_t) { clear(); }
 
-    template <bool Add, class... DVals>
-    void insert_delta(size_t t, size_t s, DVals... delta)
+    template <bool First, bool Source, bool Add, class... DVals>
+    void insert_delta_rnr(size_t t, size_t s, int d, DVals... delta)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
         if (Add)
-            tuple_op(_delta[_pos], [&](auto& r, auto& v){ r += v; },
+        {
+            _delta[_pos] += d;
+            tuple_op(_edelta[_pos], [&](auto& r, auto& v){ r += v; },
                      delta...);
+        }
         else
-            tuple_op(_delta[_pos], [&](auto& r, auto& v){ r -= v; },
+        {
+            _delta[_pos] -= d;
+            tuple_op(_edelta[_pos], [&](auto& r, auto& v){ r -= v; },
                      delta...);
+        }
         ++_pos;
     }
 
-    const auto& get_delta(size_t t, size_t s)
+    int get_delta(size_t t, size_t s)
     {
         if (!is_directed::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
@@ -397,19 +403,22 @@ public:
             if (entry.first == t && entry.second == s)
                 return _delta[i];
         }
-        return _null_delta;
+        return 0;
     }
 
     void clear()
     {
         for (auto& d : _delta)
+            d = 0;
+        for (auto& d : _edelta)
             d = std::tuple<EVals...>();
         _pos = 0;
         _mes_pos = 0;
     }
 
-    const std::array<pair<size_t, size_t>,2>& get_entries() const { return _entries; }
-    const std::array<std::tuple<EVals...>, 2>& get_delta() const { return _delta; }
+    const auto& get_entries() const { return _entries; }
+    const auto& get_delta() const { return _delta; }
+    const auto& get_edelta() const  { return _edelta; }
     const bedge_t& get_null_edge() const { return _null_edge; }
 
     template <class Emat>
@@ -444,7 +453,7 @@ public:
         return emat.get_me(t, s);
     }
 
-    std::tuple<EVals...> _self_weight;
+    std::tuple<EVals...> _self_eweight;
 
     std::vector<std::tuple<size_t, size_t,
                            GraphInterface::edge_t, int, std::vector<double>>>
@@ -453,16 +462,17 @@ public:
 private:
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
-    std::array<std::tuple<EVals...>, 2> _delta;
+    std::array<int, 2> _delta;
+    std::array<std::tuple<EVals...>, 2> _edelta;
     std::array<bedge_t, 2> _mes;
     size_t _mes_pos;
 
-    static const std::tuple<EVals...> _null_delta;
+    // static const std::tuple<EVals...> _null_delta;
     static const bedge_t _null_edge;
 };
 
-template <class Graph, class BGraph, class... EVals>
-const std::tuple<EVals...> SingleEntrySet<Graph, BGraph, EVals...>::_null_delta;
+// template <class Graph, class BGraph, class... EVals>
+// const std::tuple<EVals...> SingleEntrySet<Graph, BGraph, EVals...>::_null_delta;
 
 template <class Graph, class BGraph, class... EVals>
 const typename SingleEntrySet<Graph, BGraph, EVals...>::bedge_t

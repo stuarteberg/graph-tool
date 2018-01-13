@@ -659,7 +659,7 @@ public:
                 {
                     int dB_E = 0;
                     entries_op(m_entries, this->_emat,
-                               [&](auto, auto, auto& me, auto& delta)
+                               [&](auto, auto, auto& me, auto delta, auto& edelta)
                                {
                                    double ers = 0;
                                    double xrs = 0;
@@ -668,8 +668,8 @@ public:
                                        ers = this->_brec[0][me];
                                        xrs = this->_brec[i][me];
                                    }
-                                   auto d = get<1>(delta)[0];
-                                   auto dx = get<1>(delta)[i];
+                                   auto d = get<0>(edelta)[0];
+                                   auto dx = get<0>(edelta)[i];
                                    dS -= -w_log_P(ers, xrs);
                                    dS += -w_log_P(ers + d, xrs + dx);
 
@@ -678,9 +678,9 @@ public:
                                        size_t ers = 0;
                                        if (me != _emat.get_null_edge())
                                            ers = this->_mrs[me];
-                                       if (ers == 0 && get<0>(delta) > 0)
+                                       if (ers == 0 && delta > 0)
                                            dB_E++;
-                                       if (ers > 0 && ers + get<0>(delta) == 0)
+                                       if (ers > 0 && ers + delta == 0)
                                            dB_E--;
                                    }
                                });
@@ -759,7 +759,7 @@ public:
                         double dBx2 = 0;
                         _dBdx[i] = 0;
                         entries_op(m_entries, _emat,
-                                   [&](auto, auto, auto& me, auto& delta)
+                                   [&](auto, auto, auto& me, auto, auto& edelta)
                                    {
                                        double ers = 0;
                                        double xrs = 0, x2rs = 0;
@@ -769,9 +769,9 @@ public:
                                            xrs = this->_brec[i][me];
                                            x2rs = this->_bdrec[i][me];
                                        }
-                                       auto d = get<1>(delta)[0];
-                                       auto dx = get<1>(delta)[i];
-                                       auto dx2 = get<2>(delta)[i];
+                                       auto d = get<0>(edelta)[0];
+                                       auto dx = get<0>(edelta)[i];
+                                       auto dx2 = get<1>(edelta)[i];
                                        dS -= -signed_w_log_P(ers, xrs, x2rs,
                                                              wp[0], wp[1],
                                                              wp[2], wp[3],
@@ -785,7 +785,7 @@ public:
                                        if (std::isnan(wp[0]) &&
                                            std::isnan(wp[1]))
                                        {
-                                           auto n_ers = ers + get<1>(delta)[0];
+                                           auto n_ers = ers + get<0>(edelta)[0];
                                            if (ers == 0 && n_ers > 0)
                                                dB_E++;
                                            if (ers > 0 && n_ers == 0)
@@ -905,11 +905,10 @@ public:
                 auto& recs_entries = m_entries._recs_entries;
                 recs_entries.clear();
                 entries_op(m_entries, _emat,
-                           [&](auto r, auto s, auto& me, auto& delta)
+                           [&](auto r, auto s, auto& me, auto delta, auto& edelta)
                            {
-                               recs_entries.emplace_back(r, s, me,
-                                                         get<0>(delta),
-                                                         get<1>(delta));
+                               recs_entries.emplace_back(r, s, me, delta,
+                                                         get<0>(edelta));
                            });
                 scoped_lock lck(_lock);
                 dS_dl += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
@@ -1054,10 +1053,10 @@ public:
 
                 if (reverse)
                 {
-                    int dts = get<0>(m_entries.get_delta(t, s));
+                    int dts = m_entries.get_delta(t, s);
                     int dst = dts;
                     if (graph_tool::is_directed(_g))
-                        dst = get<0>(m_entries.get_delta(s, t));
+                        dst = m_entries.get_delta(s, t);
 
                     mts += dts;
                     mst += dst;
@@ -1554,6 +1553,11 @@ public:
     {
     }
 
+    void propagate_delta(size_t, size_t, std::vector<std::tuple<size_t, size_t,
+                         int, std::vector<double> >> &)
+    {
+    }
+
     void init_mcmc(double c, double dl)
     {
         if (!std::isinf(c))
@@ -1660,7 +1664,7 @@ public:
     std::vector<size_t> _bmap;
     std::vector<size_t> _vmap;
 
-    typedef SingleEntrySet<g_t, bg_t, int, std::vector<double>,
+    typedef SingleEntrySet<g_t, bg_t, std::vector<double>,
                            std::vector<double>> m_entries_t;
     m_entries_t _m_entries;
 

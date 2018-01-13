@@ -46,6 +46,9 @@ public:
     virtual void remove_edge_rec(const GraphInterface::edge_t& e) = 0;
     virtual void update_edge_rec(const GraphInterface::edge_t& e,
                                  const std::vector<double>& delta) = 0;
+    virtual void propagate_delta(size_t u, size_t v,
+                                 std::vector<std::tuple<size_t, size_t, int,
+                                                        std::vector<double>>>& entries) = 0;
     virtual double recs_dS(size_t, size_t,
                            const std::vector<std::tuple<size_t, size_t,
                                              GraphInterface::edge_t, int,

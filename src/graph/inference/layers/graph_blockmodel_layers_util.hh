@@ -43,7 +43,7 @@ double virtual_move_covariate(size_t v, size_t r, size_t s, State& state,
         auto& entry = entries[i];
         auto er = entry.first;
         auto es = entry.second;
-        int d = get<0>(delta[i]);
+        int d = delta[i];
 
         int ers = get_beprop(er, es, state._mrs, state._emat);
         assert(ers + d >= 0);
