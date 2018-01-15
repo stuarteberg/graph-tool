@@ -126,7 +126,7 @@ double log_q_approx(size_t n, size_t k)
         return log_q_approx_small(n, k);
     double u = k / sqrt(n);
     double v = get_v(u);
-    double lf = log(v) - log1p(- exp(-v) * (1 + u * u/2)) / 2 - log(2) * 3 / 2
+    double lf = log(v) - log1p(- exp(-v) * (1 + u * u/2)) / 2 - log(2) * 3 / 2.
         - log(u) - log(M_PI);
     double g = 2 * v / u - u * log1p(-exp(-v));
     return lf - log(n) + sqrt(n) * g;
