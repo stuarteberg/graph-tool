@@ -77,6 +77,7 @@ typedef mpl::vector2<ecmap_t, emap_t> eweight_tr;
     ((candidate_pos,, vmap_t, 0))                                              \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
+    ((bfield,, vprop_map_t<std::vector<double>>::type, 0))                     \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
     ((rec_types,, std::vector<int32_t>, 0))                                    \
@@ -1524,6 +1525,10 @@ public:
             }
         }
 
+        auto& f = _bfield[v];
+        if (!f.empty())
+            dS_dl -= f[nr] - f[r];
+
         int dL = 0;
         if (ea.recs)
         {
@@ -2332,6 +2337,14 @@ public:
             if (_allow_empty)
                 actual_B = num_vertices(_bg);
             S_dl += get_edges_dl(actual_B, _partition_stats.front().get_E(), _g);
+        }
+
+        for (auto v : vertices_range(_g))
+        {
+            auto& f = _bfield[v];
+            if (f.empty())
+                continue;
+            S_dl -= f[_b[v]];
         }
 
         if (ea.recs)

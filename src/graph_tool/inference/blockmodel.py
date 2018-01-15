@@ -242,6 +242,10 @@ class BlockState(object):
         Partition constraint labels on the vertices. This has the same
         interpretation as ``clabel``, but will be used to compute the partition
         description length.
+    bfield : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        Local field acting as a prior for the node partition. This should be a
+        vector property map of type ``vector<double>``, and contain the
+        log-probability for each node to be placed in each group.
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
@@ -256,7 +260,7 @@ class BlockState(object):
 
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
                  rec_types=[], rec_params=[], clabel=None, pclabel=None,
-                 deg_corr=True, allow_empty=False, max_BE=1000, **kwargs):
+                 bfield=None, deg_corr=True, allow_empty=False, max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
@@ -453,6 +457,9 @@ class BlockState(object):
                 if numpy.any(idx):
                     self.epsilon[i] = abs(self.rec[i].a[idx]).min() / 10
 
+        self.bfield = g.new_vp("vector<double>") if bfield is None else bfield
+        if self.bfield.value_type() != "vector<double>":
+            raise ValueError("'bfield' property map must be of type 'vector<double>'")
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
         self._avweight = self.vweight._get_any()
