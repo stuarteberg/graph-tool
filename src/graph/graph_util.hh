@@ -58,7 +58,7 @@ namespace graph_tool
 
 // useful metafunction to determine whether a graph is directed or not
 
-struct is_directed
+struct is_directed_
 {
     template <class Graph>
     struct apply
@@ -71,7 +71,7 @@ struct is_directed
 template <class Graph>
 constexpr bool is_directed(const Graph&)
 {
-    return is_directed::apply<std::remove_reference_t<Graph>>::type::value;
+    return is_directed_::apply<std::remove_reference_t<Graph>>::type::value;
 }
 
 // This will count "by hand" the number of vertices on a graph. Always O(V).
@@ -228,10 +228,10 @@ auto get_dir(const boost::filt_graph<Graph, EPred, VPred>& g,
 template <class Graph, class F>
 void parallel_edge_loop_no_spawn(const Graph& g, F&& f)
 {
-    auto&& u = get_dir(g, typename is_directed::apply<Graph>::type());
+    auto&& u = get_dir(g, typename is_directed_::apply<Graph>::type());
     typedef typename std::remove_const
         <typename std::remove_reference<decltype(u)>::type>::type graph_t;
-    static_assert(is_directed::apply<graph_t>::type::value,
+    static_assert(is_directed_::apply<graph_t>::type::value,
                   "graph must be directed at this point");
     auto dispatch =
         [&](auto v)

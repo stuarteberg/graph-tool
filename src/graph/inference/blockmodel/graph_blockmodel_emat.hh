@@ -47,7 +47,7 @@ public:
         {
             assert(get_me(source(e, bg),target(e, bg)) == _null_edge);
             _mat[source(e, bg)][target(e, bg)] = e;
-            if (!is_directed::apply<BGraph>::type::value)
+            if (!is_directed_::apply<BGraph>::type::value)
                 _mat[target(e, bg)][source(e, bg)] = e;
         }
     }
@@ -63,7 +63,7 @@ public:
     void put_me(vertex_t r, vertex_t s, const edge_t& e)
     {
         _mat[r][s] = e;
-        if (!is_directed::apply<BGraph>::type::value && r != s)
+        if (!is_directed_::apply<BGraph>::type::value && r != s)
             _mat[s][r] = e;
     }
 
@@ -72,7 +72,7 @@ public:
         auto r = source(me, bg);
         auto s = target(me, bg);
         _mat[r][s] = _null_edge;
-        if (!is_directed::apply<BGraph>::type::value)
+        if (!is_directed_::apply<BGraph>::type::value)
             _mat[s][r] = _null_edge;
         //remove_edge(me, bg);
     }
@@ -166,7 +166,7 @@ public:
     __attribute__((flatten)) __attribute__((hot))
     const auto& get_me(vertex_t r, vertex_t s) const
     {
-        if (!is_directed::apply<BGraph>::type::value && r > s)
+        if (!is_directed_::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
         auto& map = _hash[r];
         const auto& iter = map.find(s);
@@ -177,7 +177,7 @@ public:
 
     void put_me(vertex_t r, vertex_t s, const edge_t& e)
     {
-        if (!is_directed::apply<BGraph>::type::value && r > s)
+        if (!is_directed_::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
         assert(r < _hash.size());
         _hash[r][s] = e;
@@ -187,7 +187,7 @@ public:
     {
         auto r = source(me, bg);
         auto s = target(me, bg);
-        if (!is_directed::apply<BGraph>::type::value && r > s)
+        if (!is_directed_::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
         assert(r < _hash.size());
         auto& r_hash = _hash[r];

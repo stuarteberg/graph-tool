@@ -39,7 +39,7 @@ struct get_price
     void operator()(Graph& g, size_t N, double gamma, double c, size_t m,
                     rng_t& rng) const
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
+        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
                                   in_degreeS, out_degreeS>::type DegSelector;
 
         map<double, typename graph_traits<Graph>::vertex_descriptor> probs;

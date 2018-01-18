@@ -145,7 +145,7 @@ struct copy_edge_property_dispatch
                  {
                      auto s = source(e, src);
                      auto t = target(e, src);
-                     if (!is_directed::apply<GraphSrc>::type::value && s > t)
+                     if (!is_directed_::apply<GraphSrc>::type::value && s > t)
                          continue;
                      size_t ei = src_edge_index[e];
                      const auto& new_e = index_map[ei];

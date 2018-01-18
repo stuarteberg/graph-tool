@@ -182,7 +182,7 @@ struct get_trust_transitivity
             else
             {
                 typedef typename
-                    mpl::if_<typename is_directed::apply<Graph>::type,
+                    mpl::if_<typename is_directed_::apply<Graph>::type,
                              reversed_graph<fg_t>,
                              fg_t>::type rg_t;
                 rg_t rg(fg);

@@ -1633,7 +1633,7 @@ public:
 
 //private:
     typedef typename
-        std::conditional<is_directed::apply<g_t>::type::value,
+        std::conditional<is_directed_::apply<g_t>::type::value,
                          GraphInterface::multigraph_t,
                          undirected_adaptor<GraphInterface::multigraph_t>>::type
         bg_t;

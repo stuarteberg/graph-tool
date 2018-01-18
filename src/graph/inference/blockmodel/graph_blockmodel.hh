@@ -1083,7 +1083,7 @@ public:
             if (t == u)
             {
                 t = v;
-                if (!is_directed::apply<g_t>::type::value)
+                if (!is_directed_::apply<g_t>::type::value)
                 {
                     assert(w % 2 == 0);
                     w /= 2;
@@ -1122,7 +1122,7 @@ public:
             }
         }
 
-        if (is_directed::apply<g_t>::type::value)
+        if (is_directed_::apply<g_t>::type::value)
         {
             ns_u.clear();
             ns_v.clear();
@@ -1283,7 +1283,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
-        if (is_directed::apply<g_t>::type::value)
+        if (is_directed_::apply<g_t>::type::value)
             kin = in_degreeS()(v, _g, _eweight);
 
         int dwr = _vweight[v];
@@ -1349,7 +1349,7 @@ public:
             else
                 deltap[s] += _eweight[e];
         }
-        if (!is_directed::apply<g_t>::type::value)
+        if (!is_directed_::apply<g_t>::type::value)
             deltal /= 2;
 
         vector<int> deltam(num_vertices(_bg), 0);
@@ -1382,7 +1382,7 @@ public:
             int ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
             int enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
 
-            if (!is_directed::apply<g_t>::type::value)
+            if (!is_directed_::apply<g_t>::type::value)
             {
                 if (s != nr && s != r)
                 {
@@ -2039,7 +2039,7 @@ public:
             if (c > 0)
             {
                 size_t B = _candidate_blocks.size() - 1;
-                if (is_directed::apply<g_t>::type::value)
+                if (is_directed_::apply<g_t>::type::value)
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
@@ -2134,7 +2134,7 @@ public:
                 int mst = mts;
                 int mtm = mtp;
 
-                if (is_directed::apply<g_t>::type::value)
+                if (is_directed_::apply<g_t>::type::value)
                 {
                     mst = 0;
                     const auto& me = m_entries.get_me(s, t, _emat);
@@ -2147,7 +2147,7 @@ public:
                 {
                     int dts = m_entries.get_delta(t, s);
                     int dst = dts;
-                    if (is_directed::apply<g_t>::type::value)
+                    if (is_directed_::apply<g_t>::type::value)
                         dst = m_entries.get_delta(s, t);
 
                     mts += dts;
@@ -2166,7 +2166,7 @@ public:
                     }
                 }
 
-                if (is_directed::apply<g_t>::type::value)
+                if (is_directed_::apply<g_t>::type::value)
                 {
                     p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
                 }
@@ -2449,7 +2449,7 @@ public:
             for (auto e : out_edges_range(v, _g))
             {
                 auto u = target(e, _g);
-                if (u < v && !is_directed::apply<g_t>::type::value)
+                if (u < v && !is_directed_::apply<g_t>::type::value)
                     continue;
                 us[u] += _eweight[e];
             }
@@ -2460,7 +2460,7 @@ public:
                 auto& m = uc.second;
                 if (m > 1)
                 {
-                    if (u == v && !is_directed::apply<g_t>::type::value)
+                    if (u == v && !is_directed_::apply<g_t>::type::value)
                     {
                         assert(m % 2 == 0);
                         S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
@@ -2595,7 +2595,7 @@ public:
                             target(e, _g)) < _b.get_storage().size());
             size_t r = _b[source(e, _g)];
             size_t s = _b[target(e, _g)];
-            if (!is_directed::apply<g_t>::type::value && s < r)
+            if (!is_directed_::apply<g_t>::type::value && s < r)
                 std::swap(r, s);
             mrs[std::make_pair(r, s)] += _eweight[e];
         }
@@ -2630,7 +2630,7 @@ public:
         {
             auto r = source(me, _bg);
             auto s = target(me, _bg);
-            if (!is_directed::apply<g_t>::type::value && s < r)
+            if (!is_directed_::apply<g_t>::type::value && s < r)
                 std::swap(r, s);
             auto m_rs = mrs[std::make_pair(r, s)];
             if (m_rs != size_t(_mrs[me]))
@@ -2661,7 +2661,7 @@ public:
 
 //private:
     typedef typename
-        std::conditional<is_directed::apply<g_t>::type::value,
+        std::conditional<is_directed_::apply<g_t>::type::value,
                          GraphInterface::multigraph_t,
                          undirected_adaptor<GraphInterface::multigraph_t>>::type
         bg_t;

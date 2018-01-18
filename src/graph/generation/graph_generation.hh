@@ -411,7 +411,7 @@ bool is_source(const pair<size_t, size_t>& deg)
 template <class Graph>
 bool is_target(const pair<size_t, size_t>& deg)
 {
-    if (is_directed::apply<Graph>::type::value)
+    if (is_directed_::apply<Graph>::type::value)
         return deg.first > 0;
     else
         return is_source<Graph>(deg);
@@ -441,7 +441,7 @@ struct gen_graph
             get(vertex_index_t(), g);
 
         // figure out the necessary strategy
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
+        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
                                   DirectedStrat,
                                   UndirectedStrat>::type gen_strat_t;
 

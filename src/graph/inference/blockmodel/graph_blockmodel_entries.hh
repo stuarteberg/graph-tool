@@ -130,7 +130,7 @@ public:
     {
         _r_out_field.resize(B, _null);
         _nr_out_field.resize(B, _null);
-        if (is_directed::apply<Graph>::type::value)
+        if (is_directed_::apply<Graph>::type::value)
         {
             _r_in_field.resize(B, _null);
             _nr_in_field.resize(B, _null);
@@ -145,7 +145,7 @@ public:
         {
             _r_out_field.resize(B, _null);
             _nr_out_field.resize(B, _null);
-            if (is_directed::apply<Graph>::type::value)
+            if (is_directed_::apply<Graph>::type::value)
             {
                 _r_in_field.resize(B, _null);
                 _nr_in_field.resize(B, _null);
@@ -159,7 +159,7 @@ public:
     size_t& get_field_rnr(size_t s, size_t t)
     {
         auto& out_field = First ? _r_out_field : _nr_out_field;
-        if (is_directed::apply<Graph>::type::value)
+        if (is_directed_::apply<Graph>::type::value)
         {
             auto& in_field =  (First ? _r_in_field : _nr_in_field);
             return (Source || s == t) ? out_field[t] : in_field[s];

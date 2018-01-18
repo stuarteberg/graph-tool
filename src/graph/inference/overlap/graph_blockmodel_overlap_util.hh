@@ -375,7 +375,7 @@ public:
     template <bool First, bool Source, bool Add, class... DVals>
     void insert_delta_rnr(size_t t, size_t s, int d, DVals... delta)
     {
-        if (!is_directed::apply<Graph>::type::value && (t > s))
+        if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         _entries[_pos] = make_pair(t, s);
         if (Add)
@@ -395,7 +395,7 @@ public:
 
     int get_delta(size_t t, size_t s)
     {
-        if (!is_directed::apply<Graph>::type::value && (t > s))
+        if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         for (size_t i = 0; i < 2; ++i)
         {
@@ -435,7 +435,7 @@ public:
     template <class Emat>
     const bedge_t& get_me(size_t t, size_t s, Emat& emat)
     {
-        if (!is_directed::apply<Graph>::type::value && (t > s))
+        if (!is_directed_::apply<Graph>::type::value && (t > s))
             std::swap(t, s);
         for (size_t i = 0; i < 2; ++i)
         {

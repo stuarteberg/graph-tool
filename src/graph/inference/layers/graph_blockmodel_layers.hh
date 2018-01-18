@@ -733,7 +733,7 @@ struct Layers
             {
                 auto get_x = [](size_t B)
                     {
-                        if (is_directed::apply<typename BaseState::g_t>::type::value)
+                        if (is_directed_::apply<typename BaseState::g_t>::type::value)
                             return B * B;
                         else
                             return (B * (B + 1)) / 2;

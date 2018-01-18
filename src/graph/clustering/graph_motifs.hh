@@ -258,7 +258,7 @@ struct wrap_undirected
     template <class Graph>
     struct apply
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
+        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
                                   boost::undirected_adaptor<Graph>,
                                   Graph&>::type type;
     };
@@ -269,7 +269,7 @@ struct wrap_directed
     template <class Graph, class Sub>
     struct apply
     {
-        typedef typename mpl::if_<typename is_directed::apply<Graph>::type,
+        typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
                                   Sub&,
                                   boost::undirected_adaptor<Sub>>::type type;
     };
