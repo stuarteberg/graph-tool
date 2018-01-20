@@ -38,15 +38,16 @@ extern vector<double> __lgamma_cache;
 
 void init_safelog(size_t x);
 
-inline double safelog(auto x)
+template <class T>
+inline double safelog(T x)
 {
     if (x == 0)
         return 0;
     return log(x);
 }
 
-template <bool Init=true>
-inline double safelog_fast(auto x)
+template <bool Init=true, class T>
+inline double safelog_fast(T x)
 {
     if (size_t(x) >= __safelog_cache.size())
     {
@@ -60,13 +61,14 @@ inline double safelog_fast(auto x)
 
 void init_xlogx(size_t x);
 
-inline double xlogx(auto x)
+template <class T>
+inline double xlogx(T x)
 {
     return x * safelog(x);
 }
 
-template <bool Init=true>
-inline double xlogx_fast(auto x)
+template <bool Init=true, class T>
+inline double xlogx_fast(T x)
 {
     if (size_t(x) >= __xlogx_cache.size())
     {
@@ -80,8 +82,8 @@ inline double xlogx_fast(auto x)
 
 void init_lgamma(size_t x);
 
-template <bool Init=true>
-inline double lgamma_fast(auto x)
+template <bool Init=true, class T>
+inline double lgamma_fast(T x)
 {
     if (size_t(x) >= __lgamma_cache.size())
     {
