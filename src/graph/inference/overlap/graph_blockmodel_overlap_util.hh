@@ -107,7 +107,9 @@ public:
                         size_t s = b[w];
                         if (!graph_tool::is_directed(g) && r > s)
                             std::swap(r, s);
-                        h[std::make_tuple(r, s, !graph_tool::is_directed(g) && u == w)]++;
+                        h[std::make_tuple(r, s,
+                                          !graph_tool::is_directed(g) &&
+                                          node_index[u] == node_index[w])]++;
                     }
                 }
             }
@@ -144,7 +146,9 @@ public:
             auto& h = _parallel_bundles[m];
             if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            h[std::make_tuple(r, s, !graph_tool::is_directed(g) && u == v)]++;
+            h[std::make_tuple(r, s,
+                              !graph_tool::is_directed(g) &&
+                              _node_index[u] == _node_index[v])]++;
         }
     }
 
@@ -181,7 +185,9 @@ public:
             auto& h = _parallel_bundles[m];
             if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            auto iter = h.find(std::make_tuple(r, s, !graph_tool::is_directed(g) && u == v));
+            auto iter = h.find(std::make_tuple(r, s,
+                                               !graph_tool::is_directed(g) &&
+                                               _node_index[u] == _node_index[v]));
             assert(iter->second > 0);
             iter->second--;
             if (iter->second == 0)
@@ -294,7 +300,8 @@ public:
                 return iter->second;
             };
 
-        bool is_loop = !graph_tool::is_directed(g) && u == v;
+        bool is_loop = !graph_tool::is_directed(g) && (_node_index[u] ==
+                                                       _node_index[v]);
         int c  = get_h(std::make_tuple(r,  s, is_loop));
         int nc = get_h(std::make_tuple(nr, ns, is_loop));
 
@@ -303,12 +310,25 @@ public:
         assert(v_r != v_nr);
         assert(make_pair(r, s) != make_pair(nr, ns));
 
+        auto get_S = [&](int m)
+                     {
+                         if (is_loop)
+                         {
+                             assert(m % 2 == 0);
+                             return lgamma_fast(m/2 + 1) + m * log(2) / 2;
+                         }
+                         else
+                         {
+                             return lgamma_fast(m + 1);
+                         }
+                     };
+
         double S = 0;
-        S -= lgamma_fast(c + 1) + lgamma_fast(nc + 1);
+        S -= get_S(c + 1) + get_S(nc + 1);
         if (!bundled)
-            S += lgamma_fast(c) + lgamma_fast(nc + 2);
+            S += get_S(c) + get_S(nc + 2);
         else
-            S += lgamma_fast(c + nc + 1);
+            S += get_S(c + nc + 1);
 
         return S;
     }

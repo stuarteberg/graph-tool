@@ -219,7 +219,7 @@ struct overlap_partition_stats_t
         double S = 0;
         for (size_t d = 1; d < _dhist.size(); ++d)
         {
-            size_t nd = _dhist[d];
+            int nd = _dhist[d];
             if (nd == 0)
                 continue;
             double x;
