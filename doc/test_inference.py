@@ -22,6 +22,16 @@ seed_rng(42)
 graph_tool.inference.set_test(True)
 
 g = collection.data["football"]
+
+# add self-loops
+for i in range(10):
+    v = numpy.random.randint(g.num_vertices())
+    g.add_edge(v, v)
+
+# add parallel edges
+for e in list(g.edges())[:10]:
+    g.add_edge(e.source(), e.target())
+
 ec = g.new_ep("int", randint(0, 10, g.num_edges()))
 
 rec_p = g.new_ep("double", random(g.num_edges()))
