@@ -201,8 +201,11 @@ public:
         // update the half-edge lists
         for (auto e : out_edges_range(v, g))
             remove_edge(e, b, g);
-        for (auto e : in_edges_range(v, g))
-            remove_edge(e, b, g);
+        if (graph_tool::is_directed(g))
+        {
+            for (auto e : in_edges_range(v, g))
+                remove_edge(e, b, g);
+        }
     }
 
     template <class Vertex, class Vprop, class Eprop>
@@ -213,8 +216,11 @@ public:
         //update the half-edge lists
         for (auto e : out_edges_range(v, g))
             insert_edge(e, eweight[e], b, g);
-        for (auto e : in_edges_range(v, g))
-            insert_edge(e, eweight[e], b, g);
+        if (graph_tool::is_directed(g))
+        {
+            for (auto e : in_edges_range(v, g))
+                insert_edge(e, eweight[e], b, g);
+        }
     }
 
     template <class Edge, class RNG>

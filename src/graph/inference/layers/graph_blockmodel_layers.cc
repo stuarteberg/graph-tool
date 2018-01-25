@@ -445,12 +445,15 @@ ldegs_map_t get_layered_block_degs(GraphInterface& gi, boost::any aeweight,
                                ls.insert(l);
                            }
 
-                           for (auto e : in_edges_range(v, g))
+                           if (graph_tool::is_directed(g))
                            {
-                               auto w = eweight[e];
-                               auto l = ec[e];
-                               kin[l] += w;
-                               ls.insert(l);
+                               for (auto e : in_edges_range(v, g))
+                               {
+                                   auto w = eweight[e];
+                                   auto l = ec[e];
+                                   kin[l] += w;
+                                   ls.insert(l);
+                               }
                            }
 
                            for (auto l : ls)

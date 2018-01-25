@@ -443,8 +443,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             else:
                 degs = None
 
-        ec = self.ec if ec is None else ec
         gs = [u.copy() for u in self.gs] if ec is None else []
+        ec = self.ec if ec is None else ec
 
         if len(gs) > 0:
             libinference.get_rvmap(self.g._Graph__graph,

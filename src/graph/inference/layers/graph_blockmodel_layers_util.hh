@@ -34,22 +34,16 @@ double virtual_move_covariate(size_t v, size_t r, size_t s, State& state,
     if (reset)
         state.get_move_entries(v, r, s, m_entries);
 
-    auto& entries = m_entries.get_entries();
-    auto& delta = m_entries.get_delta();
-
     double dS = 0;
-    for (size_t i = 0; i < entries.size(); ++i)
-    {
-        auto& entry = entries[i];
-        auto er = entry.first;
-        auto es = entry.second;
-        int d = delta[i];
-
-        int ers = get_beprop(er, es, state._mrs, state._emat);
-        assert(ers + d >= 0);
-        dS -= -lgamma_fast(ers + 1);
-        dS += -lgamma_fast(ers + d + 1);
-    }
+    entries_op(m_entries, state._emat,
+               [&](auto, auto, auto& me, auto d, auto&)
+               {
+                   int ers = (me != state._emat.get_null_edge()) ?
+                       state._mrs[me] : 0;
+                   assert(ers + d >= 0);
+                   dS -= -lgamma_fast(ers + 1);
+                   dS += -lgamma_fast(ers + d + 1);
+               });
     return dS;
 }
 

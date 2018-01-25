@@ -24,13 +24,13 @@ graph_tool.inference.set_test(True)
 g = collection.data["football"]
 
 # add self-loops
-for i in range(10):
-    v = numpy.random.randint(g.num_vertices())
-    g.add_edge(v, v)
+# for i in range(10):
+#     v = numpy.random.randint(g.num_vertices())
+#     g.add_edge(v, v)
 
 # add parallel edges
-for e in list(g.edges())[:10]:
-    g.add_edge(e.source(), e.target())
+# for e in list(g.edges())[:10]:
+#     g.add_edge(e.source(), e.target())
 
 ec = g.new_ep("int", randint(0, 10, g.num_edges()))
 
@@ -88,7 +88,7 @@ for pvals in iter_ranges(pranges):
     if not deg_corr and degree_dl_kind != "uniform":
         continue
 
-    if overlap and degree_dl_kind != "distributed":
+    if overlap and deg_corr and degree_dl_kind != "distributed":      # FIXME
         continue
 
     if (rec is not None or layered != False) and not exact:
@@ -213,7 +213,7 @@ for pvals in iter_ranges(pranges):
     if not deg_corr and degree_dl_kind != "uniform":
         continue
 
-    if overlap and degree_dl_kind != "distributed":
+    if overlap and deg_corr and degree_dl_kind != "distributed":    # FIXME
         continue
 
     print(params, file=out)

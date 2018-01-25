@@ -70,8 +70,11 @@ public:
 
             for (auto e : out_edges_range(v, g))
                 _out_neighbors[v] = target(e, g);
-            for (auto e : in_edges_range(v, g))
-                _in_neighbors[v] = source(e, g);
+            if (graph_tool::is_directed(g))
+            {
+                for (auto e : in_edges_range(v, g))
+                    _in_neighbors[v] = source(e, g);
+            }
         }
 
         // parallel edges
@@ -87,8 +90,6 @@ public:
                 auto w = _out_neighbors[u];
                 if (w == _null)
                     continue;
-                if (!graph_tool::is_directed(g) && size_t(node_index[w]) < i)
-                    continue;
                 out_us[node_index[w]].push_back(u);
             }
 
@@ -96,21 +97,34 @@ public:
             {
                 if (uc.second.size() > 1)
                 {
-                    _parallel_bundles.resize(_parallel_bundles.size() + 1);
-                    auto& h = _parallel_bundles.back();
+                    _parallel_bundles.emplace_back();
                     for (auto u : uc.second)
                     {
                         auto w = _out_neighbors[u];
                         assert(w != _null);
-                        _mi[u] = _mi[w] = _parallel_bundles.size() - 1;
+
                         size_t r = b[u];
                         size_t s = b[w];
                         if (!graph_tool::is_directed(g) && r > s)
                             std::swap(r, s);
-                        h[std::make_tuple(r, s,
-                                          !graph_tool::is_directed(g) &&
-                                          node_index[u] == node_index[w])]++;
+                        bool is_loop = (!graph_tool::is_directed(g) &&
+                                        (node_index[u] == node_index[w]));
+                        auto k = std::make_tuple(r, s, is_loop);
+                        if (_mi[w] == -1)
+                        {
+                            _mi[w] = _parallel_bundles.size() - 1;
+                            auto& h = _parallel_bundles.back();
+                            h[k]++;
+                        }
+                        else if (is_loop)
+                        {
+                            auto& h = _parallel_bundles[_mi[w]];
+                            h[k]++;
+                        }
+                        _mi[u] = _mi[w];
                     }
+                    if (_parallel_bundles.back().empty())
+                        _parallel_bundles.pop_back();
                 }
             }
         }
@@ -131,24 +145,27 @@ public:
         if (m != -1)
         {
             size_t r, s;
-            auto u = _out_neighbors[v];
-            if (u == _null)
+            auto w = _out_neighbors[v];
+            if (w == _null)
             {
-                u = _in_neighbors[v];
-                r = b[u];
+                w = _in_neighbors[v];
+                r = b[w];
                 s = v_r;
             }
             else
             {
                 r = v_r;
-                s = b[u];
+                s = b[w];
             }
             auto& h = _parallel_bundles[m];
             if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            h[std::make_tuple(r, s,
-                              !graph_tool::is_directed(g) &&
-                              _node_index[u] == _node_index[v])]++;
+            bool is_loop = (!graph_tool::is_directed(g) &&
+                            (_node_index[w] == _node_index[v]));
+            if (is_loop)
+                h[std::make_tuple(r, s, is_loop)] += 2;
+            else
+                h[std::make_tuple(r, s, is_loop)]++;
         }
     }
 
@@ -170,26 +187,29 @@ public:
         if (m != -1)
         {
             size_t r, s;
-            auto u = _out_neighbors[v];
-            if (u == _null)
+            auto w = _out_neighbors[v];
+            if (w == _null)
             {
-                u = _in_neighbors[v];
-                r = b[u];
+                w = _in_neighbors[v];
+                r = b[w];
                 s = v_r;
             }
             else
             {
                 r = v_r;
-                s = b[u];
+                s = b[w];
             }
             auto& h = _parallel_bundles[m];
             if (!graph_tool::is_directed(g) && r > s)
                 std::swap(r, s);
-            auto iter = h.find(std::make_tuple(r, s,
-                                               !graph_tool::is_directed(g) &&
-                                               _node_index[u] == _node_index[v]));
+            bool is_loop = (!graph_tool::is_directed(g) &&
+                            (_node_index[w] == _node_index[v]));
+            auto iter = h.find(std::make_tuple(r, s, is_loop));
             assert(iter->second > 0);
-            iter->second--;
+            if (is_loop)
+                iter->second -= 2;
+            else
+                iter->second--;
             if (iter->second == 0)
                 h.erase(iter);
         }
@@ -227,8 +247,8 @@ public:
     }
 
     template <class Graph>
-    double virtual_move_dS(size_t v, size_t r, size_t nr, Graph& g,
-                           size_t in_deg = 0, size_t out_deg = 0) const
+    double virtual_move_deg_dS(size_t v, size_t r, size_t nr, Graph& g,
+                               size_t in_deg = 0, size_t out_deg = 0) const
     {
         double dS = 0;
 
@@ -261,7 +281,7 @@ public:
 
     template <class Graph, class VProp>
     double virtual_move_parallel_dS(size_t v, size_t v_r, size_t v_nr, VProp& b,
-                                    Graph& g, bool bundled=false) const
+                                    Graph& g) const
     {
         int m = _mi[v];
         if (m == -1)
@@ -324,11 +344,11 @@ public:
                      };
 
         double S = 0;
-        S -= get_S(c + 1) + get_S(nc + 1);
-        if (!bundled)
-            S += get_S(c) + get_S(nc + 2);
+        S -= get_S(c) + get_S(nc);
+        if (is_loop)
+            S += get_S(c - 2) + get_S(nc + 2);
         else
-            S += get_S(c + nc + 1);
+            S += get_S(c - 1) + get_S(nc + 1);
 
         return S;
     }

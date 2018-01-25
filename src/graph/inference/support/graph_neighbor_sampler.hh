@@ -98,14 +98,17 @@ public:
                 probs.push_back(w);
             }
 
-            for (auto e : in_edges_range(v, g))
+            if (graph_tool::is_directed(g))
             {
-                auto u = source(e, g);
-                double w = eweight[e];
-                if (w == 0 || u == v)
-                    continue;
-                us.emplace_back(u, 0);
-                probs.push_back(w);
+                for (auto e : in_edges_range(v, g))
+                {
+                    auto u = source(e, g);
+                    double w = eweight[e];
+                    if (w == 0 || u == v)
+                        continue;
+                    us.emplace_back(u, 0);
+                    probs.push_back(w);
+                }
             }
             _sampler[v] = sampler_t(us, probs);
         }

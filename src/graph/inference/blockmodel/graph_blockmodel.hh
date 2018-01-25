@@ -345,6 +345,19 @@ public:
         {
             eops([](auto&, auto&){}, [](auto&, auto&){},
                  [](auto delta, auto&) { return delta == 0; });
+
+            if (_coupled_state != nullptr)
+            {
+                _p_entries.clear();
+                std::vector<double> dummy;
+                entries_op(m_entries, _emat,
+                           [&](auto r, auto s, auto&, auto delta, auto&)
+                           {
+                               if (delta == 0)
+                                   return;
+                               _p_entries.emplace_back(r, s, delta, dummy);
+                           });
+            }
         }
         else
         {
@@ -352,6 +365,8 @@ public:
                         {
                             if (delta != 0)
                                 return false;
+                            if (get<0>(edelta).empty())
+                                return true;
                             for (size_t i = 0; i < this->_rec_types.size(); ++i)
                             {
                                 if (get<0>(edelta)[i] != 0)
@@ -479,23 +494,26 @@ public:
                         _Lrecdx[i+1] += _recdx[i] * _B_E_D;
                 }
             }
+
+            if (_coupled_state != nullptr)
+            {
+                _p_entries.clear();
+                entries_op(m_entries, _emat,
+                           [&](auto r, auto s, auto&, auto delta, auto& edelta)
+                           {
+                               if (skip(delta, edelta))
+                                   return;
+                               _p_entries.emplace_back(r, s, delta, get<0>(edelta));
+                           });
+            }
         }
 
-        if (_coupled_state != nullptr)
-        {
-            _p_entries.clear();
-            entries_op(m_entries, _emat,
-                       [&](auto r, auto s, auto&, auto delta, auto& edelta)
-                       {
-                           if (delta == 0)
-                               return;
-                           _p_entries.emplace_back(r, s, delta, get<0>(edelta));
-                       });
-            if (!_p_entries.empty())
-                _coupled_state->propagate_delta(m_entries.get_move().first,
-                                                m_entries.get_move().second,
-                                                _p_entries);
-        }
+        // if (_coupled_state != nullptr && !_p_entries.empty())
+        // {
+        //     _coupled_state->propagate_delta(m_entries.get_move().first,
+        //                                     m_entries.get_move().second,
+        //                                     _p_entries);
+        // }
     }
 
     void propagate_delta(size_t u, size_t v,
@@ -1254,6 +1272,7 @@ public:
     void coupled_resize_vertex(size_t v)
     {
         _b.resize(num_vertices(_g));
+        _bfield.resize(num_vertices(_g));
         init_vertex_weight(v);
         _pclabel.resize(num_vertices(_g));
         _ignore_degrees.resize(num_vertices(_g));
@@ -1354,13 +1373,16 @@ public:
             deltal /= 2;
 
         vector<int> deltam(num_vertices(_bg), 0);
-        for (auto e : in_edges_range(v, _g))
+        if (graph_tool::is_directed(_g))
         {
-            vertex_t u = source(e, _g);
-            if (u == v)
-                continue;
-            vertex_t s = _b[u];
-            deltam[s] += _eweight[e];
+            for (auto e : in_edges_range(v, _g))
+            {
+                vertex_t u = source(e, _g);
+                if (u == v)
+                    continue;
+                vertex_t s = _b[u];
+                deltam[s] += _eweight[e];
+            }
         }
 
         double dS = 0;
@@ -1478,16 +1500,13 @@ public:
     {
         assert(size_t(_b[v]) == r || r == null_group);
 
-        if (r == nr)
-        {
-            m_entries.set_move(r, nr, num_vertices(_bg));
-            return 0;
-        }
-
         if (r != null_group && nr != null_group && !allow_move(r, nr))
             return std::numeric_limits<double>::infinity();
 
         get_move_entries(v, r, nr, m_entries, [](auto) { return false; });
+
+        if (r == nr)
+            return 0;
 
         double dS = 0;
         if (ea.adjacency)
@@ -2111,7 +2130,7 @@ public:
         size_t w = 0;
 
         size_t kout = 0, kin = 0;
-        degs_op(v, _vweight, _eweight, _degs, _g,
+        degs_op(v, _vweight, _eweight, _degs, _g,   /// <- look here
                 [&] (size_t din, size_t dout, auto c)
                 {
                     kout += dout * c;
@@ -2139,7 +2158,7 @@ public:
                 int mst = mts;
                 int mtm = mtp;
 
-                if (is_directed_::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                 {
                     mst = 0;
                     const auto& me = m_entries.get_me(s, t, _emat);
@@ -2152,7 +2171,7 @@ public:
                 {
                     int dts = m_entries.get_delta(t, s);
                     int dst = dts;
-                    if (is_directed_::apply<g_t>::type::value)
+                    if (graph_tool::is_directed(_g))
                         dst = m_entries.get_delta(s, t);
 
                     mts += dts;
@@ -2171,7 +2190,7 @@ public:
                     }
                 }
 
-                if (is_directed_::apply<g_t>::type::value)
+                if (graph_tool::is_directed(_g))
                 {
                     p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
                 }
@@ -2191,11 +2210,14 @@ public:
             sum_prob(e, target(e, _g));
         }
 
-        for (auto e : in_edges_range(v, _g))
+        if (graph_tool::is_directed(_g))
         {
-            if (source(e, _g) == v)
-                continue;
-            sum_prob(e, source(e, _g));
+            for (auto e : in_edges_range(v, _g))
+            {
+                if (source(e, _g) == v)
+                    continue;
+                sum_prob(e, source(e, _g));
+            }
         }
 
         if (w > 0)

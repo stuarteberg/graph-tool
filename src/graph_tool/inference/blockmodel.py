@@ -120,6 +120,9 @@ def get_block_graph(g, B, b, vcount=None, ecount=None, rec=None, drec=None):
 
 def get_entropy_args(kargs, ignore=None):
     kargs = kargs.copy()
+    if ignore is not None:
+        for a in ignore:
+            del kargs[a]
     args = DictState(kargs)
     deg_dl_kind = args.degree_dl_kind
     del kargs["degree_dl_kind"]
@@ -161,9 +164,6 @@ def get_entropy_args(kargs, ignore=None):
     del kargs["recs_dl"]
     del kargs["beta_dl"]
     kargs.pop("callback", None)
-    if ignore is not None:
-        for a in ignore:
-            del kargs[a]
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
                          str(list(kargs.keys())))

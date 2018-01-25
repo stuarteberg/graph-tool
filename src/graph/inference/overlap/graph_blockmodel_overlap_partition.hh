@@ -868,9 +868,41 @@ struct overlap_partition_stats_t
         return S_a - S_b;
     }
 
+    // template <class Graph, class EWeight>
+    // double get_delta_deg(size_t v, size_t r, size_t nr, const EWeight&,
+    //                      const Graph& g, size_t in_deg = 0,
+    //                      size_t out_deg = 0)
+    // {
+    //     if (r == nr)
+    //         return 0;
+
+    //     r = get_r(r);
+    //     nr = get_r(nr);
+
+    //     double S_b = 0, S_a = 0;
+
+    //     size_t u = get_v(_overlap_stats.get_node(v));
+    //     auto& bv = _bvs[u];
+    //     bv_t n_bv;
+
+    //     const cdeg_t& deg = _degs[u];
+    //     cdeg_t n_deg;
+
+    //     get_n_bv(v, r, nr, bv, deg, n_bv, n_deg, g, in_deg,
+    //              out_deg);
+
+    //     for (auto& k : deg)
+    //         S_b -= lgamma_fast(get<0>(k) + 1) + lgamma_fast(get<1>(k) + 1);
+
+    //     for (auto& k : n_deg)
+    //         S_a -= lgamma_fast(get<0>(k) + 1) + lgamma_fast(get<1>(k) + 1);
+
+    //     return S_a - S_b;
+    // }
+
     template <class Graph>
-    void move_vertex(size_t v, size_t r, size_t nr, bool, Graph& g,
-                     size_t in_deg = 0, size_t out_deg = 0)
+    void move_vertex(size_t v, size_t r, size_t nr, Graph& g, size_t in_deg = 0,
+                     size_t out_deg = 0)
     {
         if (r == nr)
             return;

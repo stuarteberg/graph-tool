@@ -24,7 +24,7 @@ namespace std
 template <class T, class V>
 void operator+=(vector<T>& ret, const V& v)
 {
-    ret.resize(max(ret.size(), v.size()));
+    ret.resize(std::max(ret.size(), v.size()));
     for (size_t i = 0; i < v.size(); ++i)
         ret[i] += v[i];
 }
@@ -32,7 +32,7 @@ void operator+=(vector<T>& ret, const V& v)
 template <class T, class V>
 void operator-=(vector<T>& ret, const V& v)
 {
-    ret.resize(max(ret.size(), v.size()));
+    ret.resize(std::max(ret.size(), v.size()));
     for (size_t i = 0; i < v.size(); ++i)
         ret[i] -= v[i];
 }
@@ -161,7 +161,7 @@ public:
         auto& out_field = First ? _r_out_field : _nr_out_field;
         if (is_directed_::apply<Graph>::type::value)
         {
-            auto& in_field =  (First ? _r_in_field : _nr_in_field);
+            auto& in_field = (First ? _r_in_field : _nr_in_field);
             return (Source || s == t) ? out_field[t] : in_field[s];
         }
         else
@@ -191,7 +191,7 @@ public:
             f = _entries.size();
             _entries.emplace_back(s, t);
             _delta.emplace_back();
-            if (sizeof...(delta) > 0)
+            // if (sizeof...(delta) > 0)
                 _edelta.emplace_back();
         }
 
@@ -251,7 +251,8 @@ public:
 
     const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
     const vector<int>&                  get_delta()   { return _delta;   }
-    const vector<std::tuple<EVals...>>& get_edelta()  { return _edelta;  }
+    const vector<std::tuple<EVals...>>& get_edelta()  { //_edelta.resize(_delta.size());
+        return _edelta;  }
 
     template <class Emat>
     vector<bedge_t>& get_mes(Emat& emat)
@@ -261,7 +262,7 @@ public:
         {
             auto& rs = _entries[i];
             _mes.push_back(emat.get_me(rs.first, rs.second));
-            assert(_mes.back() != emat.get_null_edge() || get<0>(_delta[i]) >= 0);
+            assert(_mes.back() != emat.get_null_edge() || _delta[i] >= 0);
         }
         return _mes;
     }
@@ -425,6 +426,9 @@ void move_entries(Vertex v, size_t r, size_t nr, VProp& _b, Graph& g,
 {
     m_entries.set_move(r, nr, B);
 
+    if (r == nr)
+        return;
+
     if (r != null_group)
     {
         if (nr != null_group)
@@ -459,9 +463,7 @@ void entries_op(MEntries& m_entries, EMat& emat, OP&& op)
         auto& entry = entries[i];
         auto er = entry.first;
         auto es = entry.second;
-        op(er, es, mes[i], delta[i], edelta[i]); // warning: edelta may be
-                                                 // empty, but should be
-                                                 // eliminated after compilation
+        op(er, es, mes[i], delta[i], edelta[i]);
     }
 }
 

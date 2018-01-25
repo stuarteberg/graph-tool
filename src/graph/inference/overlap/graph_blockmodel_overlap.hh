@@ -483,7 +483,7 @@ public:
         }
 
         if (is_partition_stats_enabled())
-            get_partition_stats(v).move_vertex(v, r, nr, _deg_corr, _g);
+            get_partition_stats(v).move_vertex(v, r, nr, _g);
 
         remove_vertex(v);
         add_vertex(v, nr);
@@ -567,9 +567,6 @@ public:
         int dwr = _wr[r] - _overlap_stats.virtual_remove_size(v, r, kin, kout);
         int dwnr = _overlap_stats.virtual_add_size(v, nr) - _wr[nr];
 
-        if (_deg_corr)
-            dS += _overlap_stats.virtual_move_dS(v, r, nr, _g, kin, kout);
-
         if (multigraph)
             dS += _overlap_stats.virtual_move_parallel_dS(v, r, nr, _b, _g);
 
@@ -631,6 +628,9 @@ public:
                 dS = virtual_move_sparse<true>(v, nr, ea.multigraph, m_entries);
             else
                 dS = virtual_move_sparse<false>(v, nr, ea.multigraph, m_entries);
+
+            if (_deg_corr && ea.deg_entropy)
+                dS += _overlap_stats.virtual_move_deg_dS(v, r, nr, _g);
         }
 
         double dS_dl = 0;
@@ -1425,12 +1425,15 @@ public:
                 break;
             }
 
-            for (auto e : in_edges_range(t, g))
+            if (graph_tool::is_directed(g))
             {
-                if (!be[e].empty() || source(e, g) != s)
-                    continue;
-                be[e] = {_b[u], _b[v]};
-                break;
+                for (auto e : in_edges_range(t, g))
+                {
+                    if (!be[e].empty() || source(e, g) != s)
+                        continue;
+                    be[e] = {_b[u], _b[v]};
+                    break;
+                }
             }
         }
     }
