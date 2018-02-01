@@ -251,8 +251,7 @@ struct get_edge_dispatch
         {
             for (auto e : in_or_out_edges_range(vertex(t, g), g))
             {
-                auto w = graph_tool::is_directed(g) ?
-                    source(e, g) : target(e, g);
+                auto w = source(e, g);
                 if (w == vertex(s, g))
                 {
                     if (!graph_tool::is_directed(g) && e.s != s)

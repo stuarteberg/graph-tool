@@ -64,11 +64,7 @@ struct get_katz
                      c_temp[v] = get(beta, v);
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
-                         typename graph_traits<Graph>::vertex_descriptor s;
-                         if (graph_tool::is_directed(g))
-                             s = source(e, g);
-                         else
-                             s = target(e, g);
+                         auto s = source(e, g);
                          c_temp[v] += alpha * get(w, e) * c[s];
                      }
                      delta += abs(c_temp[v] - c[v]);

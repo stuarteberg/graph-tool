@@ -78,11 +78,7 @@ struct get_hits
                      x_temp[v] = 0;
                      for (const auto& ie : in_or_out_edges_range(v, g))
                      {
-                         typename graph_traits<Graph>::vertex_descriptor s;
-                         if (graph_tool::is_directed(g))
-                             s = source(ie, g);
-                         else
-                             s = target(ie, g);
+                         auto s = source(ie, g);
                          x_temp[v] += get(w, ie) * y[s];
                      }
                      x_norm += power(x_temp[v], 2);

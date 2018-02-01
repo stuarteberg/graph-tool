@@ -92,11 +92,7 @@ struct get_eigentrust
                      t_temp[v] = 0;
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
-                         typename graph_traits<Graph>::vertex_descriptor s;
-                         if (graph_tool::is_directed(g))
-                             s = source(e, g);
-                         else
-                             s = target(e, g);
+                         auto s = source(e, g);
                          if (!graph_tool::is_directed(g))
                              t_temp[v] += get(c, e) * t[s] / abs(c_sum[s]);
                          else

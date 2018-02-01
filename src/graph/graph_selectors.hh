@@ -369,6 +369,19 @@ struct in_edge_iteratorS
     }
 };
 
+template <class Graph>
+struct _all_edges_in_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::in_edge_iterator type;
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_edges(vertex_descriptor v,
+                                          const Graph& g)
+    {
+        return _all_edges_in(v, g);
+    }
+};
+
 // out edges selector for completeness
 template <class Graph>
 struct out_edge_iteratorS
@@ -412,7 +425,7 @@ struct in_or_out_edge_iteratorS
                <typename boost::graph_traits<Graph>::directed_category,
                 boost::directed_tag>::value,
            in_edge_iteratorS<Graph>,
-           out_edge_iteratorS<Graph>>::type
+           _all_edges_in_iteratorS<Graph>>::type
 {};
 
 // helper types for in_neighbor_iteratorS
@@ -474,6 +487,20 @@ struct in_neighbor_iteratorS
     }
 };
 
+template <class Graph>
+struct _all_neighbors_in_iteratorS
+{
+    typedef typename boost::graph_traits<Graph>::vertex_descriptor vertex_descriptor;
+    typedef typename boost::graph_traits<Graph>::in_edge_iterator type;
+
+    inline __attribute__((always_inline))
+    static std::pair<type,type> get_neighbors(vertex_descriptor v,
+                                               const Graph& g)
+    {
+        return _all_neighbors_ins(v, g);
+    }
+};
+
 // out edges selector for completeness
 template <class Graph>
 struct out_neighbor_iteratorS
@@ -518,7 +545,7 @@ struct in_or_out_neighbors_iteratorS
                <typename boost::graph_traits<Graph>::directed_category,
                 boost::directed_tag>::value,
            in_neighbor_iteratorS<Graph>,
-           out_neighbor_iteratorS<Graph>>::type
+           _all_neighbors_in_iteratorS<Graph>>::type
 {};
 
 // range adaptors

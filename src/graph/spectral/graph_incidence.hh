@@ -48,12 +48,15 @@ struct get_incidence
                 ++pos;
             }
 
-            for (const auto& e : in_edges_range(v, g))
+            if (graph_tool::is_directed(g))
             {
-                data[pos] = 1;
-                i[pos] = get(vindex, v);
-                j[pos] = get(eindex, e);
-                ++pos;
+                for (const auto& e : in_edges_range(v, g))
+                {
+                    data[pos] = 1;
+                    i[pos] = get(vindex, v);
+                    j[pos] = get(eindex, e);
+                    ++pos;
+                }
             }
         }
     }

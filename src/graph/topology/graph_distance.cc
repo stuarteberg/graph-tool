@@ -466,7 +466,7 @@ void get_all_preds(Graph g, Dist dist, Pred pred, Weight weight, Preds preds,
             typedef decltype(d) dist_t;
             for (auto e : in_or_out_edges_range(v, g))
             {
-                auto u = graph_tool::is_directed(g) ? source(e, g) : target(e, g);
+                auto u = source(e, g);
                 if (!std::is_floating_point<dist_t>::value)
                 {
                     if (dist_t(dist[u] + get(weight, e)) == d)

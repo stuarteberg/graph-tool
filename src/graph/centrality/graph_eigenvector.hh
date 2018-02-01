@@ -67,11 +67,7 @@ struct get_eigenvector
                      c_temp[v] = 0;
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
-                         typename graph_traits<Graph>::vertex_descriptor s;
-                         if (graph_tool::is_directed(g))
-                             s = source(e, g);
-                         else
-                             s = target(e, g);
+                         auto s = source(e, g);
                          c_temp[v] += get(w, e) * c[s];
                      }
                      norm += power(c_temp[v], 2);

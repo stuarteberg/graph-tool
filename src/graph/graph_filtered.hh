@@ -408,10 +408,7 @@ typename filt_graph<G, EP, VP>::degree_size_type
 degree(typename filt_graph<G, EP, VP>::vertex_descriptor u,
        const filt_graph<G, EP, VP>& g)
 {
-    if (is_directed(g))
-        return in_degree(u, g) + out_degree(u, g);
-    else
-        return out_degree(u, g);
+    return in_degree(u, g) + out_degree(u, g);
 }
 
 template <typename G, typename EP, typename VP>

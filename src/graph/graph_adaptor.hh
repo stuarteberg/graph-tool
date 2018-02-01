@@ -229,6 +229,17 @@ auto
 in_edges(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
          const undirected_adaptor<Graph>& g)
 {
+    typedef typename graph_traits<undirected_adaptor<Graph>>::in_edge_iterator
+        iter_t;
+    return std::make_pair(iter_t(), iter_t());
+}
+
+template <class Graph>
+inline __attribute__((always_inline)) __attribute__((flatten))
+auto
+_all_edges_in(typename graph_traits<undirected_adaptor<Graph>>::vertex_descriptor u,
+               const undirected_adaptor<Graph>& g)
+{
     return _all_edges_in(u, g.original_graph());
 }
 
@@ -333,7 +344,7 @@ auto
 in_degree(typename graph_traits<undirected_adaptor<Graph> >::vertex_descriptor u,
           const undirected_adaptor<Graph>& g)
 {
-    return out_degree(u, g);
+    return 0;
 }
 
 //==============================================================================

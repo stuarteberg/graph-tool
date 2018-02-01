@@ -63,11 +63,7 @@ struct get_pagerank
                      rank_type r = 0;
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
-                         typename graph_traits<Graph>::vertex_descriptor s;
-                         if (graph_tool::is_directed(g))
-                             s = source(e, g);
-                         else
-                             s = target(e, g);
+                         auto s = source(e, g);
                          r += (get(rank, s) * get(weight, e)) / get(deg, s);
                      }
 
