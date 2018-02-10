@@ -36,7 +36,7 @@ double virtual_move_covariate(size_t v, size_t r, size_t s, State& state,
 
     double dS = 0;
     entries_op(m_entries, state._emat,
-               [&](auto, auto, auto& me, auto d, auto&)
+               [&](auto, auto, auto& me, auto d)
                {
                    int ers = (me != state._emat.get_null_edge()) ?
                        state._mrs[me] : 0;

@@ -658,32 +658,32 @@ public:
                                            auto&& w_log_prior)
                 {
                     int dB_E = 0;
-                    entries_op(m_entries, this->_emat,
-                               [&](auto, auto, auto& me, auto delta, auto& edelta)
-                               {
-                                   double ers = 0;
-                                   double xrs = 0;
-                                   if (me != _emat.get_null_edge())
-                                   {
-                                       ers = this->_brec[0][me];
-                                       xrs = this->_brec[i][me];
-                                   }
-                                   auto d = get<0>(edelta)[0];
-                                   auto dx = get<0>(edelta)[i];
-                                   dS -= -w_log_P(ers, xrs);
-                                   dS += -w_log_P(ers + d, xrs + dx);
+                    wentries_op(m_entries, this->_emat,
+                                [&](auto, auto, auto& me, auto delta, auto& edelta)
+                                {
+                                    double ers = 0;
+                                    double xrs = 0;
+                                    if (me != _emat.get_null_edge())
+                                    {
+                                        ers = this->_brec[0][me];
+                                        xrs = this->_brec[i][me];
+                                    }
+                                    auto d = get<0>(edelta)[0];
+                                    auto dx = get<0>(edelta)[i];
+                                    dS -= -w_log_P(ers, xrs);
+                                    dS += -w_log_P(ers + d, xrs + dx);
 
-                                   if (ea.recs_dl)
-                                   {
-                                       size_t ers = 0;
-                                       if (me != _emat.get_null_edge())
-                                           ers = this->_mrs[me];
-                                       if (ers == 0 && delta > 0)
-                                           dB_E++;
-                                       if (ers > 0 && ers + delta == 0)
-                                           dB_E--;
-                                   }
-                               });
+                                    if (ea.recs_dl)
+                                    {
+                                        size_t ers = 0;
+                                        if (me != _emat.get_null_edge())
+                                            ers = this->_mrs[me];
+                                        if (ers == 0 && delta > 0)
+                                            dB_E++;
+                                        if (ers > 0 && ers + delta == 0)
+                                            dB_E--;
+                                    }
+                                });
                     if (dB_E != 0 && ea.recs_dl && std::isnan(_wparams[i][0])
                         && std::isnan(_wparams[i][1]))
                     {
@@ -758,60 +758,58 @@ public:
                         int dB_E_D = 0;
                         double dBx2 = 0;
                         _dBdx[i] = 0;
-                        entries_op(m_entries, _emat,
-                                   [&](auto, auto, auto& me, auto, auto& edelta)
-                                   {
-                                       double ers = 0;
-                                       double xrs = 0, x2rs = 0;
-                                       if (me != _emat.get_null_edge())
-                                       {
-                                           ers = this->_brec[0][me];
-                                           xrs = this->_brec[i][me];
-                                           x2rs = this->_bdrec[i][me];
-                                       }
-                                       auto d = get<0>(edelta)[0];
-                                       auto dx = get<0>(edelta)[i];
-                                       auto dx2 = get<1>(edelta)[i];
-                                       dS -= -signed_w_log_P(ers, xrs, x2rs,
-                                                             wp[0], wp[1],
-                                                             wp[2], wp[3],
-                                                             this->_epsilon[i]);
-                                       dS += -signed_w_log_P(ers + d,
-                                                             xrs + dx,
-                                                             x2rs + dx2,
-                                                             wp[0], wp[1],
-                                                             wp[2], wp[3],
-                                                             this->_epsilon[i]);
-                                       if (std::isnan(wp[0]) &&
-                                           std::isnan(wp[1]))
-                                       {
-                                           auto n_ers = ers + get<0>(edelta)[0];
-                                           if (ers == 0 && n_ers > 0)
-                                               dB_E++;
-                                           if (ers > 0 && n_ers == 0)
-                                               dB_E--;
-                                           if (n_ers > 1)
-                                           {
-                                               if (ers < 2)
-                                                   dB_E_D++;
-                                               _dBdx[i] += \
-                                                   (x2rs + dx2 -
-                                                    std::pow(xrs + dx, 2) / n_ers);
-
-                                           }
-                                           if (ers > 1)
-                                           {
-                                               if (n_ers < 2)
-                                                   dB_E_D--;
-                                               _dBdx[i] -= \
-                                                   (x2rs -
-                                                    std::pow(xrs, 2) / ers);
-                                           }
-                                           dBx2 += (std::pow(xrs + dx, 2) -
-                                                    std::pow(xrs, 2));
-
-                                       }
-                                   });
+                        wentries_op(m_entries, _emat,
+                                    [&](auto, auto, auto& me, auto, auto& edelta)
+                                    {
+                                        double ers = 0;
+                                        double xrs = 0, x2rs = 0;
+                                        if (me != _emat.get_null_edge())
+                                        {
+                                            ers = this->_brec[0][me];
+                                            xrs = this->_brec[i][me];
+                                            x2rs = this->_bdrec[i][me];
+                                        }
+                                        auto d = get<0>(edelta)[0];
+                                        auto dx = get<0>(edelta)[i];
+                                        auto dx2 = get<1>(edelta)[i];
+                                        dS -= -signed_w_log_P(ers, xrs, x2rs,
+                                                              wp[0], wp[1],
+                                                              wp[2], wp[3],
+                                                              this->_epsilon[i]);
+                                        dS += -signed_w_log_P(ers + d,
+                                                              xrs + dx,
+                                                              x2rs + dx2,
+                                                              wp[0], wp[1],
+                                                              wp[2], wp[3],
+                                                              this->_epsilon[i]);
+                                        if (std::isnan(wp[0]) &&
+                                            std::isnan(wp[1]))
+                                        {
+                                            auto n_ers = ers + get<0>(edelta)[0];
+                                            if (ers == 0 && n_ers > 0)
+                                                dB_E++;
+                                            if (ers > 0 && n_ers == 0)
+                                                dB_E--;
+                                            if (n_ers > 1)
+                                            {
+                                                if (ers < 2)
+                                                    dB_E_D++;
+                                                _dBdx[i] +=             \
+                                                    (x2rs + dx2 -
+                                                     std::pow(xrs + dx, 2) / n_ers);
+                                            }
+                                            if (ers > 1)
+                                            {
+                                                if (n_ers < 2)
+                                                    dB_E_D--;
+                                                _dBdx[i] -=     \
+                                                    (x2rs -
+                                                     std::pow(xrs, 2) / ers);
+                                            }
+                                            dBx2 += (std::pow(xrs + dx, 2) -
+                                                     std::pow(xrs, 2));
+                                        }
+                                    });
 
                         if (std::isnan(wp[0]) && std::isnan(wp[1]))
                         {
@@ -904,12 +902,12 @@ public:
             {
                 auto& recs_entries = m_entries._recs_entries;
                 recs_entries.clear();
-                entries_op(m_entries, _emat,
-                           [&](auto r, auto s, auto& me, auto delta, auto& edelta)
-                           {
-                               recs_entries.emplace_back(r, s, me, delta,
-                                                         get<0>(edelta));
-                           });
+                wentries_op(m_entries, _emat,
+                            [&](auto r, auto s, auto& me, auto delta, auto& edelta)
+                            {
+                                recs_entries.emplace_back(r, s, me, delta,
+                                                          get<0>(edelta));
+                            });
                 scoped_lock lck(_lock);
                 dS_dl += _coupled_state->recs_dS(r, nr, recs_entries, _dBdx, dL);
             }

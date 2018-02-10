@@ -88,15 +88,15 @@ void tuple_op_imp(T&, OP&&)
 template <size_t i, class T, class OP, class Ti, class... Ts>
 void tuple_op_imp(T& tuple, OP&& op, Ti&& v, Ts&&... vals)
 {
-    op(get<i>(tuple), v);
-    tuple_op_imp<i+1>(tuple, op, vals...);
+    op(get<i>(tuple), std::forward<Ti>(v));
+    tuple_op_imp<i+1>(tuple, std::forward<OP>(op), std::forward<Ts>(vals)...);
 }
 
 template <class OP, class T, class... Ts>
 __attribute__((flatten))
 void tuple_op(T& tuple, OP&& op, Ts&&... vals)
 {
-    tuple_op_imp<0>(tuple, op, vals...);
+    tuple_op_imp<0>(tuple, std::forward<OP>(op), std::forward<Ts>(vals)...);
 }
 
 namespace detail {
@@ -191,21 +191,21 @@ public:
             f = _entries.size();
             _entries.emplace_back(s, t);
             _delta.emplace_back();
-            // if (sizeof...(delta) > 0)
+            if (sizeof...(delta) > 0)
                 _edelta.emplace_back();
         }
 
         if (Add)
         {
             _delta[f] += d;
-            tuple_op(_edelta[f], [&](auto& r, auto& v){ r += v; },
-                     delta...);
+            tuple_op(_edelta[f], [&](auto&& r, auto&& v){ r += v; },
+                     std::forward<DVals>(delta)...);
         }
         else
         {
             _delta[f] -= d;
-            tuple_op(_edelta[f], [&](auto& r, auto& v){ r -= v; },
-                     delta...);
+            tuple_op(_edelta[f], [&](auto&& r, auto&& v){ r -= v; },
+                     std::forward<DVals>(delta)...);
         }
     }
 
@@ -251,8 +251,7 @@ public:
 
     const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
     const vector<int>&                  get_delta()   { return _delta;   }
-    const vector<std::tuple<EVals...>>& get_edelta()  { //_edelta.resize(_delta.size());
-        return _edelta;  }
+    const vector<std::tuple<EVals...>>& get_edelta()  { _edelta.resize(_delta.size()); return _edelta;  }
 
     template <class Emat>
     vector<bedge_t>& get_mes(Emat& emat)
@@ -317,7 +316,7 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
     int self_weight = 0;
     if (!graph_tool::is_directed(g) && sizeof...(Eprops) > 0)
     {
-        tuple_apply([&](auto&&... vals)
+        tuple_apply([&](auto&... vals)
                     {
                         auto op = [](auto& x) -> auto& { x *= 0; return x; };
                         auto f = [](auto&...) {};
@@ -353,7 +352,7 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
         if ((u == v || is_loop(v)) && !graph_tool::is_directed(g))
         {
             self_weight += ew;
-            tuple_op(eself_weight, [&](auto& x, auto& val){ x += val; },
+            tuple_op(eself_weight, [&](auto&& x, auto&& val){ x += val; },
                      make_vadapter(eprops, e)...);
         }
     }
@@ -362,7 +361,7 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
     {
         if (sizeof...(Eprops) > 0)
         {
-            tuple_apply([&](auto&&... vals)
+            tuple_apply([&](auto&... vals)
                         {
                             auto op = [](auto& x) -> auto& { x /= 2; return x; };
                             auto f = [](auto&...) {};
@@ -455,6 +454,23 @@ void entries_op(MEntries& m_entries, EMat& emat, OP&& op)
 {
     const auto& entries = m_entries.get_entries();
     const auto& delta = m_entries.get_delta();
+    auto& mes = m_entries.get_mes(emat);
+
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
+        auto& entry = entries[i];
+        auto er = entry.first;
+        auto es = entry.second;
+        op(er, es, mes[i], delta[i]);
+    }
+}
+
+// operation on a set of entries, with edge covariates
+template <class MEntries, class EMat, class OP>
+void wentries_op(MEntries& m_entries, EMat& emat, OP&& op)
+{
+    const auto& entries = m_entries.get_entries();
+    const auto& delta = m_entries.get_delta();
     const auto& edelta = m_entries.get_edelta();
     auto& mes = m_entries.get_mes(emat);
 
@@ -473,7 +489,7 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
 {
     double dS = 0;
     entries_op(m_entries, emat,
-               [&](auto r, auto s, auto& me, auto d, auto&)
+               [&](auto r, auto s, auto& me, auto d)
                {
                    size_t ers = 0;
                    if (me != emat.get_null_edge())
