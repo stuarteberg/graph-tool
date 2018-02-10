@@ -157,7 +157,10 @@ public:
         {
             if (_idx[i] == numeric_limits<size_t>::max())
                 continue;
-            items.push_back(_items[_idx[i]]);
+            size_t j = _idx[i];
+            if (!_valid[j])
+                continue;
+            items.push_back(_items[j]);
             probs.push_back(_tree[i]);
         }
 

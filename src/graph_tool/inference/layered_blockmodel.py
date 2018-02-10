@@ -203,6 +203,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.clabel = agg_state.clabel
         self.pclabel = agg_state.pclabel
         self.bclabel = agg_state.bclabel
+        self.hclabel = agg_state.hclabel
 
         self.deg_corr = deg_corr
         self.overlap = overlap
@@ -697,7 +698,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
     def _set_bclabel(self, bstate):
         BlockState._set_bclabel(self, bstate)
-        self._state.sync_bclabel()
+        #self._state.sync_bclabel()
         # for s, sn in zip(self.layer_states, bstate.layer_states):
         #     s.bclabel.a = sn.b.a
 
@@ -765,7 +766,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             eargs = get_entropy_args(dict(self._entropy_args,
                                           **entropy_args))
             self._state.couple_state(state._state, eargs)
-            self._set_bclabel(state)
+            #self._set_bclabel(state)
 
     def _set_bclabel(self, bstate):
         BlockState._set_bclabel(self, bstate)
@@ -776,13 +777,13 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     def _check_clabel(self, clabel=None, b=None):
         if not BlockState._check_clabel(self, clabel, b):
             return False
-        if self._coupled_state is not None:
-            for s, bs in zip(self.layer_states,
-                             self._coupled_state[0].layer_states):
-                b = s.bclabel
-                mask = bs.vweight.fa > 0
-                if any(b.fa[mask] != bs.b.fa[mask]):
-                    return False
+        # if self._coupled_state is not None:
+        #     for s, bs in zip(self.layer_states,
+        #                      self._coupled_state[0].layer_states):
+        #         b = s.bclabel
+        #         mask = bs.vweight.fa > 0
+        #         if any(b.fa[mask] != bs.b.fa[mask]):
+        #             return False
         return True
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,

@@ -39,6 +39,7 @@ GEN_DISPATCH(layered_block_state, Layers<BaseState>::template LayeredBlockState,
 
 void export_lsbm()
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     using namespace boost::python;
 
     class_<LayeredBlockStateVirtualBase, boost::noncopyable>
@@ -120,4 +121,5 @@ void export_lsbm()
                                &state_t::sync_bclabel);
                   });
          });
+#endif
 }

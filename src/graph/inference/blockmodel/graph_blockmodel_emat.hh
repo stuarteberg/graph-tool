@@ -55,13 +55,14 @@ public:
     typedef typename graph_traits<BGraph>::vertex_descriptor vertex_t;
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
-    const auto& get_me(vertex_t r, vertex_t s) const
+    const edge_t& get_me(vertex_t r, vertex_t s) const
     {
         return _mat[r][s];
     }
 
     void put_me(vertex_t r, vertex_t s, const edge_t& e)
     {
+        assert(e != _null_edge);
         _mat[r][s] = e;
         if (!is_directed_::apply<BGraph>::type::value && r != s)
             _mat[s][r] = e;
@@ -77,7 +78,7 @@ public:
         //remove_edge(me, bg);
     }
 
-    const auto& get_null_edge() const { return _null_edge; }
+    const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
     multi_array<edge_t, 2> _mat;
@@ -164,7 +165,7 @@ public:
     typedef typename graph_traits<BGraph>::edge_descriptor edge_t;
 
     __attribute__((flatten)) __attribute__((hot))
-    const auto& get_me(vertex_t r, vertex_t s) const
+    const edge_t& get_me(vertex_t r, vertex_t s) const
     {
         if (!is_directed_::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
@@ -180,6 +181,7 @@ public:
         if (!is_directed_::apply<BGraph>::type::value && r > s)
             std::swap(r, s);
         assert(r < _hash.size());
+        assert(e != _null_edge);
         _hash[r][s] = e;
     }
 
@@ -197,7 +199,7 @@ public:
         //remove_edge(me, bg);
     }
 
-    const auto& get_null_edge() const { return _null_edge; }
+    const edge_t& get_null_edge() const { return _null_edge; }
 
 private:
     std::vector<size_t> _index;

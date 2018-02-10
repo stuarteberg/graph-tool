@@ -235,6 +235,7 @@ class OverlapBlockState(BlockState):
             self.clabel = self.g.new_vp("int")
 
         self.bclabel = self.get_bclabel()
+        self.hclabel = self.bg.new_vp("int")
 
         BlockState._init_recs(self, self.rec, rec_types, rec_params)
         self.recdx = libcore.Vector_double(len(self.rec))
@@ -331,6 +332,8 @@ class OverlapBlockState(BlockState):
                                   Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                   epsilon=kwargs.pop("epsilon",
                                                      self.epsilon.copy()),
+                                  allow_empty=kwargs.pop("allow_empty",
+                                                         self.allow_empty),
                                   **dmask(kwargs, ["half_edges", "node_index",
                                                    "eindex", "base_g", "drec",
                                                    "max_BE"]))
@@ -624,46 +627,45 @@ class OverlapBlockState(BlockState):
         return BlockState.mcmc_sweep(self, **kwargs)
 
     def _multiflip_mcmc_sweep_dispatch(self, mcmc_state):
-        return libinference.multiflip_mcmc_overlap_sweep(mcmc_state,
+        return libinference.overlap_multiflip_mcmc_sweep(mcmc_state,
                                                          self._state,
                                                          _get_rng())
 
     def _multiflip_mcmc_sweep_parallel_dispatch(states, mcmc_states):
-        return libinference.multiflip_mcmc_overlap_sweep_parallel(mcmc_states,
+        return libinference.overlap_multiflip_mcmc_sweep_parallel(mcmc_states,
                                                                   [s._state for s in states],
                                                                   _get_rng())
 
     def _multicanonical_sweep_dispatch(self, multicanonical_state):
         if multicanonical_state.multiflip:
-            return libinference.multicanonical_overlap_sweep(multicanonical_state,
+            return libinference.overlap_multicanonical_sweep(multicanonical_state,
                                                              self._state,
                                                              _get_rng())
         else:
-            return libinference.multicanonical_overlap_multiflip_sweep(multicanonical_state,
+            return libinference.overlap_multicanonical_multiflip_sweep(multicanonical_state,
                                                                        self._state,
                                                                        _get_rng())
 
     def _exhaustive_sweep_dispatch(self, exhaustive_state, callback, hist):
         if callback is not None:
-            return libinference.exhaustive_overlap_sweep(exhaustive_state,
+            return libinference.overlap_exhaustive_sweep(exhaustive_state,
                                                          self._state, callback)
         else:
             if hist is None:
-                return libinference.exhaustive_overlap_sweep_iter(exhaustive_state,
+                return libinference.overlap_exhaustive_sweep_iter(exhaustive_state,
                                                                   self._state)
             else:
-                return libinference.exhaustive_overlap_dens(exhaustive_state,
+                return libinference.overlap_exhaustive_dens(exhaustive_state,
                                                             self._state,
                                                             hist[0], hist[1],
                                                             hist[2])
 
     def _gibbs_sweep_dispatch(self, gibbs_state):
-        return libinference.gibbs_overlap_sweep(multicanonical_state,
-                                                self._state,
+        return libinference.gibbs_overlap_sweep(gibbs_state, self._state,
                                                 _get_rng())
 
     def _gibbs_sweep_parallel_dispatch(states, gibbs_states):
-        return libinference.gibbs_overlap_sweep_parallel(gibbs_states,
+        return libinference.overlap_gibbs_sweep_parallel(gibbs_states,
                                                          [s._state for s in states],
                                                          _get_rng())
 

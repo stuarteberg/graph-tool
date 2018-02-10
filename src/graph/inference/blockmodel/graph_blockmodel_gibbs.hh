@@ -95,11 +95,11 @@ struct Gibbs
         {
             if (nr == null_group)
             {
-                if (!_allow_new_group)
+                if (!_allow_new_group || _state._allow_empty)
                     return numeric_limits<double>::infinity();
                 if (_state._empty_blocks.empty())
                     _state.add_block();
-                nr = _state._empty_blocks.front();
+                nr = _state._empty_blocks.back();
             }
             size_t r = _state._b[v];
             if (!_state.allow_move(r, nr))
@@ -107,13 +107,12 @@ struct Gibbs
             return _state.virtual_move(v, r, nr, _entropy_args, _m_entries);
         }
 
-        template <class RNG>
-        void perform_move(size_t v, size_t nr, RNG& rng)
+        void perform_move(size_t v, size_t nr)
         {
             size_t r = _state._b[v];
 
             if (nr == null_group)
-                nr = uniform_sample(_state._empty_blocks, rng);
+                nr = _state._empty_blocks.back();
 
             if (r == nr)
                 return;

@@ -133,6 +133,7 @@ public:
     template <class Edge, class Vprop>
     void insert_edge(const Edge& e, size_t weight, Vprop& b, Graph& g)
     {
+        assert(e != Edge());
         size_t r = b[get_source(e, g)];
         auto& r_elist = _egroups[r];
         insert_edge(std::make_tuple(e, true), r_elist, weight,
@@ -171,10 +172,10 @@ public:
         auto& pos = _epos[e];
 
         size_t r = b[get_source(e, g)];
-        remove_edge(make_tuple(e, true), pos.first, _egroups[r]);
+        remove_edge(std::make_tuple(e, true), pos.first, _egroups[r]);
 
         size_t s = b[get_target(e, g)];
-        remove_edge(make_tuple(e, false), pos.second, _egroups[s]);
+        remove_edge(std::make_tuple(e, false), pos.second, _egroups[s]);
     }
 
     template <class Edge>
@@ -209,7 +210,7 @@ public:
         elist.remove(pos);
 
         if (elist.empty())
-            elist.rebuild();
+            elist.clear(true);
     }
 
     template <class Vertex, class VProp>

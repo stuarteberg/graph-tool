@@ -44,6 +44,7 @@ python::object merge_layered_sweep(python::object omerge_state,
                                   python::object olayered_state,
                                   rng_t& rng)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     python::object ret;
     auto dispatch = [&](auto* block_state)
     {
@@ -69,6 +70,7 @@ python::object merge_layered_sweep(python::object omerge_state,
     };
     block_state::dispatch(dispatch);
     return ret;
+#endif
 }
 
 void export_layered_blockmodel_merge()

@@ -70,7 +70,6 @@ class UncertainBaseState(object):
                 state_args["sampling"] = True
                 self.nbstate = NestedBlockState(self.u, **dict(state_args,
                                                                sampling=True))
-                self.nbstate._couple_levels()
                 self.bstate = self.nbstate.levels[0]
             else:
                 self.nbstate = None

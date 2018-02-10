@@ -23,12 +23,12 @@ graph_tool.inference.set_test(True)
 
 g = collection.data["football"]
 
-# add self-loops
+# # add self-loops
 # for i in range(10):
 #     v = numpy.random.randint(g.num_vertices())
 #     g.add_edge(v, v)
 
-# add parallel edges
+# # add parallel edges
 # for e in list(g.edges())[:10]:
 #     g.add_edge(e.source(), e.target())
 
@@ -38,29 +38,46 @@ rec_p = g.new_ep("double", random(g.num_edges()))
 rec_s = g.new_ep("double", normal(0, 10, g.num_edges()))
 
 
-def gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
+def _gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
     u = GraphView(g, directed=directed)
     if layers != False:
-        state = graph_tool.inference.LayeredBlockState(u, B=u.num_vertices(),
-                                                       deg_corr=deg_corr,
-                                                       ec=ec.copy(),
-                                                       recs=[rec] if rec is not None else [],
-                                                       rec_types=[rec_type] if rec is not None else [],
-                                                       overlap=overlap,
-                                                       layers=layers == True,
-                                                       allow_empty=allow_empty)
+        base_type = graph_tool.inference.LayeredBlockState
+        state_args = dict(B=u.num_vertices(),
+                          deg_corr=deg_corr,
+                          ec=ec.copy(),
+                          recs=[rec] if rec is not None else [],
+                          rec_types=[rec_type] if rec is not None else [],
+                          overlap=overlap,
+                          layers=layers == True,
+                          allow_empty=allow_empty)
     elif overlap:
-        state = graph_tool.inference.OverlapBlockState(u, B=2 * u.num_edges(),
-                                                       recs=[rec] if rec is not None else [],
-                                                       rec_types=[rec_type] if rec is not None else [],
-                                                       deg_corr=deg_corr)
+        base_type = graph_tool.inference.OverlapBlockState
+        state_args = dict(B=2 * u.num_edges(),
+                          recs=[rec] if rec is not None else [],
+                          rec_types=[rec_type] if rec is not None else [],
+                          deg_corr=deg_corr)
     else:
-        state = graph_tool.inference.BlockState(u, B=u.num_vertices(),
-                                                recs=[rec] if rec is not None else [],
-                                                rec_types=[rec_type] if rec is not None else [],
-                                                deg_corr=deg_corr,
-                                                allow_empty=allow_empty)
-    return state
+        base_type = graph_tool.inference.BlockState
+        state_args = dict(B=u.num_vertices(),
+                          recs=[rec] if rec is not None else [],
+                          rec_types=[rec_type] if rec is not None else [],
+                          deg_corr=deg_corr,
+                          allow_empty=allow_empty)
+    return u, base_type, state_args
+
+
+def gen_state(*args):
+    u, base_type, state_args = _gen_state(*args)
+    return base_type(u, **state_args)
+
+def gen_nested_state(*args):
+    u, base_type, state_args = _gen_state(*args, False)
+    B = state_args.pop("B")
+    state_args.pop("allow_empty", None)
+    return NestedBlockState(u,
+                            bs=[numpy.arange(B)] + [numpy.zeros(1)] * 6,
+                            base_type=base_type, state_args=state_args,
+                            sampling=True)
 
 
 pranges = [("directed", [False, True]),
@@ -120,9 +137,28 @@ for pvals in iter_ranges(pranges):
                                                  exact=exact, beta_dl=0.95)),
               state.get_nonempty_B(), file=out)
 
+    print("\t mcmc (unweighted, multiflip)", file=out)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    print("\t\t",
+          state.multiflip_mcmc_sweep(beta=0,
+                                     entropy_args=dict(dl=dl,
+                                                       degree_dl_kind=degree_dl_kind,
+                                                       exact=exact, beta_dl=0.95)),
+          state.get_nonempty_B(), file=out)
+
+    print("\t gibbs (unweighted)", file=out)
     state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
 
+    print("\t\t",
+          state.gibbs_sweep(beta=0,
+                            entropy_args=dict(dl=dl,
+                                              degree_dl_kind=degree_dl_kind,
+                                              exact=exact, beta_dl=0.95)),
+          state.get_nonempty_B(), file=out)
+
     if not overlap:
+        state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+
         print("\t mcmc", file=out)
         bstate = state.get_block_state(vweight=True,  deg_corr=deg_corr)
 
@@ -194,6 +230,59 @@ for pvals in iter_ranges(pranges):
                                                 exact=exact, beta_dl=0.95))
     print("\t\t", state.B, "\n", file=out)
 
+pranges = [("directed", [False, True]),
+           ("overlap", [False]),
+           ("layered", [False, "covariates", True]),
+           ("rec", [None, "real-exponential", "real-normal"]),
+           ("deg_corr", [True, False]),
+           ("degree_dl_kind", ["distributed"]),
+           ("exact", [True])]
+
+pranges = OrderedDict(pranges)
+
+def iter_ranges(ranges):
+    for vals in itertools.product(*[v for k, v in ranges.items()]):
+        yield zip(ranges.keys(), vals)
+
+for pvals in iter_ranges(pranges):
+    params = OrderedDict(pvals)
+
+    locals().update(params)
+
+    if overlap and deg_corr and degree_dl_kind != "distributed":      # FIXME
+        continue
+
+    if (rec is not None or layered != False) and not exact:
+        continue
+
+    print(params, file=out)
+
+    rec_ = None
+    if rec == "real-exponential":
+        rec_ = rec_p
+    elif rec == "real-normal":
+        rec_ = rec_s
+
+    print("\t mcmc (single flip)", file=out)
+    state = gen_nested_state(directed, deg_corr, layered, overlap, rec_, rec)
+
+    for i in range(5):
+        print("\t\t",
+              state.mcmc_sweep(beta=0, d=0.5,
+                               entropy_args=dict(degree_dl_kind=degree_dl_kind,
+                                                 exact=exact,
+                                                 beta_dl=0.95)),
+              [s.get_nonempty_B() for s in state.levels], file=out)
+
+    print("\n\t mcmc (multiple flip)", file=out)
+    state = gen_nested_state(directed, deg_corr, layered, overlap, rec_, rec)
+
+    for i in range(5):
+        print("\t\t",
+              state.multiflip_mcmc_sweep(beta=0, d=0.5,
+                                         entropy_args=dict(degree_dl_kind=degree_dl_kind,
+                                                           exact=exact, beta_dl=0.95)),
+              [s.get_nonempty_B() for s in state.levels], file=out)
 
 pranges = [("directed", [False, True]),
            ("overlap", [False, True]),

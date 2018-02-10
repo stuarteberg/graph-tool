@@ -88,8 +88,10 @@ struct MCMC
             }
 
             for (auto r : vertices_range(_state._bg))
+            {
                 if (_state._wr[r] > 0)
                     add_element(_vlist, _rpos, r);
+            }
         }
 
         typename state_t::g_t& _g;
@@ -154,7 +156,7 @@ struct MCMC
                     return log1p(-_a1);
                 return log1p(-_a1) + log(_an);
             }
-            return log1p(-(1. - _a1) * _an) - log(n-2);
+            return log1p(-_a1) + log1p(-_an) - log(n-2);
         }
 
         template <class RNG>
@@ -192,9 +194,6 @@ struct MCMC
             if (!_state.allow_move(r, s) || s == r)
                 return null_group;
 
-            if (_groups[s].empty())
-                _state._bclabel[s] = _state._bclabel[r];
-
             if (!_groups[s].empty() || _groups[r].size() > m)
                 _mproposals[m]++;
             return s;
@@ -211,7 +210,7 @@ struct MCMC
             a -= -lbinom(_groups[r].size(), m);
             a += -lbinom(_groups[nr].size() + m, m);
 
-            size_t B = _vlist.size();
+            int B = _vlist.size();
             a -= -log(B);
             if (_groups[r].size() == m)
                 B--;

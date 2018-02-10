@@ -40,78 +40,105 @@ public:
           _sampler_pos(get(vertex_index_t(), g), num_vertices(g)),
           _eindex(get(edge_index_t(), g))
     {
-        init(g, eweight, self_loops,
-             typename boost::mpl::and_<Weighted,
-                                       typename boost::mpl::not_<Dynamic>::type>::type());
+        init(g, eweight, self_loops);
     }
 
     template <class Eprop>
-    void init(Graph& g, Eprop& eweight, bool self_loops, boost::mpl::false_)
+    void init_vertex(Graph& g, size_t v, Eprop& eweight, bool self_loops)
     {
-        for (auto e : edges_range(g))
+        init_vertex(g, v, eweight, self_loops,
+                    typename boost::mpl::and_<Weighted,
+                                              typename boost::mpl::not_<Dynamic>::type>::type());
+    }
+
+    template <class Eprop>
+    void init_vertex(Graph& g, size_t v, Eprop& eweight, bool self_loops,
+                     boost::mpl::false_)
+    {
+        for (auto e : out_edges_range(v, g))
         {
-            auto u = source(e, g);
-            auto v = target(e, g);
+            auto u = target(e, g);
 
-            if (!self_loops && u == v)
-                continue;
-
-            auto w = eweight[e];
+            double w = eweight[e];
 
             if (w == 0)
                 continue;
 
             if (u == v)
             {
-                insert(v, u, w, e);
+                if (!self_loops)
+                    continue;
+                if (!graph_tool::is_directed(g))
+                    w /= 2;
             }
-            else
+
+            insert(v, u, w, e);
+        }
+
+        if (graph_tool::is_directed(g))
+        {
+
+            for (auto e : in_edges_range(v, g))
             {
+                auto u = source(e, g);
+
+                if (!self_loops && u == v)
+                    continue;
+
+                auto w = eweight[e];
+
+                if (w == 0)
+                    continue;
+
                 insert(v, u, w, e);
-                insert(u, v, w, e);
             }
         }
     }
 
     template <class Eprop>
-    void init(Graph& g, Eprop& eweight, bool self_loops, boost::mpl::true_)
+    void init_vertex(Graph& g, size_t v, Eprop& eweight, bool self_loops,
+                     boost::mpl::true_)
     {
-        for (auto v : vertices_range(g))
+        std::vector<item_t> us;
+        std::vector<double> probs;
+        for (auto e : out_edges_range(v, g))
         {
-            std::vector<item_t> us;
-            std::vector<double> probs;
-            for (auto e : out_edges_range(v, g))
-            {
-                auto u = target(e, g);
-                double w = eweight[e];
-                if (w == 0)
-                    continue;
+            auto u = target(e, g);
+            double w = eweight[e];
+            if (w == 0)
+                continue;
 
-                if (u == v)
-                {
-                    if (!self_loops)
-                        continue;
-                    if (!graph_tool::is_directed(g))
-                        w /= 2;
-                }
+            if (u == v)
+            {
+                if (!self_loops)
+                    continue;
+                if (!graph_tool::is_directed(g))
+                    w /= 2;
+            }
+            us.emplace_back(u, 0);
+            probs.push_back(w);
+        }
+
+        if (graph_tool::is_directed(g))
+        {
+            for (auto e : in_edges_range(v, g))
+            {
+                auto u = source(e, g);
+                double w = eweight[e];
+                if (w == 0 || u == v)
+                    continue;
                 us.emplace_back(u, 0);
                 probs.push_back(w);
             }
-
-            if (graph_tool::is_directed(g))
-            {
-                for (auto e : in_edges_range(v, g))
-                {
-                    auto u = source(e, g);
-                    double w = eweight[e];
-                    if (w == 0 || u == v)
-                        continue;
-                    us.emplace_back(u, 0);
-                    probs.push_back(w);
-                }
-            }
-            _sampler[v] = sampler_t(us, probs);
         }
+        _sampler[v] = sampler_t(us, probs);
+    }
+
+    template <class Eprop>
+    void init(Graph& g, Eprop& eweight, bool self_loops)
+    {
+        for (auto v : vertices_range(g))
+            init_vertex(g, v, eweight, self_loops);
     }
 
     template <class RNG>
@@ -125,6 +152,12 @@ public:
     bool empty(vertex_t v)
     {
         return _sampler[v].empty();
+    }
+
+    void resize(size_t n)
+    {
+        _sampler.resize(n);
+        _sampler_pos.resize(n);
     }
 
     template <class Edge>
@@ -166,20 +199,26 @@ private:
                      pos_map_t& sampler_pos)
     {
         auto& back = sampler.back();
-        size_t pos = sampler_pos[u];
+        auto iter = sampler_pos.find(u);
+        if (iter == sampler_pos.end())
+            return;
+        size_t pos = iter->second;
+        sampler_pos.erase(iter);
         sampler_pos[back] = pos;
         sampler[pos] = back;
         sampler.pop_back();
-        sampler_pos.erase(u);
     }
 
     template <class Sampler>
     void remove_item(item_t& u, Sampler& sampler,
                      pos_map_t& sampler_pos)
     {
-        size_t pos = sampler_pos[u];
+        auto iter = sampler_pos.find(u);
+        if (iter == sampler_pos.end())
+            return;
+        size_t pos = iter->second;
+        sampler_pos.erase(iter);
         sampler.remove(pos);
-        sampler_pos.erase(u);
     }
 
 
@@ -207,11 +246,11 @@ private:
                                       vector<item_t>>::type
         sampler_t;
 
-    typedef typename vprop_map_t<sampler_t>::type vsampler_t;
-    typename vsampler_t::unchecked_t _sampler;
+    typedef typename vprop_map_t<sampler_t>::type::unchecked_t vsampler_t;
+    vsampler_t _sampler;
 
-    typedef typename vprop_map_t<pos_map_t>::type sampler_pos_t;
-    typename sampler_pos_t::unchecked_t _sampler_pos;
+    typedef typename vprop_map_t<pos_map_t>::type::unchecked_t sampler_pos_t;
+    sampler_pos_t _sampler_pos;
 
     typename property_map<Graph, edge_index_t>::type _eindex;
 };

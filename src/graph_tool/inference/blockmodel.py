@@ -421,6 +421,7 @@ class BlockState(object):
             raise ValueError("provided pclabel and clabel are inconsistent")
 
         self.bclabel = self.get_bclabel()
+        self.hclabel = self.bg.new_vp("int")
 
         self.max_BE = max_BE
 
@@ -870,9 +871,9 @@ class BlockState(object):
         continuous_map(b)
         if not (b == joint).all():
             return False
-        if self._coupled_state is not None:
-            b = self.bclabel
-            return (b.fa == self._coupled_state[0].b.fa).all()
+        # if self._coupled_state is not None:
+        #     b = self.bclabel
+        #     return (b.fa == self._coupled_state[0].b.fa).all()
         return True
 
     def _couple_state(self, state, entropy_args):
@@ -886,7 +887,7 @@ class BlockState(object):
             eargs = get_entropy_args(dict(self._entropy_args,
                                           **entropy_args))
             self._state.couple_state(state._state, eargs)
-            self._set_bclabel(state)
+            #self._set_bclabel(state)
 
     def get_blocks(self):
         r"""Returns the property map which contains the block labels for each vertex."""
@@ -1114,7 +1115,7 @@ class BlockState(object):
 
         kwargs = kwargs.copy()
 
-        S = self._state.entropy(eargs)
+        S = self._state.entropy(eargs, kwargs.pop("propagate", False))
         dl_S = 0
 
         callback = kwargs.pop("callback", None)
@@ -1386,7 +1387,7 @@ class BlockState(object):
                                                 [s._state for s in states],
                                                 _get_rng())
 
-    def mcmc_sweep(self, beta=1., c=1., d=.1, niter=1, entropy_args={},
+    def mcmc_sweep(self, beta=1., c=1., d=.01, niter=1, entropy_args={},
                    allow_vacate=True, sequential=True, deterministic=False,
                    parallel=False, vertices=None, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
@@ -1402,7 +1403,7 @@ class BlockState(object):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
-        d : ``float`` (optional, default: ``.1``)
+        d : ``float`` (optional, default: ``.01``)
             Probability of selecting a new (i.e. empty) group for a given move.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
@@ -1485,7 +1486,7 @@ class BlockState(object):
             try:
                 dS, nattempts, nmoves = self._mcmc_sweep_dispatch(mcmc_state)
             finally:
-                self.B = max(int(self.b.fa.max()) + 1, self.B)
+                self.B = self.bg.num_vertices()
 
             if _bm_test() and test:
                 Sff = self.entropy(**dmask(entropy_args, ["callback"]))
@@ -1514,7 +1515,7 @@ class BlockState(object):
                                                           _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, a1=.9, an=.9, beta=1., c=1., d=.1, niter=1,
+    def multiflip_mcmc_sweep(self, a1=.99, an=.9, beta=1., c=1., d=.01, niter=1,
                              entropy_args={}, allow_vacate=True,
                              sequential=True, verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
@@ -1536,7 +1537,7 @@ class BlockState(object):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
-        d : ``float`` (optional, default: ``.1``)
+        d : ``float`` (optional, default: ``.01``)
             Probability of selecting a new (i.e. empty) group for a given move.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
@@ -1595,7 +1596,7 @@ class BlockState(object):
             try:
                 dS, nattempts, nmoves = self._multiflip_mcmc_sweep_dispatch(mcmc_state)
             finally:
-                self.B = max(int(self.b.fa.max()) + 1, self.B)
+                self.B = self.bg.num_vertices()
 
             if "mproposals" in kwargs:
                 kwargs["mproposals"][:M] = mcmc_state.mproposals.a
@@ -1692,11 +1693,7 @@ class BlockState(object):
         gibbs_state.entropy_args = get_entropy_args(entropy_args)
         gibbs_state.vlist = Vector_size_t()
         if vertices is None:
-            vertices = self.g.vertex_index.copy().fa
-            if self.is_weighted:
-                # ignore vertices with zero weight
-                vw = self.vweight.fa
-                vertices = vertices[vw > 0]
+            vertices = self.g.get_vertices()
         gibbs_state.vlist.resize(len(vertices))
         gibbs_state.vlist.a = vertices
         gibbs_state.E = self.get_E()
@@ -1710,7 +1707,7 @@ class BlockState(object):
         try:
             dS, nattempts, nmoves = self._gibbs_sweep_dispatch(gibbs_state)
         finally:
-            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            self.B = self.bg.num_vertices()
 
         if _bm_test() and test:
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1806,7 +1803,7 @@ class BlockState(object):
         try:
             S, nattempts, nmoves = self._multicanonical_sweep_dispatch(multi_state)
         finally:
-            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            self.B = self.bg.num_vertices()
 
         if _bm_test() and kwargs.pop("test", True):
             assert self._check_clabel(), "invalid clabel after sweep"
@@ -1912,7 +1909,7 @@ class BlockState(object):
             ret = self._exhaustive_sweep_dispatch(exhaustive_state, _callback,
                                                   density)
         finally:
-            self.B = max(int(self.b.fa.max()) + 1, self.B)
+            self.B = self.bg.num_vertices()
         if _callback is None:
             if density is None:
                 return ((S, S_min, b_min) for S, S_min in ret)

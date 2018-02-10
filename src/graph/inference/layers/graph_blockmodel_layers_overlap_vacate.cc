@@ -45,6 +45,7 @@ python::object vacate_layered_overlap_sweep(python::object ovacate_state,
                                             python::object olayered_state,
                                             rng_t& rng)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     python::object ret;
     auto dispatch = [&](auto* block_state)
     {
@@ -70,6 +71,7 @@ python::object vacate_layered_overlap_sweep(python::object ovacate_state,
     };
     overlap_block_state::dispatch(dispatch);
     return ret;
+#endif
 }
 
 void export_layered_overlap_blockmodel_vacate()

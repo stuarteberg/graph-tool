@@ -40,6 +40,7 @@ python::object
 make_layered_overlap_block_state(boost::python::object oblock_state,
                                  boost::python::object olayered_state)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     python::object state;
     auto dispatch = [&](auto& block_state)
         {
@@ -56,6 +57,7 @@ make_layered_overlap_block_state(boost::python::object oblock_state,
         };
     overlap_block_state::dispatch(oblock_state, dispatch);
     return state;
+#endif
 }
 
 void export_layered_overlap_blockmodel_state()

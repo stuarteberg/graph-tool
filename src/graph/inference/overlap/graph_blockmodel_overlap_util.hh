@@ -410,7 +410,8 @@ public:
     SingleEntrySet() : _pos(0), _mes_pos(0) {}
     SingleEntrySet(size_t) : SingleEntrySet() {}
 
-    void set_move(size_t, size_t, size_t) { clear(); }
+    void set_move(size_t r, size_t nr, size_t) { clear(); _rnr = std::make_pair(r, nr); }
+    const pair<size_t, size_t>& get_move() { return _rnr; }
 
     template <bool First, bool Source, bool Add, class... DVals>
     void insert_delta_rnr(size_t t, size_t s, int d, DVals... delta)
@@ -497,9 +498,10 @@ public:
 
     std::vector<std::tuple<size_t, size_t,
                            GraphInterface::edge_t, int, std::vector<double>>>
-        _recs_entries;
+        _p_entries;
 
 private:
+    pair<size_t, size_t> _rnr;
     size_t _pos;
     std::array<pair<size_t, size_t>, 2> _entries;
     std::array<int, 2> _delta;

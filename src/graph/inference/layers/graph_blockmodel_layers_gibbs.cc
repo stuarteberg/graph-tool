@@ -44,6 +44,7 @@ python::object gibbs_layered_sweep(python::object ogibbs_state,
                                    python::object olayered_state,
                                    rng_t& rng)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     python::object ret;
     auto dispatch = [&](auto* block_state)
     {
@@ -89,12 +90,14 @@ public:
     }
 private:
     State _s;
+#endif
 };
 
 python::object gibbs_layered_sweep_parallel(python::object ogibbs_states,
                                            python::object olayered_states,
                                            rng_t& rng)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     std::vector<std::shared_ptr<gibbs_sweep_base>> sweeps;
 
     size_t N = python::len(ogibbs_states);
@@ -142,6 +145,7 @@ python::object gibbs_layered_sweep_parallel(python::object ogibbs_states,
     for (auto& ret : rets)
         orets.append(tuple_apply([&](auto&... args){ return python::make_tuple(args...); }, ret));
     return orets;
+#endif
 }
 
 void export_layered_blockmodel_gibbs()

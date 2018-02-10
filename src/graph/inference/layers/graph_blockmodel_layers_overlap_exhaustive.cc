@@ -49,6 +49,7 @@ void do_exhaustive_layered_overlap_sweep(python::object oexhaustive_state,
                                          python::object oblock_state,
                                          python::object callback)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     auto dispatch = [&](auto* block_state)
     {
         typedef typename std::remove_pointer<decltype(block_state)>::type
@@ -75,6 +76,7 @@ void do_exhaustive_layered_overlap_sweep(python::object oexhaustive_state,
              });
     };
     overlap_block_state::dispatch(dispatch);
+#endif
 }
 
 
@@ -82,6 +84,7 @@ python::object do_exhaustive_layered_overlap_sweep_iter(python::object oexhausti
                                                         python::object oblock_state)
 {
 #ifdef HAVE_BOOST_COROUTINE
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     auto coro_dispatch = [&](auto& yield)
         {
             auto dispatch = [&](auto* block_state)
@@ -112,6 +115,7 @@ python::object do_exhaustive_layered_overlap_sweep_iter(python::object oexhausti
             overlap_block_state::dispatch(dispatch);
         };
     return python::object(CoroGenerator(coro_dispatch));
+#endif
 #else
     throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
 #endif // HAVE_BOOST_COROUTINE
@@ -122,6 +126,7 @@ void do_exhaustive_layered_overlap_dens(python::object oexhaustive_state,
                                         double S_min, double S_max,
                                         python::object ohist)
 {
+#ifdef GRAPH_BLOCKMODEL_LAYERS_ENABLE
     multi_array_ref<uint64_t, 1> hist = get_array<uint64_t, 1>(ohist);
     int N = hist.shape()[0];
     double dS = S_max - S_min;
@@ -152,6 +157,7 @@ void do_exhaustive_layered_overlap_dens(python::object oexhaustive_state,
              });
     };
     overlap_block_state::dispatch(dispatch);
+#endif
 }
 
 

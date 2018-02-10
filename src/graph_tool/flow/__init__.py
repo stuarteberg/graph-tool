@@ -154,7 +154,7 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
         :align: center
 
         Edge flows obtained with the Edmonds-Karp algorithm. The source and
-        target are on the lower left and upper right corners, respectively. The
+        target are on the upper left and lower right corners, respectively. The
         edge flows are represented by the edge width.
 
 
@@ -236,7 +236,7 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
 
 
         Edge flows obtained with the push-relabel algorithm. The source and
-        target are on the lower left and upper right corners, respectively. The
+        target are on the upper left and lower right corners, respectively. The
         edge flows are represented by the edge width.
 
     References
@@ -317,7 +317,7 @@ def boykov_kolmogorov_max_flow(g, source, target, capacity, residual=None):
         :align: center
 
         Edge flows obtained with the Boykov-Kolmogorov algorithm. The source and
-        target are on the lower left and upper right corners, respectively. The
+        target are on the upper left and lower right corners, respectively. The
         edge flows are represented by the edge width.
 
     References

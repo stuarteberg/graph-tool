@@ -55,7 +55,7 @@ def mcmc_equilibrate(state, wait=1000, nbreaks=2, max_niter=numpy.inf,
     gibbs : ``bool`` (optional, default: ``False``)
         If ``True``, each step will call ``state.gibbs_sweep`` instead of
         ``state.mcmc_sweep``.
-    gibbs : ``bool`` (optional, default: ``False``)
+    multiflip : ``bool`` (optional, default: ``False``)
         If ``True``, each step will call ``state.multiflip_mcmc_sweep`` instead of
         ``state.mcmc_sweep``.
     mcmc_args : ``dict`` (optional, default: ``{}``)

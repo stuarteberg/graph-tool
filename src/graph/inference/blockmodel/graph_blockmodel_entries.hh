@@ -18,6 +18,7 @@
 #ifndef GRAPH_BLOCKMODEL_ENTRIES_HH
 #define GRAPH_BLOCKMODEL_ENTRIES_HH
 
+#include "graph_blockmodel_weights.hh"
 
 namespace std
 {
@@ -246,7 +247,7 @@ public:
         _delta.clear();
         _edelta.clear();
         _mes.clear();
-        _recs_entries.clear();
+        _p_entries.clear();
     }
 
     const vector<pair<size_t, size_t>>& get_entries() { return _entries; }
@@ -279,7 +280,7 @@ public:
 
     std::vector<std::tuple<size_t, size_t,
                            GraphInterface::edge_t, int, std::vector<double>>>
-        _recs_entries;
+        _p_entries;
 
 private:
     static constexpr size_t _null = numeric_limits<size_t>::max();
@@ -502,6 +503,90 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
                });
     return dS;
 }
+
+template <bool Add, bool Remove, class State, class MEntries>
+void apply_delta(State& state, MEntries& m_entries)
+{
+    auto eops =
+        [&](auto&& eop, auto&& mid_op, auto&& end_op, auto&& skip)
+        {
+            eop(m_entries, state._emat,
+                [&](auto r, auto s, auto& me, auto delta, auto&... edelta)
+                {
+                    if (skip(delta, edelta...))
+                        return;
+
+                    if (Add && me == state._emat.get_null_edge())
+                    {
+                        me = boost::add_edge(r, s, state._bg).first;
+                        state._emat.put_me(r, s, me);
+                        state._c_mrs[me] = 0;
+                        for (size_t i = 0; i < state._rec_types.size(); ++i)
+                        {
+                            state._c_brec[i][me] = 0;
+                            state._c_bdrec[i][me] = 0;
+                        }
+                        if (state._coupled_state != nullptr)
+                            state._coupled_state->add_edge(me);
+                    }
+
+                    mid_op(me, edelta...);
+
+                    state._mrs[me] += delta;
+                    state._mrp[r] += delta;
+                    state._mrm[s] += delta;
+
+                    assert(state._mrs[me] >= 0);
+                    assert(state._mrp[r] >= 0);
+                    assert(state._mrm[s] >= 0);
+
+                    end_op(me, edelta...);
+
+                    if (Remove && state._mrs[me] == 0)
+                    {
+                        state._emat.remove_me(me, state._bg);
+                        if (state._coupled_state != nullptr)
+                            state._coupled_state->remove_edge(me);
+                        else
+                            boost::remove_edge(me, state._bg);
+                        me = state._emat.get_null_edge();
+                    }
+                });
+        };
+
+    if (state._rec_types.empty())
+    {
+        eops([](auto&&... args) { entries_op(args...);},
+             [](auto&){}, [](auto&){},
+             [](auto delta) { return delta == 0; });
+
+        if (state._coupled_state != nullptr)
+        {
+            m_entries._p_entries.clear();
+            std::vector<double> dummy;
+            entries_op(m_entries, state._emat,
+                       [&](auto r, auto s, auto& me, auto delta)
+                       {
+                           if (delta == 0)
+                               return;
+                           m_entries._p_entries.emplace_back(r, s, me, delta,
+                                                             dummy);
+                       });
+        }
+
+        if (state._coupled_state != nullptr && !m_entries._p_entries.empty())
+        {
+            state._coupled_state->propagate_delta(m_entries.get_move().first,
+                                                  m_entries.get_move().second,
+                                                  m_entries._p_entries);
+        }
+    }
+    else
+    {
+        recs_apply_delta<Add, Remove>(state, m_entries, eops);
+    }
+}
+
 
 } // namespace graph_tool
 
