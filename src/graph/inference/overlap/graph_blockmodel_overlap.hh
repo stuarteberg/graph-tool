@@ -1554,11 +1554,6 @@ public:
     {
     }
 
-    void propagate_delta(size_t, size_t, std::vector<std::tuple<size_t, size_t,
-                         int, std::vector<double> >> &)
-    {
-    }
-
     void init_mcmc(double c, double dl)
     {
         if (!std::isinf(c))

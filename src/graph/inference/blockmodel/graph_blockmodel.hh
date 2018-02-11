@@ -510,38 +510,6 @@ public:
                             });
             }
         }
-
-        // if (_coupled_state != nullptr && !_p_entries.empty())
-        // {
-        //     _coupled_state->propagate_delta(m_entries.get_move().first,
-        //                                     m_entries.get_move().second,
-        //                                     _p_entries);
-        // }
-    }
-
-    void propagate_delta(size_t u, size_t v,
-                         std::vector<std::tuple<size_t, size_t, int,
-                                                std::vector<double>>>& entries)
-    {
-        size_t r = (u != null_group) ? _b[u] : null_group;
-        size_t s = (v != null_group) ? _b[v] : null_group;
-        _m_entries.set_move(r, s, num_vertices(_bg));
-        for (auto& rsd : entries)
-            _m_entries.template insert_delta<true>(_b[get<0>(rsd)], _b[get<1>(rsd)],
-                                                   get<2>(rsd));
-
-        apply_delta<true, true>(_m_entries);
-
-        entries.clear();
-        wentries_op(_m_entries, _emat,
-                    [&](auto r, auto s, auto&, auto delta, auto& edelta)
-                    {
-                        if (delta == 0)
-                            return;
-                        entries.emplace_back(r, s, delta, get<0>(edelta));
-                    });
-        if (_coupled_state != nullptr && !entries.empty())
-            _coupled_state->propagate_delta(r, s, entries);
     }
 
     void add_edge(const GraphInterface::edge_t& e)
