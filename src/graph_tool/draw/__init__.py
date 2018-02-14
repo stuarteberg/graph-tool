@@ -128,7 +128,7 @@ def random_layout(g, shape=None, pos=None, dim=2):
     >>> shape = [[50, 100], [1, 2], 4]
     >>> pos = gt.random_layout(g, shape=shape, dim=3)
     >>> pos[g.vertex(0)].a
-    array([ 68.72700594,   1.03142919,   2.56812658])
+    array([68.72700594,  1.03142919,  2.56812658])
 
     """
 
