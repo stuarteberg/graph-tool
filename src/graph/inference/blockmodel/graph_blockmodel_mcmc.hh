@@ -117,7 +117,7 @@ struct MCMC
         {
             size_t r = _state._b[v];
             if (r == nr)
-                return {0., 0.};
+                return std::make_tuple(0., 0.);
 
             double dS = _state.virtual_move(v, r, nr, _entropy_args,
                                             _m_entries);
@@ -130,7 +130,7 @@ struct MCMC
                                                  _m_entries);
                 a = log(pb) - log(pf);
             }
-            return {dS, a};
+            return std::make_tuple(dS, a);
         }
 
         void perform_move(size_t v, size_t nr)

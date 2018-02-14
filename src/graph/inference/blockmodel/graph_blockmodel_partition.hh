@@ -141,7 +141,8 @@ public:
         return S;
     }
 
-    double get_deg_dl_ent(auto&& rs, auto&& ks)
+    template <class Rs, class Ks>
+    double get_deg_dl_ent(Rs&& rs, Ks&& ks)
     {
         double S = 0;
         for (auto r : rs)
@@ -172,7 +173,8 @@ public:
         return S;
     }
 
-    double get_deg_dl_uniform(auto&& rs, auto&&)
+    template <class Rs, class Ks>
+    double get_deg_dl_uniform(Rs&& rs, Ks&&)
     {
         double S = 0;
         for (auto r : rs)
@@ -184,7 +186,8 @@ public:
         return S;
     }
 
-    double get_deg_dl_dist(auto&& rs, auto&& ks)
+    template <class Rs, class Ks>
+    double get_deg_dl_dist(Rs&& rs, Ks&& ks)
     {
         double S = 0;
         for (auto r : rs)
@@ -218,7 +221,8 @@ public:
         return S;
     }
 
-    double get_deg_dl(int kind, auto&& rs, auto&& ks)
+    template <class Rs, class Ks>
+    double get_deg_dl(int kind, Rs&& rs, Ks&& ks)
     {
         switch (kind)
         {

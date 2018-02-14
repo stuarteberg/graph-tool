@@ -97,12 +97,14 @@ struct MCMC
             return node_state(u, v);
         }
 
-        bool skip_node(auto&)
+        template <class T>
+        bool skip_node(T&)
         {
             return false;
         }
 
-        size_t node_weight(auto&)
+        template <class T>
+        size_t node_weight(T&)
         {
             return 1;
         }
@@ -136,7 +138,7 @@ struct MCMC
         virtual_move_dS(size_t ei, int dm)
         {
             if (dm == 0)
-                return {0., 0.};
+                return std::make_tuple(0., 0.);
 
             size_t u, v;
             std::tie(u, v) = get_edge(ei);
@@ -147,7 +149,7 @@ struct MCMC
             else
                 dS = _state.add_edge_dS(u, v, _entropy_args);
 
-            return {dS, 0.};
+            return std::make_tuple(dS, 0.);
         }
 
         void perform_move(size_t ei, int dm)
@@ -187,7 +189,8 @@ struct MCMC
             return _niter;
         }
 
-        void step(auto&, int)
+        template <class T>
+        void step(T&, int)
         {
         }
     };

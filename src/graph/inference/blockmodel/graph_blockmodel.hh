@@ -2608,7 +2608,8 @@ public:
         return S;
     }
 
-    double get_parallel_entropy(auto&& vs, auto&& skip)
+    template <class Vs, class Skip>
+    double get_parallel_entropy(Vs&& vs, Skip&& skip)
     {
         double S = 0;
         for (auto v : vs)

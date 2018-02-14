@@ -693,8 +693,8 @@ class TemperingState(object):
 
         return sweep_algo[1](self.states, algo_states)
 
-    def _sweep(self, algo, adjacent=True, **kwargs):
-        if numpy.random.random() < .5:
+    def _sweep(self, algo, r=0.1, adjacent=True, **kwargs):
+        if numpy.random.random() < r:
             return self.states_swap(adjacent=adjacent, **kwargs)
         else:
             return self.states_move(algo, **kwargs)
