@@ -701,24 +701,32 @@ class TemperingState(object):
 
     def mcmc_sweep(self, **kwargs):
         """Perform a full mcmc sweep of the parallel states, where swap or moves are
-        chosen randomly. All keyword arguments are propagated to the individual
-        states' `mcmc_sweep()` method."""
+        chosen randomly. It accepts an keyword argument ``r`` (default: ``0.1``)
+        specifying the relative probability with which state swaps is performed
+        with respect to node moves.  All remaining keyword arguments are
+        propagated to the individual states' `mcmc_sweep()` method.
+        """
         algo = (lambda s, **kw: s.mcmc_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def multiflip_mcmc_sweep(self, **kwargs):
         """Perform a full mcmc sweep of the parallel states, where swap or moves are
-        chosen randomly. All keyword arguments are propagated to the individual
-        states' `mcmc_sweep()` method."""
+        chosen randomly. It accepts an keyword argument ``r`` (default: ``0.1``)
+        specifying the relative probability with which state swaps is performed
+        with respect to node moves.  All remaining keyword arguments are
+        propagated to the individual states' `mcmc_sweep()` method.
+        """
         algo = (lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._multiflip_mcmc_sweep_parallel_dispatch(states, sweeps))
         return self._sweep(algo, **kwargs)
 
     def gibbs_sweep(self, **kwargs):
         """Perform a full Gibbs mcmc sweep of the parallel states, where swap or moves
-        are chosen randomly. All keyword arguments are propagated to the
-        individual states' `gibbs_sweep()` method.
+        are chosen randomly. It accepts an keyword argument ``r`` (default:
+        ``0.1``) specifying the relative probability with which state swaps is
+        performed with respect to node moves.  All remaining keyword arguments
+        are propagated to the individual states' `gibbs_sweep()` method.
         """
         algo = (lambda s, **kw: s.gibbs_sweep(**kw),
                 lambda states, sweeps: type(self.states[0])._gibbs_sweep_parallel_dispatch(states, sweeps))
