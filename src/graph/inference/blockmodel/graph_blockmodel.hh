@@ -795,6 +795,8 @@ public:
                 _emat.remove_me(me, _bg);
                 if (_coupled_state != nullptr)
                     _coupled_state->remove_edge(me);
+                else
+                    boost::remove_edge(me, this->_bg);
             }
         }
     }
@@ -865,6 +867,9 @@ public:
                     _c_brec[i][me] = 0;
                     _c_bdrec[i][me] = 0;
                 }
+
+                if (_coupled_state != nullptr)
+                    _coupled_state->add_edge(me);
             }
 
             assert(me == _emat.get_me(r, s));
