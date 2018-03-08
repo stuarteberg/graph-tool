@@ -34,19 +34,10 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/demos/index.rst \
 	doc/demos/animation/animation.rst \
 	doc/demos/inference/inference.rst \
-	doc/sphinxext/README.txt \
-	doc/sphinxext/LICENSE.txt \
-	doc/sphinxext/__init__.py \
-	doc/sphinxext/setup.py \
 	doc/sphinxext/comment_eater.py \
-	doc/sphinxext/docscrape.py \
-	doc/sphinxext/MANIFEST.in \
 	doc/sphinxext/phantom_import.py \
 	doc/sphinxext/compiler_unparse.py \
-	doc/sphinxext/docscrape_sphinx.py \
-	doc/sphinxext/numpydoc.py \
 	doc/sphinxext/traitsdoc.py \
-	doc/sphinxext/tests/test_docscrape.py \
 	doc/gt_theme/static/flasky.css \
 	doc/gt_theme/static/gt_style.css \
 	doc/gt_theme/theme.conf \

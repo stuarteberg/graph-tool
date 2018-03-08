@@ -184,7 +184,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
 extlinks_fancy = {'ticket': (['https://graph-tool.skewed.de/tickets/ticket/{0}'],
                              ['ticket {0}']),
                   'doi': (['https://dx.doi.org/{0}',
-                           'https://sci-hub.cc/{0}',
+                           'https://sci-hub.tw/{0}',
                            'https://scihub22266oqcxt.onion.link/{0}'],
                           ['DOI: {0}', "sci-hub", "@tor"]),
                   'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}'])}
