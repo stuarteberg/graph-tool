@@ -428,7 +428,7 @@ def _graph_sig(g):
     """return the graph signature, i.e., the in and out degree distribution as
     concatenated as a tuple."""
     bins = list(range(0, g.num_vertices() + 1))
-    in_dist = vertex_hist(g, "in", bins=bins if g.is_directed() else [0],
+    in_dist = vertex_hist(g, "in", bins=bins if g.is_directed() else [0, 1],
                           float_count=False)
     out_dist = vertex_hist(g, "out", bins=bins, float_count=False)
     sig = tuple([(in_dist[1][i], in_dist[0][i]) for \
