@@ -371,7 +371,7 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
             if m.is_directed() != directed_motifs:
                 raise ValueError("all motif graphs must be either directed or undirected!")
             if m.num_vertices() != k:
-                raise ValueError("all motifs must have the same number of vertices: " + k)
+                raise ValueError("all motifs must have the same number of vertices: %d" % k)
             sub_list.append(m._Graph__graph)
 
     if directed_motifs != g.is_directed():
