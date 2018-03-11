@@ -860,10 +860,11 @@ def dominator_tree(g, root, dom_map=None):
     >>> root = [v for v in g.vertices() if v.in_degree() == 0]
     >>> dom = gt.dominator_tree(g, root[0])
     >>> print(dom.a)
-    [ 0  0  0  0  0  0  0 74  0  0  0 97  0  0  0  0  0  0  0  0  0  0  0  0  0
-      0  0  0  0 97  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-      0  0  0  0  0  0  0  0  0  0 64 67  0  0 67  0  0 74  0  0  0  0 23  0  0
-      0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  7  0  0]
+    [ 0  0  0  0  0  0  0 74  0  0  0 97  0  0  0  0  0  0  0  0  0  0  0  0
+      0  0  0  0  0 97  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+      0  0  0  0  0  0  0  0  0  0  0  0 64 67  0  0 67  0  0 74  0  0  0  0
+     23  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+      0  7  0  0]
 
     References
     ----------
@@ -910,8 +911,8 @@ def topological_sort(g):
     >>> g.set_edge_filter(tree)
     >>> sort = gt.topological_sort(g)
     >>> print(sort)
-    [28 26 29 27 23 22 18 17 16 20 21 15 12 11 10 25 14  9  8  7  5  3  2 24  4
-      6  1  0 19 13]
+    [28 26 29 27 23 22 18 17 16 20 21 15 12 11 10 25 14  9  8  7  5  3  2 24
+      4  6  1  0 19 13]
 
     References
     ----------
@@ -1019,13 +1020,14 @@ def label_components(g, vprop=None, directed=None, attractors=False):
     >>> g = gt.random_graph(100, lambda: (poisson(2), poisson(2)))
     >>> comp, hist, is_attractor = gt.label_components(g, attractors=True)
     >>> print(comp.a)
-    [ 9  9  9  9 10  1  9 11 12  9  9  9  9  9  9 13  9  9  9  0  9  9 16  9  9
-      3  9  9  4 17  9  9 18  9  9 19 20  9  9  9 14  5  9  9  6  9  9  9 21  9
-      9  9  9  9  9  9  9  9  9  9  9  9  9  2  9  8  9 22 15  9  9  9  9  9 23
-     25  9  9 26 27 28 29 30  9  9  9  9  9  9 31  9  9  9  9  9 32  9  9  7 24]
+    [ 9  9  9  9 10  1  9 11 12  9  9  9  9  9  9 13  9  9  9  0  9  9 16  9
+      9  3  9  9  4 17  9  9 18  9  9 19 20  9  9  9 14  5  9  9  6  9  9  9
+     21  9  9  9  9  9  9  9  9  9  9  9  9  9  9  2  9  8  9 22 15  9  9  9
+      9  9 23 25  9  9 26 27 28 29 30  9  9  9  9  9  9 31  9  9  9  9  9 32
+      9  9  7 24]
     >>> print(hist)
-    [ 1  1  1  1  1  1  1  1  1 68  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
-      1  1  1  1  1  1  1  1]
+    [ 1  1  1  1  1  1  1  1  1 68  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+      1  1  1  1  1  1  1  1  1]
     >>> print(is_attractor)
     [ True  True  True  True  True  True  True  True  True False  True False
      False False False False False False False False False False False False
@@ -1937,7 +1939,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
     True``, the Bellman-Ford algorithm is used [bellman-ford]_, which accepts
     negative weights, as long as there are no negative loops.
 
-    If both ``dist_map`` and ``pred_map` are provided, the search is not
+    If both ``dist_map`` and ``pred_map`` are provided, the search is not
     actually performed.
 
     Examples
@@ -2693,11 +2695,11 @@ def tsp_tour(g, src, weight=None):
     >>> g = gt.lattice([10, 10])
     >>> tour = gt.tsp_tour(g, g.vertex(0))
     >>> print(tour)
-    [ 0  1  2 11 12 21 22 31 32 41 42 51 52 61 62 71 72 81 82 83 73 63 53 43 33
-     23 13  3  4  5  6  7  8  9 19 29 39 49 59 69 79 89 14 24 34 44 54 64 74 84
-     91 92 93 94 95 85 75 65 55 45 35 25 15 16 17 18 27 28 37 38 47 48 57 58 67
-     68 77 78 87 88 97 98 99 26 36 46 56 66 76 86 96 10 20 30 40 50 60 70 80 90
-      0]
+    [ 0  1  2 11 12 21 22 31 32 41 42 51 52 61 62 71 72 81 82 83 73 63 53 43
+     33 23 13  3  4  5  6  7  8  9 19 29 39 49 59 69 79 89 14 24 34 44 54 64
+     74 84 91 92 93 94 95 85 75 65 55 45 35 25 15 16 17 18 27 28 37 38 47 48
+     57 58 67 68 77 78 87 88 97 98 99 26 36 46 56 66 76 86 96 10 20 30 40 50
+     60 70 80 90  0]
 
     References
     ----------

@@ -1394,6 +1394,7 @@ def triangulation(points, type="simple", periodic=False):
        from pylab import *
        seed(42)
        gt.seed_rng(42)
+
     >>> points = random((500, 2)) * 4
     >>> g, pos = gt.triangulation(points)
     >>> weight = g.new_edge_property("double") # Edge weights corresponding to

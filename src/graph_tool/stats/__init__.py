@@ -113,8 +113,9 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     >>> from numpy.random import poisson
     >>> g = gt.random_graph(1000, lambda: (poisson(5), poisson(5)))
     >>> print(gt.vertex_hist(g, "out"))
-    [array([   7.,   33.,   91.,  145.,  165.,  164.,  152.,  115.,   62.,
-             29.,   28.,    6.,    1.,    1.,    0.,    1.]), array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16], dtype=uint...)]
+    [array([  7.,  33.,  91., 145., 165., 164., 152., 115.,  62.,  29.,  28.,
+             6.,   1.,   1.,   0.,   1.]), array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16],
+          dtype=uint64)]
     """
 
     ret = libgraph_tool_stats.\
@@ -177,7 +178,7 @@ def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     >>> eprop = g.new_edge_property("double")
     >>> eprop.get_array()[:] = random(g.num_edges())
     >>> print(gt.edge_hist(g, eprop, linspace(0, 1, 11)))
-    [array([ 501.,  441.,  478.,  480.,  506.,  494.,  507.,  535.,  499.,  559.]), array([ 0. ,  0.1,  0.2,  0.3,  0.4,  0.5,  0.6,  0.7,  0.8,  0.9,  1. ])]
+    [array([501., 441., 478., 480., 506., 494., 507., 535., 499., 559.]), array([0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1. ])]
 
     """
 
@@ -231,7 +232,7 @@ def vertex_average(g, deg):
     >>> from numpy.random import poisson
     >>> g = gt.random_graph(1000, lambda: (poisson(5), poisson(5)))
     >>> print(gt.vertex_average(g, "in"))
-    (4.96, 0.067988234276233406)
+    (4.96, 0.0679882342762334)
     """
 
     if isinstance(deg, PropertyMap) and "string" in deg.value_type():
@@ -293,7 +294,7 @@ def edge_average(g, eprop):
     >>> eprop = g.new_edge_property("double")
     >>> eprop.get_array()[:] = random(g.num_edges())
     >>> print(gt.edge_average(g, eprop))
-    (0.49888156584192045, 0.0040967399234187541)
+    (0.49888156584192045, 0.004096739923418754)
     """
 
     if "string" in eprop.value_type():
@@ -426,10 +427,10 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     >>> g = gt.random_graph(100, lambda: (3, 3))
     >>> hist = gt.distance_histogram(g)
     >>> print(hist)
-    [array([    0.,   300.,   880.,  2269.,  3974.,  2358.,   119.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
+    [array([   0.,  300.,  880., 2269., 3974., 2358.,  119.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
     >>> hist = gt.distance_histogram(g, samples=10)
     >>> print(hist)
-    [array([   0.,   30.,   87.,  223.,  394.,  239.,   17.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
+    [array([  0.,  30.,  87., 223., 394., 239.,  17.]), array([0, 1, 2, 3, 4, 5, 6, 7], dtype=uint64)]
     """
 
     if samples is not None:

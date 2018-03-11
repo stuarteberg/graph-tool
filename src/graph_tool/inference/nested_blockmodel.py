@@ -800,7 +800,7 @@ class NestedBlockState(object):
         MCMC to sample hierarchical network partitions.
 
         The arguments accepted are the same as in
-        :method:`graph_tool.inference.BlockState.mcmc_sweep`.
+        :meth:`graph_tool.inference.BlockState.mcmc_sweep`.
 
         If the parameter ``c`` is a scalar, the values used at each level are
         ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
@@ -840,7 +840,7 @@ class NestedBlockState(object):
         with multiple moves to sample hierarchical network partitions.
 
         The arguments accepted are the same as in
-        :method:`graph_tool.inference.BlockState.multiflip_mcmc_sweep`.
+        :meth:`graph_tool.inference.BlockState.multiflip_mcmc_sweep`.
 
         If the parameter ``c`` is a scalar, the values used at each level are
         ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
@@ -880,7 +880,7 @@ class NestedBlockState(object):
         Wang-Landau algorithm.
 
         The arguments accepted are the same as in
-        :method:`graph_tool.inference.BlockState.multicanonical_sweep`.
+        :meth:`graph_tool.inference.BlockState.multicanonical_sweep`.
         """
         if _bm_test():
             kwargs = dict(kwargs, test=False)

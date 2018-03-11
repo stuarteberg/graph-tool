@@ -185,7 +185,7 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
     the number of nodes in the network.
 
     Examples
-    -----
+    --------
 
     .. testsetup:: mdl
 

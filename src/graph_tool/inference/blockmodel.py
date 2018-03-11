@@ -2056,7 +2056,7 @@ class BlockState(object):
            >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
            (...)
            >>> for i in range(1000):
-           ...     ds, nmoves = state.mcmc_sweep(niter=10)
+           ...     state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, pe)[0]
            -21.162075...
@@ -2110,7 +2110,7 @@ class BlockState(object):
            >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
            (...)
            >>> for i in range(1000):
-           ...     ds, nmoves = state.mcmc_sweep(niter=10)
+           ...     state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
            7.578883...
@@ -2176,7 +2176,7 @@ class BlockState(object):
            >>> state.mcmc_sweep(niter=1000)   # remove part of the transient
            (...)
            >>> for i in range(1000):
-           ...     ds, nmoves = state.mcmc_sweep(niter=10)
+           ...     state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
            146.181674...
