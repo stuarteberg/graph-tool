@@ -37,6 +37,7 @@ using namespace std;
     ((q_default,, double, 0))                                                  \
     ((S_const,, double, 0))                                                    \
     ((aE,, double, 0))                                                         \
+    ((E_prior,, bool, 0))                                                      \
     ((self_loops,, bool, 0))
 
 template <class BlockState>
@@ -145,7 +146,8 @@ struct Uncertain
                 S += _q_default;
             }
 
-            S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
+            if (_E_prior)
+                S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
             S += _S_const;
 
             return -S;
@@ -157,8 +159,11 @@ struct Uncertain
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
-            dS += _pe;
-            dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            if (_E_prior)
+            {
+                dS += _pe;
+                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            }
             if (_eweight[e] == 1 && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);
@@ -174,8 +179,11 @@ struct Uncertain
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
-            dS -= _pe;
-            dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            if (_E_prior)
+            {
+                dS -= _pe;
+                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            }
             if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);

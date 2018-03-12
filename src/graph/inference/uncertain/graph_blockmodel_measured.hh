@@ -42,6 +42,7 @@ using namespace std;
     ((mu,, double, 0))                                                         \
     ((nu,, double, 0))                                                         \
     ((aE,, double, 0))                                                         \
+    ((E_prior,, bool, 0))                                                      \
     ((self_loops,, bool, 0))
 
 template <class BlockState>
@@ -174,7 +175,8 @@ struct Measured
             S += lbeta(_T + _alpha, _M - _T + _beta) - lbeta(_alpha, _beta);
             S += lbeta(_X - _T + _mu, _N - _X - (_M - _T) + _nu) - lbeta(_mu, _nu);
 
-            S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
+            if (_E_prior)
+                S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
 
             return -S;
         }
@@ -198,8 +200,11 @@ struct Measured
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
-            dS += _pe;
-            dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            if (_E_prior)
+            {
+                dS += _pe;
+                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            }
             if (_eweight[e] == 1 && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);
@@ -216,8 +221,11 @@ struct Measured
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
-            dS -= _pe;
-            dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            if (_E_prior)
+            {
+                dS -= _pe;
+                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            }
             if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
             {
                 auto& m = get_edge<false>(u, v);

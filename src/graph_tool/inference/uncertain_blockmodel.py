@@ -194,7 +194,7 @@ class UncertainBaseState(object):
         return L
 
 class UncertainBlockState(UncertainBaseState):
-    def __init__(self, g, q, q_default=0., phi=1, nested=True, state_args={},
+    def __init__(self, g, q, q_default=0., phi=numpy.nan, nested=True, state_args={},
                  bstate=None, self_loops=False):
         r"""The stochastic block model state of an uncertain graph.
 
@@ -206,9 +206,9 @@ class UncertainBlockState(UncertainBaseState):
             Edge probabilities in range :math:`[0,1]`.
         q_default : ``float`` (optional, default: ``0.``)
             Non-edge probability in range :math:`[0,1]`.
-        phi : ``float`` (optional, default: ``1.``)
-            Multiplier for total number of edges, inferred from ``q`` and
-            ``q_default``.
+        phi : ``float`` (optional, default: ``NaN``)
+            Multiplier for total number of edges used in prior, relative to the
+            empirically measured. If ``NaN``, a flat prior will be used.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
             will be used, otherwise
@@ -248,7 +248,12 @@ class UncertainBlockState(UncertainBaseState):
                         log1p(-q_default) * (self.M - self.g.num_edges())
                         - self.M * log1p(-self.p))
 
-        self.aE *= phi
+        if numpy.isnan(phi):
+            self.aE = 0
+            self.E_prior = False
+        else:
+            self.aE *= phi
+            self.E_prior = True
 
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
@@ -284,7 +289,7 @@ class UncertainBlockState(UncertainBaseState):
 class MeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=1), fp_params=dict(mu=1, nu=1),
-                 phi=1, nested=True, state_args={}, bstate=None,
+                 phi=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False):
         r"""The stochastic block model state of an uncertain graph.
 
@@ -308,8 +313,9 @@ class MeasuredBlockState(UncertainBaseState):
         fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
             Gamma distribution hyperparameters for the probability of spurious
             edges (false positives).
-        phi : ``float`` (optional, default: ``1.``)
-            Multiplier for total number of edges.
+        phi : ``float`` (optional, default: ``NaN``)
+            Multiplier for total number of edges used in prior, relative to the
+            empirically measured. If ``NaN``, a flat prior will be used.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
             will be used, otherwise
@@ -324,17 +330,23 @@ class MeasuredBlockState(UncertainBaseState):
         self_loops : bool (optional, default: ``False``)
             If ``True``, it is assumed that the uncertain graph can contain
             self-loops.
+
         """
 
         super(MeasuredBlockState, self).__init__(g, nested=nested,
                                                  state_args=state_args,
                                                  bstate=bstate)
 
-        self.aE = (x.fa / n.fa).sum()
-        if n_default > 0:
-            self.aE += (self.M - g.num_edges()) * (x_default/n_default)
+        if numpy.isnan(phi):
+            self.aE = 0
+            self.E_prior = False
+        else:
+            self.aE = (x.fa / n.fa).sum()
+            if n_default > 0:
+                self.aE += (self.M - g.num_edges()) * (x_default/n_default)
 
-        self.aE *= phi
+            self.aE *= phi
+            self.E_prior = True
 
         self.n = n
         self.x = x
