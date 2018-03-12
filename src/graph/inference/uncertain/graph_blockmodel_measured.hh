@@ -161,6 +161,19 @@ struct Measured
             return _get_edge<insert>(u, v, _g, _edges);
         }
 
+        double get_MP(size_t T, size_t M, bool complete = true)
+        {
+            double S = 0;
+            S += lbeta(M - T + _alpha, T + _beta);
+            S += lbeta(_X - T + _mu, _N - _X - (M - T) + _nu);
+            if (complete)
+            {
+                S -= lbeta(_alpha, _beta);
+                S -= lbeta(_mu, _nu);
+            }
+            return S;
+        }
+
         double entropy()
         {
             double S = 0;
@@ -172,8 +185,7 @@ struct Measured
             }
             S += (_NP - gE) * lbinom(_n_default, _x_default);
 
-            S += lbeta(_T + _alpha, _M - _T + _beta) - lbeta(_alpha, _beta);
-            S += lbeta(_X - _T + _mu, _N - _X - (_M - _T) + _nu) - lbeta(_mu, _nu);
+            S+= get_MP(_T, _M);
 
             if (_E_prior)
                 S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
@@ -183,14 +195,9 @@ struct Measured
 
         double get_dS(int dT, int dM)
         {
-            size_t nT = _T + dT;
-            size_t nM = _M + dM;
-
             // FIXME: Can be faster!
-            double Si = (lbeta(_T + _alpha, _M - _T + _beta) +
-                         lbeta(_X - _T + _mu, _N - _X - (_M - _T) + _nu));
-            double Sf = (lbeta(nT + _alpha, nM - nT + _beta) +
-                         lbeta(_X - nT + _mu, _N - _X - (nM - nT) + _nu));
+            double Si = get_MP(_T, _M, false);
+            double Sf = get_MP(_T + dT, _M + dM, false);
             return -(Sf - Si);
         }
 

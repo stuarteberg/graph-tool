@@ -83,7 +83,7 @@ class UncertainBaseState(object):
                 self.nbstate = None
                 self.bstate = bstate
 
-        edges = self.u.get_edges()
+        edges = self.g.get_edges()
         edges = numpy.concatenate((edges,
                                    numpy.ones(edges.shape,
                                               dtype=edges.dtype) * (N + 1)))
@@ -366,8 +366,8 @@ class MeasuredBlockState(UncertainBaseState):
                     x_default=self.x_default,
                     fp_params=dict(alpha=self.alpha, beta=self.beta),
                     fn_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
-                    bstate=(self.nbstate.copy() if self.nbstate is not None
-                            else self.bstate.copy()), self_loops=self.self_loops)
+                    bstate=(self.nbstate if self.nbstate is not None
+                            else self.bstate), self_loops=self.self_loops)
 
     def __setstate__(self, state):
         self.__init__(**state)
@@ -398,7 +398,7 @@ class MeasuredBlockState(UncertainBaseState):
         """Get gamma distribution parameters for the posterior probability of missing edges."""
         T = self._state.get_T()
         M = self._state.get_M()
-        return T + self.alpha, M - T + self.beta
+        return M - T + self.alpha, M + self.beta
 
     def get_q_posterior(self):
         """Get gamma distribution parameters for the posterior probability of spurious edges."""
