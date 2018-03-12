@@ -1186,7 +1186,7 @@ def edge_endpoint_property(g, prop, endpoint, eprop=None):
     >>> g = gt.random_graph(100, lambda: (3, 3))
     >>> esource = gt.edge_endpoint_property(g, g.vertex_index, "source")
     >>> print(esource.a)
-   [ 0  0  0 96 96 96 92 92 92 88 88 88 84 84 84 80 80 80 76 76 76 72 72 72
+    [ 0  0  0 96 96 96 92 92 92 88 88 88 84 84 84 80 80 80 76 76 76 72 72 72
      68 68 68 64 64 64 60 60 60 56 56 56 52 52 52 48 48 48 44 44 44 40 40 40
      36 36 36 32 32 32 28 28 28 24 24 24 20 20 20 16 16 16 12 12 12  8  8  8
       4  4  4 99 99 99  1  1  1  2  2  2  3  3  3  5  5  5  6  6  6  7  7  7
