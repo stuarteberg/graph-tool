@@ -95,6 +95,16 @@ struct Uncertain
         double _pe = log(_aE);
         size_t _E = 0;
 
+        void set_q_default(double q_default)
+        {
+            _q_default = q_default;
+        }
+
+        void set_S_const(double S_const)
+        {
+            _S_const = S_const;
+        }
+
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
         {

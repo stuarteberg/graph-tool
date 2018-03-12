@@ -237,7 +237,8 @@ class UncertainBlockState(UncertainBaseState):
         self.p = self.aE / self.M
 
         self.q = self.g.new_ep("double", vals=log(q.fa) - log1p(-q.fa))
-        self.q.fa -= log(self.p) - log1p(-self.p)
+        if not self.forward:
+            self.q.fa -= log(self.p) - log1p(-self.p)
         if q_default > 0:
             self.q_default = log(q_default) - log1p(q_default)
             self.q_default -= log(self.p) - log1p(-self.p)
@@ -291,7 +292,7 @@ class MeasuredBlockState(UncertainBaseState):
                  fn_params=dict(alpha=1, beta=1), fp_params=dict(mu=1, nu=1),
                  phi=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False):
-        r"""The stochastic block model state of an uncertain graph.
+        r"""The stochastic block model state of a measured graph.
 
         Parameters
         ----------
@@ -408,3 +409,166 @@ class MeasuredBlockState(UncertainBaseState):
         T = self._state.get_T()
         M = self._state.get_M()
         return X - T + self.mu, N + X - (M - T) + self.nu
+
+class MixedMeasuredBlockState(UncertainBaseState):
+    def __init__(self, g, n, x, n_default=1, x_default=0,
+                 fn_params=dict(alpha=1, beta=10), fp_params=dict(mu=1, nu=10),
+                 phi=numpy.nan, nested=True, state_args={}, bstate=None,
+                 self_loops=False):
+        r"""The stochastic block model state of a measured graph, with heterogeneous
+        measurements.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+            Graph to be modelled.
+        n : :class:`~graph_tool.PropertyMap`
+            Edge property map of type ``int``, containing the total number of
+            measurements for each edge.
+        x : :class:`~graph_tool.PropertyMap`
+            Edge property map of type ``int``, containing the number of
+            positive measurements for each edge.
+        n_default : ``int`` (optional, default: ``1``)
+            Total number of measurements for each non-edge.
+        x_default : ``int`` (optional, default: ``1``)
+            Total number of positive measurements for each non-edge.
+        fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
+            Gamma distribution hyperparameters for the probability of missing
+            edges (false negatives).
+        fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
+            Gamma distribution hyperparameters for the probability of spurious
+            edges (false positives).
+        phi : ``float`` (optional, default: ``NaN``)
+            Multiplier for total number of edges used in prior, relative to the
+            empirically measured. If ``NaN``, a flat prior will be used.
+        nested : ``boolean`` (optional, default: ``True``)
+            If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+            will be used, otherwise
+            :class:`~graph_tool.inference.BlockState`.
+        state_args : ``dict`` (optional, default: ``{}``)
+            Arguments to be passed to
+            :class:`~graph_tool.inference.NestedBlockState` or
+            :class:`~graph_tool.inference.BlockState`.
+        bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+            If passed, this will be used to initialize the block state
+            directly.
+        self_loops : bool (optional, default: ``False``)
+            If ``True``, it is assumed that the uncertain graph can contain
+            self-loops.
+
+        """
+
+        super(MixedMeasuredBlockState, self).__init__(g, nested=nested,
+                                                      state_args=state_args,
+                                                      bstate=bstate)
+        if numpy.isnan(phi):
+            self.aE = 0
+            self.E_prior = False
+        else:
+            self.aE = (x.fa / n.fa).sum()
+            if n_default > 0:
+                self.aE += (self.M - g.num_edges()) * (x_default/n_default)
+            self.aE *= phi
+            self.E_prior = True
+
+        self.n = n
+        self.x = x
+        self.n_default = n_default
+        self.x_default = x_default
+        self.alpha = fn_params.get("alpha", 1)
+        self.beta = fn_params.get("beta", 1)
+        self.mu = fp_params.get("mu", 1)
+        self.nu = fp_params.get("nu", 1)
+        self.phi = phi
+
+        self._state = None
+
+        self.q = self.g.new_ep("double")
+        self.sync_q()
+
+        self._state = libinference.make_uncertain_state(self.bstate._state,
+                                                        self)
+
+    def sync_q(self):
+        ra, rb = self.transform(self.n.fa, self.x.fa)
+        self.q.fa = log(ra) - log(rb)
+        dra, drb = self.transform(self.n_default, self.x_default)
+        self.q_default = log(dra) - log(drb)
+
+        self.S_const = (self.M - self.g.num_edges()) * log(drb) + log(drb).sum()
+
+        if self._state is not None:
+            self._state.set_q_default(self.q_default)
+            self._state.set_S_const(self.S_const)
+
+    def transform(self, na, xa):
+        ra = scipy.special.beta(na - xa + self.alpha, xa + self.beta) / scipy.special.beta(self.alpha, self.beta)
+        rb = scipy.special.beta(xa + self.mu, na - xa + self.nu) / scipy.special.beta(self.mu, self.nu)
+        return ra, rb
+
+    def set_hparams(self, alpha, beta, mu, nu):
+        """Set edge and non-edge hyperparameters."""
+        self.alpha = alpha
+        self.beta = beta
+        self.mu = mu
+        self.nu = nu
+        self.sync_q()
+
+    def __getstate__(self):
+        return dict(g=self.g, n=self.n, x=self.x, n_default=self.n_default,
+                    x_default=self.x_default,
+                    fp_params=dict(alpha=self.alpha, beta=self.beta),
+                    fn_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    nested=self.nbstate is not None,
+                    bstate=(self.nbstate if self.nbstate is not None
+                            else self.bstate), self_loops=self.self_loops)
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def copy(self, **kwargs):
+        """Return a copy of the state."""
+        return MixedMeasuredBlockState(**dict(self.__getstate__(), **kwargs))
+
+    def __copy__(self):
+        return self.copy()
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def __repr__(self):
+        return "<MixedMeasuredBlockState object with %s, at 0x%x>" % \
+            (self.nbstate if self.nbstate is not None else self.bstate,
+             id(self))
+
+    def _algo_sweep(self, algo, r=.5, h=.1, hstep=1, **kwargs):
+        if numpy.random.random() < h:
+            hs = [self.alpha, self.beta, self.mu, self.nu]
+            j = numpy.random.randint(len(hs))
+
+            f_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
+            pf = 1./(f_dh[1] - f_dh[0])
+
+            old_hs = hs[j]
+            hs[j] = f_dh[0] + numpy.random.random() * (f_dh[1] - f_dh[0])
+
+            b_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
+            pb = 1./min(1, hs[j])
+
+            Sb = self._state.entropy()
+            self.set_hparams(*hs)
+            Sa = self._state.entropy()
+
+            if Sa < Sb or numpy.random.random() < exp(-(Sa-Sb) + log(pb) - log(pf)):
+                return (Sa-Sb, 1, 1)
+            else:
+                hs[j] = old_hs
+                self.set_hparams(*hs)
+                return (0., 1, 0)
+        else:
+            return super(MixedMeasuredBlockState, self)._algo_sweep(algo, r, **kwargs)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_uncertain_sweep(mcmc_state,
+                                                 self._state,
+                                                 _get_rng())

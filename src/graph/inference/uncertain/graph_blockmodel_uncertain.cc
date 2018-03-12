@@ -80,7 +80,9 @@ void export_uncertain_state()
                           .def("add_edge", &state_t::add_edge)
                           .def("remove_edge_dS", &state_t::remove_edge_dS)
                           .def("add_edge_dS", &state_t::add_edge_dS)
-                          .def("entropy", &state_t::entropy);
+                          .def("entropy", &state_t::entropy)
+                          .def("set_q_default", &state_t::set_q_default)
+                          .def("set_S_const", &state_t::set_S_const);
                   });
          });
 
