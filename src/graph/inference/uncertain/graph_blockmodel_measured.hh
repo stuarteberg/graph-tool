@@ -88,8 +88,8 @@ struct Measured
                                          (source(e, _u) == target(e, _u))))
                     continue;
                 auto ge = get_edge<false>(source(e, _g), target(e, _g));
-                _T += (ge != _null_edge) ? _x[e] : _x_default;
-                _M += (ge != _null_edge) ? _n[e] : _n_default;
+                _T += (ge != _null_edge) ? _x[ge] : _x_default;
+                _M += (ge != _null_edge) ? _n[ge] : _n_default;
             }
 
             size_t N = num_vertices(_g);

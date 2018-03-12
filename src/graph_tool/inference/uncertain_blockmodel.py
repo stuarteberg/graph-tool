@@ -366,6 +366,7 @@ class MeasuredBlockState(UncertainBaseState):
                     x_default=self.x_default,
                     fp_params=dict(alpha=self.alpha, beta=self.beta),
                     fn_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None
                             else self.bstate), self_loops=self.self_loops)
 
