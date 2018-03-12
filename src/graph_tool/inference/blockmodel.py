@@ -688,8 +688,6 @@ class BlockState(object):
                      rec_types=self.rec_types,
                      rec_params=self.rec_params,
                      ignore_degrees=self.ignore_degrees.copy("int"),
-                     degs=self.degs if not isinstance(self.degs,
-                                                      libinference.simple_degs_t) else None,
                      merge_map=self.merge_map)
         return state
 
