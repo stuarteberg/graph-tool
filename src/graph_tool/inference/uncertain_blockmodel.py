@@ -495,7 +495,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
         dra, drb = self.transform(self.n_default, self.x_default)
         self.q_default = log(dra) - log(drb)
 
-        self.S_const = (self.M - self.g.num_edges()) * log(drb) + log(drb).sum()
+        self.S_const = (self.M - self.g.num_edges()) * log(drb) + log(rb).sum()
 
         if self._state is not None:
             self._state.set_q_default(self.q_default)
