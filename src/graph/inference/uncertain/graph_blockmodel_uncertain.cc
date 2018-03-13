@@ -82,7 +82,23 @@ void export_uncertain_state()
                           .def("add_edge_dS", &state_t::add_edge_dS)
                           .def("entropy", &state_t::entropy)
                           .def("set_q_default", &state_t::set_q_default)
-                          .def("set_S_const", &state_t::set_S_const);
+                          .def("set_S_const", &state_t::set_S_const)
+                          .def("get_edge_prob",
+                               +[](state_t& state, size_t u, size_t v,
+                                   entropy_args_t ea, double epsilon)
+                                {
+                                    return get_edge_prob(state, u, v, ea,
+                                                         epsilon);
+                                })
+                          .def("get_edges_prob",
+                               +[](state_t& state, python::object edges,
+                                   python::object probs, entropy_args_t ea,
+                                   double epsilon)
+                                {
+                                    get_edges_prob(state, edges, probs, ea,
+                                                   epsilon);
+                                });
+
                   });
          });
 

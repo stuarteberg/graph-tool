@@ -161,37 +161,17 @@ class UncertainBaseState(object):
         r"""Return conditional posterior probability of edge :math:`(u,v)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
         ea = get_entropy_args(entropy_args)
+        return self._state.get_edge_prob(u, v, ea, epsilon)
 
-        e = self.u.edge(u, v)
-        if e is None:
-            ew = 0
-        else:
-            ew = self.eweight[e]
-
-        for i in range(ew):
-            self._state.remove_edge(int(u), int(v))
-
-        L = 0
-        delta = 1 + epsilon
-        ne = 0
-        S = 0
-        M = 0
-        while delta > epsilon:
-            dS = self._state.add_edge_dS(int(u), int(v), ea)
-            self._state.add_edge(int(u), int(v))
-            S += dS
-            ne += 1
-            M += log1p(exp(-S-M))
-            delta = exp(-S-M)
-
-        L = log1p(-exp(-M))
-
-        for i in range(ne - ew):
-            self._state.remove_edge(int(u), int(v))
-        for i in range(ew - ne):
-            self._state.add_edge(int(u), int(v))
-
-        return L
+    def get_edges_prob(self, elist, entropy_args={}, epsilon=1e-8):
+        r"""Return conditional posterior probability of an edge list, with
+        shape :math:`(E,2)`."""
+        entropy_args = dict(self.bstate._entropy_args, **entropy_args)
+        ea = get_entropy_args(entropy_args)
+        elist = numpy.asarray(elist, dtype="uint64")
+        probs = numpy.zeros(elist.shape[0])
+        self._state.get_edges_prob(elist, probs, ea, epsilon)
+        return probs
 
 class UncertainBlockState(UncertainBaseState):
     def __init__(self, g, q, q_default=0., phi=numpy.nan, nested=True, state_args={},

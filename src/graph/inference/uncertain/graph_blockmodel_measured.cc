@@ -23,6 +23,7 @@
 
 #include "../blockmodel/graph_blockmodel.hh"
 #define BASE_STATE_params BLOCK_STATE_params
+#include "graph_blockmodel_uncertain.hh"
 #include "graph_blockmodel_measured.hh"
 #include "../support/graph_state.hh"
 
@@ -85,7 +86,22 @@ void export_measured_state()
                           .def("get_N", &state_t::get_N)
                           .def("get_X", &state_t::get_X)
                           .def("get_T", &state_t::get_T)
-                          .def("get_M", &state_t::get_M);
+                          .def("get_M", &state_t::get_M)
+                          .def("get_edge_prob",
+                               +[](state_t& state, size_t u, size_t v,
+                                   entropy_args_t ea, double epsilon)
+                                {
+                                    return get_edge_prob(state, u, v, ea,
+                                                         epsilon);
+                                })
+                          .def("get_edges_prob",
+                               +[](state_t& state, python::object edges,
+                                   python::object probs, entropy_args_t ea,
+                                   double epsilon)
+                                {
+                                    get_edges_prob(state, edges, probs, ea,
+                                                   epsilon);
+                                });
                   });
          });
 

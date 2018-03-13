@@ -222,6 +222,53 @@ struct Uncertain
     };
 };
 
+template <class State>
+double get_edge_prob(State& state, size_t u, size_t v, entropy_args_t ea,
+                     double epsilon)
+{
+    auto e = state.get_u_edge(u, v);
+    size_t ew = 0;
+    if (e != state._null_edge)
+        ew = state._eweight[e];
+
+    for (size_t i = 0; i < ew; ++i)
+        state.remove_edge(u, v);
+
+    double S = 0, Z = 1;
+    double delta = 1. + epsilon;
+    size_t ne = 0;
+
+    while (delta > epsilon || ne < 2)
+    {
+        double dS = state.add_edge_dS(u, v, ea);
+        state.add_edge(u, v);
+        S += dS;
+        ne++;
+        double dZ = exp(-S);
+        delta = dZ/Z;
+        Z += dZ;
+    }
+
+    double L = log1p(-1./Z);
+
+    for (int i = 0; i < int(ne - ew); ++i)
+        state.remove_edge(u, v);
+    for (int i = 0; i < int(ew - ne); ++i)
+        state.add_edge(u, v);
+
+    return L;
+}
+
+template <class State>
+void get_edges_prob(State& state, python::object edges, python::object probs,
+                    entropy_args_t ea, double epsilon)
+{
+    multi_array_ref<uint64_t,2> es = get_array<uint64_t,2>(edges);
+    multi_array_ref<double,1> eprobs = get_array<double,1>(probs);
+    for (size_t i = 0; i < eprobs.shape()[0]; ++i)
+        eprobs[i] = get_edge_prob(state, es[i][0], es[i][1], ea, epsilon);
+}
+
 } // graph_tool namespace
 
 #endif //GRAPH_BLOCKMODEL_UNCERTAIN_HH
