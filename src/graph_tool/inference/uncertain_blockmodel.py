@@ -412,10 +412,10 @@ class MixedMeasuredBlockState(UncertainBaseState):
             Total number of measurements for each non-edge.
         x_default : ``int`` (optional, default: ``1``)
             Total number of positive measurements for each non-edge.
-        fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
+        fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=10)``)
             Gamma distribution hyperparameters for the probability of missing
             edges (false negatives).
-        fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
+        fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=10)``)
             Gamma distribution hyperparameters for the probability of spurious
             edges (false positives).
         phi : ``float`` (optional, default: ``NaN``)
@@ -456,9 +456,9 @@ class MixedMeasuredBlockState(UncertainBaseState):
         self.n_default = n_default
         self.x_default = x_default
         self.alpha = fn_params.get("alpha", 1)
-        self.beta = fn_params.get("beta", 1)
+        self.beta = fn_params.get("beta", 10)
         self.mu = fp_params.get("mu", 1)
-        self.nu = fp_params.get("nu", 1)
+        self.nu = fp_params.get("nu", 10)
         self.phi = phi
 
         self._state = None
@@ -497,8 +497,8 @@ class MixedMeasuredBlockState(UncertainBaseState):
     def __getstate__(self):
         return dict(g=self.g, n=self.n, x=self.x, n_default=self.n_default,
                     x_default=self.x_default,
-                    fp_params=dict(alpha=self.alpha, beta=self.beta),
-                    fn_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    fn_params=dict(alpha=self.alpha, beta=self.beta),
+                    fp_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
                     nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None
                             else self.bstate), self_loops=self.self_loops)
