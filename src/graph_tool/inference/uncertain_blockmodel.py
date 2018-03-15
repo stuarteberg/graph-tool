@@ -370,7 +370,7 @@ class MeasuredBlockState(UncertainBaseState):
 
     def set_hparams(self, alpha, beta, mu, nu):
         """Set edge and non-edge hyperparameters."""
-        self._state.set_hparms(alpha, beta, mu, nu)
+        self._state.set_hparams(alpha, beta, mu, nu)
         self.alpha = alpha
         self.beta = beta
         self.mu = mu
