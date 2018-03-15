@@ -25,7 +25,7 @@ using namespace boost;
 using namespace graph_tool;
 
 void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
-                    python::object edges, python::object max_size)
+                    python::object edges, python::object max_size, bool second)
 {
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -54,13 +54,13 @@ void percolate_edge(GraphInterface& gi, boost::any tree, boost::any size,
     multi_array_ref<uint64_t, 1> ms = get_array<uint64_t, 1>(max_size);
 
     run_action<graph_tool::detail::never_directed>()
-        (gi, [&](auto& g){ edge_percolate(g, tree_map, size_map, ms, es); })();
+        (gi, [&](auto& g){ edge_percolate(g, tree_map, size_map, ms, es, second); })();
 }
 
 
 void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
                       boost::any visited, python::object vertices,
-                      python::object max_size)
+                      python::object max_size, bool second)
 {
     typedef property_map_type::apply<int64_t,
                                      GraphInterface::vertex_index_map_t>::type
@@ -104,7 +104,7 @@ void percolate_vertex(GraphInterface& gi, boost::any tree, boost::any size,
 
     run_action<graph_tool::detail::never_directed>()
         (gi, [&](auto& g){ vertex_percolate(g, tree_map, size_map, visited_map,
-                                            ms, vs); })();
+                                            ms, vs, second); })();
 }
 
 #include <boost/python.hpp>

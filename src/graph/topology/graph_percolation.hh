@@ -43,16 +43,21 @@ auto find_root(size_t vi, TreeMap tree, Graph& g,
 
 template <class Graph, class TreeMap, class SizeMap>
 auto join_cluster(const pair<size_t, size_t>& e, TreeMap tree, SizeMap size,
-                  Graph& g, vector<size_t>& temp)
+                  Graph& g, vector<size_t>& shist, vector<size_t>& temp)
 {
     auto rs = find_root(e.first, tree, g, temp);
     auto rt = find_root(e.second, tree, g, temp);
     if (rt != rs)
     {
-        if (size[rs] < size[rt])
+        auto srs = size[rs];
+        auto srt = size[rt];
+        if (srs < srt)
             swap(rs, rt);
         tree[rt] = rs;
         size[rs] += size[rt];
+        shist[srs]--;
+        shist[srt]--;
+        shist[size[rs]]++;
         return size[rs];
     }
     return std::max(size[rs], size[rt]);
@@ -61,16 +66,29 @@ auto join_cluster(const pair<size_t, size_t>& e, TreeMap tree, SizeMap size,
 template <class Graph, class TreeMap, class SizeMap, class MaxSize,
           class Edges>
 void edge_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
-                    Edges& edges)
+                    Edges& edges, bool second)
 {
     vector<size_t> temp;
+    vector<size_t> shist(num_vertices(g) + 1);
+    shist[1] = num_vertices(g);
     size_t ms = 0;
     for (size_t i = 0; i < edges.size(); ++i)
     {
         size_t s = join_cluster({edges[i][0], edges[i][1]},
-                                tree, size, g, temp);
+                                tree, size, g, shist, temp);
         ms = std::max(ms, s);
-        max_size[i] = ms;
+        if (!second)
+        {
+            max_size[i] = ms;
+        }
+        else
+        {
+            for (size_t s = 1; s < ms; ++s)
+            {
+                if (shist[s] > 0)
+                    max_size[i] = s;
+            }
+        }
     }
 
     boost::multi_array_ref<typename Edges::element, 1>
@@ -87,9 +105,11 @@ void edge_percolate(Graph& g, TreeMap tree, SizeMap size, MaxSize& max_size,
 template <class Graph,  class TreeMap, class SizeMap, class VisitedMap,
           class MaxSize,  class Vertices>
 void vertex_percolate(Graph& g, TreeMap tree, SizeMap size, VisitedMap visited,
-                      MaxSize& max_size, Vertices& vertices)
+                      MaxSize& max_size, Vertices& vertices, bool second)
 {
     vector<size_t> temp;
+    vector<size_t> shist(num_vertices(g) + 1);
+    shist[1] = num_vertices(g);
     size_t ms = 0;
     for (size_t i = 0; i < vertices.size(); ++i)
     {
@@ -105,10 +125,21 @@ void vertex_percolate(Graph& g, TreeMap tree, SizeMap size, VisitedMap visited,
             if (!visited[a])
                 continue;
             size_t s = join_cluster({v, a}, tree, size, g,
-                                    temp);
+                                    shist, temp);
             ms = std::max(ms, s);
         }
-        max_size[i] = std::max(ms, size_t(1));
+        if (!second)
+        {
+            max_size[i] = std::max(ms, size_t(1));
+        }
+        else
+        {
+            for (size_t s = 1; s < ms; ++s)
+            {
+                if (shist[s] > 0)
+                    max_size[i] = s;
+            }
+        }
         visited[v] = true;
     }
 

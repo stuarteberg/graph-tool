@@ -1261,8 +1261,9 @@ def label_biconnected_components(g, eprop=None, vprop=None):
                                           _prop("v", g, vprop))
     return eprop, vprop, hist
 
-def vertex_percolation(g, vertices):
-    """Compute the size of the largest component as vertices are (virtually)
+def vertex_percolation(g, vertices, second=False):
+    """Compute the size of the largest or second-largest component as vertices
+    are (virtually)
     removed from the graph.
 
     Parameters
@@ -1271,11 +1272,14 @@ def vertex_percolation(g, vertices):
         Graph to be used.
     vertices : :class:`numpy.ndarray` or iterable of ints
         List of vertices in reversed order of removal.
+    second : bool (optional, default: ``False``)
+        If ``True``, the size of the second-largest component will be computed.
 
     Returns
     -------
     size : :class:`numpy.ndarray`
-        Size of the largest component prior to removal of each vertex.
+        Size of the largest (or second-largest) component prior to removal of
+        each vertex.
     comp : :class:`~graph_tool.PropertyMap`
         Vertex property map with component labels.
 
@@ -1339,13 +1343,13 @@ def vertex_percolation(g, vertices):
                          _prop("v", u, tree),
                          _prop("v", u, size),
                          _prop("v", u, visited),
-                         vertices, max_size)
+                         vertices, max_size, second)
 
     return max_size, tree
 
-def edge_percolation(g, edges):
-    """Compute the size of the largest component as edges are (virtually)
-    removed from the graph.
+def edge_percolation(g, edges, second=False):
+    """Compute the size of the largest or second-largest component as edges are
+    (virtually) removed from the graph.
 
     Parameters
     ----------
@@ -1356,11 +1360,14 @@ def edge_percolation(g, edges):
         :class:`numpy.ndarray`, it should have a shape ``(E, 2)``, where ``E``
         is the number of edges, such that ``edges[i,0]`` and ``edges[i,1]`` are
         the both endpoints of edge ``i``.
+    second : bool (optional, default: ``False``)
+        If ``True``, the size of the second-largest component will be computed.
 
     Returns
     -------
     size : :class:`numpy.ndarray`
-        Size of the largest component prior to removal of each edge.
+        Size of the largest (or second-largest) component prior to removal of
+        each edge.
     comp : :class:`~graph_tool.PropertyMap`
         Vertex property map with component labels.
 
@@ -1423,7 +1430,7 @@ def edge_percolation(g, edges):
         percolate_edge(u._Graph__graph,
                        _prop("v", u, tree),
                        _prop("v", u, size),
-                       edges, max_size)
+                       edges, max_size, second)
     return max_size, tree
 
 def kcore_decomposition(g, vprop=None):
