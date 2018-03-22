@@ -125,10 +125,10 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     Notes
     -----
-    The adjacency similarity is the sum of equal entries in the adjacency
-    matrix, given a vertex ordering determined by the vertex labels. In other
-    words, it counts the number of edges which have the same source and target
-    labels in both graphs.
+    The adjacency similarity is the sum of equal non-zero entries in the
+    adjacency matrix, given a vertex ordering determined by the vertex
+    labels. In other words, it counts the number of edges which have the same
+    source and target labels in both graphs.
 
     More specifically, it is defined as:
 
