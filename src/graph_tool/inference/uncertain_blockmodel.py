@@ -34,12 +34,16 @@ from . blockmodel import _bm_test
 
 class UncertainBaseState(object):
     def __init__(self, g, nested=True, state_args={}, bstate=None,
-                 self_loops=False):
+                 self_loops=False, init_empty=False):
 
         self.g = g
 
         if bstate is None:
-            self.u = g.copy()
+            if init_empty:
+                self.u = Graph(directed=g.is_directed())
+                self.u.add_vertex(g.num_vertices())
+            else:
+                self.u = g.copy()
             self.eweight = self.u.new_ep("int", val=1)
         else:
             self.u = bstate.g
@@ -175,7 +179,7 @@ class UncertainBaseState(object):
 
 class UncertainBlockState(UncertainBaseState):
     def __init__(self, g, q, q_default=0., phi=numpy.nan, nested=True, state_args={},
-                 bstate=None, self_loops=False):
+                 bstate=None, self_loops=False, **kwargs):
         r"""The stochastic block model state of an uncertain graph.
 
         Parameters
@@ -208,7 +212,8 @@ class UncertainBlockState(UncertainBaseState):
         super(UncertainBlockState, self).__init__(g, nested=nested,
                                                   state_args=state_args,
                                                   bstate=bstate,
-                                                  self_loops=self_loops)
+                                                  self_loops=self_loops,
+                                                  **kwargs)
         self._q = q
         self._q_default = q_default
         self.phi = phi
@@ -271,7 +276,7 @@ class MeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=1), fp_params=dict(mu=1, nu=1),
                  phi=numpy.nan, nested=True, state_args={}, bstate=None,
-                 self_loops=False):
+                 self_loops=False, **kwargs):
         r"""The stochastic block model state of a measured graph.
 
         Parameters
@@ -316,7 +321,7 @@ class MeasuredBlockState(UncertainBaseState):
 
         super(MeasuredBlockState, self).__init__(g, nested=nested,
                                                  state_args=state_args,
-                                                 bstate=bstate)
+                                                 bstate=bstate, **kwargs)
 
         if numpy.isnan(phi):
             self.aE = 0
@@ -394,7 +399,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=10), fp_params=dict(mu=1, nu=10),
                  phi=numpy.nan, nested=True, state_args={}, bstate=None,
-                 self_loops=False):
+                 self_loops=False, **kwargs):
         r"""The stochastic block model state of a measured graph, with heterogeneous
         measurements.
 
@@ -440,7 +445,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
         super(MixedMeasuredBlockState, self).__init__(g, nested=nested,
                                                       state_args=state_args,
-                                                      bstate=bstate)
+                                                      bstate=bstate, **kwargs)
         if numpy.isnan(phi):
             self.aE = 0
             self.E_prior = False
