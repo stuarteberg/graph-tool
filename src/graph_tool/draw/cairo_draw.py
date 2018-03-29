@@ -1753,7 +1753,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
             y.fa -= y.fa.mean()
             angle = g.new_vertex_property("double")
             angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
-            vorder = angle
+            vorder = t.own_property(angle)
         if node_weight is not None:
             node_weight = t.own_property(node_weight.copy())
             node_weight.a[node_weight.a == 0] = 1
@@ -2022,12 +2022,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
                 x, y = ungroup_vector_property(pos, [0, 1])
                 x.fa -= x.fa.mean()
                 y.fa -= y.fa.mean()
-                angle = gg.new_vertex_property("double")
+                angle = t_orig.new_vertex_property("double")
                 angle.fa = (numpy.arctan2(y.fa, x.fa) + 2 * numpy.pi) % (2 * numpy.pi)
                 tpos = radial_tree_layout(t_orig,
                                           root=t_orig.vertex(t_orig.num_vertices(True) - 1),
                                           rel_order=angle)
-                gg.copy_property(tpos, pos)
+                gg.copy_property(gg.own_property(tpos), pos)
 
             update_cts(widget, gg, picked, pos, vprops, eprops)
 
