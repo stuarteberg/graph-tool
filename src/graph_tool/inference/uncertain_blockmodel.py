@@ -51,6 +51,7 @@ class UncertainBaseState(object):
                 self.eweight = bstate.levels[0].eweight
             else:
                 self.eweight = bstate.eweight
+        self.u.set_fast_edge_removal()
 
         self.self_loops = self_loops
         N = self.u.num_vertices()
