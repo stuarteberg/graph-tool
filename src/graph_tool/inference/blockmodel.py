@@ -2071,7 +2071,7 @@ class BlockState(object):
                                     update)
         return p
 
-    def collect_vertex_marginals(self, p=None, update=1):
+    def collect_vertex_marginals(self, p=None, unlabel=False, update=1):
         r"""Collect the vertex marginal histogram, which counts the number of times a
         node was assigned to a given block.
 
@@ -2083,6 +2083,9 @@ class BlockState(object):
         p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
             Vertex property map with vector-type values, storing the previous block
             membership counts. If not provided, an empty histogram will be created.
+        unlabel : bool (optional, default: ``False``)
+            If ``True``, a canonical labelling of the groups will be used, so
+            that each partition is uniquely represented.
         update : int (optional, default: ``1``)
             Each call increases the current count by the amount given by this
             parameter.
@@ -2131,8 +2134,11 @@ class BlockState(object):
         if p is None:
             p = self.g.new_vp("vector<double>")
 
+        b = self.b
+        if unlabel:
+            b = perfect_prop_hash([b])[0]
         libinference.vertex_marginals(self.g._Graph__graph,
-                                      _prop("v", self.g, self.b),
+                                      _prop("v", self.g, b),
                                       _prop("v", self.g, p),
                                       update)
         return p
@@ -2151,8 +2157,8 @@ class BlockState(object):
             Each call increases the current count by the amount given by this
             parameter.
         unlabel : bool (optional, default: ``True``)
-            If ``True``, the partition will be relabeled so that only one entry
-            for all its label permutations will be considered in the histogram.
+            If ``True``, a canonical labelling of the groups will be used, so
+            that each partition is uniquely represented.
 
         Returns
         -------
@@ -2178,6 +2184,7 @@ class BlockState(object):
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
            129.330077...
+
         """
 
         if h is None:
@@ -2464,6 +2471,7 @@ def mf_entropy(g, p):
 
     return libinference.mf_entropy(g._Graph__graph,
                                    _prop("v", g, p))
+
 def microstate_entropy(h, unlabel=True):
     r"""Compute microstate entropy given a histogram of partitions.
 
@@ -2472,11 +2480,10 @@ def microstate_entropy(h, unlabel=True):
     h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
         Partition histogram.
     unlabel : bool (optional, default: ``True``)
-        If ``True``, it is assumed that partition were relabeled so that only
-        one entry for all its label permutations were considered in the
-        histogram. The entropy computed will correspond to the full distribution
-        over labelled partitions, where all permutations are assumed to be
-        equally likely.
+        If ``True``, a canonical labelling of the groups will be used, so that
+        each partition is uniquely represented. However, the entropy computed
+        will still correspond to the full distribution over labelled partitions,
+        where all permutations are assumed to be equally likely.
 
     Returns
     -------
