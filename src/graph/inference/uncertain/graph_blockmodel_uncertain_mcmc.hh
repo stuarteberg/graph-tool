@@ -77,7 +77,7 @@ struct MCMC
         {
             size_t u = _slist[ei];
             size_t v = _tlist[ei];
-            if (u > num_vertices(_state._g))
+            if (u >= num_vertices(_state._g))
                 std::tie(u, v) = _e;
             return {u, v};
         }

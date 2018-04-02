@@ -93,7 +93,10 @@ struct Measured
             }
 
             size_t N = num_vertices(_g);
-            _NP = graph_tool::is_directed(_g) ? N * N : (N * (N + 1)) / 2;
+            if (_self_loops)
+                _NP = graph_tool::is_directed(_g) ? N * N : (N * (N + 1)) / 2;
+            else
+                _NP = graph_tool::is_directed(_g) ? N * (N - 1) : (N * (N - 1)) / 2;
 
             _N += (_NP - gE) * _n_default;
             _X += (_NP - gE) * _x_default;
