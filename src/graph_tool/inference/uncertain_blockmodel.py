@@ -23,7 +23,8 @@ import sys
 if sys.version_info < (3,):
     range = xrange
 
-from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap
+from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, \
+    PropertyMap, edge_endpoint_property
 
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
@@ -177,6 +178,17 @@ class UncertainBaseState(object):
         probs = numpy.zeros(elist.shape[0])
         self._state.get_edges_prob(elist, probs, ea, epsilon)
         return probs
+
+    def get_graph(self):
+        r"""Return the current inferred graph."""
+        if self.self_loops:
+            u = GraphView(self.u, efilt=self.eweight.fa > 0)
+        else:
+            es = edge_endpoint_property(self.u, self.u.vertex_index, "source")
+            et = edge_endpoint_property(self.u, self.u.vertex_index, "target")
+            u = GraphView(self.u, efilt=numpy.logical_and(self.eweight.fa > 0,
+                                                          es.fa != et.fa))
+        return u
 
 class UncertainBlockState(UncertainBaseState):
     def __init__(self, g, q, q_default=0., phi=numpy.nan, nested=True, state_args={},
