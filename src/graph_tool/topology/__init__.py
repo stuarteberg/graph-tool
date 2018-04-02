@@ -220,7 +220,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
                                ew1, ew2, _prop("v", g1, label1),
                                _prop("v", g2, label2))
     if not g1.is_directed() or not g2.is_directed():
-        s /= 2
+        s //= 2
     if eweight1 is None and eweight1 is None:
         E = g1.num_edges() + g2.num_edges()
     else:
