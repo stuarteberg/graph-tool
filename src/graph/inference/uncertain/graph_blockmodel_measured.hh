@@ -87,7 +87,7 @@ struct Measured
                 if (_eweight[e] == 0 || (!_self_loops &&
                                          (source(e, _u) == target(e, _u))))
                     continue;
-                auto ge = get_edge<false>(source(e, _g), target(e, _g));
+                auto ge = get_edge<false>(source(e, _u), target(e, _u));
                 _T += (ge != _null_edge) ? _x[ge] : _x_default;
                 _M += (ge != _null_edge) ? _n[ge] : _n_default;
             }
