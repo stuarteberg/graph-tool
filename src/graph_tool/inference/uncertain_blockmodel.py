@@ -398,7 +398,7 @@ class MeasuredBlockState(UncertainBaseState):
         """Get gamma distribution parameters for the posterior probability of missing edges."""
         T = self._state.get_T()
         M = self._state.get_M()
-        return M - T + self.alpha, M + self.beta
+        return M - T + self.alpha, T + self.beta
 
     def get_q_posterior(self):
         """Get gamma distribution parameters for the posterior probability of spurious edges."""
@@ -406,7 +406,7 @@ class MeasuredBlockState(UncertainBaseState):
         X = self._state.get_X()
         T = self._state.get_T()
         M = self._state.get_M()
-        return X - T + self.mu, N + X - (M - T) + self.nu
+        return X - T + self.mu, N - X - (M - T) + self.nu
 
 class MixedMeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
