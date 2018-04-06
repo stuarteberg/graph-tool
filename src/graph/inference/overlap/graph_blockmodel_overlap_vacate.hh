@@ -66,7 +66,7 @@ struct Merge
             _g(_state._g),
             _null_move(std::numeric_limits<size_t>::max())
         {
-            _state._egroups.clear();
+            _state.clear_egroups();
 
             gt_hash_map<int, gt_hash_map<int, std::vector<size_t>>>
                 block_bundles;

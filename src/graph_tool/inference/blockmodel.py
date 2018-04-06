@@ -1376,6 +1376,9 @@ class BlockState(object):
 
         return L
 
+    def _clear_egroups(self):
+        self._state.clear_egroups()
+
     def _mcmc_sweep_dispatch(self, mcmc_state):
         return libinference.mcmc_sweep(mcmc_state, self._state,
                                        _get_rng())

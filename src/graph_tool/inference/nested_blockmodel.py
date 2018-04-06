@@ -699,6 +699,10 @@ class NestedBlockState(object):
                 eargs = hentropy_args
             self.levels[l]._couple_state(self.levels[l + 1], eargs)
 
+    def _clear_egroups(self):
+        for lstate in self.levels:
+            lstate._clear_egroups()
+
     def _h_sweep_gen(self, **kwargs):
 
         if not self.sampling:

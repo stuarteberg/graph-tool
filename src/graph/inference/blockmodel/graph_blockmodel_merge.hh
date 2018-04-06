@@ -67,7 +67,7 @@ struct Merge
             _m_entries(num_vertices(_state._bg)),
             _null_move(numeric_limits<size_t>::max())
         {
-            _state._egroups.clear();
+            _state.clear_egroups();
 
             if (_entropy_args.partition_dl || _entropy_args.degree_dl ||
                 _entropy_args.edges_dl)

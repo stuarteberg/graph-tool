@@ -956,6 +956,9 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         return L
 
+    def _clear_egroups(self):
+        self._state.clear_egroups()
+
     def _mcmc_sweep_dispatch(self, mcmc_state):
         if not self.overlap:
             return libinference.mcmc_layered_sweep(mcmc_state, self._state,

@@ -597,6 +597,8 @@ class OverlapBlockState(BlockState):
                                   recs_dl=recs_dl, beta_dl=beta_dl, exact=exact,
                                   **kwargs)
 
+    def _clear_egroups(self):
+        self._state.clear_egroups()
 
     def _mcmc_sweep_dispatch(self, mcmc_state):
         dS, nattempts, nmoves = \

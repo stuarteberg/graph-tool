@@ -122,7 +122,10 @@ class UncertainBaseState(object):
             Si = self.entropy(**dentropy_args)
 
         try:
-            self.bstate._state.clear_egroups()
+            if self.nbstate is None:
+                self.bstate._clear_egroups()
+            else:
+                self.nbstate._clear_egroups()
             if numpy.random.random() < r:
                 edges = True
                 dS, nattempts, nmoves = self._mcmc_sweep(mcmc_state)
