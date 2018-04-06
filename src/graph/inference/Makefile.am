@@ -90,6 +90,7 @@ libgraph_tool_inference_la_include_HEADERS = \
     uncertain/graph_blockmodel_measured.hh \
     uncertain/graph_blockmodel_uncertain.hh \
     uncertain/graph_blockmodel_uncertain_mcmc.hh \
+    uncertain/graph_blockmodel_sample_edge.hh \
     loops/bundled_vacate_loop.hh \
     loops/exhaustive_loop.hh \
     loops/gibbs_loop.hh \

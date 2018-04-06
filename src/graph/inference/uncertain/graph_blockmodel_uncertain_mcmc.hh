@@ -67,9 +67,10 @@ struct MCMC
         {
             for (size_t i = 0; i < _vlist.size(); ++i)
                 _vlist[i] = i;
+            _state._edge_sampler.sync(_state._block_state);
         }
 
-        std::pair<size_t, size_t> _e;
+        std::tuple<size_t, size_t> _e;
         std::vector<size_t> _vlist;
         int _null_move = 0;
 
@@ -113,11 +114,7 @@ struct MCMC
         int move_proposal(size_t ei, RNG& rng)
         {
             if (_slist[ei] >= num_vertices(_state._g))
-            {
-                std::uniform_int_distribution<size_t>
-                    sample(0, num_vertices(_state._g) - 1);
-                _e = {sample(rng), sample(rng)};
-            }
+                _e = _state._edge_sampler.sample(rng);
 
             std::bernoulli_distribution coin(.5);
             if (coin(rng))

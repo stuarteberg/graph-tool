@@ -24,6 +24,7 @@
 
 #include "../support/graph_state.hh"
 #include "../blockmodel/graph_blockmodel_util.hh"
+#include "graph_blockmodel_sample_edge.hh"
 
 namespace graph_tool
 {
@@ -128,6 +129,8 @@ struct Measured
 
         std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _u_edges;
         std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _edges;
+
+        SBMEdgeSampler<typename BlockState::g_t> _edge_sampler;
 
         double _pe = log(_aE);
         size_t _NP = 0;
