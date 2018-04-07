@@ -25,15 +25,28 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
+template <class Map, class K>
+typename Map::value_type::second_type get_map(Map& m, K&& k)
+{
+    auto iter = m.find(k);
+    if (iter == m.end())
+        return typename Map::value_type::second_type(0);
+    return iter->second;
+}
+
+
 template <class Keys, class Set1, class Set2>
-auto set_difference(Keys& ks, Set1& s1, Set2& s2)
+auto set_difference(Keys& ks, Set1& s1, Set2& s2, bool asym)
 {
     typename Set1::value_type::second_type s = 0;
     for (auto& k : ks)
     {
-        auto x1 = s1[k];
-        auto x2 = s2[k];
-        s += std::max(x1, x2) - std::min(x1, x2);
+        auto x1 = get_map(s1, k);
+        auto x2 = get_map(s2, k);
+        if (x1 > x2)
+            s += x1 - x2;
+        else if (!asym)
+            s += x2 - x1;
     }
     return s;
 }
@@ -41,7 +54,7 @@ auto set_difference(Keys& ks, Set1& s1, Set2& s2)
 template <class Vertex, class WeightMap, class LabelMap, class Graph1, class Graph2>
 auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
                        LabelMap& l1, LabelMap& l2, const Graph1& g1,
-                       const Graph2& g2)
+                       const Graph2& g2, bool asym)
 {
     typedef typename property_traits<LabelMap>::value_type label_t;
     typedef typename property_traits<WeightMap>::value_type val_t;
@@ -72,12 +85,12 @@ auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
         }
     }
 
-    return set_difference(keys, adj1, adj2);
+    return set_difference(keys, adj1, adj2, asym);
 }
 
 template <class Graph1, class Graph2, class WeightMap, class LabelMap>
 auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
-                    WeightMap ew2, LabelMap l1, LabelMap l2)
+                    WeightMap ew2, LabelMap l1, LabelMap l2, bool asym)
 {
     typedef typename property_traits<LabelMap>::value_type label_t;
     typedef typename property_traits<WeightMap>::value_type val_t;
@@ -103,28 +116,31 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
         else
             v2 = li2->second;
 
-        s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2);
+        s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym);
     }
 
-    for (auto& lv2 : lmap2)
+    if (!asym)
     {
-        vertex_t v2 = lv2.second;
-        vertex_t v1;
+        for (auto& lv2 : lmap2)
+        {
+            vertex_t v2 = lv2.second;
+            vertex_t v1;
 
-        auto li1 = lmap1.find(lv2.first);
-        if (li1 == lmap1.end())
-            v1 = graph_traits<Graph2>::null_vertex();
-        else
-            continue;
+            auto li1 = lmap1.find(lv2.first);
+            if (li1 == lmap1.end())
+                v1 = graph_traits<Graph2>::null_vertex();
+            else
+                continue;
 
-        s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2);
+            s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false);
+        }
     }
     return s;
 }
 
 template <class Graph1, class Graph2, class WeightMap, class LabelMap>
 auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
-                         WeightMap ew2, LabelMap l1, LabelMap l2)
+                         WeightMap ew2, LabelMap l1, LabelMap l2, bool asym)
 {
     typedef typename property_traits<WeightMap>::value_type val_t;
     typedef typename graph_traits<Graph1>::vertex_descriptor vertex_t;
@@ -160,23 +176,26 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
          {
              auto v2 = lmap2[i];
              if (v1 == graph_traits<Graph1>::null_vertex() &&
-                 v2 == graph_traits<Graph1>::null_vertex())
+                 v2 == graph_traits<Graph2>::null_vertex())
                  return;
-             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2);
+             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym);
          });
 
-    #pragma omp parallel if (num_vertices(g2) > OPENMP_MIN_THRESH)  \
-        reduction(+:s)
-    parallel_loop_no_spawn
-        (lmap2,
-         [&](size_t i, auto v2)
-         {
-             auto v1 = lmap1[i];
-             if (v1 != graph_traits<Graph1>::null_vertex() ||
-                 v2 == graph_traits<Graph1>::null_vertex())
-                 return;
-             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2);
-         });
+    if (!asym)
+    {
+        #pragma omp parallel if (num_vertices(g2) > OPENMP_MIN_THRESH)  \
+            reduction(+:s)
+        parallel_loop_no_spawn
+            (lmap2,
+             [&](size_t i, auto v2)
+             {
+                 auto v1 = lmap1[i];
+                 if (v1 != graph_traits<Graph1>::null_vertex() ||
+                     v2 == graph_traits<Graph2>::null_vertex())
+                     return;
+                 s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false);
+             });
+    }
 
     return s;
 }

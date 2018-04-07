@@ -92,7 +92,7 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "edge_reciprocity"]
 
 def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
-               norm=True, distance=False):
+               norm=True, distance=False, asymmetric=False):
     r"""Return the adjacency similarity between the two graphs.
 
     Parameters
@@ -117,6 +117,9 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     distance : bool (optional, default: ``False``)
         If ``True``, the complementary value is returned, i.e. the distance
         between the two graphs.
+    asymmetric : bool (optional, default: ``False``)
+        If ``True``, the asymmetric similarity of ``g1`` to ``g2`` will be
+        computed.
 
     Returns
     -------
@@ -149,6 +152,16 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     If ``norm == True`` the value returned is
     :math:`S(\boldsymbol A_1, \boldsymbol A_2) / E`.
+
+    If ``asymmetric == True``, the above is changed so that the comparison is
+    made only for entries in :math:`\boldsymbol A_1` that are larger than in :math:`\boldsymbol A_2`, i.e.
+
+    .. math::
+
+       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} (A_{ij}^{(1)} - A_{ij}^{(2)}) H((A_{ij}^{(1)} - A_{ij}^{(2)})),
+
+    where :math:`H(x)` is the unit step function, and the total sum is changed
+    accordingly to :math:`E=\sum_{i<j}|A_{ij}^{(1)}|`.
 
     The algorithm runs with complexity :math:`O(E_1 + V_1 + E_2 + V_2)`.
 
@@ -213,18 +226,24 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         s = libgraph_tool_topology.\
                similarity(g1._Graph__graph, g2._Graph__graph,
                           ew1, ew2, _prop("v", g1, label1),
-                          _prop("v", g2, label2))
+                          _prop("v", g2, label2), asymmetric)
     else:
         s = libgraph_tool_topology.\
                similarity_fast(g1._Graph__graph, g2._Graph__graph,
                                ew1, ew2, _prop("v", g1, label1),
-                               _prop("v", g2, label2))
+                               _prop("v", g2, label2), asymmetric)
     if not g1.is_directed() or not g2.is_directed():
         s //= 2
     if eweight1 is None and eweight1 is None:
-        E = g1.num_edges() + g2.num_edges()
+        if asymmetric:
+            E = g1.num_edges()
+        else:
+            E = g1.num_edges() + g2.num_edges()
     else:
-        E = float(abs(eweight1.fa).sum() + abs(eweight2.fa).sum())
+        if asymmetric:
+            E = float(abs(eweight1.fa).sum())
+        else:
+            E = float(abs(eweight1.fa).sum() + abs(eweight2.fa).sum())
     if not distance:
         s = E - s
     if norm:
