@@ -39,7 +39,7 @@ typedef std::vector<size_t> vlist_t;
     ((slist, &, vlist_t&, 0))                                                  \
     ((tlist, &, vlist_t&, 0))                                                  \
     ((beta,, double, 0))                                                       \
-    ((entropy_args,, entropy_args_t, 0))                                       \
+    ((entropy_args,, uentropy_args_t, 0))                                      \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 

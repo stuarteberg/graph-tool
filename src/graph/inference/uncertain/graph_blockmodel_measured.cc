@@ -89,14 +89,14 @@ void export_measured_state()
                           .def("get_M", &state_t::get_M)
                           .def("get_edge_prob",
                                +[](state_t& state, size_t u, size_t v,
-                                   entropy_args_t ea, double epsilon)
+                                   uentropy_args_t ea, double epsilon)
                                 {
                                     return get_edge_prob(state, u, v, ea,
                                                          epsilon);
                                 })
                           .def("get_edges_prob",
                                +[](state_t& state, python::object edges,
-                                   python::object probs, entropy_args_t ea,
+                                   python::object probs, uentropy_args_t ea,
                                    double epsilon)
                                 {
                                     get_edges_prob(state, edges, probs, ea,

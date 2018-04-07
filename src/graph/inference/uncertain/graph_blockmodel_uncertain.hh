@@ -31,6 +31,15 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
+struct uentropy_args_t:
+        public entropy_args_t
+{
+    uentropy_args_t(const entropy_args_t& ea)
+        : entropy_args_t(ea){}
+    bool latent_edges;
+};
+
+
 #define UNCERTAIN_STATE_params                                                 \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((g, &, all_graph_views, 1))                                               \
@@ -166,42 +175,47 @@ struct Uncertain
             return -S;
         }
 
-        double remove_edge_dS(size_t u, size_t v, entropy_args_t ea)
+        double remove_edge_dS(size_t u, size_t v, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
-            if (_E_prior)
+            if (ea.latent_edges)
             {
-                dS += _pe;
-                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+                if (_E_prior)
+                {
+                    dS += _pe;
+                    dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+                }
+                if (_eweight[e] == 1 && (_self_loops || u != v))
+                {
+                    auto& m = get_edge<false>(u, v);
+                    double q_e = (m == _null_edge) ? _q_default : _q[m];
+                    dS += q_e;
+                }
             }
-            if (_eweight[e] == 1 && (_self_loops || u != v))
-            {
-                auto& m = get_edge<false>(u, v);
-                double q_e = (m == _null_edge) ? _q_default : _q[m];
-                dS += q_e;
-            }
-
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, entropy_args_t ea)
+        double add_edge_dS(size_t u, size_t v, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
-            if (_E_prior)
+            if (ea.latent_edges)
             {
-                dS -= _pe;
-                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
-            }
-            if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
-            {
-                auto& m = get_edge<false>(u, v);
-                double q_e = (m == _null_edge) ? _q_default : _q[m];
-                dS -= q_e;
+                if (_E_prior)
+                {
+                    dS -= _pe;
+                    dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+                }
+                if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
+                {
+                    auto& m = get_edge<false>(u, v);
+                    double q_e = (m == _null_edge) ? _q_default : _q[m];
+                    dS -= q_e;
+                }
             }
             return dS;
         }
@@ -226,7 +240,7 @@ struct Uncertain
 };
 
 template <class State>
-double get_edge_prob(State& state, size_t u, size_t v, entropy_args_t ea,
+double get_edge_prob(State& state, size_t u, size_t v, uentropy_args_t ea,
                      double epsilon)
 {
     auto e = state.get_u_edge(u, v);
@@ -264,7 +278,7 @@ double get_edge_prob(State& state, size_t u, size_t v, entropy_args_t ea,
 
 template <class State>
 void get_edges_prob(State& state, python::object edges, python::object probs,
-                    entropy_args_t ea, double epsilon)
+                    uentropy_args_t ea, double epsilon)
 {
     multi_array_ref<uint64_t,2> es = get_array<uint64_t,2>(edges);
     multi_array_ref<double,1> eprobs = get_array<double,1>(probs);

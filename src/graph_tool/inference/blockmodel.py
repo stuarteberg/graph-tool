@@ -122,7 +122,7 @@ def get_entropy_args(kargs, ignore=None):
     kargs = kargs.copy()
     if ignore is not None:
         for a in ignore:
-            del kargs[a]
+            kargs.pop(a, None)
     args = DictState(kargs)
     deg_dl_kind = args.degree_dl_kind
     del kargs["degree_dl_kind"]

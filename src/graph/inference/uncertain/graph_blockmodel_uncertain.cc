@@ -61,6 +61,10 @@ void export_uncertain_state()
 {
     using namespace boost::python;
 
+    class_<uentropy_args_t, bases<entropy_args_t>>("uentropy_args",
+                                                   init<entropy_args_t>())
+        .def_readwrite("latent_edges", &uentropy_args_t::latent_edges);
+
     def("make_uncertain_state", &make_uncertain_state);
 
     block_state::dispatch
@@ -85,14 +89,14 @@ void export_uncertain_state()
                           .def("set_S_const", &state_t::set_S_const)
                           .def("get_edge_prob",
                                +[](state_t& state, size_t u, size_t v,
-                                   entropy_args_t ea, double epsilon)
+                                   uentropy_args_t ea, double epsilon)
                                 {
                                     return get_edge_prob(state, u, v, ea,
                                                          epsilon);
                                 })
                           .def("get_edges_prob",
                                +[](state_t& state, python::object edges,
-                                   python::object probs, entropy_args_t ea,
+                                   python::object probs, uentropy_args_t ea,
                                    double epsilon)
                                 {
                                     get_edges_prob(state, edges, probs, ea,

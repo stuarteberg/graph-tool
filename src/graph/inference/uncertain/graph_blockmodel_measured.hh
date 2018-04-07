@@ -24,7 +24,7 @@
 
 #include "../support/graph_state.hh"
 #include "../blockmodel/graph_blockmodel_util.hh"
-#include "graph_blockmodel_sample_edge.hh"
+#include "graph_blockmodel_uncertain.hh"
 
 namespace graph_tool
 {
@@ -207,44 +207,50 @@ struct Measured
             return -(Sf - Si);
         }
 
-        double remove_edge_dS(size_t u, size_t v, entropy_args_t ea)
+        double remove_edge_dS(size_t u, size_t v, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
-            if (_E_prior)
+            if (ea.latent_edges)
             {
-                dS += _pe;
-                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
-            }
-            if (_eweight[e] == 1 && (_self_loops || u != v))
-            {
-                auto& m = get_edge<false>(u, v);
-                int dT = (m == _null_edge) ? _x_default : _x[m];
-                int dM = (m == _null_edge) ? _n_default : _n[m];
-                dS += get_dS(-dT, -dM);
+                if (_E_prior)
+                {
+                    dS += _pe;
+                    dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+                }
+                if (_eweight[e] == 1 && (_self_loops || u != v))
+                {
+                    auto& m = get_edge<false>(u, v);
+                    int dT = (m == _null_edge) ? _x_default : _x[m];
+                    int dM = (m == _null_edge) ? _n_default : _n[m];
+                    dS += get_dS(-dT, -dM);
+                }
             }
 
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, entropy_args_t ea)
+        double add_edge_dS(size_t u, size_t v, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
-            if (_E_prior)
+            if (ea.latent_edges)
             {
-                dS -= _pe;
-                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
-            }
-            if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
-            {
-                auto& m = get_edge<false>(u, v);
-                int dT = (m == _null_edge) ? _x_default : _x[m];
-                int dM = (m == _null_edge) ? _n_default : _n[m];
-                dS += get_dS(dT, dM);
+                if (_E_prior)
+                {
+                    dS -= _pe;
+                    dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+                }
+                if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
+                {
+                    auto& m = get_edge<false>(u, v);
+                    int dT = (m == _null_edge) ? _x_default : _x[m];
+                    int dM = (m == _null_edge) ? _n_default : _n[m];
+                    dS += get_dS(dT, dM);
+                }
             }
             return dS;
         }

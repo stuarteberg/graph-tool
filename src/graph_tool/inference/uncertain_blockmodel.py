@@ -33,6 +33,12 @@ from . blockmodel import *
 from . nested_blockmodel import *
 from . blockmodel import _bm_test
 
+def get_uentropy_args(kargs):
+    ea = get_entropy_args(kargs, ignore=["latent_edges"])
+    uea = libinference.uentropy_args(ea)
+    uea.latent_edges = kargs.get("latent_edges", True)
+    return uea
+
 class UncertainBaseState(object):
     def __init__(self, g, nested=True, state_args={}, bstate=None,
                  self_loops=False, init_empty=False):
@@ -114,7 +120,7 @@ class UncertainBaseState(object):
         tlist = self.tlist
         dentropy_args = dict(self.bstate._entropy_args,
                              **kwargs.get("entropy_args", {}))
-        entropy_args = get_entropy_args(dentropy_args)
+        entropy_args = get_uentropy_args(dentropy_args)
         state = self._state
         mcmc_state = DictState(locals())
 
@@ -169,14 +175,14 @@ class UncertainBaseState(object):
     def get_edge_prob(self, u, v, entropy_args={}, epsilon=1e-8):
         r"""Return conditional posterior probability of edge :math:`(u,v)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
-        ea = get_entropy_args(entropy_args)
+        ea = get_uentropy_args(entropy_args)
         return self._state.get_edge_prob(u, v, ea, epsilon)
 
     def get_edges_prob(self, elist, entropy_args={}, epsilon=1e-8):
         r"""Return conditional posterior probability of an edge list, with
         shape :math:`(E,2)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
-        ea = get_entropy_args(entropy_args)
+        ea = get_uentropy_args(entropy_args)
         elist = numpy.asarray(elist, dtype="uint64")
         probs = numpy.zeros(elist.shape[0])
         self._state.get_edges_prob(elist, probs, ea, epsilon)
