@@ -19,6 +19,7 @@
 #define GRAPH_SIMILARITY_HH
 
 #include "hash_map_wrap.hh"
+#include "idx_map.hh"
 
 namespace graph_tool
 {
@@ -51,18 +52,13 @@ auto set_difference(Keys& ks, Set1& s1, Set2& s2, bool asym)
     return s;
 }
 
-template <class Vertex, class WeightMap, class LabelMap, class Graph1, class Graph2>
+template <class Vertex, class WeightMap, class LabelMap,
+          class Graph1, class Graph2, class Keys, class Adj>
 auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
                        LabelMap& l1, LabelMap& l2, const Graph1& g1,
-                       const Graph2& g2, bool asym)
+                       const Graph2& g2, bool asym, Keys& keys, Adj& adj1,
+                       Adj& adj2)
 {
-    typedef typename property_traits<LabelMap>::value_type label_t;
-    typedef typename property_traits<WeightMap>::value_type val_t;
-
-    std::unordered_set<label_t> keys;
-    std::unordered_map<label_t, val_t> adj1;
-    std::unordered_map<label_t, val_t> adj2;
-
     if (v1 != graph_traits<Graph1>::null_vertex())
     {
         for (auto e : out_edges_range(v1, g1))
@@ -116,7 +112,11 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
         else
             v2 = li2->second;
 
-        s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym);
+        std::unordered_set<label_t> keys;
+        std::unordered_map<label_t, val_t> adj1, adj2;
+
+        s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym, keys,
+                               adj1, adj2);
     }
 
     if (!asym)
@@ -132,7 +132,11 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
             else
                 continue;
 
-            s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false);
+            std::unordered_set<label_t> keys;
+            std::unordered_map<label_t, val_t> adj1, adj2;
+
+            s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false,
+                                   keys, adj1, adj2);
         }
     }
     return s;
@@ -144,6 +148,7 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
 {
     typedef typename property_traits<WeightMap>::value_type val_t;
     typedef typename graph_traits<Graph1>::vertex_descriptor vertex_t;
+    typedef typename property_traits<LabelMap>::value_type label_t;
 
     vector<vertex_t> lmap1, lmap2;
 
@@ -167,9 +172,12 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
     lmap1.resize(N, graph_traits<Graph1>::null_vertex());
     lmap2.resize(N, graph_traits<Graph2>::null_vertex());
 
+    idx_set<label_t> keys;
+    idx_map<label_t, val_t> adj1, adj2;
+
     val_t s = 0;
     #pragma omp parallel if (num_vertices(g1) > OPENMP_MIN_THRESH) \
-        reduction(+:s)
+        reduction(+:s) firstprivate(keys, adj1, adj2)
     parallel_loop_no_spawn
         (lmap1,
          [&](size_t i, auto v1)
@@ -178,13 +186,17 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
              if (v1 == graph_traits<Graph1>::null_vertex() &&
                  v2 == graph_traits<Graph2>::null_vertex())
                  return;
-             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym);
+             keys.clear();
+             adj1.clear();
+             adj2.clear();
+             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym,
+                                    keys, adj1, adj2);
          });
 
     if (!asym)
     {
         #pragma omp parallel if (num_vertices(g2) > OPENMP_MIN_THRESH)  \
-            reduction(+:s)
+            reduction(+:s) firstprivate(keys, adj1, adj2)
         parallel_loop_no_spawn
             (lmap2,
              [&](size_t i, auto v2)
@@ -193,7 +205,11 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
                  if (v1 != graph_traits<Graph1>::null_vertex() ||
                      v2 == graph_traits<Graph2>::null_vertex())
                      return;
-                 s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false);
+                 keys.clear();
+                 adj1.clear();
+                 adj2.clear();
+                 s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false,
+                                        keys, adj1, adj2);
              });
     }
 

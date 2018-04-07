@@ -158,15 +158,15 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     .. math::
 
-       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} (A_{ij}^{(1)} - A_{ij}^{(2)}) H((A_{ij}^{(1)} - A_{ij}^{(2)})),
+       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} (A_{ij}^{(1)} - A_{ij}^{(2)}) H(A_{ij}^{(1)} - A_{ij}^{(2)}),
 
     where :math:`H(x)` is the unit step function, and the total sum is changed
     accordingly to :math:`E=\sum_{i<j}|A_{ij}^{(1)}|`.
 
     The algorithm runs with complexity :math:`O(E_1 + V_1 + E_2 + V_2)`.
 
-    If enabled during compilation, and the vertex labels are integers, this
-    algorithm runs in parallel.
+    If enabled during compilation, and the vertex labels are integers bounded by
+    the sizes of the graphs, this algorithm runs in parallel.
 
     Examples
     --------
@@ -222,7 +222,8 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         ew1 = _prop("e", g1, eweight1)
         ew2 = _prop("e", g2, eweight2)
 
-    if label1.is_writable() or label2.is_writable():
+    if ((label1.is_writable() and label1.fa.max() > g1.num_vertices()) or
+        (label2.is_writable() and label2.fa.max() > g2.num_vertices())):
         s = libgraph_tool_topology.\
                similarity(g1._Graph__graph, g2._Graph__graph,
                           ew1, ew2, _prop("v", g1, label1),

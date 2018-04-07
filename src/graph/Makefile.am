@@ -67,6 +67,7 @@ libgraph_tool_core_la_include_HEADERS = \
     graph_util.hh \
     hash_map_wrap.hh \
     histogram.hh \
+    idx_map.hh \
     mpl_nested_loop.hh \
     numpy_bind.hh \
     openmp_lock.hh \
