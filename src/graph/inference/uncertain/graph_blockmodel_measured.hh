@@ -38,10 +38,10 @@ using namespace std;
     ((x,, eprop_map_t<int>::type, 0))                                          \
     ((n_default,, int, 0))                                                     \
     ((x_default,, int, 0))                                                     \
-    ((alpha,, double, 0))                                                      \
-    ((beta,, double, 0))                                                       \
-    ((mu,, double, 0))                                                         \
-    ((nu,, double, 0))                                                         \
+    ((alpha,, long double, 0))                                                 \
+    ((beta,, long double, 0))                                                  \
+    ((mu,, long double, 0))                                                    \
+    ((nu,, long double, 0))                                                    \
     ((aE,, double, 0))                                                         \
     ((E_prior,, bool, 0))                                                      \
     ((self_loops,, bool, 0))
@@ -93,7 +93,7 @@ struct Measured
                 _M += (ge != _null_edge) ? _n[ge] : _n_default;
             }
 
-            size_t N = num_vertices(_g);
+            uint64_t N = num_vertices(_g);
             if (_self_loops)
                 _NP = graph_tool::is_directed(_g) ? N * N : (N * (N + 1)) / 2;
             else
@@ -133,13 +133,13 @@ struct Measured
         SBMEdgeSampler<typename BlockState::g_t> _edge_sampler;
 
         double _pe = log(_aE);
-        size_t _NP = 0;
-        size_t _E = 0;
+        uint64_t _NP = 0;
+        uint64_t _E = 0;
 
-        size_t _N = 0;
-        size_t _X = 0;
-        size_t _T = 0;
-        size_t _M = 0;
+        uint64_t _N = 0;
+        uint64_t _X = 0;
+        uint64_t _T = 0;
+        uint64_t _M = 0;
 
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
@@ -167,11 +167,11 @@ struct Measured
             return _get_edge<insert>(u, v, _g, _edges);
         }
 
-        double get_MP(size_t T, size_t M, bool complete = true)
+        long double get_MP(size_t T, size_t M, bool complete = true)
         {
-            double S = 0;
-            S += lbeta(M - T + _alpha, T + _beta);
-            S += lbeta(_X - T + _mu, _N - _X - (M - T) + _nu);
+            long double S = 0;
+            S += lbeta((M - T) + _alpha, T + _beta);
+            S += lbeta((_X - T) + _mu, ((_N - _X) - (M - T)) + _nu);
             if (complete)
             {
                 S -= lbeta(_alpha, _beta);
@@ -191,7 +191,7 @@ struct Measured
             }
             S += (_NP - gE) * lbinom(_n_default, _x_default);
 
-            S+= get_MP(_T, _M);
+            S += get_MP(_T, _M);
 
             if (_E_prior)
                 S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
@@ -202,8 +202,8 @@ struct Measured
         double get_dS(int dT, int dM)
         {
             // FIXME: Can be faster!
-            double Si = get_MP(_T, _M, false);
-            double Sf = get_MP(_T + dT, _M + dM, false);
+            long double Si = get_MP(_T, _M, false);
+            long double Sf = get_MP(_T + dT, _M + dM, false);
             return -(Sf - Si);
         }
 
@@ -299,10 +299,10 @@ struct Measured
             _nu = nu;
         }
 
-        size_t get_N() { return _N; }
-        size_t get_X() { return _X; }
-        size_t get_T() { return _T; }
-        size_t get_M() { return _M; }
+        uint64_t get_N() { return _N; }
+        uint64_t get_X() { return _X; }
+        uint64_t get_T() { return _T; }
+        uint64_t get_M() { return _M; }
     };
 };
 

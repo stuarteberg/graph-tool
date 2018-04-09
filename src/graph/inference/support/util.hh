@@ -38,7 +38,7 @@ inline double lbinom(T1 N, T2 k)
         return 0;
     assert(N > 0);
     assert(k > 0);
-    return ((lgamma(N + 1) - lgamma(k + 1)) - lgamma(N - k + 1));
+    return ((std::lgamma(N + 1) - std::lgamma(k + 1)) - std::lgamma(N - k + 1));
 }
 
 template <bool Init=true, class T1, class T2>
@@ -54,8 +54,8 @@ inline double lbinom_careful(T1 N, T2 k)
 {
     if (N == 0 || k == 0 || k >= N)
         return 0;
-    double lgN = lgamma(N + 1);
-    double lgk = lgamma(k + 1);
+    double lgN = std::lgamma(N + 1);
+    double lgk = std::lgamma(k + 1);
     if (lgN - lgk > 1e8)
     {
         // We have N >> k. Use Stirling's approximation: ln N! ~ N ln N - N
@@ -64,13 +64,14 @@ inline double lbinom_careful(T1 N, T2 k)
     }
     else
     {
-        return lgN - lgamma(N - k + 1) - lgk;
+        return lgN - std::lgamma(N - k + 1) - lgk;
     }
 }
 
-inline double lbeta(double x, double y)
+template <class T>
+inline auto lbeta(T x, T y)
 {
-    return lgamma(x) + lgamma(y) - lgamma(x + y);
+    return (std::lgamma(x) + std::lgamma(y)) - std::lgamma(x + y);
 }
 
 template <class Vec, class PosMap, class Val>
