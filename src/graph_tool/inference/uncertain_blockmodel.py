@@ -360,10 +360,10 @@ class MeasuredBlockState(UncertainBaseState):
         self.x = x
         self.n_default = n_default
         self.x_default = x_default
-        self.alpha = fp_params.get("alpha", 1)
-        self.beta = fp_params.get("beta", 1)
-        self.mu = fn_params.get("mu", 1)
-        self.nu = fn_params.get("nu", 1)
+        self.alpha = fn_params.get("alpha", 1)
+        self.beta = fn_params.get("beta", 1)
+        self.mu = fp_params.get("mu", 1)
+        self.nu = fp_params.get("nu", 1)
         self.phi = phi
 
         self._state = libinference.make_measured_state(self.bstate._state,
@@ -372,8 +372,8 @@ class MeasuredBlockState(UncertainBaseState):
     def __getstate__(self):
         return dict(g=self.g, n=self.n, x=self.x, n_default=self.n_default,
                     x_default=self.x_default,
-                    fp_params=dict(alpha=self.alpha, beta=self.beta),
-                    fn_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    fn_params=dict(alpha=self.alpha, beta=self.beta),
+                    fp_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
                     nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None
                             else self.bstate), self_loops=self.self_loops)
