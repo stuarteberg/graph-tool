@@ -49,9 +49,14 @@ class UncertainBaseState(object):
             if init_empty:
                 self.u = Graph(directed=g.is_directed())
                 self.u.add_vertex(g.num_vertices())
+                self.eweight = self.u.new_ep("int", val=1)
+            elif "g" in state_args:
+                self.u = state_args.pop("g")
+                self.eweight = state_args.pop("eweight",
+                                              self.u.new_ep("int", val=1))
             else:
                 self.u = g.copy()
-            self.eweight = self.u.new_ep("int", val=1)
+                self.eweight = self.u.new_ep("int", val=1)
         else:
             self.u = bstate.g
             if nested:
