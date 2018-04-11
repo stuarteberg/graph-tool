@@ -42,8 +42,8 @@ public:
         : _v_in_sampler((is_directed_::apply<Graph>::type::value) ?
                         __v_in_sampler : _v_out_sampler) {}
 
-    template <class State>
-    void sync(State& state)
+    template <class G, class State>
+    void sync(G& g, State& state)
     {
         vector<std::tuple<size_t, size_t>> rs;
         vector<size_t> rs_count;
@@ -69,27 +69,27 @@ public:
         vector<vector<size_t>> rvs;
         vector<vector<size_t>> v_in_probs, v_out_probs;
 
+        _N = 0;
         bool deg_corr = state._deg_corr;
-        for (auto v : vertices_range(state._g))
+        for (auto v : vertices_range(g))
         {
             size_t r = state._b[v];
             if (r >= v_out_probs.size())
             {
-                if (graph_tool::is_directed(state._g))
+                if (graph_tool::is_directed(g))
                     v_in_probs.resize(r+1);
                 v_out_probs.resize(r+1);
                 rvs.resize(r+1);
             }
             rvs[r].push_back(v);
-            if (graph_tool::is_directed(state._g))
+            if (graph_tool::is_directed(g))
             {
-                auto kin = (deg_corr) ?
-                    in_degreeS()(v, state._g, state._eweight) : 0;
+                auto kin = (deg_corr) ? in_degreeS()(v, g) : 0;
                 v_in_probs[r].push_back(kin + 1);
             }
-            auto kout = (deg_corr) ?
-                out_degreeS()(v, state._g, state._eweight) : 0;
+            auto kout = (deg_corr) ? out_degreeS()(v, g) : 0;
             v_out_probs[r].push_back(kout + 1);
+            _N++;
         }
 
         __v_in_sampler.clear();
@@ -97,7 +97,7 @@ public:
         _groups.clear();
         for (size_t r = 0; r < rvs.size(); ++r)
         {
-            if (graph_tool::is_directed(state._g))
+            if (graph_tool::is_directed(g))
                 __v_in_sampler.emplace_back(rvs[r], v_in_probs[r]);
             _v_out_sampler.emplace_back(rvs[r], v_out_probs[r]);
             if (!rvs[r].empty())
@@ -108,6 +108,9 @@ public:
     template <class RNG>
     std::tuple<size_t, size_t> sample(RNG& rng)
     {
+        // std::uniform_int_distribution<size_t> sample(0, _N-1);
+        // return {sample(rng), sample(rng)};
+
         auto rs = _rs_sampler.sample(rng);
 
         if (get<0>(rs) == std::numeric_limits<size_t>::max())
@@ -131,6 +134,8 @@ private:
     vector<vsampler_t>& _v_in_sampler;
 
     std::vector<size_t> _groups;
+
+    size_t _N = 0;
 };
 
 

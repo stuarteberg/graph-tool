@@ -67,7 +67,7 @@ struct MCMC
         {
             for (size_t i = 0; i < _vlist.size(); ++i)
                 _vlist[i] = i;
-            _state._edge_sampler.sync(_state._block_state);
+            _state._edge_sampler.sync(_state._g, _state._block_state);
         }
 
         std::tuple<size_t, size_t> _e;
