@@ -180,20 +180,23 @@ struct Measured
             return S;
         }
 
-        double entropy()
+        double entropy(bool latent_edges, bool density)
         {
             double S = 0;
             size_t gE = 0;
-            for (auto e : edges_range(_g))
+            if (latent_edges)
             {
-                S += lbinom(_n[e], _x[e]);
-                gE++;
+                for (auto e : edges_range(_g))
+                {
+                    S += lbinom(_n[e], _x[e]);
+                    gE++;
+                }
+                S += (_NP - gE) * lbinom(_n_default, _x_default);
+
+                S += get_MP(_T, _M);
             }
-            S += (_NP - gE) * lbinom(_n_default, _x_default);
 
-            S += get_MP(_T, _M);
-
-            if (_E_prior)
+            if (density && _E_prior)
                 S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
 
             return -S;
@@ -213,13 +216,14 @@ struct Measured
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
+            if (ea.density && _E_prior)
+            {
+                dS += _pe;
+                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            }
+
             if (ea.latent_edges)
             {
-                if (_E_prior)
-                {
-                    dS += _pe;
-                    dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
-                }
                 if (_eweight[e] == 1 && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);
@@ -237,13 +241,14 @@ struct Measured
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
+            if (ea.density && _E_prior)
+            {
+                dS -= _pe;
+                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            }
+
             if (ea.latent_edges)
             {
-                if (_E_prior)
-                {
-                    dS -= _pe;
-                    dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
-                }
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);

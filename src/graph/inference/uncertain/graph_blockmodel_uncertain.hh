@@ -37,6 +37,7 @@ struct uentropy_args_t:
     uentropy_args_t(const entropy_args_t& ea)
         : entropy_args_t(ea){}
     bool latent_edges;
+    bool density;
 };
 
 
@@ -143,34 +144,37 @@ struct Uncertain
             return _get_edge<insert>(u, v, _g, _edges);
         }
 
-        double entropy()
+        double entropy(bool latent_edges, bool density)
         {
             double S = 0;
-            for (auto m : edges_range(_g))
+            if (latent_edges)
             {
-                double q_e = _q[m];
-                if (q_e == std::numeric_limits<double>::infinity())
-                    continue;
-                auto& e = get_u_edge<false>(source(m, _g), target(m, _g));
-                if (e != _null_edge && _eweight[e] > 0 &&
-                    (_self_loops || (source(e, _u) != target(e, _u))))
-                    S += q_e;
+                for (auto m : edges_range(_g))
+                {
+                    double q_e = _q[m];
+                    if (q_e == std::numeric_limits<double>::infinity())
+                        continue;
+                    auto& e = get_u_edge<false>(source(m, _g), target(m, _g));
+                    if (e != _null_edge && _eweight[e] > 0 &&
+                        (_self_loops || (source(e, _u) != target(e, _u))))
+                        S += q_e;
+                }
+
+                for (auto e : edges_range(_u))
+                {
+                    auto& m = get_edge<false>(source(e, _u), target(e, _u));
+                    if (m != _null_edge || _eweight[e] == 0 ||
+                        (!_self_loops && source(m, _g) == target(m, _g)))
+                        continue;
+                    if (_q_default == std::numeric_limits<double>::infinity())
+                        continue;
+                    S += _q_default;
+                }
+                S += _S_const;
             }
 
-            for (auto e : edges_range(_u))
-            {
-                auto& m = get_edge<false>(source(e, _u), target(e, _u));
-                if (m != _null_edge || _eweight[e] == 0 ||
-                    (!_self_loops && source(m, _g) == target(m, _g)))
-                    continue;
-                if (_q_default == std::numeric_limits<double>::infinity())
-                    continue;
-                S += _q_default;
-            }
-
-            if (_E_prior)
+            if (density && _E_prior)
                 S += _E * _pe - lgamma_fast(_E + 1) - exp(_pe);
-            S += _S_const;
 
             return -S;
         }
@@ -181,13 +185,14 @@ struct Uncertain
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
+            if (ea.density && _E_prior)
+            {
+                dS += _pe;
+                dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
+            }
+
             if (ea.latent_edges)
             {
-                if (_E_prior)
-                {
-                    dS += _pe;
-                    dS += lgamma_fast(_E) - lgamma_fast(_E + 1);
-                }
                 if (_eweight[e] == 1 && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);
@@ -203,13 +208,14 @@ struct Uncertain
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
                                                                    _recs, ea);
+            if (ea.density && _E_prior)
+            {
+                dS -= _pe;
+                dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
+            }
+
             if (ea.latent_edges)
             {
-                if (_E_prior)
-                {
-                    dS -= _pe;
-                    dS += lgamma_fast(_E + 2) - lgamma_fast(_E + 1);
-                }
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
                     auto& m = get_edge<false>(u, v);

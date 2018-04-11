@@ -34,9 +34,10 @@ from . nested_blockmodel import *
 from . blockmodel import _bm_test
 
 def get_uentropy_args(kargs):
-    ea = get_entropy_args(kargs, ignore=["latent_edges"])
+    ea = get_entropy_args(kargs, ignore=["latent_edges", "density"])
     uea = libinference.uentropy_args(ea)
     uea.latent_edges = kargs.get("latent_edges", True)
+    uea.density = kargs.get("density", True)
     return uea
 
 class UncertainBaseState(object):
@@ -107,17 +108,37 @@ class UncertainBaseState(object):
         self.slist = Vector_size_t(init=edges[:,0])
         self.tlist = Vector_size_t(init=edges[:,1])
 
+        init_q_cache()
+
     def get_block_state(self):
         return self.bstate
 
-    def entropy(self, **kwargs):
+    def entropy(self, latent_edges=True, density=True, **kwargs):
         if self.nbstate is None:
-            return self._state.entropy() + self.bstate.entropy(**kwargs)
+            S = self._state.entropy(latent_edges, density) + \
+                self.bstate.entropy(**kwargs)
         else:
-            return self._state.entropy() + self.nbstate.entropy(**kwargs)
+            S = self._state.entropy(latent_edges, density) + \
+                self.nbstate.entropy(**kwargs)
+
+        if kwargs.get("test", True) and _bm_test():
+            assert not isnan(S) and not isinf(S), \
+                "invalid entropy %g (%s) " % (S, str(args))
+
+            args = kwargs.copy()
+            args["test"] = False
+            state_copy = self.copy()
+            Salt = state_copy.entropy(latent_edges, density, **args)
+
+            assert math.isclose(S, Salt, abs_tol=1e-8), \
+                "entropy discrepancy after copying (%g %g %g)" % (S, Salt,
+                                                                  S - Salt)
+        return S
+
 
     def _algo_sweep(self, algo, r=.5, **kwargs):
 
+        kwargs = kwargs.copy()
         beta = kwargs.get("beta", 1.)
         niter = kwargs.get("niter", 1)
         verbose = kwargs.get("verbose", False)
@@ -126,32 +147,33 @@ class UncertainBaseState(object):
         dentropy_args = dict(self.bstate._entropy_args,
                              **kwargs.get("entropy_args", {}))
         entropy_args = get_uentropy_args(dentropy_args)
+        kwargs.get("entropy_args", {}).pop("latent_edges", None)
+        kwargs.get("entropy_args", {}).pop("density", None)
         state = self._state
         mcmc_state = DictState(locals())
 
         if _bm_test():
             Si = self.entropy(**dentropy_args)
 
-        try:
+        if self.nbstate is None:
+            self.bstate._clear_egroups()
+        else:
+            self.nbstate._clear_egroups()
+        if numpy.random.random() < r:
+            edges = True
+            dS, nattempts, nmoves = self._mcmc_sweep(mcmc_state)
+        else:
+            edges = False
             if self.nbstate is None:
-                self.bstate._clear_egroups()
+                dS, nattempts, nmoves = algo(self.bstate, **kwargs)
             else:
-                self.nbstate._clear_egroups()
-            if numpy.random.random() < r:
-                edges = True
-                dS, nattempts, nmoves = self._mcmc_sweep(mcmc_state)
-            else:
-                edges = False
-                if self.nbstate is None:
-                    dS, nattempts, nmoves = algo(self.bstate, **kwargs)
-                else:
-                    dS, nattempts, nmoves = algo(self.nbstate, **kwargs)
-        finally:
-            if _bm_test():
-                Sf = self.entropy(**dentropy_args)
-                assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                    "inconsistent entropy delta %g (%g): %s %s" % (dS, Sf - Si, edges,
-                                                                   str(dentropy_args))
+                dS, nattempts, nmoves = algo(self.nbstate, **kwargs)
+
+        if _bm_test():
+            Sf = self.entropy(**dentropy_args)
+            assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
+                "inconsistent entropy delta %g (%g): %s %s" % (dS, Sf - Si, edges,
+                                                               str(dentropy_args))
 
         return dS, nattempts, nmoves
 

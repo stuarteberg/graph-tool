@@ -63,7 +63,8 @@ void export_uncertain_state()
 
     class_<uentropy_args_t, bases<entropy_args_t>>("uentropy_args",
                                                    init<entropy_args_t>())
-        .def_readwrite("latent_edges", &uentropy_args_t::latent_edges);
+        .def_readwrite("latent_edges", &uentropy_args_t::latent_edges)
+        .def_readwrite("density", &uentropy_args_t::density);
 
     def("make_uncertain_state", &make_uncertain_state);
 
