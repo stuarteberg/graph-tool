@@ -2259,10 +2259,14 @@ class BlockState(object):
 
         """
         in_degs = out_degs = None
+        if isinstance(self.eweight, libinference.unity_eprop_t):
+            eweight = None
+        else:
+            eweight = self.eweight
         if self.deg_corr:
-            out_degs = self.g.degree_property_map("out", weight=self.eweight).fa
+            out_degs = self.g.degree_property_map("out", weight=eweight).fa
             if self.g.is_directed():
-                in_degs = self.g.degree_property_map("in", weight=self.eweight).fa
+                in_degs = self.g.degree_property_map("in", weight=eweight).fa
             else:
                 in_degs = None
         probs = adjacency(self.bg, weight=self.mrs).T
