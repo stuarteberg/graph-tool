@@ -459,7 +459,7 @@ public:
         auto iter_idx = std::remove_if(_free_indexes.begin(),
                                        _free_indexes.end(),
                                        [&](auto idx) -> bool
-                                       {return idx > _edge_index_range;});
+                                       {return idx >= _edge_index_range;});
         _free_indexes.erase(iter_idx, _free_indexes.end());
         _free_indexes.shrink_to_fit();
         if (_keep_epos)
