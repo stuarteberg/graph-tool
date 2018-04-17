@@ -135,6 +135,15 @@ class UncertainBaseState(object):
                                                                   S - Salt)
         return S
 
+    def virtual_remove_edge(self, u, v, entropy_args={}):
+        dentropy_args = dict(self.bstate._entropy_args, **entropy_args)
+        entropy_args = get_uentropy_args(dentropy_args)
+        return self._state.remove_edge_dS(int(u), int(v), entropy_args)
+
+    def virtual_add_edge(self, u, v, entropy_args={}):
+        dentropy_args = dict(self.bstate._entropy_args, **entropy_args)
+        entropy_args = get_uentropy_args(dentropy_args)
+        return self._state.add_edge_dS(int(u), int(v), entropy_args)
 
     def _algo_sweep(self, algo, r=.5, **kwargs):
 
@@ -227,7 +236,7 @@ class UncertainBaseState(object):
         return u
 
 class UncertainBlockState(UncertainBaseState):
-    def __init__(self, g, q, q_default=0., phi=numpy.nan, nested=True, state_args={},
+    def __init__(self, g, q, q_default=0., aE=numpy.nan, nested=True, state_args={},
                  bstate=None, self_loops=False, **kwargs):
         r"""The stochastic block model state of an uncertain graph.
 
@@ -239,9 +248,9 @@ class UncertainBlockState(UncertainBaseState):
             Edge probabilities in range :math:`[0,1]`.
         q_default : ``float`` (optional, default: ``0.``)
             Non-edge probability in range :math:`[0,1]`.
-        phi : ``float`` (optional, default: ``NaN``)
-            Multiplier for total number of edges used in prior, relative to the
-            empirically measured. If ``NaN``, a flat prior will be used.
+        aE : ``float`` (optional, default: ``NaN``)
+            Expected total number of edges used in prior. If ``NaN``, a flat
+            prior will be used instead.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
             will be used, otherwise
@@ -256,6 +265,7 @@ class UncertainBlockState(UncertainBaseState):
         self_loops : bool (optional, default: ``False``)
             If ``True``, it is assumed that the uncertain graph can contain
             self-loops.
+
         """
 
         super(UncertainBlockState, self).__init__(g, nested=nested,
@@ -265,10 +275,8 @@ class UncertainBlockState(UncertainBaseState):
                                                   **kwargs)
         self._q = q
         self._q_default = q_default
-        self.phi = phi
 
-        self.aE = (q.fa.sum() + (self.M - g.num_edges()) * q_default)
-        self.p = self.aE / self.M
+        self.p = (q.fa.sum() + (self.M - g.num_edges()) * q_default) / self.M
 
         self.q = self.g.new_ep("double", vals=log(q.fa) - log1p(-q.fa))
         if not self.forward:
@@ -283,18 +291,17 @@ class UncertainBlockState(UncertainBaseState):
                         log1p(-q_default) * (self.M - self.g.num_edges())
                         - self.M * log1p(-self.p))
 
-        if numpy.isnan(phi):
-            self.aE = 0
+        self.aE = aE
+        if numpy.isnan(aE):
             self.E_prior = False
         else:
-            self.aE *= phi
             self.E_prior = True
 
         self._state = libinference.make_uncertain_state(self.bstate._state,
                                                         self)
     def __getstate__(self):
         return dict(g=self.g, q=self._q, q_default=self._q_default,
-                    phi=self.phi, nested=self.nbstate is not None,
+                    aE=self.aE, nested=self.nbstate is not None,
                     bstate=(self.nbstate.copy() if self.nbstate is not None else
                             self.bstate.copy()), self_loops=self.self_loops)
 
@@ -324,7 +331,7 @@ class UncertainBlockState(UncertainBaseState):
 class MeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=1), fp_params=dict(mu=1, nu=1),
-                 phi=numpy.nan, nested=True, state_args={}, bstate=None,
+                 aE=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False, **kwargs):
         r"""The stochastic block model state of a measured graph.
 
@@ -348,9 +355,9 @@ class MeasuredBlockState(UncertainBaseState):
         fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
             Gamma distribution hyperparameters for the probability of spurious
             edges (false positives).
-        phi : ``float`` (optional, default: ``NaN``)
-            Multiplier for total number of edges used in prior, relative to the
-            empirically measured. If ``NaN``, a flat prior will be used.
+        aE : ``float`` (optional, default: ``NaN``)
+            Expected total number of edges used in prior. If ``NaN``, a flat
+            prior will be used instead.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
             will be used, otherwise
@@ -372,15 +379,10 @@ class MeasuredBlockState(UncertainBaseState):
                                                  state_args=state_args,
                                                  bstate=bstate, **kwargs)
 
-        if numpy.isnan(phi):
-            self.aE = 0
+        self.aE = aE
+        if numpy.isnan(aE):
             self.E_prior = False
         else:
-            self.aE = (x.fa / n.fa).sum()
-            if n_default > 0:
-                self.aE += (self.M - g.num_edges()) * (x_default/n_default)
-
-            self.aE *= phi
             self.E_prior = True
 
         self.n = n
@@ -391,7 +393,6 @@ class MeasuredBlockState(UncertainBaseState):
         self.beta = fn_params.get("beta", 1)
         self.mu = fp_params.get("mu", 1)
         self.nu = fp_params.get("nu", 1)
-        self.phi = phi
 
         self._state = libinference.make_measured_state(self.bstate._state,
                                                        self)
@@ -400,7 +401,7 @@ class MeasuredBlockState(UncertainBaseState):
         return dict(g=self.g, n=self.n, x=self.x, n_default=self.n_default,
                     x_default=self.x_default,
                     fn_params=dict(alpha=self.alpha, beta=self.beta),
-                    fp_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    fp_params=dict(mu=self.mu, nu=self.nu), aE=self.aE,
                     nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None
                             else self.bstate), self_loops=self.self_loops)
@@ -447,7 +448,7 @@ class MeasuredBlockState(UncertainBaseState):
 class MixedMeasuredBlockState(UncertainBaseState):
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=10), fp_params=dict(mu=1, nu=10),
-                 phi=numpy.nan, nested=True, state_args={}, bstate=None,
+                 aE=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False, **kwargs):
         r"""The stochastic block model state of a measured graph, with heterogeneous
         measurements.
@@ -472,9 +473,9 @@ class MixedMeasuredBlockState(UncertainBaseState):
         fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=10)``)
             Gamma distribution hyperparameters for the probability of spurious
             edges (false positives).
-        phi : ``float`` (optional, default: ``NaN``)
-            Multiplier for total number of edges used in prior, relative to the
-            empirically measured. If ``NaN``, a flat prior will be used.
+        aE : ``float`` (optional, default: ``NaN``)
+            Expected total number of edges used in prior. If ``NaN``, a flat
+            prior will be used instead.
         nested : ``boolean`` (optional, default: ``True``)
             If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
             will be used, otherwise
@@ -495,14 +496,10 @@ class MixedMeasuredBlockState(UncertainBaseState):
         super(MixedMeasuredBlockState, self).__init__(g, nested=nested,
                                                       state_args=state_args,
                                                       bstate=bstate, **kwargs)
-        if numpy.isnan(phi):
-            self.aE = 0
+        self.aE = aE
+        if numpy.isnan(aE):
             self.E_prior = False
         else:
-            self.aE = (x.fa / n.fa).sum()
-            if n_default > 0:
-                self.aE += (self.M - g.num_edges()) * (x_default/n_default)
-            self.aE *= phi
             self.E_prior = True
 
         self.n = n
@@ -513,7 +510,6 @@ class MixedMeasuredBlockState(UncertainBaseState):
         self.beta = fn_params.get("beta", 10)
         self.mu = fp_params.get("mu", 1)
         self.nu = fp_params.get("nu", 10)
-        self.phi = phi
 
         self._state = None
 
@@ -552,7 +548,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
         return dict(g=self.g, n=self.n, x=self.x, n_default=self.n_default,
                     x_default=self.x_default,
                     fn_params=dict(alpha=self.alpha, beta=self.beta),
-                    fp_params=dict(mu=self.mu, nu=self.nu), phi=self.phi,
+                    fp_params=dict(mu=self.mu, nu=self.nu), aE=self.aE,
                     nested=self.nbstate is not None,
                     bstate=(self.nbstate if self.nbstate is not None
                             else self.bstate), self_loops=self.self_loops)
