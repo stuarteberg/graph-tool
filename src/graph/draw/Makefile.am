@@ -19,3 +19,18 @@ libgraph_tool_draw_la_SOURCES = \
     graph_tree_cts.cc
 
 libgraph_tool_draw_la_include_HEADERS = 
+
+gt_pycairo_auxdir = $(MOD_DIR)/draw
+
+gt_pycairo_aux_LTLIBRARIES = gt_pycairo_aux.la
+
+gt_pycairo_aux_la_includedir = $(MOD_DIR)/include/draw
+
+gt_pycairo_aux_la_LIBADD = $(MOD_LIBADD)
+
+gt_pycairo_aux_la_LDFLAGS = $(MOD_LDFLAGS) $(CAIROMM_LIBS)
+
+gt_pycairo_aux_la_SOURCES = \
+    pycairo_aux.cc
+
+gt_pycairo_aux_la_include_HEADERS = 

@@ -2173,9 +2173,9 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 try:
     import cairocffi
     import ctypes
-    pycairo = ctypes.PyDLL(cairo._cairo.__file__)
-    pycairo.PycairoContext_FromContext.restype = ctypes.c_void_p
-    pycairo.PycairoContext_FromContext.argtypes = 3 * [ctypes.c_void_p]
+    pycairo_aux = ctypes.PyDLL(os.path.dirname(os.path.abspath(__file__)) + "/gt_pycairo_aux.so")
+    pycairo_aux.gt_PycairoContext_FromContext.restype = ctypes.c_void_p
+    pycairo_aux.gt_PycairoContext_FromContext.argtypes = 3 * [ctypes.c_void_p]
     ctypes.pythonapi.PyList_Append.argtypes = 2 * [ctypes.c_void_p]
 except ImportError:
     pass
@@ -2192,7 +2192,7 @@ def _UNSAFE_cairocffi_context_to_pycairo(cairocffi_context):
     # gets the context’s integer address.
     # On CPython id(cairo.Context) gives the address to the Context type,
     # as expected by PycairoContext_FromContext.
-    address = pycairo.PycairoContext_FromContext(
+    address = pycairo_aux.gt_PycairoContext_FromContext(
         int(cairocffi.ffi.cast('uintptr_t', cairocffi_context._pointer)),
         id(cairo.Context),
         None)
