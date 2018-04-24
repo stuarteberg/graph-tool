@@ -2173,7 +2173,7 @@ def get_bip_hierachy_pos(state, aspect=1., node_weight=None):
 try:
     import cairocffi
     import ctypes
-    pycairo_aux = ctypes.PyDLL(os.path.dirname(os.path.abspath(__file__)) + "/gt_pycairo_aux.so")
+    pycairo_aux = ctypes.PyDLL(os.path.dirname(os.path.abspath(__file__)) + "/libgt_pycairo_aux.so")
     pycairo_aux.gt_PycairoContext_FromContext.restype = ctypes.c_void_p
     pycairo_aux.gt_PycairoContext_FromContext.argtypes = 3 * [ctypes.c_void_p]
     ctypes.pythonapi.PyList_Append.argtypes = 2 * [ctypes.c_void_p]
