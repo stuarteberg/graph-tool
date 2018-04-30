@@ -435,6 +435,7 @@ class BlockState(object):
 
         self.merge_map = kwargs.pop("merge_map",
                                     self.g.vertex_index.copy("int"))
+        self.merge_map = self.g.own_property(self.merge_map)
 
         self.candidate_blocks = Vector_size_t()
         self.candidate_pos = self.bg.new_vp("int")
