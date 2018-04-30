@@ -627,7 +627,7 @@ class BlockState(object):
                                pclabel=self.pclabel if pclabel is None else pclabel,
                                deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                max_BE=self.max_BE if max_BE is None else max_BE,
-                               degs=self.degs.copy(),
+                               degs=self.degs.copy() if eweight is None else None,
                                merge_map=kwargs.pop("merge_map",
                                                     self.merge_map.copy()),
                                recs=kwargs.pop("recs", self.rec),
