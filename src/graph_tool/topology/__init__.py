@@ -202,7 +202,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         except ValueError:
             label1 = label1.copy(label2.value_type())
 
-    if eweight1 is None and eweight1 is None:
+    if eweight1 is None and eweight2 is None:
         ew1 = ew2 = libcore.any()
     else:
         if eweight1 is None:
