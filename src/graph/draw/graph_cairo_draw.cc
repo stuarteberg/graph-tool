@@ -247,7 +247,7 @@ struct Converter
             {
                 val_name = lexical_cast<string>(v);
             }
-            catch (bad_lexical_cast)
+            catch (bad_lexical_cast&)
             {
                 val_name = "<no lexical cast available>";
             }

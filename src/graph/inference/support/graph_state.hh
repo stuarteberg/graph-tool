@@ -258,7 +258,7 @@ struct StateWrap
                         T val = any_cast<T>(aval);
                         return val;
                     }
-                    catch (boost::bad_any_cast)
+                    catch (boost::bad_any_cast&)
                     {
                         try
                         {
@@ -269,7 +269,7 @@ struct StateWrap
                             auto val = any_cast<ref_wrap_t>(aval);
                             return val.get();
                         }
-                        catch (boost::bad_any_cast)
+                        catch (boost::bad_any_cast&)
                         {
                             throw ValueException("Cannot extract parameter '" + name +
                                                  "' of desired type: " +

@@ -274,14 +274,6 @@ target(const typename reversed_graph<BidirectionalGraph,GRef>::edge_descriptor& 
 }
 
 template <class BidirectionalGraph, class GRef>
-inline
-typename graph_traits<reversed_graph<BidirectionalGraph,GRef>>::vertex_descriptor
-vertex(size_t i, const reversed_graph<BidirectionalGraph,GRef>& g)
-{
-    return vertex(i, g._g);
-}
-
-template <class BidirectionalGraph, class GRef>
 inline std::pair<typename reversed_graph<BidirectionalGraph,GRef>::out_edge_iterator,
                  typename reversed_graph<BidirectionalGraph,GRef>::out_edge_iterator>
 _all_edges_out(const typename graph_traits<BidirectionalGraph>::vertex_descriptor u,

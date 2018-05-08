@@ -44,7 +44,7 @@ struct copy_property
             auto src_map = boost::any_cast<typename PropertyTgt::checked_t>(prop_src);
             dispatch(tgt, src, dst_map, src_map);
         }
-        catch (boost::bad_any_cast)
+        catch (boost::bad_any_cast&)
         {
             typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
             typedef typename IteratorSel::template get_descriptor<GraphSrc>::type src_d;

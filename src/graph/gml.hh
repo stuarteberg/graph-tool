@@ -386,7 +386,7 @@ struct get_str
                 sval = "\"" + sval + "\"";
             }
         }
-        catch (bad_any_cast)
+        catch (bad_any_cast&)
         {
         }
     }

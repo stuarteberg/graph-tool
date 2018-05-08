@@ -197,7 +197,6 @@ inline void operator/=(vector<T1>& v1, const vector<T2>& v2)
     v1.resize(max(v1.size(), v2.size()));
     for (size_t i = 0; i < v2.size(); ++i)
         v1[i] /= v2[i];
-    return v1;
 }
 
 template <class T1, class T2>

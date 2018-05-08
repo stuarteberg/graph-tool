@@ -58,7 +58,7 @@ struct prop_vector
                             any_cast<Property>(props[i]).get_unchecked(size);
                     prop_vec = vec;
                 }
-                catch (bad_any_cast){}
+                catch (bad_any_cast&){}
             }
         }
     };

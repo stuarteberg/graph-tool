@@ -110,6 +110,7 @@ struct do_all_pairs_search_unweighted
     void operator()(const Graph& g, DistMap dist_map) const
     {
         typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
+        typedef typename property_traits<DistMap>::value_type dist_t;
 
         vector<vertex_t> pred_map(num_vertices(g));
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
@@ -119,8 +120,7 @@ struct do_all_pairs_search_unweighted
                  [&](auto v)
                  {
                      dist_map[v].resize(num_vertices(g), 0);
-                     bfs_visitor<typename std::remove_reference<decltype(dist_map[v])>::type,
-                                 vector<size_t>>
+                     bfs_visitor<dist_t,vector<size_t>>
                          vis(dist_map[v], pred_map, v);
                      breadth_first_search(g, v, visitor(vis));
                  });

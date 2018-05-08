@@ -218,7 +218,7 @@ struct check_value_type
             _map = new boost::detail::dynamic_property_map_adaptor<map_t>
                 (vector_map);
         }
-        catch (bad_any_cast) {}
+        catch (bad_any_cast&) {}
     }
     IndexMap _index_map;
     const key_t& _key;
@@ -249,7 +249,7 @@ struct create_dynamic_map
                                                   any_cast<vertex_t>(key),
                                                   value, map));
         }
-        catch (bad_any_cast)
+        catch (bad_any_cast&)
         {
             try
             {
@@ -258,7 +258,7 @@ struct create_dynamic_map
                                                     any_cast<edge_t>(key),
                                                     value, map));
             }
-            catch (bad_any_cast)
+            catch (bad_any_cast&)
             {
                 ConstantPropertyMap<size_t,graph_property_tag> graph_index(0);
                 boost::mpl::for_each<value_types>
