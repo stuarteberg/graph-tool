@@ -26,28 +26,27 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-template <class Map, class K>
-typename Map::value_type::second_type get_map(Map& m, K&& k)
-{
-    auto iter = m.find(k);
-    if (iter == m.end())
-        return typename Map::value_type::second_type(0);
-    return iter->second;
-}
-
-
-template <class Keys, class Set1, class Set2>
-auto set_difference(Keys& ks, Set1& s1, Set2& s2, bool asym)
+template <bool normed, class Keys, class Set1, class Set2>
+auto set_difference(Keys& ks, Set1& s1, Set2& s2, double norm, bool asym)
 {
     typename Set1::value_type::second_type s = 0;
+    auto ndispatch = [&](auto x){ return normed ? std::pow(x, norm) : x; };
+    auto get_map =
+        [&](auto& m, auto&& k)
+        {
+            auto iter = m.find(k);
+            if (iter == m.end())
+                return decltype(iter->second)(0);
+            return iter->second;
+        };
     for (auto& k : ks)
     {
         auto x1 = get_map(s1, k);
         auto x2 = get_map(s2, k);
         if (x1 > x2)
-            s += x1 - x2;
+            s += ndispatch(x1 - x2);
         else if (!asym)
-            s += x2 - x1;
+            s += ndispatch(x2 - x1);
     }
     return s;
 }
@@ -57,7 +56,7 @@ template <class Vertex, class WeightMap, class LabelMap,
 auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
                        LabelMap& l1, LabelMap& l2, const Graph1& g1,
                        const Graph2& g2, bool asym, Keys& keys, Adj& adj1,
-                       Adj& adj2)
+                       Adj& adj2, double norm)
 {
     if (v1 != graph_traits<Graph1>::null_vertex())
     {
@@ -81,12 +80,16 @@ auto vertex_difference(Vertex v1, Vertex v2, WeightMap& ew1, WeightMap& ew2,
         }
     }
 
-    return set_difference(keys, adj1, adj2, asym);
+    if (norm == 1)
+        return set_difference<false>(keys, adj1, adj2, 1, asym);
+    else
+        return set_difference<true>(keys, adj1, adj2, norm, asym);
 }
 
 template <class Graph1, class Graph2, class WeightMap, class LabelMap>
 auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
-                    WeightMap ew2, LabelMap l1, LabelMap l2, bool asym)
+                    WeightMap ew2, LabelMap l1, LabelMap l2, double norm,
+                    bool asym)
 {
     typedef typename property_traits<LabelMap>::value_type label_t;
     typedef typename property_traits<WeightMap>::value_type val_t;
@@ -116,7 +119,7 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
         std::unordered_map<label_t, val_t> adj1, adj2;
 
         s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym, keys,
-                               adj1, adj2);
+                               adj1, adj2, norm);
     }
 
     if (!asym)
@@ -136,7 +139,7 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
             std::unordered_map<label_t, val_t> adj1, adj2;
 
             s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false,
-                                   keys, adj1, adj2);
+                                   keys, adj1, adj2, norm);
         }
     }
     return s;
@@ -144,7 +147,8 @@ auto get_similarity(const Graph1& g1, const Graph2& g2, WeightMap ew1,
 
 template <class Graph1, class Graph2, class WeightMap, class LabelMap>
 auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
-                         WeightMap ew2, LabelMap l1, LabelMap l2, bool asym)
+                         WeightMap ew2, LabelMap l1, LabelMap l2, double norm,
+                         bool asym)
 {
     typedef typename property_traits<WeightMap>::value_type val_t;
     typedef typename graph_traits<Graph1>::vertex_descriptor vertex_t;
@@ -190,7 +194,7 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
              adj1.clear();
              adj2.clear();
              s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, asym,
-                                    keys, adj1, adj2);
+                                    keys, adj1, adj2, norm);
          });
 
     if (!asym)
@@ -209,7 +213,7 @@ auto get_similarity_fast(const Graph1& g1, const Graph2& g2, WeightMap ew1,
                  adj1.clear();
                  adj2.clear();
                  s += vertex_difference(v1, v2, ew1, ew2, l1, l2, g1, g2, false,
-                                        keys, adj1, adj2);
+                                        keys, adj1, adj2, norm);
              });
     }
 

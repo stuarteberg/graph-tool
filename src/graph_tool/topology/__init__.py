@@ -92,7 +92,7 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "edge_reciprocity"]
 
 def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
-               norm=True, distance=False, asymmetric=False):
+               norm=True, p=1., distance=False, asymmetric=False):
     r"""Return the adjacency similarity between the two graphs.
 
     Parameters
@@ -114,6 +114,8 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     norm : bool (optional, default: ``True``)
         If ``True``, the returned value is normalized by the total number of
         edges.
+    p : float (optional, default: ``1.``)
+        Exponent of the :math:`L^p` distance function.
     distance : bool (optional, default: ``False``)
         If ``True``, the complementary value is returned, i.e. the distance
         between the two graphs.
@@ -128,10 +130,12 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     Notes
     -----
-    The adjacency similarity is the sum of equal non-zero entries in the
-    adjacency matrix, given a vertex ordering determined by the vertex
-    labels. In other words, it counts the number of edges which have the same
-    source and target labels in both graphs.
+    In its default parametrization, the adjacency similarity is the sum of equal
+    non-zero entries in the adjacency matrix, given a vertex ordering determined
+    by the vertex labels. In other words, it counts the number of edges which
+    have the same source and target labels in both graphs. This function also
+    allows for generalized similarities according to an :math:`L^p` norm, for
+    arbitrary :math:`p`.
 
     More specifically, it is defined as:
 
@@ -143,25 +147,26 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
 
     .. math::
 
-       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} |A_{ij}^{(1)} - A_{ij}^{(2)}|
+       d(\boldsymbol A_1, \boldsymbol A_2) = \left(\sum_{i\le j} \left|A_{ij}^{(1)} - A_{ij}^{(2)}\right|^p\right)^{1/p}
 
-    is the distance between graphs, and :math:`E=\sum_{i<j}|A_{ij}^{(1)}| +
-    |A_{ij}^{(2)}|`.  This definition holds for undirected graphs, otherwise the
-    sums go over all directed pairs. If weights are provided, the weighted
-    adjacency matrix is used.
+    is the distance between graphs, and :math:`E=(\sum_{i\le j}|A_{ij}^{(1)}|^p +
+    |A_{ij}^{(2)}|^p)^{1/p}`. Unless otherwise stated via the parameter ``p``,
+    the exponent used is :math:`p=1`. This definition holds for undirected
+    graphs, otherwise the sums go over all directed pairs. If weights are
+    provided, the weighted adjacency matrix is used.
 
-    If ``norm == True`` the value returned is
-    :math:`S(\boldsymbol A_1, \boldsymbol A_2) / E`.
+    If ``norm == True`` the value returned is :math:`S(\boldsymbol A_1,
+    \boldsymbol A_2) / E`, which lies in the interval :math:`[0,1]`.
 
     If ``asymmetric == True``, the above is changed so that the comparison is
     made only for entries in :math:`\boldsymbol A_1` that are larger than in :math:`\boldsymbol A_2`, i.e.
 
     .. math::
 
-       d(\boldsymbol A_1, \boldsymbol A_2) = \sum_{i<j} (A_{ij}^{(1)} - A_{ij}^{(2)}) H(A_{ij}^{(1)} - A_{ij}^{(2)}),
+       d(\boldsymbol A_1, \boldsymbol A_2) = \left(\sum_{i\le j} \left(A_{ij}^{(1)} - A_{ij}^{(2)}\right)^p H(A_{ij}^{(1)} - A_{ij}^{(2)})\right)^{1/p},
 
     where :math:`H(x)` is the unit step function, and the total sum is changed
-    accordingly to :math:`E=\sum_{i<j}|A_{ij}^{(1)}|`.
+    accordingly to :math:`E=\left(\sum_{i\le j}|A_{ij}^{(1)}|^p\right)^{1/p}`.
 
     The algorithm runs with complexity :math:`O(E_1 + V_1 + E_2 + V_2)`.
 
@@ -227,14 +232,18 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         s = libgraph_tool_topology.\
                similarity(g1._Graph__graph, g2._Graph__graph,
                           ew1, ew2, _prop("v", g1, label1),
-                          _prop("v", g2, label2), asymmetric)
+                          _prop("v", g2, label2), p, asymmetric)
     else:
         s = libgraph_tool_topology.\
                similarity_fast(g1._Graph__graph, g2._Graph__graph,
                                ew1, ew2, _prop("v", g1, label1),
-                               _prop("v", g2, label2), asymmetric)
+                               _prop("v", g2, label2), p, asymmetric)
+
     if not g1.is_directed() or not g2.is_directed():
         s //= 2
+
+    s **= 1./p
+
     if eweight1 is None and eweight1 is None:
         if asymmetric:
             E = g1.num_edges()
@@ -242,9 +251,10 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
             E = g1.num_edges() + g2.num_edges()
     else:
         if asymmetric:
-            E = float(abs(eweight1.fa).sum())
+            E = float((abs(eweight1.fa)**p).sum()) ** (1./p)
         else:
-            E = float(abs(eweight1.fa).sum() + abs(eweight2.fa).sum())
+            E = float((abs(eweight1.fa)**p).sum() +
+                      (abs(eweight2.fa)**p).sum()) ** (1./p)
     if not distance:
         s = E - s
     if norm:

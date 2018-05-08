@@ -47,7 +47,8 @@ typedef boost::mpl::push_back<edge_scalar_properties, ecmap_t>::type
 
 python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
                           boost::any weight1, boost::any weight2,
-                          boost::any label1, boost::any label2, bool asym)
+                          boost::any label1, boost::any label2, double norm,
+                          bool asym)
 {
     if (weight1.empty())
         weight1 = ecmap_t();
@@ -59,7 +60,7 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
          {
              auto l2 = uncheck(l1, label2);
              auto ew2 = uncheck(ew1, weight2);
-             auto ret = get_similarity(g1, g2, ew1, ew2, l1, l2, asym);
+             auto ret = get_similarity(g1, g2, ew1, ew2, l1, l2, asym, norm);
              s = python::object(ret);
          },
          all_graph_views(),
@@ -72,7 +73,8 @@ python::object similarity(GraphInterface& gi1, GraphInterface& gi2,
 
 python::object similarity_fast(GraphInterface& gi1, GraphInterface& gi2,
                                boost::any weight1, boost::any weight2,
-                               boost::any label1, boost::any label2, bool asym);
+                               boost::any label1, boost::any label2,
+                               double norm, bool asym);
 
 void export_similarity()
 {
