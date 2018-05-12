@@ -235,6 +235,50 @@ class UncertainBaseState(object):
                                                           es.fa != et.fa))
         return u
 
+    def collect_marginal(self, g=None):
+        r"""Collect marginal inferred network during MCMC runs.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph` (optional, default: ``None``)
+            Marginal graph.
+
+        Returns
+        -------
+        g : :class:`~graph_tool.Graph`
+            New marginal graph, with internal edge :class:`~graph_tool.PropertyMap`
+            ``"eprob"``, containing the marginal probabilities for each edge.
+
+        Notes
+        -----
+        The posterior marginal likelihood of an edge :math:`(i,j)` is defined as
+
+        .. math::
+
+           \pi_{ij} = \sum_{\boldsymbol A}A_{ij}P(\boldsymbol A|\boldsymbol D)
+
+        where :math:`P(\boldsymbol A|\boldsymbol D)` is the posterior
+        probability given the data.
+
+        """
+
+        if g is None:
+            g = Graph(directed=self.g.is_directed())
+            g.add_vertex(self.g.num_vertices())
+            g.gp.count = g.new_gp("int", 0)
+            g.ep.count = g.new_ep("int")
+
+        if "eprob" not in g.ep:
+            g.ep.eprob = g.new_ep("double")
+
+        libinference.collect_marginal(g._Graph__graph,
+                                      self.u._Graph__graph,
+                                      _prop("e", g, g.ep.count))
+        g.gp.count += 1
+        g.ep.eprob.fa = g.ep.count.fa
+        g.ep.eprob.fa /= g.gp.count
+        return g
+
 class UncertainBlockState(UncertainBaseState):
     def __init__(self, g, q, q_default=0., aE=numpy.nan, nested=True, state_args={},
                  bstate=None, self_loops=False, **kwargs):

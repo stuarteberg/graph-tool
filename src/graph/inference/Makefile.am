@@ -57,6 +57,7 @@ libgraph_tool_inference_la_SOURCES = \
     uncertain/graph_blockmodel_measured.cc \
     uncertain/graph_blockmodel_measured_mcmc.cc \
     uncertain/graph_blockmodel_uncertain.cc \
+    uncertain/graph_blockmodel_uncertain_marginal.cc \
     uncertain/graph_blockmodel_uncertain_mcmc.cc \
     support/cache.cc \
     support/int_part.cc \
@@ -89,6 +90,7 @@ libgraph_tool_inference_la_include_HEADERS = \
     layers/graph_blockmodel_layers_util.hh \
     uncertain/graph_blockmodel_measured.hh \
     uncertain/graph_blockmodel_uncertain.hh \
+    uncertain/graph_blockmodel_uncertain_marginal.hh \
     uncertain/graph_blockmodel_uncertain_mcmc.hh \
     uncertain/graph_blockmodel_sample_edge.hh \
     loops/bundled_vacate_loop.hh \

@@ -56,6 +56,8 @@ python::object make_uncertain_state(boost::python::object oblock_state,
     return state;
 }
 
+void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
+                               boost::any aecount);
 
 void export_uncertain_state()
 {
@@ -107,4 +109,5 @@ void export_uncertain_state()
                   });
          });
 
+    def("collect_marginal", &collect_marginal_dispatch);
 }
