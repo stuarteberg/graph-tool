@@ -323,8 +323,7 @@ class UncertainBlockState(UncertainBaseState):
         self.p = (q.fa.sum() + (self.M - g.num_edges()) * q_default) / self.M
 
         self.q = self.g.new_ep("double", vals=log(q.fa) - log1p(-q.fa))
-        if not self.forward:
-            self.q.fa -= log(self.p) - log1p(-self.p)
+        self.q.fa -= log(self.p) - log1p(-self.p)
         if q_default > 0:
             self.q_default = log(q_default) - log1p(q_default)
             self.q_default -= log(self.p) - log1p(-self.p)
