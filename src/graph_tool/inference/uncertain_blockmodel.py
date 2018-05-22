@@ -271,8 +271,9 @@ class UncertainBaseState(object):
         if "eprob" not in g.ep:
             g.ep.eprob = g.new_ep("double")
 
+        u = self.get_graph()
         libinference.collect_marginal(g._Graph__graph,
-                                      self.u._Graph__graph,
+                                      u._Graph__graph,
                                       _prop("e", g, g.ep.count))
         g.gp.count += 1
         g.ep.eprob.fa = g.ep.count.fa
