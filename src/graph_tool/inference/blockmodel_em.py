@@ -186,7 +186,7 @@ class EMBlockState(object):
         """
         return self._state.learn_iter()
 
-    def learn(state, epsilon=1e-3):
+    def learn(self, epsilon=1e-3):
         """Perform 'maximization' iterations until convergence according to ``epsilon``.
 
         The last update delta is returned.
@@ -281,7 +281,7 @@ def em_infer(state, max_iter=1000, max_e_iter=1, epsilon=1e-3,
     """
 
     if learn_first:
-        state.learn(state, epsilon)
+        state.learn(epsilon)
 
     niter = 0
     delta = epsilon + 1
