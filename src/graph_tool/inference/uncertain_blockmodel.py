@@ -41,6 +41,8 @@ def get_uentropy_args(kargs):
     return uea
 
 class UncertainBaseState(object):
+    r"""Base state for uncertain network inference."""
+
     def __init__(self, g, nested=True, state_args={}, bstate=None,
                  self_loops=False, init_empty=False):
 
@@ -241,7 +243,7 @@ class UncertainBaseState(object):
         Parameters
         ----------
         g : :class:`~graph_tool.Graph` (optional, default: ``None``)
-            Marginal graph.
+            Previous marginal graph.
 
         Returns
         -------
@@ -251,7 +253,7 @@ class UncertainBaseState(object):
 
         Notes
         -----
-        The posterior marginal likelihood of an edge :math:`(i,j)` is defined as
+        The posterior marginal probability of an edge :math:`(i,j)` is defined as
 
         .. math::
 
@@ -281,37 +283,39 @@ class UncertainBaseState(object):
         return g
 
 class UncertainBlockState(UncertainBaseState):
+    r"""The inference state of an uncertain graph, using the stochastic block model
+    as a prior.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    q : :class:`~graph_tool.PropertyMap`
+        Edge probabilities in range :math:`[0,1]`.
+    q_default : ``float`` (optional, default: ``0.``)
+        Non-edge probability in range :math:`[0,1]`.
+    aE : ``float`` (optional, default: ``NaN``)
+        Expected total number of edges used in prior. If ``NaN``, a flat
+        prior will be used instead.
+    nested : ``boolean`` (optional, default: ``True``)
+        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        will be used, otherwise
+        :class:`~graph_tool.inference.BlockState`.
+    state_args : ``dict`` (optional, default: ``{}``)
+        Arguments to be passed to
+        :class:`~graph_tool.inference.NestedBlockState` or
+        :class:`~graph_tool.inference.BlockState`.
+    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        If passed, this will be used to initialize the block state
+        directly.
+    self_loops : bool (optional, default: ``False``)
+        If ``True``, it is assumed that the uncertain graph can contain
+        self-loops.
+
+    """
+
     def __init__(self, g, q, q_default=0., aE=numpy.nan, nested=True, state_args={},
                  bstate=None, self_loops=False, **kwargs):
-        r"""The stochastic block model state of an uncertain graph.
-
-        Parameters
-        ----------
-        g : :class:`~graph_tool.Graph`
-            Graph to be modelled.
-        q : :class:`~graph_tool.PropertyMap`
-            Edge probabilities in range :math:`[0,1]`.
-        q_default : ``float`` (optional, default: ``0.``)
-            Non-edge probability in range :math:`[0,1]`.
-        aE : ``float`` (optional, default: ``NaN``)
-            Expected total number of edges used in prior. If ``NaN``, a flat
-            prior will be used instead.
-        nested : ``boolean`` (optional, default: ``True``)
-            If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
-            will be used, otherwise
-            :class:`~graph_tool.inference.BlockState`.
-        state_args : ``dict`` (optional, default: ``{}``)
-            Arguments to be passed to
-            :class:`~graph_tool.inference.NestedBlockState` or
-            :class:`~graph_tool.inference.BlockState`.
-        bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
-            If passed, this will be used to initialize the block state
-            directly.
-        self_loops : bool (optional, default: ``False``)
-            If ``True``, it is assumed that the uncertain graph can contain
-            self-loops.
-
-        """
 
         super(UncertainBlockState, self).__init__(g, nested=nested,
                                                   state_args=state_args,
@@ -373,51 +377,52 @@ class UncertainBlockState(UncertainBaseState):
                                                  _get_rng())
 
 class MeasuredBlockState(UncertainBaseState):
+    r"""The inference state of a measured graph, using the stochastic block model as
+    a prior.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    n : :class:`~graph_tool.PropertyMap`
+        Edge property map of type ``int``, containing the total number of
+        measurements for each edge.
+    x : :class:`~graph_tool.PropertyMap`
+        Edge property map of type ``int``, containing the number of
+        positive measurements for each edge.
+    n_default : ``int`` (optional, default: ``1``)
+        Total number of measurements for each non-edge.
+    x_default : ``int`` (optional, default: ``1``)
+        Total number of positive measurements for each non-edge.
+    fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
+        Beta distribution hyperparameters for the probability of missing
+        edges (false negatives).
+    fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
+        Beta distribution hyperparameters for the probability of spurious
+        edges (false positives).
+    aE : ``float`` (optional, default: ``NaN``)
+        Expected total number of edges used in prior. If ``NaN``, a flat
+        prior will be used instead.
+    nested : ``boolean`` (optional, default: ``True``)
+        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        will be used, otherwise
+        :class:`~graph_tool.inference.BlockState`.
+    state_args : ``dict`` (optional, default: ``{}``)
+        Arguments to be passed to
+        :class:`~graph_tool.inference.NestedBlockState` or
+        :class:`~graph_tool.inference.BlockState`.
+    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        If passed, this will be used to initialize the block state
+        directly.
+    self_loops : bool (optional, default: ``False``)
+        If ``True``, it is assumed that the uncertain graph can contain
+        self-loops.
+    """
+
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=1), fp_params=dict(mu=1, nu=1),
                  aE=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False, **kwargs):
-        r"""The stochastic block model state of a measured graph.
-
-        Parameters
-        ----------
-        g : :class:`~graph_tool.Graph`
-            Graph to be modelled.
-        n : :class:`~graph_tool.PropertyMap`
-            Edge property map of type ``int``, containing the total number of
-            measurements for each edge.
-        x : :class:`~graph_tool.PropertyMap`
-            Edge property map of type ``int``, containing the number of
-            positive measurements for each edge.
-        n_default : ``int`` (optional, default: ``1``)
-            Total number of measurements for each non-edge.
-        x_default : ``int`` (optional, default: ``1``)
-            Total number of positive measurements for each non-edge.
-        fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=1)``)
-            Gamma distribution hyperparameters for the probability of missing
-            edges (false negatives).
-        fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=1)``)
-            Gamma distribution hyperparameters for the probability of spurious
-            edges (false positives).
-        aE : ``float`` (optional, default: ``NaN``)
-            Expected total number of edges used in prior. If ``NaN``, a flat
-            prior will be used instead.
-        nested : ``boolean`` (optional, default: ``True``)
-            If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
-            will be used, otherwise
-            :class:`~graph_tool.inference.BlockState`.
-        state_args : ``dict`` (optional, default: ``{}``)
-            Arguments to be passed to
-            :class:`~graph_tool.inference.NestedBlockState` or
-            :class:`~graph_tool.inference.BlockState`.
-        bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
-            If passed, this will be used to initialize the block state
-            directly.
-        self_loops : bool (optional, default: ``False``)
-            If ``True``, it is assumed that the uncertain graph can contain
-            self-loops.
-
-        """
 
         super(MeasuredBlockState, self).__init__(g, nested=nested,
                                                  state_args=state_args,
@@ -476,13 +481,13 @@ class MeasuredBlockState(UncertainBaseState):
         self.nu = nu
 
     def get_p_posterior(self):
-        """Get gamma distribution parameters for the posterior probability of missing edges."""
+        """Get beta distribution parameters for the posterior probability of missing edges."""
         T = self._state.get_T()
         M = self._state.get_M()
         return M - T + self.alpha, T + self.beta
 
     def get_q_posterior(self):
-        """Get gamma distribution parameters for the posterior probability of spurious edges."""
+        """Get beta distribution parameters for the posterior probability of spurious edges."""
         N = self._state.get_N()
         X = self._state.get_X()
         T = self._state.get_T()
@@ -490,52 +495,53 @@ class MeasuredBlockState(UncertainBaseState):
         return X - T + self.mu, N - X - (M - T) + self.nu
 
 class MixedMeasuredBlockState(UncertainBaseState):
+    r"""The inference state of a measured graph with heterogeneous errors, using the
+    stochastic block model as a prior.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be modelled.
+    n : :class:`~graph_tool.PropertyMap`
+        Edge property map of type ``int``, containing the total number of
+        measurements for each edge.
+    x : :class:`~graph_tool.PropertyMap`
+        Edge property map of type ``int``, containing the number of
+        positive measurements for each edge.
+    n_default : ``int`` (optional, default: ``1``)
+        Total number of measurements for each non-edge.
+    x_default : ``int`` (optional, default: ``1``)
+        Total number of positive measurements for each non-edge.
+    fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=10)``)
+        Beta distribution hyperparameters for the probability of missing
+        edges (false negatives).
+    fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=10)``)
+        Beta distribution hyperparameters for the probability of spurious
+        edges (false positives).
+    aE : ``float`` (optional, default: ``NaN``)
+        Expected total number of edges used in prior. If ``NaN``, a flat
+        prior will be used instead.
+    nested : ``boolean`` (optional, default: ``True``)
+        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        will be used, otherwise
+        :class:`~graph_tool.inference.BlockState`.
+    state_args : ``dict`` (optional, default: ``{}``)
+        Arguments to be passed to
+        :class:`~graph_tool.inference.NestedBlockState` or
+        :class:`~graph_tool.inference.BlockState`.
+    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        If passed, this will be used to initialize the block state
+        directly.
+    self_loops : bool (optional, default: ``False``)
+        If ``True``, it is assumed that the uncertain graph can contain
+        self-loops.
+
+    """
+
     def __init__(self, g, n, x, n_default=1, x_default=0,
                  fn_params=dict(alpha=1, beta=10), fp_params=dict(mu=1, nu=10),
                  aE=numpy.nan, nested=True, state_args={}, bstate=None,
                  self_loops=False, **kwargs):
-        r"""The stochastic block model state of a measured graph, with heterogeneous
-        measurements.
-
-        Parameters
-        ----------
-        g : :class:`~graph_tool.Graph`
-            Graph to be modelled.
-        n : :class:`~graph_tool.PropertyMap`
-            Edge property map of type ``int``, containing the total number of
-            measurements for each edge.
-        x : :class:`~graph_tool.PropertyMap`
-            Edge property map of type ``int``, containing the number of
-            positive measurements for each edge.
-        n_default : ``int`` (optional, default: ``1``)
-            Total number of measurements for each non-edge.
-        x_default : ``int`` (optional, default: ``1``)
-            Total number of positive measurements for each non-edge.
-        fn_params : ``dict`` (optional, default: ``dict(alpha=1, beta=10)``)
-            Gamma distribution hyperparameters for the probability of missing
-            edges (false negatives).
-        fp_params : ``dict`` (optional, default: ``dict(mu=1, nu=10)``)
-            Gamma distribution hyperparameters for the probability of spurious
-            edges (false positives).
-        aE : ``float`` (optional, default: ``NaN``)
-            Expected total number of edges used in prior. If ``NaN``, a flat
-            prior will be used instead.
-        nested : ``boolean`` (optional, default: ``True``)
-            If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
-            will be used, otherwise
-            :class:`~graph_tool.inference.BlockState`.
-        state_args : ``dict`` (optional, default: ``{}``)
-            Arguments to be passed to
-            :class:`~graph_tool.inference.NestedBlockState` or
-            :class:`~graph_tool.inference.BlockState`.
-        bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
-            If passed, this will be used to initialize the block state
-            directly.
-        self_loops : bool (optional, default: ``False``)
-            If ``True``, it is assumed that the uncertain graph can contain
-            self-loops.
-
-        """
 
         super(MixedMeasuredBlockState, self).__init__(g, nested=nested,
                                                       state_args=state_args,

@@ -52,6 +52,9 @@ State classes
    OverlapBlockState
    LayeredBlockState
    NestedBlockState
+   UncertainBlockState
+   MeasuredBlockState
+   MixedMeasuredBlockState
    TemperingState
 
 Sampling and minimization
@@ -89,6 +92,7 @@ Auxiliary classes
 
    PartitionHist
    BlockPairHist
+   UncertainBaseState
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -135,6 +139,7 @@ __all__ = ["minimize_blockmodel_dl",
            "NestedBlockState",
            "UncertainBlockState",
            "MeasuredBlockState",
+           "UncertainBaseState",
            "MixedMeasuredBlockState",
            "mcmc_equilibrate",
            "mcmc_anneal",
