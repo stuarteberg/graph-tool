@@ -1111,13 +1111,13 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
 
         return pos
 
-    if inline:
+    output_file = output
+    if inline and output is None:
         if fmt == "auto":
             if output is None:
                 fmt = "png"
             else:
                 fmt = get_file_fmt(output)
-        output_file = output
         output = io.BytesIO()
 
     if output is None:
@@ -1184,18 +1184,21 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         cairo_draw(g, pos, cr, vprops, eprops, vorder, eorder,
                    nodesfirst, fit_view=fit_view, **kwargs)
 
+        srf.flush()
         if fmt == "png":
             srf.write_to_png(out)
+        elif fmt == "svg":
+            srf.finish()
 
         del cr
 
-        if inline:
+        if inline and output_file is None:
             img = None
             if fmt == "png":
                 img = IPython.display.Image(data=out.getvalue())
-            if fmt == "svg":
+            elif fmt == "svg":
                 img = IPython.display.SVG(data=out.getvalue())
-            if img is None:
+            elif img is None:
                 inl_out = io.BytesIO()
                 inl_srf = cairo.ImageSurface(cairo.FORMAT_ARGB32,
                                              output_size[0],
@@ -1207,14 +1210,6 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
                 del inl_srf
                 img = IPython.display.Image(data=inl_out.getvalue())
             srf.finish()
-            if output_file is not None:
-                if isinstance(output_file, (str, unicode)):
-                    ofile, auto_fmt = open_file(output_file, mode="wb")
-                else:
-                    ofile = output_file
-                ofile.write(out.getvalue())
-                if isinstance(output_file, (str, unicode)):
-                    ofile.close()
             IPython.display.display(img)
         del srf
         return pos
