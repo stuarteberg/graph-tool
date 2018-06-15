@@ -349,32 +349,34 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
         mcmc_args["allow_new_group"] = False
     mcmc_equilibrate_args["mcmc_args"] = mcmc_args
 
-    while state.B > B:
-        B_next = max(min(int(round(state.B / r)), state.B - 1), B)
+    while state.get_nonempty_B() > B:
+        B_next = max(min(int(round(state.get_nonempty_B() / r)),
+                         state.get_nonempty_B() - 1), B)
 
         if b_cache is not None and B_next in b_cache:
             state = b_cache[B_next][1]
             if check_verbose(verbose):
                 print(verbose_pad(verbose) +
-                      "shrinking %d -> %d (cached)" % (state.B, B_next))
+                      "shrinking %d -> %d (cached)" % (state.get_nonempty_B(),
+                                                       B_next))
             continue
 
         if check_verbose(verbose):
             print(verbose_pad(verbose) +
-                  "shrinking %d -> %d" % (state.B, B_next))
+                  "shrinking %d -> %d" % (state.get_nonempty_B(), B_next))
         state = state.shrink(B=B_next, **shrink_args)
         if anneal:
             mcmc_anneal(state,
                         **dict(anneal_args,
                                mcmc_equilibrate_args=mcmc_equilibrate_args,
                                verbose=verbose_push(verbose,
-                                                    "B=%d  " % state.B)))
+                                                    "B=%d  " % state.get_nonempty_B())))
         else:
             mcmc_equilibrate(state,
                              **dict(mcmc_equilibrate_args,
                                     verbose=verbose_push(verbose,
                                                          ("B=%d  " %
-                                                          state.B))))
+                                                          state.get_nonempty_B()))))
         if b_cache is not None:
             mcmc_args = mcmc_equilibrate_args.get("mcmc_args", {})
             entropy_args = mcmc_args.get("entropy_args", {})
