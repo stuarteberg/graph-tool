@@ -354,11 +354,11 @@ def mcmc_multilevel(state, B, r=2, b_cache=None, anneal=False,
                          state.get_nonempty_B() - 1), B)
 
         if b_cache is not None and B_next in b_cache:
-            state = b_cache[B_next][1]
             if check_verbose(verbose):
                 print(verbose_pad(verbose) +
                       "shrinking %d -> %d (cached)" % (state.get_nonempty_B(),
                                                        B_next))
+            state = b_cache[B_next][1]
             continue
 
         if check_verbose(verbose):
