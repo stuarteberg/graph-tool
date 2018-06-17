@@ -31,6 +31,8 @@
 #include <boost/graph/subgraph.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/overloading.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/xpressive/xpressive_static.hpp>
 
 #ifdef BOOST_HAS_DECLSPEC
 #  if defined(BOOST_ALL_DYN_LINK) || defined(BOOST_GRAPH_DYN_LINK)
@@ -75,13 +77,26 @@ namespace boost {
     }
   };
 
+  template <typename T>
+  inline std::string escape_dot_string(const T& obj) {
+    using namespace boost::xpressive;
+    static sregex valid_unquoted_id = (((alpha | '_') >> *_w) | (!as_xpr('-') >> (('.' >> *_d) | (+_d >> !('.' >> *_d)))));
+    std::string s(boost::lexical_cast<std::string>(obj));
+    if (regex_match(s, valid_unquoted_id)) {
+      return s;
+    } else {
+      boost::algorithm::replace_all(s, "\"", "\\\"");
+      return "\"" + s + "\"";
+    }
+  }
+
   template <class Name>
   class label_writer {
   public:
     label_writer(Name _name) : name(_name) {}
     template <class VertexOrEdge>
     void operator()(std::ostream& out, const VertexOrEdge& v) const {
-      out << "[label=\"" << get(name, v) << "\"]";
+      out << "[label=\"" << escape_dot_string(get(name, v)) << "\"]";
     }
   private:
     Name name;
@@ -112,7 +127,7 @@ namespace boost {
     iend = attr.end();
 
     while ( i != iend ) {
-      out << i->first << "=\"" << i->second << "\"";
+      out << i->first << "=\"" << escape_dot_string(i->second) << "\"";
       ++i;
       if ( i != iend )
         out << ", ";
@@ -258,20 +273,21 @@ namespace boost {
     typedef typename graph_traits<Graph>::directed_category cat_type;
     typedef graphviz_io_traits<cat_type> Traits;
     std::string name = "G";
-    out << Traits::name() << " " << name << " {" << std::endl;
+    out << Traits::name() << " " << escape_dot_string(name) << " {" << std::endl;
 
     gpw(out); //print graph properties
 
     typename graph_traits<Graph>::vertex_iterator i, end;
 
     for(tie(i,end) = vertices(g); i != end; ++i) {
-      out << get(vertex_id, *i);
+      out << escape_dot_string(get(vertex_id, *i));
       vpw(out, *i); //print vertex attributes
       out << ";" << std::endl;
     }
     typename graph_traits<Graph>::edge_iterator ei, edge_end;
     for(tie(ei, edge_end) = edges(g); ei != edge_end; ++ei) {
-      out << get(vertex_id, source(*ei, g)) << Traits::delimiter() << get(vertex_id, target(*ei, g)) << " ";
+      out << escape_dot_string(get(vertex_id, source(*ei, g)))
+          << Traits::delimiter() << escape_dot_string(get(vertex_id, target(*ei, g))) << " ";
       epw(out, *ei); //print edge attributes
       out << ";" << std::endl;
     }
@@ -343,7 +359,7 @@ namespace boost {
       else
         out << "subgraph";
 
-      out << " " << g_name << " {" << std::endl;
+      out << " " << escape_dot_string(g_name) << " {" << std::endl;
 
       typename Graph::const_children_iterator i_child, j_child;
 
@@ -400,8 +416,8 @@ namespace boost {
         int pos = get(get(edge_index, g.root()), g.local_to_global(*ei));
         if ( edge_marker[pos] ) {
           edge_marker[pos] = false;
-          out << get(vertex_id, u) << " " << Traits::delimiter()
-              << " " << get(vertex_id, v);
+          out << escape_dot_string(get(vertex_id, u)) << " " << Traits::delimiter()
+              << " " << escape_dot_string(get(vertex_id, v));
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
           typedef typename property_map<Graph, edge_attribute_t>::const_type
             EdgeAttributeMap;
@@ -523,7 +539,7 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=\"" << i->second->get_string(key) << "\"";
+          out << i->first << "=\"" << escape_dot_string(i->second->get_string(key)) << "\"";
         }
       }
 
@@ -553,7 +569,7 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=\"" << i->second->get_string(key) << "\"";
+          out << i->first << "=\"" << escape_dot_string(i->second->get_string(key)) << "\"";
         }
       }
 
