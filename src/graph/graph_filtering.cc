@@ -175,7 +175,7 @@ void GraphInterface::purge_vertices(boost::any aold_index)
     if (!is_vertex_filter_active())
         return;
 
-    typedef vprop_map_t<int32_t>::type index_prop_t;
+    typedef vprop_map_t<int64_t>::type index_prop_t;
     index_prop_t old_index = any_cast<index_prop_t>(aold_index);
 
     MaskFilter<vertex_filter_t> filter(_vertex_filter_map,
@@ -186,21 +186,13 @@ void GraphInterface::purge_vertices(boost::any aold_index)
         deleted[i] = !filter(vertex(i, *_mg));
     vector<int> old_indexes;
 
-    vector<graph_traits<multigraph_t>::edge_descriptor> edges;
-
     //remove vertices
-    for (int i = N-1; i >= 0; --i)
+    for (int64_t i = N-1; i >= 0; --i)
     {
         if (deleted[i])
-        {
-            graph_traits<multigraph_t>::vertex_descriptor v =
-                vertex(i, *_mg);
-            remove_vertex(v, *_mg);
-        }
+            remove_vertex(vertex(i, *_mg), *_mg);
         else
-        {
             old_indexes.push_back(i);
-        }
     }
 
     N = old_indexes.size();
