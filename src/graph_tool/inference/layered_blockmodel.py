@@ -167,7 +167,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                           allow_empty=allow_empty, max_BE=max_BE,
                                           Lrecdx=self.Lrecdx[0],
                                           **dmask(kwargs, ["degs", "lweights",
-                                                           "gs"]))
+                                                           "gs", "bfield"]))
             self.base_g = agg_state.base_g
             self.g = agg_state.g
             eweight = self.g.new_ep("int", 1)
@@ -204,6 +204,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.pclabel = agg_state.pclabel
         self.bclabel = agg_state.bclabel
         self.hclabel = agg_state.hclabel
+        if not overlap:
+            self.bfield = agg_state.bfield
+        else:
+            self.bfield = None
 
         self.deg_corr = deg_corr
         self.overlap = overlap
@@ -404,6 +408,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                      b=self.b,
                      B=self.B,
                      clabel=self.clabel,
+                     plabel=self.plabel,
+                     bfield=self.bfield,
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty)
         return state
@@ -421,8 +427,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         return self.copy(g=g, ec=ec)
 
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
-             deg_corr=None, clabel=None, pclabel=None, overlap=None,
-             layers=None, ec=None, **kwargs):
+             deg_corr=None, clabel=None, pclabel=None, bfield=None,
+             overlap=None, layers=None, ec=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
         lweights = self.g.new_vp("vector<int>")
@@ -469,6 +475,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   B=(self.B if b is None else None) if B is None else B,
                                   clabel=self.clabel.fa if clabel is None else clabel,
                                   pclabel=self.pclabel if pclabel is None else pclabel,
+                                  bfield=self.bfield if bfield is None else bfield,
                                   deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                   overlap=self.overlap if overlap is None else overlap,
                                   allow_empty=kwargs.pop("allow_empty",
