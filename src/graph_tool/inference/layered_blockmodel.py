@@ -408,7 +408,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                      b=self.b,
                      B=self.B,
                      clabel=self.clabel,
-                     plabel=self.plabel,
+                     pclabel=self.pclabel,
                      bfield=self.bfield,
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty)
