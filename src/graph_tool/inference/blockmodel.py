@@ -614,7 +614,7 @@ class BlockState(object):
 
     def copy(self, g=None, eweight=None, vweight=None, b=None, B=None,
              deg_corr=None, clabel=None, overlap=False, pclabel=None,
-             max_BE=None, **kwargs):
+             bfield=None, max_BE=None, **kwargs):
         r"""Copies the block state. The parameters override the state properties, and
          have the same meaning as in the constructor."""
 
@@ -626,6 +626,7 @@ class BlockState(object):
                                B=(self.B if b is None else None) if B is None else B,
                                clabel=self.clabel if clabel is None else clabel,
                                pclabel=self.pclabel if pclabel is None else pclabel,
+                               bfield=self.bfield if bfield is None else bfield,
                                deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                max_BE=self.max_BE if max_BE is None else max_BE,
                                degs=self.degs.copy() if eweight is None else None,
@@ -681,6 +682,7 @@ class BlockState(object):
                      B=self.B,
                      clabel=self.clabel,
                      pclabel=self.pclabel,
+                     bfield=self.bfield,
                      deg_corr=self.deg_corr,
                      allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
