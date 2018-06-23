@@ -60,7 +60,8 @@ void degs_op(size_t v, Vprop& vweight, Eprop& eweight,
     }
 }
 
-class partition_stats_t
+template <bool use_rmap>
+class partition_stats
 {
 public:
 
@@ -68,12 +69,20 @@ public:
 
     template <class Graph, class Vprop, class VWprop, class Eprop, class Degs,
               class Mprop, class Vlist>
-    partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E, size_t B,
-                      VWprop& vweight, Eprop& eweight, Degs& degs,
-                      const Mprop& ignore_degree, std::vector<size_t>& bmap,
-                      bool allow_empty)
+    partition_stats(Graph& g, Vprop& b, Vlist& vlist, size_t E, size_t B,
+                    VWprop& vweight, Eprop& eweight, Degs& degs,
+                    const Mprop& ignore_degree, std::vector<size_t>& bmap,
+                    bool allow_empty)
         : _bmap(bmap), _N(0), _E(E), _total_B(B), _allow_empty(allow_empty)
     {
+        if (!use_rmap)
+        {
+            _hist.resize(num_vertices(g));
+            _total.resize(num_vertices(g));
+            _ep.resize(num_vertices(g));
+            _em.resize(num_vertices(g));
+        }
+
         for (auto v : vlist)
         {
             if (vweight[v] == 0)
@@ -108,23 +117,28 @@ public:
         }
     }
 
+    template <bool resize=false>
     size_t get_r(size_t r)
     {
-        constexpr size_t null =
-            std::numeric_limits<size_t>::max();
-        if (r >= _bmap.size())
-            _bmap.resize(r + 1, null);
-        size_t nr = _bmap[r];
-        if (nr == null)
-            nr = _bmap[r] = _hist.size();
-        if (nr >= _hist.size())
+        if (use_rmap)
         {
-            _hist.resize(nr + 1);
-            _total.resize(nr + 1);
-            _ep.resize(nr + 1);
-            _em.resize(nr + 1);
+            constexpr size_t null =
+                std::numeric_limits<size_t>::max();
+            if (r >= _bmap.size())
+                _bmap.resize(r + 1, null);
+            size_t nr = _bmap[r];
+            if (nr == null)
+                nr = _bmap[r] = _hist.size();
+            r = nr;
         }
-        return nr;
+        if ((resize || use_rmap) && r >= _hist.size())
+        {
+            _hist.resize(r + 1);
+            _total.resize(r + 1);
+            _ep.resize(r + 1);
+            _em.resize(r + 1);
+        }
+        return r;
     }
 
     double get_partition_dl()
@@ -260,7 +274,7 @@ public:
             r = get_r(r);
 
         if (nr != null_group)
-            nr = get_r(nr);
+            nr = get_r<true>(nr);
 
         int n = vweight[v];
         if (n == 0)
@@ -325,7 +339,7 @@ public:
         if (r != null_group)
             r = get_r(r);
         if (nr != null_group)
-            nr = get_r(nr);
+            nr = get_r<true>(nr);
 
         double S_b = 0, S_a = 0;
 
@@ -363,7 +377,7 @@ public:
         if (r != null_group)
             r = get_r(r);
         if (nr != null_group)
-            nr = get_r(nr);
+            nr = get_r<true>(nr);
 
         auto dop =
             [&](auto&& f)
@@ -577,7 +591,7 @@ public:
     {
         if (nr == null_group || vweight[v] == 0)
             return;
-        nr = get_r(nr);
+        nr = get_r<true>(nr);
         change_vertex(v, nr, deg_corr, g, vweight, eweight, degs, 1);
     }
 

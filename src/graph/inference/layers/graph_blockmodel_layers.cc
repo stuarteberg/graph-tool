@@ -21,6 +21,7 @@
 #include "graph_tool.hh"
 #include "random.hh"
 
+#define GRAPH_BLOCKMODEL_RMAP_ENABLE
 #include "../blockmodel/graph_blockmodel.hh"
 #include "graph_blockmodel_layers_util.hh"
 #define BASE_STATE_params BLOCK_STATE_params
@@ -43,7 +44,7 @@ python::object make_layered_block_state(boost::python::object oblock_state,
     auto dispatch = [&](auto& block_state)
         {
             typedef typename std::remove_reference<decltype(block_state)>::type
-            state_t;
+                state_t;
 
             layered_block_state<state_t>::make_dispatch
                 (olayered_state,

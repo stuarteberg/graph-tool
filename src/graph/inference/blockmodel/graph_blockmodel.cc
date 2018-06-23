@@ -135,6 +135,7 @@ simple_degs_t copy_simple_degs(simple_degs_t& degs)
 }
 
 void export_sbm_state();
+void export_sbm_state_rmap();
 
 double spence(double);
 
@@ -143,6 +144,7 @@ void export_blockmodel_state()
     using namespace boost::python;
 
     export_sbm_state();
+    export_sbm_state_rmap();
 
     class_<vcmap_t>("unity_vprop_t").def("_get_any", &get_any<vcmap_t>);
     class_<ecmap_t>("unity_eprop_t").def("_get_any", &get_any<ecmap_t>);

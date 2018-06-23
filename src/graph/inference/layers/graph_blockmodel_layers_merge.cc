@@ -20,6 +20,7 @@
 
 #include <boost/python.hpp>
 
+#define GRAPH_BLOCKMODEL_RMAP_ENABLE
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "../blockmodel/graph_blockmodel.hh"
 #define BASE_STATE_params BLOCK_STATE_params

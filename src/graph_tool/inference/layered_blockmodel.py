@@ -156,6 +156,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                    deg_corr=deg_corr, allow_empty=allow_empty,
                                    max_BE=max_BE, degs=tdegs,
                                    Lrecdx=self.Lrecdx[0],
+                                   use_rmap=True,
                                    **dmask(kwargs, ["degs", "lweights", "gs"]))
         else:
             kwargs = dmask(kwargs, ["degs"])
@@ -318,6 +319,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         kwargs.pop("rec_params", None)
         kwargs.pop("Lrecdx", None)
         kwargs.pop("epsilon", None)
+        kwargs.pop("bfield", None)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -375,7 +377,8 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                deg_corr=self.deg_corr,
                                degs=degs,
                                allow_empty=self.allow_empty,
-                               max_BE=self.max_BE)
+                               max_BE=self.max_BE,
+                               use_rmap=True)
         else:
             base_u, node_index = self.__get_base_u(u)
             state = OverlapBlockState(u, b=u.vp["b"].fa,

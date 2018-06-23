@@ -58,10 +58,21 @@ typedef mpl::vector2<std::true_type, std::false_type> bool_tr;
 typedef mpl::vector2<vcmap_t, vmap_t> vweight_tr;
 typedef mpl::vector2<ecmap_t, emap_t> eweight_tr;
 
+#ifdef GRAPH_BLOCKMODEL_RMAP_ENABLE
+#    ifdef GRAPH_BLOCKMODEL_RMAP_ALL_ENABLE
+typedef mpl::vector2<std::true_type, std::false_type> rmap_tr;
+#    else
+typedef mpl::vector1<std::true_type> rmap_tr;
+#    endif
+#else
+typedef mpl::vector1<std::false_type> rmap_tr;
+#endif
+
 #define BLOCK_STATE_params                                                     \
     ((g, &, all_graph_views, 1))                                               \
     ((is_weighted,, bool_tr, 1))                                               \
     ((use_hash,, bool_tr, 1))                                                  \
+    ((use_rmap,, rmap_tr, 1))                                                  \
     ((_abg, &, boost::any&, 0))                                                \
     ((_aeweight, &, boost::any&, 0))                                           \
     ((_avweight, &, boost::any&, 0))                                           \
@@ -103,6 +114,8 @@ class BlockState
 public:
     GET_PARAMS_USING(BlockStateBase<Ts...>, BLOCK_STATE_params)
     GET_PARAMS_TYPEDEF(Ts, BLOCK_STATE_params)
+
+    typedef partition_stats<use_rmap_t::value> partition_stats_t;
 
     template <class RNG, class... ATs,
               typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>

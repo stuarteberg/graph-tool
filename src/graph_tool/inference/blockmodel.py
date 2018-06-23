@@ -426,6 +426,7 @@ class BlockState(object):
         self.max_BE = max_BE
 
         self.use_hash = self.B > self.max_BE
+        self.use_rmap = kwargs.pop("use_rmap", False)
 
         self.ignore_degrees = kwargs.pop("ignore_degrees", None)
         if self.ignore_degrees is None:

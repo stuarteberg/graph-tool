@@ -21,6 +21,7 @@ libgraph_tool_inference_la_SOURCES = \
     blockmodel/graph_blockmodel_gibbs.cc \
     blockmodel/graph_blockmodel_imp.cc \
     blockmodel/graph_blockmodel_imp2.cc \
+    blockmodel/graph_blockmodel_imp3.cc \
     blockmodel/graph_blockmodel_marginals.cc \
     blockmodel/graph_blockmodel_mcmc.cc \
     blockmodel/graph_blockmodel_merge.cc \

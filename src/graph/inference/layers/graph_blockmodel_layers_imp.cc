@@ -21,6 +21,7 @@
 #include "graph_tool.hh"
 #include "random.hh"
 
+#define GRAPH_BLOCKMODEL_RMAP_ENABLE
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "../blockmodel/graph_blockmodel.hh"
 #include "graph_blockmodel_layers_util.hh"
