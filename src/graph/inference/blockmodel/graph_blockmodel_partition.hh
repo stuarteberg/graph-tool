@@ -117,7 +117,6 @@ public:
         }
     }
 
-    template <bool resize=false>
     size_t get_r(size_t r)
     {
         if (use_rmap)
@@ -131,7 +130,7 @@ public:
                 nr = _bmap[r] = _hist.size();
             r = nr;
         }
-        if ((resize || use_rmap) && r >= _hist.size())
+        if (r >= _hist.size())
         {
             _hist.resize(r + 1);
             _total.resize(r + 1);
@@ -274,7 +273,7 @@ public:
             r = get_r(r);
 
         if (nr != null_group)
-            nr = get_r<true>(nr);
+            nr = get_r(nr);
 
         int n = vweight[v];
         if (n == 0)
@@ -339,7 +338,7 @@ public:
         if (r != null_group)
             r = get_r(r);
         if (nr != null_group)
-            nr = get_r<true>(nr);
+            nr = get_r(nr);
 
         double S_b = 0, S_a = 0;
 
@@ -377,7 +376,7 @@ public:
         if (r != null_group)
             r = get_r(r);
         if (nr != null_group)
-            nr = get_r<true>(nr);
+            nr = get_r(nr);
 
         auto dop =
             [&](auto&& f)
@@ -591,7 +590,7 @@ public:
     {
         if (nr == null_group || vweight[v] == 0)
             return;
-        nr = get_r<true>(nr);
+        nr = get_r(nr);
         change_vertex(v, nr, deg_corr, g, vweight, eweight, degs, 1);
     }
 
