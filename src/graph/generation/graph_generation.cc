@@ -126,6 +126,7 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(libgraph_tool_generation)
 {
+    docstring_options dopt(true, false);
     def("gen_graph", &generate_graph);
     def("gen_sbm", &generate_sbm);
     def("random_rewire", &random_rewire);

@@ -28,6 +28,7 @@ void export_astar_implicit();
 
 BOOST_PYTHON_MODULE(libgraph_tool_search)
 {
+    python::docstring_options dopt(true, false);
     export_bfs();
     export_dfs();
     export_dijkstra();

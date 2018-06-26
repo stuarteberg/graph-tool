@@ -30,6 +30,7 @@ void export_pagerank();
 
 BOOST_PYTHON_MODULE(libgraph_tool_centrality)
 {
+    python::docstring_options dopt(true, false);
     export_betweenness();
     export_closeness();
     export_eigentrust();

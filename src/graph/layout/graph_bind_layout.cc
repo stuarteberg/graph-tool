@@ -26,6 +26,7 @@ void export_planar();
 
 BOOST_PYTHON_MODULE(libgraph_tool_layout)
 {
+    docstring_options dopt(true, false);
     export_arf();
     export_fruchterman_reingold();
     export_sfdp();

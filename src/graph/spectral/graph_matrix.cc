@@ -49,6 +49,7 @@ void transition(GraphInterface& g, boost::any index, boost::any weight,
 BOOST_PYTHON_MODULE(libgraph_tool_spectral)
 {
     using namespace boost::python;
+    docstring_options dopt(true, false);
     def("adjacency", &adjacency);
     def("laplacian", &laplacian);
     def("norm_laplacian", &norm_laplacian);

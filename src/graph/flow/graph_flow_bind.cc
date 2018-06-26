@@ -36,6 +36,7 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(libgraph_tool_flow)
 {
+    docstring_options dopt(true, false);
     def("edmonds_karp_max_flow", &edmonds_karp_max_flow);
     def("push_relabel_max_flow", &push_relabel_max_flow);
     def("kolmogorov_max_flow", &kolmogorov_max_flow);

@@ -58,6 +58,7 @@ void get_motifs(GraphInterface& g, size_t k, boost::python::list subgraph_list,
 
 BOOST_PYTHON_MODULE(libgraph_tool_clustering)
 {
+    docstring_options dopt(true, false);
     def("global_clustering", &global_clustering);
     def("local_clustering", &local_clustering);
     def("extended_clustering", &extended_clustering);

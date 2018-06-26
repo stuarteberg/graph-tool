@@ -23,5 +23,6 @@ void export_search();
 
 BOOST_PYTHON_MODULE(libgraph_tool_util)
 {
+    python::docstring_options dopt(true, false);
     export_search();
 }

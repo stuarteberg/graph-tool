@@ -27,6 +27,7 @@ void export_sampled_distance();
 
 BOOST_PYTHON_MODULE(libgraph_tool_stats)
 {
+    python::docstring_options dopt(true, false);
     export_parallel();
     export_histograms();
     export_average();

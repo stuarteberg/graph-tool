@@ -442,7 +442,7 @@ void export_openmp();
 
 BOOST_PYTHON_MODULE(libgraph_tool_core)
 {
-    using namespace boost::python;
+    python::docstring_options dopt(true, false);
 
     // numpy
     do_import_array();

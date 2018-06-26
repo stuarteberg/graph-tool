@@ -68,6 +68,7 @@ void export_vertex_similarity();
 
 BOOST_PYTHON_MODULE(libgraph_tool_topology)
 {
+    docstring_options dopt(true, false);
     def("check_isomorphism", &check_isomorphism);
     def("subgraph_isomorphism", &subgraph_isomorphism);
     def("get_kruskal_spanning_tree", &get_kruskal_spanning_tree);

@@ -27,6 +27,7 @@ void export_avg_combined_correlations();
 
 BOOST_PYTHON_MODULE(libgraph_tool_correlations)
 {
+    python::docstring_options dopt(true, false);
     export_assortativity();
     export_vertex_correlations();
     export_combined_vertex_correlations();

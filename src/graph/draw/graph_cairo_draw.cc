@@ -2166,6 +2166,7 @@ void get_cts(GraphInterface& gi, GraphInterface& tgi, boost::any otpos,
 
 BOOST_PYTHON_MODULE(libgraph_tool_draw)
 {
+    docstring_options dopt(true, false);
     def("cairo_draw", &cairo_draw);
     def("put_parallel_splines", &put_parallel_splines);
     def("apply_transforms", &apply_transforms);

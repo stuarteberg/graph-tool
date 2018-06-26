@@ -114,6 +114,7 @@ extern void export_modularity();
 BOOST_PYTHON_MODULE(libgraph_tool_inference)
 {
     using namespace boost::python;
+    docstring_options dopt(true, false);
     export_blockmodel_state();
     export_blockmodel_mcmc();
     export_blockmodel_multicanonical();
