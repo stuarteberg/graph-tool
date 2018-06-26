@@ -42,11 +42,11 @@ class NestedBlockState(object):
         Graph to be modeled.
     bs : ``list`` of :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
         Hierarchical node partition.
-    base_type : ``type`` (optional, default: :class:`~graph_tool.inference.BlockState`)
+    base_type : ``type`` (optional, default: :class:`~graph_tool.inference.blockmodel.BlockState`)
         State type for lowermost level
-        (e.g. :class:`~graph_tool.inference.BlockState`,
-        :class:`~graph_tool.inference.OverlapBlockState` or
-        :class:`~graph_tool.inference.LayeredBlockState`)
+        (e.g. :class:`~graph_tool.inference.blockmodel.BlockState`,
+        :class:`~graph_tool.inference.overlap_blockmodel.OverlapBlockState` or
+        :class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`)
     hstate_args : ``dict`` (optional, default: `{}`)
         Keyword arguments to be passed to the constructor of the higher-level
         states.
@@ -217,7 +217,7 @@ class NestedBlockState(object):
         return [s.b.fa for s in self.levels]
 
     def get_levels(self):
-        """Get hierarchy levels as a list of :class:`~graph_tool.inference.BlockState`
+        """Get hierarchy levels as a list of :class:`~graph_tool.inference.blockmodel.BlockState`
         instances."""
         return self.levels
 
@@ -387,9 +387,9 @@ class NestedBlockState(object):
 
         The keyword arguments are passed to the ``entropy()`` method of the
         underlying state objects
-        (e.g. :class:`graph_tool.inference.BlockState.entropy`,
-        :class:`graph_tool.inference.OverlapBlockState.entropy`, or
-        :class:`graph_tool.inference.LayeredBlockState.entropy`).  """
+        (e.g. :class:`graph_tool.inference.blockmodel.BlockState.entropy`,
+        :class:`graph_tool.inference.overlap_blockmodel.OverlapBlockState.entropy`, or
+        :class:`graph_tool.inference.layered_blockmodel.LayeredBlockState.entropy`).  """
         S = 0
         for l in range(len(self.levels)):
             S += self.level_entropy(l, **dict(kwargs, test=False))
@@ -438,7 +438,7 @@ class NestedBlockState(object):
         self._regen_levels()
 
     def get_edges_prob(self, missing, spurious=[], entropy_args={}):
-        """Compute the joint log-probability of the missing and spurious edges given by
+        r"""Compute the joint log-probability of the missing and spurious edges given by
         ``missing`` and ``spurious`` (a list of ``(source, target)``
         tuples, or :meth:`~graph_tool.Edge` instances), together with the
         observed edges.
@@ -453,7 +453,7 @@ class NestedBlockState(object):
         (with missing edges added and spurious edges deleted).
 
         The values in ``entropy_args`` are passed to
-        :meth:`graph_tool.BlockState.entropy()` to calculate the
+        :meth:`graph_tool.inference.blockmodel.BlockState.entropy()` to calculate the
         log-probability.
         """
 
@@ -532,7 +532,7 @@ class NestedBlockState(object):
     def find_new_level(self, l, bisection_args={}, B_min=None, B_max=None,
                        b_min=None, b_max=None):
         """Attempt to find a better network partition at level ``l``, using
-        :func:`~graph_tool.inference.bisection_minimize` with arguments given by
+        :func:`~graph_tool.inference.bisection.bisection_minimize` with arguments given by
         ``bisection_args``.
         """
 
@@ -804,7 +804,7 @@ class NestedBlockState(object):
         MCMC to sample hierarchical network partitions.
 
         The arguments accepted are the same as in
-        :meth:`graph_tool.inference.BlockState.mcmc_sweep`.
+        :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep`.
 
         If the parameter ``c`` is a scalar, the values used at each level are
         ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
@@ -844,7 +844,7 @@ class NestedBlockState(object):
         with multiple moves to sample hierarchical network partitions.
 
         The arguments accepted are the same as in
-        :meth:`graph_tool.inference.BlockState.multiflip_mcmc_sweep`.
+        :meth:`graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`.
 
         If the parameter ``c`` is a scalar, the values used at each level are
         ``c * 2 ** l`` for ``l`` in the range ``[0, L-1]``. Optionally, a list
@@ -884,7 +884,7 @@ class NestedBlockState(object):
         Wang-Landau algorithm.
 
         The arguments accepted are the same as in
-        :meth:`graph_tool.inference.BlockState.multicanonical_sweep`.
+        :meth:`graph_tool.inference.blockmodel.BlockState.multicanonical_sweep`.
         """
         if _bm_test():
             kwargs = dict(kwargs, test=False)
@@ -904,11 +904,11 @@ class NestedBlockState(object):
         r"""Collect a histogram of partitions.
 
         This should be called multiple times, e.g. after repeated runs of the
-        :meth:`graph_tool.inference.NestedBlockState.mcmc_sweep` function.
+        :meth:`graph_tool.inference.nested_blockmodel.NestedBlockState.mcmc_sweep` function.
 
         Parameters
         ----------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.blockmodel.PartitionHist` (optional, default: ``None``)
             Partition histogram. If not provided, an empty histogram will be created.
         update : float (optional, default: ``1``)
             Each call increases the current count by the amount given by this
@@ -916,7 +916,7 @@ class NestedBlockState(object):
 
         Returns
         -------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.blockmodel.PartitionHist` (optional, default: ``None``)
             Updated Partition histogram.
 
         """
@@ -943,7 +943,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
     Parameters
     ----------
-    state : :class:`~graph_tool.inference.NestedBlockState`
+    state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         The nested block state.
     B_min : ``int`` (optional, default: ``None``)
         The minimum number of blocks.
@@ -956,7 +956,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
     frozen_levels : sequence of ``int`` values (optional, default: ``None``)
         List of hierarchy levels that are kept constant during the minimization.
     bisection_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.bisection_minimize`.
+        Arguments to be passed to :func:`~graph_tool.inference.bisection.bisection_minimize`.
     epsilon: ``float`` (optional, default: ``1e-8``)
         Only replace levels if the description length difference is above this
         threshold.
@@ -969,7 +969,7 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 
     Returns
     -------
-    min_state : :class:`~graph_tool.inference.NestedBlockState`
+    min_state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         Nested state with minimal description length.
 
     Notes
@@ -1189,13 +1189,13 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
 def get_hierarchy_tree(state, empty_branches=True):
     r"""Obtain the nested hierarchical levels as a tree.
 
-    This transforms a :class:`~graph_tool.inference.NestedBlockState` instance
+    This transforms a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` instance
     into a single :class:`~graph_tool.Graph` instance containing the hierarchy
     tree.
 
     Parameters
     ----------
-    state : :class:`~graph_tool.inference.NestedBlockState`
+    state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
        Nested block model state.
     empty_branches : ``bool`` (optional, default: ``True``)
        If ``empty_branches == False``, dangling branches at the upper layers

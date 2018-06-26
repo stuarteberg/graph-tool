@@ -523,6 +523,13 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
     11
     >>> print(zscores)
     [0.22728646681107012, 0.21409572051644973, 0.007022040788902111, 0.5872141967123348, -0.37770179603294357, -0.3484733504783734, 0.8861811801325502, -0.08, -0.2, -0.38, -0.2]
+
+    References
+    ----------
+    .. [wernicke-efficient-2006] S. Wernicke, "Efficient detection of network
+       motifs", IEEE/ACM Transactions on Computational Biology and
+       Bioinformatics (TCBB), Volume 3, Issue 4, Pages 347-359, 2006.
+       :doi:`10.1109/TCBB.2006.51`
     """
 
     s_ms, counts = motifs(g, k, p, motif_list)

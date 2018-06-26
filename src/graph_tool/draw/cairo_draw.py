@@ -579,10 +579,10 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         If provided, defines the relative order in which the edges are drawn.
     nodesfirst : bool (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
-    vcmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :class:`default_cm`)
+    vcmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :obj:`~graph_tool.draw.default_cm`)
         Vertex color map. Optionally, this may be a
         (:class:`matplotlib.colors.Colormap`, alpha) tuple.
-    ecmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :class:`default_cm`)
+    ecmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :obj:`~graph_tool.draw.default_cm`)
         Edge color map. Optionally, this may be a
         (:class:`matplotlib.colors.Colormap`, alpha) tuple.
     loop_angle : float or :class:`~graph_tool.PropertyMap` (optional, default: ``nan``)
@@ -1582,7 +1582,7 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
     Parameters
     ----------
-    state : :class:`~graph_tool.community.NestedBlockState`
+    state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         Nested block state to be drawn.
     pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         If supplied, this specifies a vertex property map with the positions of

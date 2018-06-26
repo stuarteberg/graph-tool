@@ -229,8 +229,8 @@ Inferring the best partition
 The simplest and most efficient approach is to find the best
 partition of the network by maximizing Eq. :eq:`model-posterior`
 according to some version of the model. This is obtained via the
-functions :func:`~graph_tool.inference.minimize_blockmodel_dl` or
-:func:`~graph_tool.inference.minimize_nested_blockmodel_dl`, which
+functions :func:`~graph_tool.inference.minimize.minimize_blockmodel_dl` or
+:func:`~graph_tool.inference.minimize.minimize_nested_blockmodel_dl`, which
 employs an agglomerative multilevel `Markov chain Monte Carlo (MCMC)
 <https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo>`_ algorithm
 [peixoto-efficient-2014]_.
@@ -265,7 +265,7 @@ we then fit the degree-corrected model by calling
 
    state = gt.minimize_blockmodel_dl(g)
 
-This returns a :class:`~graph_tool.inference.BlockState` object that
+This returns a :class:`~graph_tool.inference.blockmodel.BlockState` object that
 includes the inference results.
 
 .. note::
@@ -283,12 +283,12 @@ includes the inference results.
    and select the partition with the largest posterior probability of
    Eq. :eq:`model-posterior`, or equivalently, the minimum description
    length of Eq. :eq:`model-dl`. The description length of a fit can be
-   obtained with the :meth:`~graph_tool.inference.BlockState.entropy`
+   obtained with the :meth:`~graph_tool.inference.blockmodel.BlockState.entropy`
    method. See also Sec. :ref:`sec_model_selection` below.
 
 
 We may perform a drawing of the partition obtained via the
-:mod:`~graph_tool.inference.BlockState.draw` method, that functions as a
+:mod:`~graph_tool.inference.blockmodel.BlockState.draw` method, that functions as a
 convenience wrapper to the :func:`~graph_tool.draw.graph_draw` function
 
 .. testcode:: football
@@ -307,7 +307,7 @@ which yields the following image.
 
 We can obtain the group memberships as a
 :class:`~graph_tool.PropertyMap` on the vertices via the
-:mod:`~graph_tool.inference.BlockState.get_blocks` method:
+:mod:`~graph_tool.inference.blockmodel.BlockState.get_blocks` method:
 
 .. testcode:: football
 
@@ -322,7 +322,7 @@ which yields:
    3
 
 We may also access the matrix of edge counts between groups via
-:mod:`~graph_tool.inference.BlockState.get_matrix`
+:mod:`~graph_tool.inference.blockmodel.BlockState.get_matrix`
 
 .. testcode:: football
 
@@ -353,7 +353,7 @@ Hierarchical partitions
 
 The inference of the nested family of SBMs is done in a similar manner,
 but we must use instead the
-:func:`~graph_tool.inference.minimize_nested_blockmodel_dl` function. We
+:func:`~graph_tool.inference.minimize.minimize_nested_blockmodel_dl` function. We
 illustrate its use with the neural network of the `C. elegans
 <https://en.wikipedia.org/wiki/Caenorhabditis_elegans>`_ worm:
 
@@ -379,10 +379,10 @@ A hierarchical fit of the degree-corrected model is performed as follows.
    state = gt.minimize_nested_blockmodel_dl(g)
 
 The object returned is an instance of a
-:class:`~graph_tool.inference.NestedBlockState` class, which
+:class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` class, which
 encapsulates the results. We can again draw the resulting hierarchical
 clustering using the
-:meth:`~graph_tool.inference.NestedBlockState.draw` method:
+:meth:`~graph_tool.inference.nested_blockmodel.NestedBlockState.draw` method:
 
 .. testcode:: celegans
 
@@ -397,12 +397,12 @@ clustering using the
 .. note::
 
    If the ``output`` parameter to
-   :meth:`~graph_tool.inference.NestedBlockState.draw` is omitted, an
+   :meth:`~graph_tool.inference.nested_blockmodel.NestedBlockState.draw` is omitted, an
    interactive visualization is performed, where the user can re-order
    the hierarchy nodes using the mouse and pressing the ``r`` key.
 
 A summary of the inferred hierarchy can be obtained with the
-:meth:`~graph_tool.inference.NestedBlockState.print_summary` method,
+:meth:`~graph_tool.inference.nested_blockmodel.NestedBlockState.print_summary` method,
 which shows the number of nodes and groups in all levels:
 
 .. testcode:: celegans
@@ -417,8 +417,8 @@ which shows the number of nodes and groups in all levels:
    l: 3, N: 3, B: 1
 
 The hierarchical levels themselves are represented by individual
-:meth:`~graph_tool.inference.BlockState` instances obtained via the
-:meth:`~graph_tool.inference.NestedBlockState.get_levels()` method:
+:meth:`~graph_tool.inference.blockmodel.BlockState` instances obtained via the
+:meth:`~graph_tool.inference.nested_blockmodel.NestedBlockState.get_levels()` method:
 
 .. testcode:: celegans
 
@@ -456,8 +456,9 @@ Model selection
 +++++++++++++++
 
 As mentioned above, one can select the best model according to the
-choice that yields the smallest description length. For instance, in
-case of the `C. elegans` network we have
+choice that yields the smallest description length
+[peixoto-model-2016]_. For instance, in case of the `C. elegans` network
+we have
 
 .. testsetup:: model-selection
 
@@ -567,9 +568,9 @@ groups being used in the model, and hence is suitable for use on very
 large networks.
 
 In order to perform such moves, one needs again to operate with
-:class:`~graph_tool.inference.BlockState` or
-:class:`~graph_tool.inference.NestedBlockState` instances, and calling
-their :meth:`~graph_tool.inference.BlockState.mcmc_sweep` methods. For
+:class:`~graph_tool.inference.blockmodel.BlockState` or
+:class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` instances, and calling
+their :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep` methods. For
 example, the following will perform 1000 sweeps of the algorithm with
 the network of characters in the novel Les Misérables, starting from a
 random partition into 20 groups
@@ -603,10 +604,10 @@ random partition into 20 groups
    Starting from a random partition is rarely the best option, since it
    may take a long time for it to equilibrate. It was done above simply
    as an illustration on how to initialize
-   :class:`~graph_tool.inference.BlockState` by hand. Instead, a much
+   :class:`~graph_tool.inference.blockmodel.BlockState` by hand. Instead, a much
    better option in practice is to start from an approximation to the
    "ground state" obtained with
-   :func:`~graph_tool.inference.minimize_blockmodel_dl`, e.g.
+   :func:`~graph_tool.inference.minimize.minimize_blockmodel_dl`, e.g.
 
     .. testcode:: model-averaging
 
@@ -624,7 +625,7 @@ random partition into 20 groups
 
 Although the above is sufficient to implement model averaging, there is a
 convenience function called
-:func:`~graph_tool.inference.mcmc_equilibrate` that is intend to
+:func:`~graph_tool.inference.mcmc.mcmc_equilibrate` that is intend to
 simplify the detection of equilibration, by keeping track of the maximum
 and minimum values of description length encountered and how many sweeps
 have been made without a "record breaking" event. For example,
@@ -691,14 +692,14 @@ Note that the value of ``wait`` above was made purposefully low so that
 the output would not be overly long. The most appropriate value requires
 experimentation, but a typically good value is ``wait=1000``.
 
-The function :func:`~graph_tool.inference.mcmc_equilibrate` accepts a
+The function :func:`~graph_tool.inference.mcmc.mcmc_equilibrate` accepts a
 ``callback`` argument that takes an optional function to be invoked
 after each call to
-:meth:`~graph_tool.inference.BlockState.mcmc_sweep`. This function
+:meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep`. This function
 should accept a single parameter which will contain the actual
-:class:`~graph_tool.inference.BlockState` instance. We will use this in
+:class:`~graph_tool.inference.blockmodel.BlockState` instance. We will use this in
 the example below to collect the posterior vertex marginals (via
-:class:`~graph_tool.inference.BlockState.collect_vertex_marginals`),
+:class:`~graph_tool.inference.blockmodel.BlockState.collect_vertex_marginals`),
 i.e. the posterior probability that a node belongs to a given group:
 
 .. testcode:: model-averaging
@@ -775,11 +776,11 @@ Hierarchical partitions
 We can also perform model averaging using the nested SBM, which will
 give us a distribution over hierarchies. The whole procedure is fairly
 analogous, but now we make use of
-:class:`~graph_tool.inference.NestedBlockState` instances.
+:class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` instances.
 
 .. note::
 
-    When using :class:`~graph_tool.inference.NestedBlockState` instances
+    When using :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` instances
     to perform model averaging, they need to be constructed with the
     option ``sampling=True``.
 
@@ -820,7 +821,7 @@ network as above.
    Number of accepted vertex moves: 56087
 
 Similarly to the the non-nested case, we can use
-:func:`~graph_tool.inference.mcmc_equilibrate` to do most of the boring
+:func:`~graph_tool.inference.mcmc.mcmc_equilibrate` to do most of the boring
 work, and we can now obtain vertex marginals on all hierarchical levels:
 
 
@@ -980,8 +981,8 @@ The computation of the posterior entropy :math:`\mathcal{S}`, however,
 is significantly more difficult, since it involves measuring the precise
 value of :math:`q(\boldsymbol b)`. A direct "brute force" computation of
 :math:`\mathcal{S}` is implemented via
-:meth:`~graph_tool.inference.BlockState.collect_partition_histogram` and
-:func:`~graph_tool.inference.microstate_entropy`, however this is only
+:meth:`~graph_tool.inference.blockmodel.BlockState.collect_partition_histogram` and
+:func:`~graph_tool.inference.blockmodel.microstate_entropy`, however this is only
 feasible for very small networks. For larger networks, we are forced to
 perform approximations. The simplest is a "mean field" one, where we
 assume the posterior factorizes as
@@ -1044,10 +1045,10 @@ whenever possible.
 
 With these approximations, it possible to estimate the full model
 evidence efficiently, as we show below, using
-:meth:`~graph_tool.inference.BlockState.collect_vertex_marginals`,
-:meth:`~graph_tool.inference.BlockState.collect_edge_marginals`,
-:meth:`~graph_tool.inference.mf_entropy` and
-:meth:`~graph_tool.inference.bethe_entropy`.
+:meth:`~graph_tool.inference.blockmodel.BlockState.collect_vertex_marginals`,
+:meth:`~graph_tool.inference.blockmodel.BlockState.collect_edge_marginals`,
+:meth:`~graph_tool.inference.blockmodel.mf_entropy` and
+:meth:`~graph_tool.inference.blockmodel.bethe_entropy`.
 
 .. testcode:: model-evidence
 
@@ -1239,12 +1240,13 @@ and any of the other discrete distributions for the magnitude,
 :math:`y_{ij} = \operatorname{abs}(x_{ij})`.
    
 The support for weighted networks is activated by passing the parameters
-``recs`` and ``rec_types`` to :class:`~graph_tool.inference.BlockState`
-(or :class:`~graph_tool.inference.OverlapBlockState`), that specify the
-edge covariates (an edge :class:`~graph_tool.PropertyMap`) and their
-types (a string from the table above), respectively. Note that these
-parameters expect *lists*, so that multiple edge weights can be used
-simultaneously.
+``recs`` and ``rec_types`` to
+:class:`~graph_tool.inference.blockmodel.BlockState` (or
+:class:`~graph_tool.inference.overlap_blockmodel.OverlapBlockState`),
+that specify the edge covariates (an edge
+:class:`~graph_tool.PropertyMap`) and their types (a string from the
+table above), respectively. Note that these parameters expect *lists*,
+so that multiple edge weights can be used simultaneously.
 
 For example, let us consider a network of suspected terrorists involved
 in the train bombing of Madrid on March 11, 2004
@@ -1438,19 +1440,20 @@ representing distinct types if interactions
 [peixoto-inferring-2015]_. Extensions to the SBM may be defined for such
 data, and they can be inferred using the exact same interface shown
 above, except one should use the
-:class:`~graph_tool.inference.LayeredBlockState` class, instead of
-:class:`~graph_tool.inference.BlockState`. This class takes two
-additional parameters: the ``ec`` parameter, that must correspond to an
-edge :class:`~graph_tool.PropertyMap` with the layer/covariate values on
-the edges, and the Boolean ``layers`` parameter, which if ``True``
+:class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`
+class, instead of
+:class:`~graph_tool.inference.blockmodel.BlockState`. This class takes
+two additional parameters: the ``ec`` parameter, that must correspond to
+an edge :class:`~graph_tool.PropertyMap` with the layer/covariate values
+on the edges, and the Boolean ``layers`` parameter, which if ``True``
 specifies a layered model, otherwise one with categorical edge
 covariates (not to be confused with the weighted models in
 Sec. :ref:`weights`).
 
-If we use :func:`~graph_tool.inference.minimize_blockmodel_dl`, this can
+If we use :func:`~graph_tool.inference.minimize.minimize_blockmodel_dl`, this can
 be achieved simply by passing the option ``layers=True`` as well as the
 appropriate value of ``state_args``, which will be propagated to
-:class:`~graph_tool.inference.LayeredBlockState`'s constructor.
+:class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`'s constructor.
 
 As an example, let us consider a social network of tribes, where two
 types of interactions were recorded, amounting to either friendship or
@@ -1535,7 +1538,7 @@ which do not depend on the normalization constant.
 
 The values :math:`P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)`
 can be computed with
-:meth:`~graph_tool.inference.BlockState.get_edges_prob`. Hence, we can
+:meth:`~graph_tool.inference.blockmodel.BlockState.get_edges_prob`. Hence, we can
 compute spurious/missing edge probabilities just as if we were
 collecting marginal distributions when doing model averaging.
 

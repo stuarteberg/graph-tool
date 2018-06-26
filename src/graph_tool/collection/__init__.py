@@ -95,7 +95,7 @@ Examples
                                                                  representing the neural network of C. Elegans.
                                                                  Data compiled by D. Watts and S. Strogatz and
                                                                  made available on the web `here
-                                                                 <http://cdg.columbia.edu/cdg/datasets>`_. Please
+                                                                 <http://cdg.columbia.edu/cdg/datasets>`__. Please
                                                                  cite D. J. Watts and S. H. Strogatz, Nature 393,
                                                                  440-442 (1998). Original experimental data taken
                                                                  from J. G. White, E. Southgate, J. N. Thompson,
@@ -179,7 +179,7 @@ Examples
                                                                  Retrieved from `Mark Newman's website
                                                                  <http://www-personal.umich.edu/~mejn/netdata/>`_,
                                                                  with corrections by T. S. Evans, available 
-                                                                 `here <http://figshare.com/articles/American_College_Football_Network_Files/93179>`_.
+                                                                 `here <http://figshare.com/articles/American_College_Football_Network_Files/93179>`__.
         hep-th               8361         15751        False     High-energy theory collaborations: weighted
                                                                  network of coauthorships between scientists
                                                                  posting preprints on the High-Energy Theory
@@ -208,7 +208,7 @@ Examples
                                                                  and experiment, as compiled by M. Newman in May
                                                                  2006. A figure depicting the largest component
                                                                  of this network can be found `here
-                                                                 <http://www-personal.umich.edu/~mejn/centrality/>`_.
+                                                                 <http://www-personal.umich.edu/~mejn/centrality/>`__.
                                                                  These data can be cited as M. E. J. Newman,
                                                                  Phys. Rev. E 74, 036104 (2006). Retrieved from
                                                                  `Mark Newman's website
@@ -243,7 +243,7 @@ Examples
                                                                  Power Grid of the United States. Data compiled
                                                                  by D. Watts and S. Strogatz and made available
                                                                  on the web `here
-                                                                 <http://cdg.columbia.edu/cdg/datasets>`_. Please
+                                                                 <http://cdg.columbia.edu/cdg/datasets>`__. Please
                                                                  cite D. J. Watts and S. H. Strogatz, Nature 393,
                                                                  440-442 (1998). Retrieved from `Mark Newman's
                                                                  website

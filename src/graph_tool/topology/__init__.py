@@ -2178,6 +2178,8 @@ def pseudo_diameter(g, source=None, weights=None):
     References
     ----------
     .. [pseudo-diameter] http://en.wikipedia.org/wiki/Distance_%28graph_theory%29
+    .. [dijkstra] E. Dijkstra, "A note on two problems in connexion with
+       graphs." Numerische Mathematik, 1:269-271, 1959.
     """
 
     if source is None:

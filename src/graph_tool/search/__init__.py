@@ -410,7 +410,7 @@ class DFSVisitor(object):
         there is some ambiguity between tree edges and back edges since the edge
         (u,v) and (v,u) are the same edge, but both the
         :meth:`~graph_tool.search.DFSVisitor.tree_edge` and
-        :meth:`~graph_tool.search..DFSVisitor.back_edge` functions will be
+        :meth:`~graph_tool.search.DFSVisitor.back_edge` functions will be
         invoked. One way to resolve this ambiguity is to record the tree edges,
         and then disregard the back-edges that are already marked as tree
         edges. An easy way to record tree edges is to record predecessors at the
@@ -430,7 +430,7 @@ class DFSVisitor(object):
         This is invoked on vertex u after finish_vertex has been called for all
         the vertices in the DFS-tree rooted at vertex u. If vertex u is a leaf
         in the DFS-tree, then the
-        :meth:`~graph_tool..search.DFSVisitor.finish_vertex` function is called
+        :meth:`~graph_tool.search.DFSVisitor.finish_vertex` function is called
         on u after all the out-edges of u have been examined.
         """
         return
@@ -685,8 +685,9 @@ class DijkstraVisitor(object):
     def examine_vertex(self, u):
         """
         This is invoked on a vertex as it is popped from the queue. This happens
-        immediately before :meth:`~graph_tool.DijsktraVisitor.examine_edge` is
-        invoked on each of the out-edges of vertex u.
+        immediately before
+        :meth:`~graph_tool.search.DijkstraVisitor.examine_edge` is invoked on
+        each of the out-edges of vertex u.
         """
         return
 
@@ -716,7 +717,7 @@ class DijkstraVisitor(object):
     def edge_not_relaxed(self, e):
         """
         Upon examination, if the edge is not relaxed (see
-        :meth:`~graph_tool.search.DijsktraVisitor.edge_relaxed`) then this
+        :meth:`~graph_tool.search.DijkstraVisitor.edge_relaxed`) then this
         method is invoked.
         """
         return
@@ -733,7 +734,7 @@ class DijkstraVisitor(object):
 def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=None,
                     pred_map=None, combine=lambda a, b: a + b,
                     compare=lambda a, b: a < b, zero=0, infinity=numpy.inf):
-    r"""Dijsktra traversal of a directed or undirected graph, with non-negative weights.
+    r"""Dijkstra traversal of a directed or undirected graph, with non-negative weights.
 
     Parameters
     ----------
@@ -1205,7 +1206,7 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
     --------
     bfs_search: Breadth-first search
     dfs_search: Depth-first search
-    dijsktra_search: Dijkstra search
+    dijkstra_search: Dijkstra search
     astar_search: :math:`A^*` heuristic search
 
     Notes

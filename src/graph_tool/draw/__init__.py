@@ -229,7 +229,7 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
     a : float (optional, default: :math:`V`)
         Attracting force between adjacent vertices.
@@ -248,7 +248,7 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
         displacement at each iteration.
     n_iter : int (optional, default: ``100``)
         Total number of iterations.
-    pos : :class:`PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored. If
         provided, this will also be used as the initial position of the
         vertices.

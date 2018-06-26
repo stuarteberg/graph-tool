@@ -50,7 +50,7 @@ class EMBlockState(object):
         Graph to be modelled.
     B : ``int``
         Number of blocks (or vertex groups).
-    init_state : :class:`~graph_tool.inference.BlockState` (optional, default: ``None``)
+    init_state : :class:`~graph_tool.inference.blockmodel.BlockState` (optional, default: ``None``)
         Optional block state used for initialization.
 
     Notes
@@ -227,7 +227,7 @@ def em_infer(state, max_iter=1000, max_e_iter=1, epsilon=1e-3,
     Parameters
     ----------
     state : model state
-        State object, e.g. of type :class:`graph_tool.inference.EMBlockState`.
+        State object, e.g. of type :class:`graph_tool.inference.blockmodel_em.EMBlockState`.
     max_iter : ``int`` (optional, default: ``1000``)
         Maximum number of iterations.
     max_e_iter : ``int`` (optional, default: ``1``)

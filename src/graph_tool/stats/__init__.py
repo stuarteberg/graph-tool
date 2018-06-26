@@ -375,21 +375,21 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
 
     Parameters
     ----------
-    g : :class:`Graph`
+    g : :class:`~graph_tool.Graph`
         Graph to be used.
     weight : :class:`~graph_tool.PropertyMap` (optional, default: None)
         Edge weights.
-    bins : list of bins (optional, default: [0, 1])
+    bins : list of bins (optional, default: `[0, 1]`)
         List of bins to be used for the histogram. The values given represent
         the edges of the bins (i.e. lower and upper bounds). If the list
         contains two values, this will be used to automatically create an
         appropriate bin range, with a constant width given by the second value,
         and starting from the first value.
-    samples : int (optional, default: None)
+    samples : int (optional, default: `None`)
         If supplied, the distances will be randomly sampled from a number of
         source vertices given by this parameter. It `samples is None` (default),
         all pairs are used.
-    float_count : bool (optional, default: True)
+    float_count : bool (optional, default: `True`)
         If True, the counts in each histogram bin will be returned as floats. If
         False, they will be returned as integers.
 

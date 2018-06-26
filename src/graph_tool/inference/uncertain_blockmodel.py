@@ -77,9 +77,9 @@ class UncertainBaseState(object):
                 M = N * (N - 1)
         else:
             if self_loops:
-                M = (N * (N + 1)) /2
+                M = (N * (N + 1)) / 2
             else:
-                M = (N * (N - 1)) /2
+                M = (N * (N - 1)) / 2
 
         self.M = M
 
@@ -193,7 +193,7 @@ class UncertainBaseState(object):
         sample network partitions and latent edges. The parameter ``r```
         controls the probability with which edge move will be attempted, instead
         of partition moves. The remaining keyword parameters will be passed to
-        :meth:`~graph_tool.BlockState.mcmc_sweep`.
+        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep`.
         """
 
         return self._algo_sweep(lambda s, **kw: s.mcmc_sweep(**kw),
@@ -204,7 +204,7 @@ class UncertainBaseState(object):
         sampling MCMC to sample network partitions and latent edges. The
         parameter ``r``` controls the probability with which edge move will be
         attempted, instead of partition moves. The remaining keyword parameters
-        will be passed to :meth:`~graph_tool.BlockState.multiflip_mcmc_sweep`.
+        will be passed to :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`.
         """
 
         return self._algo_sweep(lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
@@ -289,7 +289,7 @@ class UncertainBlockState(UncertainBaseState):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be modelled.
+        Measured graph.
     q : :class:`~graph_tool.PropertyMap`
         Edge probabilities in range :math:`[0,1]`.
     q_default : ``float`` (optional, default: ``0.``)
@@ -298,19 +298,24 @@ class UncertainBlockState(UncertainBaseState):
         Expected total number of edges used in prior. If ``NaN``, a flat
         prior will be used instead.
     nested : ``boolean`` (optional, default: ``True``)
-        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         will be used, otherwise
-        :class:`~graph_tool.inference.BlockState`.
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to
-        :class:`~graph_tool.inference.NestedBlockState` or
-        :class:`~graph_tool.inference.BlockState`.
-    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
+    bstate : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or :class:`~graph_tool.inference.blockmodel.BlockState`  (optional, default: ``None``)
         If passed, this will be used to initialize the block state
         directly.
     self_loops : bool (optional, default: ``False``)
         If ``True``, it is assumed that the uncertain graph can contain
         self-loops.
+
+    References
+    ----------
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
+       with unknown and heterogeneous errors" :arxiv:`1806.07956`
 
     """
 
@@ -383,7 +388,7 @@ class MeasuredBlockState(UncertainBaseState):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be modelled.
+        Measured graph.
     n : :class:`~graph_tool.PropertyMap`
         Edge property map of type ``int``, containing the total number of
         measurements for each edge.
@@ -404,19 +409,24 @@ class MeasuredBlockState(UncertainBaseState):
         Expected total number of edges used in prior. If ``NaN``, a flat
         prior will be used instead.
     nested : ``boolean`` (optional, default: ``True``)
-        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         will be used, otherwise
-        :class:`~graph_tool.inference.BlockState`.
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to
-        :class:`~graph_tool.inference.NestedBlockState` or
-        :class:`~graph_tool.inference.BlockState`.
-    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
+    bstate : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or :class:`~graph_tool.inference.blockmodel.BlockState`  (optional, default: ``None``)
         If passed, this will be used to initialize the block state
         directly.
     self_loops : bool (optional, default: ``False``)
         If ``True``, it is assumed that the uncertain graph can contain
         self-loops.
+
+    References
+    ----------
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
+       with unknown and heterogeneous errors" :arxiv:`1806.07956`
     """
 
     def __init__(self, g, n, x, n_default=1, x_default=0,
@@ -501,7 +511,7 @@ class MixedMeasuredBlockState(UncertainBaseState):
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
-        Graph to be modelled.
+        Measured graph.
     n : :class:`~graph_tool.PropertyMap`
         Edge property map of type ``int``, containing the total number of
         measurements for each edge.
@@ -522,20 +532,24 @@ class MixedMeasuredBlockState(UncertainBaseState):
         Expected total number of edges used in prior. If ``NaN``, a flat
         prior will be used instead.
     nested : ``boolean`` (optional, default: ``True``)
-        If ``True``, a :class:`~graph_tool.inference.NestedBlockState`
+        If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         will be used, otherwise
-        :class:`~graph_tool.inference.BlockState`.
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to
-        :class:`~graph_tool.inference.NestedBlockState` or
-        :class:`~graph_tool.inference.BlockState`.
-    bstate : :class:`~graph_tool.inference.NestedBlockState` or :class:`~graph_tool.inference.BlockState`  (optional, default: ``None``)
+        :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or
+        :class:`~graph_tool.inference.blockmodel.BlockState`.
+    bstate : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or :class:`~graph_tool.inference.blockmodel.BlockState`  (optional, default: ``None``)
         If passed, this will be used to initialize the block state
         directly.
     self_loops : bool (optional, default: ``False``)
         If ``True``, it is assumed that the uncertain graph can contain
         self-loops.
 
+    References
+    ----------
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
+       with unknown and heterogeneous errors" :arxiv:`1806.07956`
     """
 
     def __init__(self, g, n, x, n_default=1, x_default=0,

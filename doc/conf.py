@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'graph-tool'
-copyright = u'2017, Tiago de Paula Peixoto <tiago@skewed.de>'
+copyright = u'2018, Tiago de Paula Peixoto <tiago@skewed.de>'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -174,12 +174,12 @@ htmlhelp_basename = 'graph-tooldoc'
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy', None),
-                       'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-                       'matplotlib': ('http://matplotlib.org', None),
+                       'numpy': ('https://docs.scipy.org/doc/numpy', None),
+                       'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+                       'matplotlib': ('https://matplotlib.org', None),
                        'cairo': ('https://www.cairographics.org/documentation/pycairo/3', None),
-                       'ipython': ('http://ipython.org/ipython-doc/stable/', None),
-                       'panda': ('http://pandas.pydata.org/pandas-docs/stable/', None)}
+                       'ipython': ('https://ipython.org/ipython-doc/stable/', None),
+                       'panda': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
 
 extlinks_fancy = {'ticket': (['https://graph-tool.skewed.de/tickets/ticket/{0}'],
                              ['ticket {0}']),
@@ -188,17 +188,6 @@ extlinks_fancy = {'ticket': (['https://graph-tool.skewed.de/tickets/ticket/{0}']
                            'https://scihub22266oqcxt.onion.link/{0}'],
                           ['DOI: {0}', "sci-hub", "@tor"]),
                   'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}'])}
-
-
-# def process_docstring(app, what, name, obj, options, lines):
-#     for i, line in enumerate(lines):
-#         if "arg1" in line and "->" in line:
-#             lines[i] = ""
-#         if "C++ signature :" in line or "graph_tool::Python" in line:
-#             lines[i] = ""
-
-# def setup(app):
-#     app.connect('autodoc-process-docstring', process_docstring)
 
 # plot directive
 import pyenv
@@ -220,3 +209,5 @@ def linkcode_resolve(domain, info):
         return None
     modname = info['module'].replace('.', '/')
     return "https://git.skewed.de/count0/graph-tool/tree/master/src/%s/__init__.py" % modname
+
+nitpicky = True

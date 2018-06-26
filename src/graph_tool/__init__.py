@@ -703,7 +703,7 @@ class PropertyMap(object):
                   instead a :class:`~numpy.ma.MaskedArray` object is returned,
                   which contains only entries for vertices/edges which are not
                   filtered out. If there are no filters in place, a regular
-                  :class:`:class:`~graph_tool.PropertyArray`` is returned, which
+                  :class:`~graph_tool.PropertyArray` is returned, which
                   is identical to the :attr:`~PropertyMap.a` attribute.""")
 
     def get_2d_array(self, pos):
@@ -3347,6 +3347,8 @@ Edge.__name__ = "Edge"
 VertexBase.__doc__ = Vertex.__doc__
 VertexBase.out_neighbors = Vertex.out_neighbors
 VertexBase.in_neighbors = Vertex.in_neighbors
+VertexBase.out_edges = Vertex.out_edges
+VertexBase.in_edges = Vertex.in_edges
 VertexBase.all_edges = Vertex.all_edges
 VertexBase.all_neighbors = Vertex.all_neighbors
 VertexBase.in_degree = Vertex.in_degree

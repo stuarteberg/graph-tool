@@ -700,11 +700,13 @@ class BlockState(object):
         self.__init__(**state)
 
     def get_block_state(self, b=None, vweight=False, **kwargs):
-        r"""Returns a :class:`~graph_tool.community.BlockState`` corresponding to the
-        block graph (i.e. the blocks of the current state become the nodes). The
-        parameters have the same meaning as the in the constructor. If ``vweight
-        == True`` the nodes of the block state are weighted with the node
-        counts."""
+        r"""Returns a :class:`~graph_tool.inference.blockmodel.BlockState` corresponding
+        to the block graph (i.e. the blocks of the current state become the
+        nodes). The parameters have the same meaning as the in the
+        constructor. If ``vweight == True`` the nodes of the block state are
+        weighted with the node counts.
+
+        """
 
         deg_corr = kwargs.pop("deg_corr", self.deg_corr if vweight == True else False)
         copy_bg = kwargs.pop("copy_bg", True)
@@ -855,7 +857,7 @@ class BlockState(object):
         pmap(self.clabel, self.bclabel)
 
     def get_bpclabel(self):
-        r"""Returns a :class:`~graph_tool.PropertyMap`` corresponding to partition
+        r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to partition
         constraint labels for the block graph."""
 
         return self.get_bclabel(self.pclabel)
@@ -1191,7 +1193,7 @@ class BlockState(object):
     def virtual_vertex_move(self, v, s, **kwargs):
         r"""Computes the entropy difference if vertex ``v`` is moved to block ``s``. The
         remaining parameters are the same as in
-        :meth:`graph_tool.BlockState.entropy`."""
+        :meth:`graph_tool.inference.blockmodel.BlockState.entropy`."""
         return self._state.virtual_move(int(v), self.b[v], s,
                                         get_entropy_args(dict(self._entropy_args,
                                                               **kwargs)))
@@ -1268,7 +1270,7 @@ class BlockState(object):
     def get_move_prob(self, v, s, c=1., d=.1, reverse=False):
         r"""Compute the probability of a move proposal for vertex ``v`` to block ``s``
         according to sampling parameters ``c`` and ``d``, as obtained with
-        :meth:`graph_tool.inference.BlockState.sample_vertex_move`. If ``reverse
+        :meth:`graph_tool.inference.blockmodel.BlockState.sample_vertex_move`. If ``reverse
         == True``, the reverse probability of moving the node back from block
         ``s`` to its current one is obtained.
         """
@@ -1293,8 +1295,9 @@ class BlockState(object):
         (with missing edges added and spurious edges deleted).
 
         The values in ``entropy_args`` are passed to
-        :meth:`graph_tool.BlockState.entropy()` to calculate the
-        log-probability.
+        :meth:`~graph_tool.inference.blockmodel.BlockState.entropy()` to
+        calculate the log-probability.
+
         """
 
 
@@ -1415,7 +1418,7 @@ class BlockState(object):
             made for each node.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
+            :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
         allow_vacate : ``bool`` (optional, default: ``True``)
             Allow groups to be vacated.
         sequential : ``bool`` (optional, default: ``True``)
@@ -1549,7 +1552,7 @@ class BlockState(object):
             made for each node.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
+            :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
         allow_vacate : ``bool`` (optional, default: ``True``)
             Allow groups to be vacated.
         verbose : ``bool`` (optional, default: ``False``)
@@ -1650,7 +1653,7 @@ class BlockState(object):
             made for each node.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
+            :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
         allow_vacate : ``bool`` (optional, default: ``True``)
             Allow groups to be vacated.
         allow_new_group : ``bool`` (optional, default: ``True``)
@@ -1742,8 +1745,8 @@ class BlockState(object):
 
         Parameters
         ----------
-        m_state : :class:`~graph_tool.inference.MulticanonicalState`
-            :class:`~graph_tool.inference.MulticanonicalState` instance
+        m_state : :class:`~graph_tool.inference.mcmc.MulticanonicalState`
+            :class:`~graph_tool.inference.mcmc.MulticanonicalState` instance
             containing the current state of the Wang-Landau run.
         multiflip : ``bool`` (optional, default: ``False``)
             If ``True``, ``multiflip_mcmc_sweep()`` will be used, otherwise
@@ -1840,7 +1843,7 @@ class BlockState(object):
         ----------
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
+            :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
         callback : callable object (optional, default: ``None``)
             Function to be called for each partition, with three arguments ``(S,
             S_min, b_min)`` corresponding to the the current entropy value, the
@@ -1949,7 +1952,7 @@ class BlockState(object):
             best one is selected.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
-            :meth:`graph_tool.inference.BlockState.entropy`.
+            :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
         parallel : ``bool`` (optional, default: ``True``)
             If ``parallel == True``, the merge candidates are obtained in
             parallel.
@@ -1960,7 +1963,7 @@ class BlockState(object):
         -----
 
         This function should only be called for block states, obtained from
-        :meth:`graph_tool.inference.BlockState.get_block_state`.
+        :meth:`graph_tool.inference.blockmodel.BlockState.get_block_state`.
 
         Returns
         -------
@@ -2003,7 +2006,7 @@ class BlockState(object):
     def shrink(self, B, **kwargs):
         """Reduces the order of current state by progressively merging groups, until
         only ``B`` are left. All remaining keyword arguments are passed to
-        :meth:`graph_tool.inference.BlockState.merge_sweep`.
+        :meth:`graph_tool.inference.blockmodel.BlockState.merge_sweep`.
 
         This function leaves the current state untouched and returns instead a
         copy with the new partition.
@@ -2030,7 +2033,7 @@ class BlockState(object):
         the endpoints of each node have been assigned to a given block pair.
 
         This should be called multiple times, e.g. after repeated runs of the
-        :meth:`graph_tool.inference.BlockState.mcmc_sweep` function.
+        :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep` function.
 
         Parameters
         ----------
@@ -2083,7 +2086,7 @@ class BlockState(object):
         node was assigned to a given block.
 
         This should be called multiple times, e.g. after repeated runs of the
-        :meth:`graph_tool.inference.BlockState.mcmc_sweep` function.
+        :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep` function.
 
         Parameters
         ----------
@@ -2154,11 +2157,11 @@ class BlockState(object):
         r"""Collect a histogram of partitions.
 
         This should be called multiple times, e.g. after repeated runs of the
-        :meth:`graph_tool.inference.BlockState.mcmc_sweep` function.
+        :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep` function.
 
         Parameters
         ----------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.blockmodel.PartitionHist` (optional, default: ``None``)
             Partition histogram. If not provided, an empty histogram will be created.
         update : float (optional, default: ``1``)
             Each call increases the current count by the amount given by this
@@ -2169,7 +2172,7 @@ class BlockState(object):
 
         Returns
         -------
-        h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+        h : :class:`~graph_tool.inference.blockmodel.PartitionHist` (optional, default: ``None``)
             Updated Partition histogram.
 
         Examples
@@ -2379,14 +2382,16 @@ def bethe_entropy(g, p):
     Returns
     -------
     H : ``float``
-        The Bethe entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`_)
+        The Bethe entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__)
     Hmf : ``float``
-        The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`_),
+        The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__),
         as would be returned by the :func:`mf_entropy` function.
     pv : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         Vertex property map with vector-type values, storing the accumulated
         block membership counts. These are the node marginals, as would be
-        returned by the :func:`collect_vertex_marginals` function.
+        returned by the
+        :meth:`~graph_tool.inference.blockmodel.BlockState.collect_vertex_marginals`
+        method.
 
     Notes
     -----
@@ -2408,6 +2413,7 @@ def bethe_entropy(g, p):
     .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
        Physics, and Computation", Oxford Univ Press, 2009.
        :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
+
     """
     H = 0
     pv =  g.new_vertex_property("vector<double>")
@@ -2432,7 +2438,7 @@ def mf_entropy(g, p):
     Returns
     -------
     Hmf : ``float``
-        The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`_).
+        The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__).
 
     Notes
     -----
@@ -2441,7 +2447,7 @@ def mf_entropy(g, p):
 
     .. math::
 
-        H = - \sum_{i,r}\pi_i(r)ln\pi_i(r),
+        H = - \sum_{i,r}\pi_i(r)\ln\pi_i(r),
 
     where :math:`\pi_i(r)` is the marginal probability that vertex :math:`i`
     belongs to block :math:`r`.
@@ -2461,7 +2467,7 @@ def microstate_entropy(h, unlabel=True):
 
     Parameters
     ----------
-    h : :class:`~graph_tool.inference.PartitionHist` (optional, default: ``None``)
+    h : :class:`~graph_tool.inference.blockmodel.PartitionHist` (optional, default: ``None``)
         Partition histogram.
     unlabel : bool (optional, default: ``True``)
         If ``True``, a canonical labelling of the groups will be used, so that
@@ -2472,7 +2478,7 @@ def microstate_entropy(h, unlabel=True):
     Returns
     -------
     H : ``float``
-        The microstate entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`_).
+        The microstate entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__).
 
     Notes
     -----

@@ -119,7 +119,8 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
                            mcmc_args={}, anneal_args={},
                            mcmc_equilibrate_args={}, shrink_args={},
                            mcmc_multilevel_args={}, verbose=False):
-    """Fit the stochastic block model.
+    """Fit the stochastic block model, by minimizing its description length using an
+    agglomerative heuristic.
 
     Parameters
     ----------
@@ -144,23 +145,23 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
         If ``True``, the layered version of the model will be used.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to appropriate state constructor (e.g.
-        :class:`~graph_tool.inference.BlockState`,
-        :class:`~graph_tool.inference.OverlapBlockState` or
-        :class:`~graph_tool.inference.LayeredBlockState`)
+        :class:`~graph_tool.inference.blockmodel.BlockState`,
+        :class:`~graph_tool.inference.overlap_blockmodel.OverlapBlockState` or
+        :class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`)
     bisection_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.bisection_minimize`.
+        Arguments to be passed to :func:`~graph_tool.inference.bisection.bisection_minimize`.
     mcmc_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :meth:`graph_tool.inference.BlockState.mcmc_sweep`,
-        :meth:`graph_tool.inference.OverlapBlockState.mcmc_sweep` or
-        :meth:`graph_tool.inference.LayeredBlockState.mcmc_sweep`.
+        Arguments to be passed to :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep`,
+        :meth:`graph_tool.inference.overlap_blockmodel.OverlapBlockState.mcmc_sweep` or
+        :meth:`graph_tool.inference.layered_blockmodel.LayeredBlockState.mcmc_sweep`.
     mcmc_equilibrate_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.mcmc_equilibrate`.
+        Arguments to be passed to :func:`~graph_tool.inference.mcmc.mcmc_equilibrate`.
     shrink_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :meth:`graph_tool.inference.BlockState.shrink`,
-        :meth:`graph_tool.inference.OverlapBlockState.shrink` or
-        :meth:`graph_tool.inference.LayeredBlockState.shrink`.
+        Arguments to be passed to :meth:`graph_tool.inference.blockmodel.BlockState.shrink`,
+        :meth:`graph_tool.inference.overlap_blockmodel.OverlapBlockState.shrink` or
+        :meth:`graph_tool.inference.layered_blockmodel.LayeredBlockState.shrink`.
     mcmc_multilevel_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.mcmc_multilevel`.
+        Arguments to be passed to :func:`~graph_tool.inference.mcmc.mcmc_multilevel`.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
@@ -170,14 +171,14 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
 
     Returns
     -------
-    min_state : :class:`~graph_tool.inference.BlockState` or  :class:`~graph_tool.inference.OverlapBlockState` or  :class:`~graph_tool.inference.LayeredBlockState`
+    min_state : :class:`~graph_tool.inference.blockmodel.BlockState` or  :class:`~graph_tool.inference.overlap_blockmodel.OverlapBlockState` or  :class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`
         State with minimal description length.
 
     Notes
     -----
 
     This function is a convenience wrapper around
-    :func:`~graph_tool.inference.bisection_minimize`.
+    :func:`~graph_tool.inference.bisection.bisection_minimize`.
 
     See [peixoto-efficient-2014]_ for details on the algorithm.
 
@@ -319,7 +320,8 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
                                   mcmc_args={}, anneal_args={},
                                   mcmc_equilibrate_args={}, shrink_args={},
                                   mcmc_multilevel_args={}, verbose=False):
-    """Fit the nested stochastic block model.
+    """Fit the nested stochastic block model, by minimizing its description length
+    using an agglomerative heuristic.
 
     Parameters
     ----------
@@ -347,26 +349,26 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
     layers : ``bool`` (optional, default: ``False``)
         If ``True``, the layered version of the model will be used.
     hierarchy_minimize_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.hierarchy_minimize`.
+        Arguments to be passed to :func:`~graph_tool.inference.nested_blockmodel.hierarchy_minimize`.
     state_args : ``dict`` (optional, default: ``{}``)
         Arguments to be passed to appropriate state constructor (e.g.
-        :class:`~graph_tool.inference.BlockState`,
-        :class:`~graph_tool.inference.OverlapBlockState` or
-        :class:`~graph_tool.inference.LayeredBlockState`)
+        :class:`~graph_tool.inference.blockmodel.BlockState`,
+        :class:`~graph_tool.inference.overlap_blockmodel.OverlapBlockState` or
+        :class:`~graph_tool.inference.layered_blockmodel.LayeredBlockState`)
     bisection_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.bisection_minimize`.
+        Arguments to be passed to :func:`~graph_tool.inference.bisection.bisection_minimize`.
     mcmc_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :meth:`graph_tool.inference.BlockState.mcmc_sweep`,
-        :meth:`graph_tool.inference.OverlapBlockState.mcmc_sweep` or
-        :meth:`graph_tool.inference.LayeredBlockState.mcmc_sweep`.
+        Arguments to be passed to :meth:`graph_tool.inference.blockmodel.BlockState.mcmc_sweep`,
+        :meth:`graph_tool.inference.overlap_blockmodel.OverlapBlockState.mcmc_sweep` or
+        :meth:`graph_tool.inference.layered_blockmodel.LayeredBlockState.mcmc_sweep`.
     mcmc_equilibrate_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.mcmc_equilibrate`.
+        Arguments to be passed to :func:`~graph_tool.inference.mcmc.mcmc_equilibrate`.
     shrink_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :meth:`graph_tool.inference.BlockState.shrink`,
-        :meth:`graph_tool.inference.OverlapBlockState.shrink` or
-        :meth:`graph_tool.inference.LayeredBlockState.shrink`.
+        Arguments to be passed to :meth:`graph_tool.inference.blockmodel.BlockState.shrink`,
+        :meth:`graph_tool.inference.overlap_blockmodel.OverlapBlockState.shrink` or
+        :meth:`graph_tool.inference.layered_blockmodel.LayeredBlockState.shrink`.
     mcmc_multilevel_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.mcmc_multilevel`.
+        Arguments to be passed to :func:`~graph_tool.inference.mcmc.mcmc_multilevel`.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
@@ -376,14 +378,14 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
 
     Returns
     -------
-    min_state : :class:`~graph_tool.inference.NestedBlockState`
+    min_state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         Nested state with minimal description length.
 
     Notes
     -----
 
     This function is a convenience wrapper around
-    :func:`~graph_tool.inference.hierarchy_minimize`.
+    :func:`~graph_tool.inference.nested_blockmodel.hierarchy_minimize`.
 
     See [peixoto-hierarchical-2014]_ for details on the algorithm.
 

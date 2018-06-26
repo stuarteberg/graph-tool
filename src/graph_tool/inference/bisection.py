@@ -94,13 +94,13 @@ def bisection_minimize(init_states, random_bisection=False,
 
     Parameters
     ----------
-    init_states : Any state class (e.g. :class:`~graph_tool.inference.BlockState`)
+    init_states : Any state class (e.g. :class:`~graph_tool.inference.blockmodel.BlockState`)
         List with two or more states that will be used to bracket the search.
     random_bisection : ``bool`` (optional, default: ``False``)
         If ``True``, the bisection will be done randomly in the interval,
         instead of using the golden rule.
     mcmc_multilevel_args : ``dict`` (optional, default: ``{}``)
-        Arguments to be passed to :func:`~graph_tool.inference.mcmc_multilevel`.
+        Arguments to be passed to :func:`~graph_tool.inference.mcmc.mcmc_multilevel`.
     verbose : ``bool`` or ``tuple`` (optional, default: ``False``)
         If ``True``, progress information will be shown. Optionally, this
         accepts arguments of the type ``tuple`` of the form ``(level, prefix)``
@@ -110,15 +110,16 @@ def bisection_minimize(init_states, random_bisection=False,
 
     Returns
     -------
-    min_state : Any state class (e.g. :class:`~graph_tool.inference.BlockState`)
+    min_state : Any state class (e.g. :class:`~graph_tool.inference.blockmodel.BlockState`)
         State with minimal entropy in the interval.
 
     Notes
     -----
 
-    This function calls :func:`~graph_tool.inference.mcmc_multilevel` to reduce
-    the order of a given state, and uses the value of ``state.entropy(**args)``
-    for the minimization, with ``args`` obtained from ``mcmc_multilevel_args``.
+    This function calls :func:`~graph_tool.inference.mcmc.mcmc_multilevel` to
+    reduce the order of a given state, and uses the value of
+    ``state.entropy(**args)`` for the minimization, with ``args`` obtained from
+    ``mcmc_multilevel_args``.
 
     References
     ----------
@@ -129,6 +130,7 @@ def bisection_minimize(init_states, random_bisection=False,
        greedy heuristic for the inference of stochastic block models", Phys.
        Rev. E 89, 012804 (2014), :doi:`10.1103/PhysRevE.89.012804`,
        :arxiv:`1310.4378`
+
     """
 
     b_cache = {}

@@ -224,11 +224,11 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
         Drawing color for edges. If the valued supplied is a property map,
         the values must be scalar types, whose color values are obtained from
         the ``ecmap`` argument.
-    vcmap : :class:`matplotlib.colors.Colormap` (default: :class:`matplotlib.cm.jet`)
+    vcmap : :class:`matplotlib.colors.Colormap` (default: :obj:`matplotlib.cm.jet`)
         Vertex color map.
     vnorm : bool (default: ``True``)
         Normalize vertex color values to the [0,1] range.
-    ecmap : :class:`matplotlib.colors.Colormap` (default: :class:`matplotlib.cm.jet`)
+    ecmap : :class:`matplotlib.colors.Colormap` (default: :obj:`matplotlib.cm.jet`)
         Edge color map.
     enorm : bool (default: ``True``)
         Normalize edge color values to the [0,1] range.

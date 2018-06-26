@@ -39,8 +39,8 @@ High-level functions
 .. autosummary::
    :nosignatures:
 
-   minimize_blockmodel_dl
-   minimize_nested_blockmodel_dl
+   ~graph_tool.inference.minimize.minimize_blockmodel_dl
+   ~graph_tool.inference.minimize.minimize_nested_blockmodel_dl
 
 State classes
 =============
@@ -48,14 +48,11 @@ State classes
 .. autosummary::
    :nosignatures:
 
-   BlockState
-   OverlapBlockState
-   LayeredBlockState
-   NestedBlockState
-   UncertainBlockState
-   MeasuredBlockState
-   MixedMeasuredBlockState
-   TemperingState
+   ~graph_tool.inference.blockmodel.BlockState
+   ~graph_tool.inference.overlap_blockmodel.OverlapBlockState
+   ~graph_tool.inference.layered_blockmodel.LayeredBlockState
+   ~graph_tool.inference.nested_blockmodel.NestedBlockState
+   ~graph_tool.inference.mcmc.TemperingState
 
 Sampling and minimization
 =========================
@@ -63,13 +60,13 @@ Sampling and minimization
 .. autosummary::
    :nosignatures:
 
-   mcmc_equilibrate
-   mcmc_anneal
-   mcmc_multilevel
-   multicanonical_equilibrate
-   MulticanonicalState
-   bisection_minimize
-   hierarchy_minimize
+   ~graph_tool.inference.mcmc.mcmc_equilibrate
+   ~graph_tool.inference.mcmc.mcmc_anneal
+   ~graph_tool.inference.mcmc.mcmc_multilevel
+   ~graph_tool.inference.mcmc.multicanonical_equilibrate
+   ~graph_tool.inference.mcmc.MulticanonicalState
+   ~graph_tool.inference.bisection.bisection_minimize
+   ~graph_tool.inference.nested_blockmodel.hierarchy_minimize
 
 Auxiliary functions
 ===================
@@ -77,12 +74,12 @@ Auxiliary functions
 .. autosummary::
    :nosignatures:
 
-   model_entropy
-   mf_entropy
-   bethe_entropy
-   microstate_entropy
-   half_edge_graph
-   get_block_edge_gradient
+   ~graph_tool.inference.blockmodel.model_entropy
+   ~graph_tool.inference.blockmodel.mf_entropy
+   ~graph_tool.inference.blockmodel.bethe_entropy
+   ~graph_tool.inference.blockmodel.microstate_entropy
+   ~graph_tool.inference.overlap_blockmodel.half_edge_graph
+   ~graph_tool.inference.overlap_blockmodel.get_block_edge_gradient
 
 Auxiliary classes
 =================
@@ -90,9 +87,22 @@ Auxiliary classes
 .. autosummary::
    :nosignatures:
 
-   PartitionHist
-   BlockPairHist
-   UncertainBaseState
+   ~graph_tool.inference.blockmodel.PartitionHist
+   ~graph_tool.inference.blockmodel.BlockPairHist
+
+Nonparametric network reconstruction
+++++++++++++++++++++++++++++++++++++
+
+State classes
+=============
+
+.. autosummary::
+   :nosignatures:
+
+   ~graph_tool.inference.uncertain_blockmodel.MeasuredBlockState
+   ~graph_tool.inference.uncertain_blockmodel.MixedMeasuredBlockState
+   ~graph_tool.inference.uncertain_blockmodel.UncertainBlockState
+   ~graph_tool.inference.uncertain_blockmodel.UncertainBaseState
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -103,7 +113,7 @@ State classes
 .. autosummary::
    :nosignatures:
 
-   EMBlockState
+   ~graph_tool.inference.blockmodel_em.EMBlockState
 
 Expectation-maximization Inference
 ==================================
@@ -111,7 +121,7 @@ Expectation-maximization Inference
 .. autosummary::
    :nosignatures:
 
-   em_infer
+   ~graph_tool.inference.blockmodel_em.em_infer
 
 Large-scale descriptors
 +++++++++++++++++++++++
@@ -119,7 +129,7 @@ Large-scale descriptors
 .. autosummary::
    :nosignatures:
 
-   modularity
+   ~graph_tool.inference.modularity.modularity
 
 Contents
 ++++++++
