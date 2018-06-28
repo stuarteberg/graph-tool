@@ -113,9 +113,17 @@ class UncertainBaseState(object):
         init_q_cache()
 
     def get_block_state(self):
-        return self.bstate
+        """Return the underlying block state, which can be either
+        :class:`~graph_tool.inference.blockmodel.BlockState` or
+        :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`.
+        """
+        if self.nbstate is None:
+            return self.bstate
+        else:
+            return self.nbstate
 
     def entropy(self, latent_edges=True, density=True, **kwargs):
+        """Return the entropy, i.e. negative log-likelihood."""
         if self.nbstate is None:
             S = self._state.entropy(latent_edges, density) + \
                 self.bstate.entropy(**kwargs)

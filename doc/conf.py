@@ -83,6 +83,8 @@ release = gt_version.split()[0]
 # for source files.
 exclude_trees = ['.build']
 
+exclude_patterns = ['**/_*.rst']
+
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
 
