@@ -1182,7 +1182,7 @@ _window_list = []
 
 def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
                        eorder=None, nodesfirst=False, geometry=(500, 400),
-                       update_layout=True, sync=True, no_main=False, **kwargs):
+                       update_layout=True, sync=True, main=True, **kwargs):
     r"""
     Display an interactive GTK+ window containing the given graph.
 
@@ -1213,8 +1213,8 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
         If ``True``, the layout will be updated dynamically.
     sync : bool (optional, default: ``True``)
         If ``False``, run asynchronously. (Requires :mod:`IPython`)
-    no_main : bool (optional, default: ``False``)
-        If ``True``, the GTK+ main loop will not be called.
+    main : bool (optional, default: ``True``)
+        If ``False``, the GTK+ main loop will not be called.
     **kwargs
         Any extra parameters are passed to :class:`~graph_tool.draw.GraphWindow`,
         :class:`~graph_tool.draw.GraphWidget` and :func:`~graph_tool.draw.cairo_draw`.
@@ -1243,7 +1243,7 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
                       nodesfirst, update_layout, **kwargs)
     win.show_all()
     _window_list.append(win)
-    if not no_main:
+    if main:
         if not sync:
             # just a placeholder for a proper main loop integration with gtk3 when
             # ipython implements it
