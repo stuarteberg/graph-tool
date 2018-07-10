@@ -23,7 +23,8 @@
 #include "graph_util.hh"
 #include "random.hh"
 
-#include "hash_map_wrap.hh"
+#include "idx_map.hh"
+#include "dynamic_sampler.hh"
 
 #include <map>
 #include <iostream>
@@ -40,59 +41,49 @@ struct get_price
                     rng_t& rng) const
     {
         typedef typename mpl::if_<typename is_directed_::apply<Graph>::type,
-                                  in_degreeS, out_degreeS>::type DegSelector;
+                                  in_degreeS, out_degreeS>::type Deg;
 
-        map<double, typename graph_traits<Graph>::vertex_descriptor> probs;
+        DynamicSampler<typename graph_traits<Graph>::vertex_descriptor> sampler;
 
-        size_t n_possible = 0;
-        double cp = 0, p = 0;
-        typename graph_traits<Graph>::vertex_iterator vi, vi_end;
-        for (tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi)
+        double p;
+        for (auto v : vertices_range(g))
         {
-            p = pow(DegSelector()(*vi, g) + c, gamma);
-            cp += p;
+            p = pow(Deg()(v, g) + c, gamma);
+            if (p < 0)
+                throw GraphException("Cannot connect edges: probabilities are negative");
             if (p > 0)
-            {
-                probs.insert(make_pair(cp, *vi));
-                ++n_possible;
-            }
+                sampler.insert(v, p);
         }
 
-        if (probs.empty() || probs.rbegin()->first <= 0)
-            throw GraphException("Cannot connect edges: probabilities are <= 0!");
+        if (sampler.empty())
+            throw GraphException("Cannot connect edges: seed graph is empty, or has zero probability");
 
-        gt_hash_set<typename graph_traits<Graph>::vertex_descriptor> visited;
+        idx_set<typename graph_traits<Graph>::vertex_descriptor> visited;
         for (size_t i = 0; i < N; ++i)
         {
             visited.clear();
-            typename graph_traits<Graph>::vertex_descriptor v = add_vertex(g);
-            for (size_t j = 0; j < min(m, n_possible); ++j)
+            auto v = add_vertex(g);
+            for (size_t j = 0; j < std::min(m, sampler.size()); ++j)
             {
-                uniform_real_distribution<> sample(0, probs.rbegin()->first);
-                double r = sample(rng);
-                auto iter = probs.lower_bound(r);
-                typename graph_traits<Graph>::vertex_descriptor w =
-                    iter->second;
+                auto w = sampler.sample(rng);
 
                 if (visited.find(w) != visited.end())
                 {
                     --j;
                     continue;
                 }
+
                 visited.insert(w);
                 add_edge(v, w, g);
 
-                p = abs(pow(DegSelector()(w, g) + c, gamma)
-                        - pow(DegSelector()(w, g) + c - 1, gamma));
-                if (p > 0)
-                    probs.insert(make_pair(probs.rbegin()->first + p, w));
+                p = pow(Deg()(w, g) + c, gamma);
+
+                sampler.remove(w);
+                sampler.insert(w, p);
             }
-            p = pow(DegSelector()(v, g) + c, gamma);
+            p = pow(Deg()(v, g) + c, gamma);
             if (p > 0)
-            {
-                probs.insert(make_pair(probs.rbegin()->first + p, v));
-                n_possible += 1;
-            }
+                sampler.insert(v, p);
         }
     }
 };

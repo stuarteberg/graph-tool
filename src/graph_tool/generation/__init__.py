@@ -1743,7 +1743,7 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
         Constant factor added to the probability of a vertex receiving an edge
         (see notes below).
     gamma : float (optional, default: ``1``)
-        Preferential attachment power (see notes below).
+        Preferential attachment exponent (see notes below).
     directed : bool (optional, default: ``True``)
         If ``True``, a Price network is generated. If ``False``, a
         Barabási-Albert network is generated.
@@ -1768,9 +1768,15 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
 
         \pi \propto k^\gamma + c
 
-    where :math:`k` is the in-degree of the vertex (or simply the degree in the
-    undirected case). If :math:`\gamma=1`, the tail of resulting in-degree
-    distribution of the directed case is given by
+    where :math:`k` is the (in-)degree of the vertex (or simply the degree in
+    the undirected case).
+
+    Note that for directed graphs we must have :math:`c \ge 0`, and for
+    undirected graphs, :math:`c > -\min(k_{\text{min}}, m)^{\gamma}`, where
+    :math:`k_{\text{min}}` is the smallest degree in the seed graph.
+
+    If :math:`\gamma=1`, the tail of resulting in-degree distribution of the
+    directed case is given by
 
     .. math::
 
@@ -1786,7 +1792,7 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     scale-free (see [dorogovtsev-evolution]_ for details).
 
     Note that if `seed_graph` is not given, the algorithm will *always* start
-    with one node if :math:`c > 0`, or with two nodes with a link between them
+    with one node if :math:`c > 0`, or with two nodes with an edge between them
     otherwise. If :math:`m > 1`, the degree of the newly added vertices will be
     vary dynamically as :math:`m'(t) = \min(m, V(t))`, where :math:`V(t)` is the
     number of vertices added so far. If this behaviour is undesired, a proper
@@ -1849,6 +1855,7 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
     .. [dorogovtsev-evolution] S. N. Dorogovtsev and J. F. F. Mendes, "Evolution
        of networks", Advances in Physics, 2002, Vol. 51, No. 4, 1079-1187,
        :doi:`10.1080/00018730110112519`
+
     """
 
     if c is None:
@@ -1864,7 +1871,13 @@ def price_network(N, m=1, c=None, gamma=1, directed=True, seed_graph=None):
         N -= g.num_vertices()
     else:
         g = seed_graph
+
+    if ((directed and c < 0) or
+        (not directed and c <= -min(g.degree_property_map("out").fa.min(), m) ** gamma)):
+        raise ValueError("Parameter 'c' is too small, and yields negative probabilities")
+
     libgraph_tool_generation.price(g._Graph__graph, N, gamma, c, m, _get_rng())
+
     return g
 
 def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
