@@ -734,13 +734,6 @@ class NestedBlockState(object):
             else:
                 eargs = entropy_args
 
-            filt = self.g.get_edge_filter()
-            if filt[0] is not None:
-                for ls in self.levels[l:]:
-                    # edge filters may become de-synchronized at upper layers
-                    filt = ls.g.get_edge_filter()
-                    filt[0].a = not filt[1]
-
             if c is None:
                 args = dict(kwargs, entropy_args=eargs)
             else:
