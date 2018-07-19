@@ -12,22 +12,22 @@ intrinsically assuming it to be uniform), and as a consequence of the
 overall setup, only *relative probabilities* between individual missing
 and spurious edges can be produced, instead of the full posterior
 distribution considered in the last section. Since this limits the
-overall network reconstruction, and does not yields confidence
+overall network reconstruction, and does not yield confidence
 intervals, it is a less powerful approach. Nevertheless, it is a popular
 procedure, which can also be performed with graph-tool, as we describe
 in the following.
 
 We set up the classification task by dividing the edges/non-edges into
-two sets :math:`\boldsymbol G` and :math:`\delta \boldsymbol G`, where
+two sets :math:`\boldsymbol A` and :math:`\delta \boldsymbol A`, where
 the former corresponds to the observed network and the latter either to
 the missing or spurious edges. We may compute the posterior of
-:math:`\delta \boldsymbol G` as [valles-catala-consistency-2017]_
+:math:`\delta \boldsymbol A` as [valles-catala-consistency-2017]_
 
 .. math::
    :label: posterior-missing
 
-   P(\delta \boldsymbol G | \boldsymbol G) \propto
-   \sum_{\boldsymbol b}\frac{P(\boldsymbol G \cup \delta\boldsymbol G| \boldsymbol b)}{P(\boldsymbol G| \boldsymbol b)}P(\boldsymbol b | \boldsymbol G)
+   P(\delta \boldsymbol A | \boldsymbol A) \propto
+   \sum_{\boldsymbol b}\frac{P(\boldsymbol A \cup \delta\boldsymbol A| \boldsymbol b)}{P(\boldsymbol A| \boldsymbol b)}P(\boldsymbol b | \boldsymbol A)
 
 up to a normalization constant [#prediction_posterior]_. Although the
 normalization constant is difficult to obtain in general (since we need
@@ -36,15 +36,15 @@ numerator of Eq. :eq:`posterior-missing` can be computed by sampling
 partitions from the posterior, and then inserting or deleting edges from
 the graph and computing the new likelihood. This means that we can
 easily compare alternative predictive hypotheses :math:`\{\delta
-\boldsymbol G_i\}` via their likelihood ratios
+\boldsymbol A_i\}` via their likelihood ratios
 
 .. math::
 
-   \lambda_i = \frac{P(\delta \boldsymbol G_i | \boldsymbol G)}{\sum_j P(\delta \boldsymbol G_j | \boldsymbol G)}
+   \lambda_i = \frac{P(\delta \boldsymbol A_i | \boldsymbol A)}{\sum_j P(\delta \boldsymbol A_j | \boldsymbol A)}
 
 which do not depend on the normalization constant.
 
-The values :math:`P(\delta \boldsymbol G | \boldsymbol G, \boldsymbol b)`
+The values :math:`P(\delta \boldsymbol A | \boldsymbol A, \boldsymbol b)`
 can be computed with
 :meth:`~graph_tool.inference.blockmodel.BlockState.get_edges_prob`. Hence, we can
 compute spurious/missing edge probabilities just as if we were

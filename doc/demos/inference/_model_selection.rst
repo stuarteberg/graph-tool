@@ -35,8 +35,8 @@ be accessed by inspecting the posterior odds ratio
 
 .. math::
 
-   \Lambda &= \frac{P(\boldsymbol b, \mathcal{H}_\text{NDC} | \boldsymbol G)}{P(\boldsymbol b, \mathcal{H}_\text{DC} | \boldsymbol G)} \\
-           &= \frac{P(\boldsymbol G, \boldsymbol b | \mathcal{H}_\text{NDC})}{P(\boldsymbol G, \boldsymbol b | \mathcal{H}_\text{DC})}\times\frac{P(\mathcal{H}_\text{NDC})}{P(\mathcal{H}_\text{DC})} \\
+   \Lambda &= \frac{P(\boldsymbol b, \mathcal{H}_\text{NDC} | \boldsymbol A)}{P(\boldsymbol b, \mathcal{H}_\text{DC} | \boldsymbol A)} \\
+           &= \frac{P(\boldsymbol A, \boldsymbol b | \mathcal{H}_\text{NDC})}{P(\boldsymbol A, \boldsymbol b | \mathcal{H}_\text{DC})}\times\frac{P(\mathcal{H}_\text{NDC})}{P(\mathcal{H}_\text{DC})} \\
            &= \exp(-\Delta\Sigma)
 
 where :math:`\mathcal{H}_\text{NDC}` and :math:`\mathcal{H}_\text{DC}`

@@ -13,17 +13,17 @@ partition [aicher-learning-2015]_ [peixoto-weighted-2017]_, i.e.
 
 .. math::
 
-   P(\boldsymbol x,\boldsymbol G|\boldsymbol b) =
-   P(\boldsymbol x|\boldsymbol G,\boldsymbol b) P(\boldsymbol G|\boldsymbol b),
+   P(\boldsymbol x,\boldsymbol A|\boldsymbol b) =
+   P(\boldsymbol x|\boldsymbol A,\boldsymbol b) P(\boldsymbol A|\boldsymbol b),
 
-where :math:`P(\boldsymbol G|\boldsymbol b)` is the likelihood of the
+where :math:`P(\boldsymbol A|\boldsymbol b)` is the likelihood of the
 unweighted SBM described previously, and :math:`P(\boldsymbol
-x|\boldsymbol G,\boldsymbol b)` is the integrated likelihood of the edge
+x|\boldsymbol A,\boldsymbol b)` is the integrated likelihood of the edge
 weights
 
 .. math::
 
-   P(\boldsymbol x|\boldsymbol G,\boldsymbol b) =
+   P(\boldsymbol x|\boldsymbol A,\boldsymbol b) =
    \prod_{r\le s}\int P({\boldsymbol x}_{rs}|\gamma)P(\gamma)\,\mathrm{d}\gamma,
 
 where :math:`P({\boldsymbol x}_{rs}|\gamma)` is some model for the weights
@@ -36,9 +36,9 @@ partition distribution is then simply
 
 .. math::
 
-   P(\boldsymbol b | \boldsymbol G,\boldsymbol x) =
-   \frac{P(\boldsymbol x|\boldsymbol G,\boldsymbol b) P(\boldsymbol G|\boldsymbol b)
-         P(\boldsymbol b)}{P(\boldsymbol G,\boldsymbol x)},
+   P(\boldsymbol b | \boldsymbol A,\boldsymbol x) =
+   \frac{P(\boldsymbol x|\boldsymbol A,\boldsymbol b) P(\boldsymbol A|\boldsymbol b)
+         P(\boldsymbol b)}{P(\boldsymbol A,\boldsymbol x)},
 
 which can be sampled from, or maximized, just like with the unweighted
 case, but will use the information on the weights to guide the partitions.
@@ -161,7 +161,7 @@ follows:
    g = gt.collection.konect_data["foodweb-baywet"]
 
    # This network contains an internal edge property map with name
-   # "weight" that contains the biomass flow between species. The values
+   # "weight" that contains the energy flow between species. The values
    # are continuous in the range [0, infinity].
    
    state = gt.minimize_nested_blockmodel_dl(g, state_args=dict(recs=[g.ep.weight],
@@ -176,7 +176,7 @@ follows:
    :width: 350px
 
    Best fit of the exponential-weighted degree-corrected SBM for a food
-   web, using the biomass flow as edge covariates (indicated by the edge
+   web, using the energy flow as edge covariates (indicated by the edge
    colors and widths).
 
 Alternatively, we may consider a transformation of the type
@@ -211,7 +211,7 @@ can fit this alternative model simply by using the transformed weights:
    :width: 350px
 
    Best fit of the log-normal-weighted degree-corrected SBM for a food
-   web, using the biomass flow as edge covariates (indicated by the edge
+   web, using the energy flow as edge covariates (indicated by the edge
    colors and widths).
 
 At this point, we ask ourselves which of the above models yields the
@@ -222,8 +222,8 @@ incurred by the variable transformation, i.e.
 
 .. math::
 
-    P(\boldsymbol x | \boldsymbol G, \boldsymbol b) =
-    P(\boldsymbol y(\boldsymbol x) | \boldsymbol G, \boldsymbol b)
+    P(\boldsymbol x | \boldsymbol A, \boldsymbol b) =
+    P(\boldsymbol y(\boldsymbol x) | \boldsymbol A, \boldsymbol b)
     \prod_{ij}\left[\frac{\mathrm{d}y_{ij}}{\mathrm{d}x_{ij}}(x_{ij})\right]^{A_{ij}}.
 
 In the particular case of Eq. :eq:`log_transform`, we have

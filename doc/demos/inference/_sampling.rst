@@ -217,7 +217,7 @@ itself, as follows.
    bar(Bs[idx], h[idx] / h.sum(), width=1, color="#ccb974")
    gca().set_xticks([6,7,8,9])
    xlabel("$B$")
-   ylabel(r"$P(B|\boldsymbol G)$")
+   ylabel(r"$P(B|\boldsymbol A)$")
    savefig("lesmis-B-posterior.svg")
 
 .. figure:: lesmis-B-posterior.*
@@ -341,7 +341,7 @@ itself, as follows.
        ax[i].bar(Bs[idx], h_[idx] / h_.sum(), width=1, color="#ccb974")
        ax[i].set_xticks(Bs[idx])
        ax[i].set_xlabel("$B_{%d}$" % i)
-       ax[i].set_ylabel(r"$P(B_{%d}|\boldsymbol G)$" % i)
+       ax[i].set_ylabel(r"$P(B_{%d}|\boldsymbol A)$" % i)
        locator = MaxNLocator(prune='both', nbins=5)
        ax[i].yaxis.set_major_locator(locator)
    tight_layout()

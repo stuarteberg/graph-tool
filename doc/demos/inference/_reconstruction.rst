@@ -245,7 +245,7 @@ Heterogeneous errors
 
 In a more general scenario the measurement errors can be different for
 each node pair, i.e. :math:`p_{ij}` and :math:`q_{ij}` are the missing
-and spurious edge probability for node pair :math:`(i,j)`. The
+and spurious edge probabilities for node pair :math:`(i,j)`. The
 measurement likelihood then becomes
 
 .. math::

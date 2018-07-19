@@ -8,7 +8,7 @@ evidence summed over all possible partitions [peixoto-nonparametric-2017]_:
 
 .. math::
 
-   P(\boldsymbol G) = \sum_{\boldsymbol\theta,\boldsymbol b}P(\boldsymbol G,\boldsymbol\theta, \boldsymbol b) =  \sum_{\boldsymbol b}P(\boldsymbol G,\boldsymbol b).
+   P(\boldsymbol A) = \sum_{\boldsymbol\theta,\boldsymbol b}P(\boldsymbol A,\boldsymbol\theta, \boldsymbol b) =  \sum_{\boldsymbol b}P(\boldsymbol A,\boldsymbol b).
 
 This quantity is analogous to a `partition function
 <https://en.wikipedia.org/wiki/Partition_function_(statistical_mechanics)>`_
@@ -20,14 +20,14 @@ its logarithm
 .. math::
    :label: free-energy
 
-   \ln P(\boldsymbol G) = \underbrace{\sum_{\boldsymbol b}q(\boldsymbol b)\ln P(\boldsymbol G,\boldsymbol b)}_{-\left<\Sigma\right>}\;
+   \ln P(\boldsymbol A) = \underbrace{\sum_{\boldsymbol b}q(\boldsymbol b)\ln P(\boldsymbol A,\boldsymbol b)}_{-\left<\Sigma\right>}\;
               \underbrace{- \sum_{\boldsymbol b}q(\boldsymbol b)\ln q(\boldsymbol b)}_{\mathcal{S}}
 
 where
 
 .. math::
 
-   q(\boldsymbol b) = \frac{P(\boldsymbol G,\boldsymbol b)}{\sum_{\boldsymbol b'}P(\boldsymbol G,\boldsymbol b')}
+   q(\boldsymbol b) = \frac{P(\boldsymbol A,\boldsymbol b)}{\sum_{\boldsymbol b'}P(\boldsymbol A,\boldsymbol b')}
 
 is the posterior probability of partition :math:`\boldsymbol b`. The
 first term of Eq. :eq:`free-energy` (the "negative energy") is minus the
@@ -66,7 +66,7 @@ where
 
 .. math::
 
-   q_i(r) = P(b_i = r | \boldsymbol G)
+   q_i(r) = P(b_i = r | \boldsymbol A)
 
 is the marginal group membership distribution of node :math:`i`. This
 yields an entropy value given by
@@ -93,7 +93,7 @@ degree of node :math:`i`, and
 
 .. math::
 
-   q_{ij}(r, s) = P(b_i = r, b_j = s|\boldsymbol G)
+   q_{ij}(r, s) = P(b_i = r, b_j = s|\boldsymbol A)
 
 is the joint group membership distribution of nodes :math:`i` and
 :math:`j` (a.k.a. the `edge marginals`). This yields an entropy value
