@@ -830,6 +830,14 @@ class PropertyMap(object):
         self.__map.resize(size)
         self.__map.shrink_to_fit()
 
+    def swap(self, other):
+        """Swap internal storage with ``other``."""
+        if self.key_type() != other.key_type():
+            raise ValueError("property maps must have the same key type")
+        if self.value_type() != other.value_type():
+            raise ValueError("property maps must have the same value type")
+        self.__map.swap(other.__map)
+
     def data_ptr(self):
         """Return the pointer to memory where the data resides."""
         return self.__map.data_ptr()

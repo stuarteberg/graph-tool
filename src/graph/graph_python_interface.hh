@@ -603,6 +603,23 @@ public:
     {
     }
 
+    void swap(PythonPropertyMap& other)
+    {
+        swap_dispatch(other,
+                      std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                          boost::writable_property_map_tag>());
+    }
+
+    void swap_dispatch(PythonPropertyMap& other, std::true_type)
+    {
+        _pmap.swap(other._pmap);
+    }
+
+    void swap_dispatch(PythonPropertyMap& other, std::false_type)
+    {
+        throw ValueException("Read-only property map cannot be swapped.");
+    }
+
     size_t data_ptr()
     {
         typename boost::mpl::or_<

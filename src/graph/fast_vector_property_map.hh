@@ -112,6 +112,11 @@ public:
 
     std::vector<T>& get_storage() const { return (*store); }
 
+    void swap(checked_vector_property_map& other)
+    {
+        store->swap(*other.store);
+    }
+
     unchecked_t get_unchecked(size_t size = 0) const
     {
         reserve(size);
@@ -183,23 +188,26 @@ public:
     void resize(size_t size) const { _checked.resize(size); }
     void shrink_to_fit() const { _checked.shrink_to_fit(); }
 
+
+    __attribute__((always_inline)) __attribute__((flatten))
     reference operator[](const key_type& v) const
     {
-        auto i = get(_checked.index, v);
-        return (*_checked.store)[i];
+        return (*_checked.store)[get(_checked.index, v)];
     }
 
     std::vector<T>& get_storage() const { return _checked.get_storage(); }
+
+    void swap(unchecked_vector_property_map& other)
+    {
+        get_storage().swap(other.get_storage());
+    }
 
     checked_t get_checked() {return _checked;}
 
     // deep copy
     unchecked_vector_property_map copy() const
     {
-        unchecked_vector_property_map pmap(_checked.index,
-                                           _checked.store->size());
-        *(pmap._checked.store) = *(_checked.store);
-        return pmap;
+        return _checked.copy().get_unchecked();
     }
 
 private:

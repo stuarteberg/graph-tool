@@ -66,6 +66,7 @@ struct export_vertex_property_map
             .def("reserve", &pmap_t::reserve)
             .def("resize", &pmap_t::resize)
             .def("shrink_to_fit", &pmap_t::shrink_to_fit)
+            .def("swap", &pmap_t::swap)
             .def("data_ptr", &pmap_t::data_ptr);
 
         typedef boost::mpl::transform<graph_tool::all_graph_views,
@@ -149,6 +150,7 @@ struct export_edge_property_map
             .def("reserve", &pmap_t::reserve)
             .def("resize", &pmap_t::resize)
             .def("shrink_to_fit", &pmap_t::shrink_to_fit)
+            .def("swap", &pmap_t::swap)
             .def("data_ptr", &pmap_t::data_ptr);
 
 
