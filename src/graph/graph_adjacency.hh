@@ -629,6 +629,7 @@ struct graph_traits<adj_list<Vertex> >
     typedef typename adj_list<Vertex>::edge_descriptor edge_descriptor;
     typedef typename adj_list<Vertex>::edge_iterator edge_iterator;
     typedef typename adj_list<Vertex>::adjacency_iterator adjacency_iterator;
+    typedef typename adj_list<Vertex>::in_adjacency_iterator in_adjacency_iterator;
 
     typedef typename adj_list<Vertex>::out_edge_iterator out_edge_iterator;
     typedef typename adj_list<Vertex>::in_edge_iterator in_edge_iterator;
