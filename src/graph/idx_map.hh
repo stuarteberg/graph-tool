@@ -72,7 +72,10 @@ public:
 
     T& operator[](const Key& key)
     {
-        return insert(std::make_pair(key, T())).first->second;
+        auto iter = find(key);
+        if (iter == end())
+            iter = insert(std::make_pair(key, T())).first;
+        return iter->second;
     }
 
     iterator find(const Key& key)
@@ -114,6 +117,9 @@ public:
     iterator end() { return _items.end(); }
     const_iterator begin() const { return _items.begin(); }
     const_iterator end() const { return _items.end(); }
+
+    size_t size() { return _items.size(); }
+    bool empty() { return _items.empty(); }
 
 private:
     std::vector<std::pair<Key,T>> _items;
@@ -208,6 +214,9 @@ public:
     iterator end() { return _items.end(); }
     const_iterator begin() const { return _items.begin(); }
     const_iterator end() const { return _items.end(); }
+
+    size_t size() { return _items.size(); }
+    bool empty() { return _items.empty(); }
 
 private:
     std::vector<Key> _items;
