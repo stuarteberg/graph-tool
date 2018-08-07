@@ -393,6 +393,7 @@ src/graph/centrality/Makefile
 src/graph/clustering/Makefile
 src/graph/correlations/Makefile
 src/graph/draw/Makefile
+src/graph/dynamics/Makefile
 src/graph/flow/Makefile
 src/graph/generation/Makefile
 src/graph/inference/Makefile

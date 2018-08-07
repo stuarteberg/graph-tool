@@ -39,6 +39,8 @@ except ImportError as e:
     msg = "Error importing draw module, proceeding nevertheless: " + str(e)
     warnings.warn(msg, RuntimeWarning)
     pass
+from graph_tool.dynamics import *
+import graph_tool.dynamics
 from graph_tool.stats import *
 import graph_tool.stats
 from graph_tool.generation import *

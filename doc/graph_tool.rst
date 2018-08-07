@@ -256,6 +256,7 @@ Available subpackages
    clustering
    collection
    correlations
+   dynamics
    draw
    flow
    generation

@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = centrality clustering correlations draw flow generation inference layout search spectral stats topology util
+SUBDIRS = centrality clustering correlations draw dynamics flow generation inference layout search spectral stats topology util
 
 AM_CPPFLAGS = $(MOD_CPPFLAGS)
 
