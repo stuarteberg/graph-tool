@@ -71,6 +71,7 @@ libgraph_tool_core_la_include_HEADERS = \
     mpl_nested_loop.hh \
     numpy_bind.hh \
     openmp_lock.hh \
+    parallel_rng.hh \
     random.hh \
     str_repr.hh \
     shared_map.hh \
@@ -90,4 +91,10 @@ libgraph_tool_core_la_workaround_HEADERS = \
     ../boost-workaround/boost/graph/push_relabel_max_flow.hpp \
     ../boost-workaround/boost/graph/copy_alt.hpp \
     ../boost-workaround/boost/graph/stoer_wagner_min_cut.hpp
+
+libgraph_tool_core_la_pcg_cppdir = $(MOD_DIR)/include/pcg-cpp
+libgraph_tool_core_la_pcg_cpp_HEADERS = \
+    ../pcg-cpp/include/pcg_extras.hpp \
+    ../pcg-cpp/include/pcg_random.hpp \
+    ../pcg-cpp/include/pcg_uint128.hpp
 

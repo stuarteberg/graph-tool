@@ -357,7 +357,7 @@ AC_SUBST(CPPFLAGS)
 AC_SUBST(CXXFLAGS)
 
 # extra CPP flags for submodules
-[MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
+[MOD_CPPFLAGS="-I\$(top_srcdir)/src/boost-workaround -I\$(top_srcdir)/src/pcg-cpp/include -DHAVE_CONFIG_H -I\$(top_srcdir)/src/graph -I\$(top_builddir) ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${NUMPY_CPPFLAGS} ${EXPAT_CFLAGS}"]
 AC_SUBST(MOD_CPPFLAGS)
 
 # extra LIBADD flags for submodules
@@ -378,7 +378,7 @@ AC_SUBST(MOD_LDFLAGS)
 AX_CREATE_PKGCONFIG_INFO([graph-tool-py${PYTHON_VERSION}.pc], [],
                          [${PYTHON_LIBS} -l${BOOST_PYTHON_LIB}],
                          [graph-tool Python library],
-                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS}],
+                         [-I${MOD_DIR}/include -I${MOD_DIR}/include/boost-workaround -I${MOD_DIR}/include/pcg-cpp ${PYTHON_CPPFLAGS} ${BOOST_CPPFLAGS} ${SPARSEHASH_CFLAGS} ${NUMPY_CPPFLAGS}],
                          [])
 
 AC_CONFIG_FILES([

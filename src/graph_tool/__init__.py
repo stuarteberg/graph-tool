@@ -3428,8 +3428,8 @@ _rng = libcore.get_rng((numpy.random.randint(0, sys.maxsize) + os.getpid()) % sy
 
 def seed_rng(seed):
     """Seed the random number generator used by graph-tool's algorithms"""
-    import graph_tool
-    graph_tool._rng = libcore.get_rng(seed)
+    global _rng
+    _rng = libcore.get_rng(seed)
 
 def _get_rng():
     global _rng

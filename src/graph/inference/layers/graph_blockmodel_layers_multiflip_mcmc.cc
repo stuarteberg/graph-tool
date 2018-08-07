@@ -129,15 +129,14 @@ python::object multiflip_mcmc_layered_sweep_parallel(python::object omcmc_states
         block_state::dispatch(dispatch);
     }
 
-    std::vector<std::shared_ptr<rng_t>> rngs;
-    init_rngs(rngs, rng);
+    parallel_rng<rng_t>::init(rng);
 
     std::vector<std::tuple<double, size_t, size_t>> rets(N);
 
     #pragma omp parallel for schedule(runtime)
     for (size_t i = 0; i < N; ++i)
     {
-        auto& rng_ = get_rng(rngs, rng);
+        auto& rng_ = parallel_rng<rng_t>::get(rng);
         rets[i] = sweeps[i]->run(rng_);
     }
 

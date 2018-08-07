@@ -15,10 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include "graph.hh"
 #include "random.hh"
+#include "parallel_rng.hh"
 
 rng_t get_rng(size_t seed)
 {
+    parallel_rng<rng_t>::clear();
+    if (seed == 0)
+    {
+        pcg_extras::seed_seq_from<std::random_device> seed_source;
+        return rng_t(seed_source);
+    }
     std::seed_seq seq{seed, seed + 1, seed + 2, seed + 3, seed + 4};
     return rng_t(seq);
 }

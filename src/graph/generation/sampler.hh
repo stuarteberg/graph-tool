@@ -134,18 +134,50 @@ private:
 // uniform sampling from containers
 
 template <class Iter, class RNG>
-auto&& uniform_sample(Iter begin, const Iter& end, RNG& rng)
+auto uniform_sample_iter(Iter begin, const Iter& end, RNG& rng)
 {
-    auto N = end - begin;
+    auto N = std::distance(begin, end);
     std::uniform_int_distribution<size_t> i_rand(0, N - 1);
     std::advance(begin, i_rand(rng));
-    return *begin;
+    return begin;
+}
+
+template <class Container, class RNG>
+auto uniform_sample_iter(Container& v, RNG& rng)
+{
+    return uniform_sample_iter(v.begin(), v.end(), rng);
+}
+
+template <class Iter, class RNG>
+auto&& uniform_sample(Iter&& begin, const Iter& end, RNG& rng)
+{
+    return *uniform_sample_iter(begin, end, rng);
 }
 
 template <class Container, class RNG>
 auto&& uniform_sample(Container& v, RNG& rng)
 {
-    return uniform_sample(v.begin(), v.end(), rng);
+    return *uniform_sample_iter(v, rng);
+}
+
+template <class Graph, class RNG>
+typename boost::graph_traits<Graph>::vertex_descriptor
+random_out_neighbor(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                    const Graph& g,
+                    RNG& rng)
+{
+    auto iter = out_edges(v, g);
+    return target(*uniform_sample_iter(iter.first, iter.second, rng), g);
+}
+
+template <class Graph, class RNG>
+typename boost::graph_traits<Graph>::vertex_descriptor
+random_in_neighbor(typename boost::graph_traits<Graph>::vertex_descriptor v,
+                   const Graph& g,
+                   RNG& rng)
+{
+    auto iter = in_edge_iteratorS<Graph>::get_edges(v, g);
+    return source(*uniform_sample_iter(iter.first, iter.second, rng), g);
 }
 
 } // namespace graph_tool

@@ -26,7 +26,7 @@
 #include <tuple>
 
 #include "hash_map_wrap.hh"
-#include "../support/parallel_rng.hh"
+#include "parallel_rng.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -117,10 +117,9 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
 {
     auto& g = state._g;
 
-    vector<std::shared_ptr<RNG>> rngs;
     std::vector<std::pair<size_t, double>> best_move;
 
-    init_rngs(rngs, rng_);
+    parallel_rng<RNG>::init(rng_);
     init_cache(state._E);
     best_move.resize(num_vertices(g));
 
@@ -146,7 +145,7 @@ auto mcmc_sweep_parallel(MCMCState state, RNG& rng_)
             (vlist,
              [&](size_t, auto v)
              {
-                 auto& rng = get_rng(rngs, rng_);
+                 auto& rng = parallel_rng<RNG>::get(rng_);
 
                  if (state.node_weight(v) == 0)
                      return;

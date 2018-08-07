@@ -26,7 +26,7 @@
 #include <tuple>
 
 #include "hash_map_wrap.hh"
-#include "../support/parallel_rng.hh"
+#include "parallel_rng.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -37,10 +37,9 @@ namespace graph_tool
 template <class MergeState, class RNG>
 auto merge_sweep(MergeState state, RNG& rng_)
 {
-    vector<std::shared_ptr<RNG>> rngs;
     if (state._parallel)
     {
-        init_rngs(rngs, rng_);
+        parallel_rng<RNG>::init(rng_);
         init_cache(state._E);
     }
 
@@ -60,7 +59,7 @@ auto merge_sweep(MergeState state, RNG& rng_)
         (state._available,
          [&](size_t, auto v)
          {
-             auto& rng = get_rng(rngs, rng_);
+             auto& rng = parallel_rng<RNG>::get(rng_);
 
              if (state.node_weight(v) == 0)
                  return;

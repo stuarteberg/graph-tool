@@ -26,7 +26,7 @@
 #include <tuple>
 
 #include "hash_map_wrap.hh"
-#include "../support/parallel_rng.hh"
+#include "parallel_rng.hh"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -39,12 +39,12 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
 {
     auto& g = state._g;
 
-    vector<std::shared_ptr<RNG>> rngs;
-    std::vector<std::pair<size_t, double>> best_move;
+    vector<RNG> rngs;
+    vector<std::pair<size_t, double>> best_move;
 
     if (state._parallel)
     {
-        init_rngs(rngs, rng_);
+        parallel_rng<RNG>::init(rng_);
         init_cache(state._E);
         best_move.resize(num_vertices(g));
     }
@@ -84,7 +84,7 @@ auto gibbs_sweep(GibbsState state, RNG& rng_)
             (vlist,
              [&](size_t, auto v)
              {
-                 auto& rng = get_rng(rngs, rng_);
+                 auto& rng = parallel_rng<RNG>::get(rng_);
 
                  if (!state._sequential)
                      v = uniform_sample(vlist, rng);

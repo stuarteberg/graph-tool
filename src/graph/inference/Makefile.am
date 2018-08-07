@@ -103,6 +103,5 @@ libgraph_tool_inference_la_include_HEADERS = \
     support/graph_neighbor_sampler.hh \
     support/graph_state.hh \
     support/int_part.hh \
-    support/parallel_rng.hh \
     support/util.hh \
     graph_modularity.hh

@@ -19,8 +19,10 @@
 #define RANDOM_HH
 
 #include <random>
+#include "pcg_random.hpp"
 
-typedef std::mt19937 rng_t;
+//typedef std::mt19937_64 rng_t;
+typedef pcg64_k1024 rng_t;
 
 rng_t get_rng(size_t seed);
 
