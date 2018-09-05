@@ -20,10 +20,12 @@ libgraph_tool_spectral_la_SOURCES = \
     graph_laplacian.cc \
     graph_norm_laplacian.cc \
     graph_matrix.cc \
-    graph_transition.cc
+    graph_transition.cc \
+    graph_nonbacktracking.cc
 
 libgraph_tool_spectral_la_include_HEADERS = \
     graph_adjacency.hh \
     graph_incidence.hh \
     graph_laplacian.hh \
-    graph_transition.hh
+    graph_transition.hh \
+    graph_nonbacktracking.hh

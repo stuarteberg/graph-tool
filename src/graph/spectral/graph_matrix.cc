@@ -46,6 +46,9 @@ void transition(GraphInterface& g, boost::any index, boost::any weight,
                 python::object odata, python::object oi,
                 python::object oj);
 
+void nonbacktracking(GraphInterface& gi, boost::any index,
+                     std::vector<int64_t>& i, std::vector<int64_t>& j);
+
 BOOST_PYTHON_MODULE(libgraph_tool_spectral)
 {
     using namespace boost::python;
@@ -55,4 +58,5 @@ BOOST_PYTHON_MODULE(libgraph_tool_spectral)
     def("norm_laplacian", &norm_laplacian);
     def("incidence", &incidence);
     def("transition", &transition);
+    def("nonbacktracking", &nonbacktracking);
 }

@@ -33,6 +33,7 @@ Summary
    incidence
    transition
    modularity_matrix
+   hashimoto
 
 Contents
 ++++++++
@@ -40,7 +41,7 @@ Contents
 
 from __future__ import division, absolute_import, print_function
 
-from .. import _degree, _prop, Graph, GraphView, _limit_args
+from .. import _degree, _prop, Graph, GraphView, _limit_args, Vector_int64_t
 from .. stats import label_self_loops
 import numpy
 import scipy.sparse
@@ -49,7 +50,8 @@ import scipy.sparse.linalg
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_spectral")
 
-__all__ = ["adjacency", "laplacian", "incidence", "transition", "modularity_matrix"]
+__all__ = ["adjacency", "laplacian", "incidence", "transition",
+           "modularity_matrix", "hashimoto"]
 
 
 def adjacency(g, weight=None, index=None):
@@ -616,3 +618,97 @@ def modularity_matrix(g, weight=None, index=None):
                                            dtype="float")
 
     return B
+
+def hashimoto(g, weight=None, index=None):
+    r"""Return the Hashimoto (or non-backtracking) matrix of a graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+        Edge property map specifying the row/column indexes. If not provided, the
+        internal edge index is used.
+
+    Returns
+    -------
+    H : :class:`~scipy.sparse.csr_matrix`
+        The (sparse) Hashimoto matrix.
+
+    Notes
+    -----
+    The Hashimoto (a.k.a. non-backtracking) matrix is defined as
+
+    .. math::
+
+        h_{k\to l,i\to j} =
+        \begin{cases}
+            1 & \text{if } (k,l) \in E, (i,j) \in E, l=i, k\ne j,\\
+            0 & \text{otherwise},
+        \end{cases}
+
+    where :math:`E` is the edge set. It is therefore a :math:`2|E|\times 2|E|`
+    asymmetric square matrix (or :math:`|E|\times |E|` for directed graphs),
+    indexed over edge directions.
+
+    Examples
+    --------
+    .. testsetup::
+
+       import scipy.linalg
+       from pylab import *
+
+    >>> g = gt.collection.data["football"]
+    >>> H = gt.hashimoto(g)
+    >>> ew, ev = scipy.linalg.eig(H.todense())
+    >>> figure(figsize=(8, 4))
+    <...>
+    >>> scatter(real(ew), imag(ew), c=sqrt(abs(ew)), linewidths=0, alpha=0.6)
+    <...>
+    >>> xlabel(r"$\operatorname{Re}(\lambda)$")
+    Text(...)
+    >>> ylabel(r"$\operatorname{Im}(\lambda)$")
+    Text(...)
+    >>> tight_layout()
+    >>> savefig("hashimoto-spectrum.pdf")
+
+    .. testcode::
+       :hide:
+
+       savefig("hashimoto-spectrum.png")
+
+    .. figure:: hashimoto-spectrum.*
+        :align: center
+
+        Hashimoto matrix spectrum for the network of American football teams.
+
+    References
+    ----------
+    .. [hashimoto] Hashimoto, Ki-ichiro. "Zeta functions of finite graphs and
+       representations of p-adic groups." Automorphic forms and geometry of
+       arithmetic varieties. 1989. 211-280. :DOI:`10.1016/B978-0-12-330580-0.50015-X`
+
+    """
+
+    if index is None:
+        if g.get_edge_filter()[0] is not None:
+            index = g.new_edge_property("int64_t")
+            index.fa = numpy.arange(g.num_edges())
+            E = index.fa.max() + 1
+        else:
+            index = g.edge_index
+            E = g.edge_index_range
+
+    if not g.is_directed():
+        E *= 2
+
+    i = Vector_int64_t()
+    j = Vector_int64_t()
+
+    libgraph_tool_spectral.nonbacktracking(g._Graph__graph, _prop("e", g, index),
+                                           i, j)
+
+    data = numpy.ones(i.a.shape)
+    m = scipy.sparse.coo_matrix((data, (i.a,j.a)), shape=(E, E))
+    m = m.tocsr()
+    return m
