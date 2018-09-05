@@ -125,7 +125,7 @@ def adjacency(g, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("adjacency-spectrum.png")
+       savefig("adjacency-spectrum.svg")
 
     .. figure:: adjacency-spectrum.*
         :align: center
@@ -250,7 +250,7 @@ def laplacian(g, deg="total", normalized=False, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("laplacian-spectrum.png")
+       savefig("laplacian-spectrum.svg")
 
     .. figure:: laplacian-spectrum.*
         :align: center
@@ -274,7 +274,7 @@ def laplacian(g, deg="total", normalized=False, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("norm-laplacian-spectrum.png")
+       savefig("norm-laplacian-spectrum.svg")
 
     .. figure:: norm-laplacian-spectrum.*
         :align: center
@@ -478,7 +478,7 @@ def transition(g, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("transition-spectrum.png")
+       savefig("transition-spectrum.svg")
 
     .. figure:: transition-spectrum.*
         :align: center
@@ -575,7 +575,7 @@ def modularity_matrix(g, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("modularity-spectrum.png")
+       savefig("modularity-spectrum.svg")
 
     .. figure:: modularity-spectrum.*
         :align: center
@@ -675,7 +675,7 @@ def hashimoto(g, weight=None, index=None):
     .. testcode::
        :hide:
 
-       savefig("hashimoto-spectrum.png")
+       savefig("hashimoto-spectrum.svg")
 
     .. figure:: hashimoto-spectrum.*
         :align: center
