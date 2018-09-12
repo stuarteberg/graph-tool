@@ -39,7 +39,7 @@ LT_INIT
 PKG_PROG_PKG_CONFIG
 PKG_INSTALLDIR
 
-AX_CXX_COMPILE_STDCXX_14([ext],[mandatory])
+AX_CXX_COMPILE_STDCXX_17([ext],[mandatory])
 
 dnl turn on warnings
 [CXXFLAGS="-Wall -Wextra -ftemplate-backtrace-limit=0 ${CXXFLAGS}"]
