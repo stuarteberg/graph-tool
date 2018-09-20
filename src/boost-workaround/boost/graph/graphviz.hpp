@@ -96,7 +96,7 @@ namespace boost {
     label_writer(Name _name) : name(_name) {}
     template <class VertexOrEdge>
     void operator()(std::ostream& out, const VertexOrEdge& v) const {
-      out << "[label=\"" << escape_dot_string(get(name, v)) << "\"]";
+      out << "[label=" << escape_dot_string(get(name, v)) << "]";
     }
   private:
     Name name;
@@ -127,7 +127,7 @@ namespace boost {
     iend = attr.end();
 
     while ( i != iend ) {
-      out << i->first << "=\"" << escape_dot_string(i->second) << "\"";
+      out << i->first << "=" << escape_dot_string(i->second);
       ++i;
       if ( i != iend )
         out << ", ";
@@ -539,7 +539,7 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=\"" << escape_dot_string(i->second->get_string(key)) << "\"";
+          out << i->first << "=" << escape_dot_string(i->second->get_string(key));
         }
       }
 
@@ -569,7 +569,7 @@ namespace boost {
           else out << ", ";
           first = false;
 
-          out << i->first << "=\"" << escape_dot_string(i->second->get_string(key)) << "\"";
+          out << i->first << "=" << escape_dot_string(i->second->get_string(key));
         }
       }
 
