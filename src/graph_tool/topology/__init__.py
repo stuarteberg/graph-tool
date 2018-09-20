@@ -1943,7 +1943,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
         Source vertex of the search.
     target : :class:`~graph_tool.Vertex`
         Target vertex of the search.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weights : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
         The edge weights.
     negative_weights : ``bool`` (optional, default: ``False``)
         If ``True``, this will trigger the use of the Bellman-Ford algorithm.
@@ -2017,7 +2017,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
                                                       _prop("v", g, all_preds_map))
     return path_iterator
 
-def all_paths(g, source, target, cutoff=None):
+def all_paths(g, source, target, cutoff=None, edges=False):
     """Return an iterator over all paths from `source` to `target`.
 
     Parameters
@@ -2028,14 +2028,17 @@ def all_paths(g, source, target, cutoff=None):
         Source vertex of the search.
     target : :class:`~graph_tool.Vertex`
         Target vertex of the search.
-    cutoff : `int` (optional, default: None)
+    cutoff : ``int`` (optional, default: ``None``)
         Maximum path length.
+    edges : ``bool`` (optional, default: ``False``)
+        If ``True``, the returned iterator is over edge descriptors.
 
     Returns
     -------
-    path_iterator : iterator over a sequence of integers
+    path_iterator : iterator over a sequence of integers (or :class:`~graph_tool.Edge`)
         Iterator over sequences of vertices from `source` to `target` in the
-        path.
+        path. If ``edges == True``, the iterator is over sequences of edge
+        descriptors (:class:`~graph_tool.Edge`).
 
     Notes
     -----
@@ -2057,6 +2060,7 @@ def all_paths(g, source, target, cutoff=None):
     [13 64  2]
     [ 13 100   2]
     [ 13 106   2]
+
     """
 
     if cutoff is None:
@@ -2066,7 +2070,8 @@ def all_paths(g, source, target, cutoff=None):
                                                          int(source),
                                                          int(target),
                                                          cutoff,
-                                                         _prop("v", g, visited))
+                                                         _prop("v", g, visited),
+                                                         edges)
     return path_iterator
 
 def all_circuits(g, unique=False):

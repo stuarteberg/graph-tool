@@ -561,9 +561,9 @@ python::object do_get_all_shortest_paths(GraphInterface& gi, size_t s, size_t t,
 }
 
 
-template <class Graph, class Yield, class VMap>
+template <bool edges, class Graph, class Yield, class VMap>
 void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
-                   Yield& yield, Graph& g)
+                   Yield& yield, Graph& g, GraphInterface& gi)
 {
     typedef typename graph_traits<Graph>::out_edge_iterator eiter_t;
     typedef std::pair<eiter_t, eiter_t> item_t;
@@ -588,11 +588,22 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
 
         if (v == t)
         {
-            vector<size_t> path = {s};
-            for (auto& ei : stack)
-                path.push_back(target(*ei.first, g));
+            if (!edges)
+            {
+                vector<size_t> path = {s};
+                for (auto& ei : stack)
+                    path.push_back(target(*ei.first, g));
 
-            yield(wrap_vector_owned<size_t>(path));
+                yield(wrap_vector_owned<size_t>(path));
+            }
+            else
+            {
+                auto gp = retrieve_graph_view<Graph>(gi, g);
+                boost::python::list path;
+                for (auto& ei : stack)
+                    path.append(PythonEdge<Graph>(gp, *ei.first));
+                yield(path);
+            }
 
             ++pos.first;
         }
@@ -613,7 +624,7 @@ void get_all_paths(size_t s, size_t t, size_t cutoff, VMap visited,
 };
 
 python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
-                                size_t cutoff, boost::any avisited)
+                                size_t cutoff, boost::any avisited, bool edges)
 {
 #ifdef HAVE_BOOST_COROUTINE
     typedef vprop_map_t<uint8_t>::type vprop_t;
@@ -621,9 +632,17 @@ python::object do_get_all_paths(GraphInterface& gi, size_t s, size_t t,
     auto dispatch = [&](auto& yield)
         {
             run_action<>()
-            (gi, [&](auto& g) {get_all_paths(s, t, cutoff,
+                (gi, [&](auto& g)
+                {
+                    if (edges)
+                        get_all_paths<true>(s, t, cutoff,
+                                            visited.get_unchecked(), yield,
+                                            g, gi);
+                    else
+                        get_all_paths<false>(s, t, cutoff,
                                              visited.get_unchecked(), yield,
-                                             g);})();
+                                             g, gi);
+                })();
         };
     return python::object(CoroGenerator(dispatch));
 #else
