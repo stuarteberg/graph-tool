@@ -1562,7 +1562,7 @@ class GraphArtist(matplotlib.artist.Artist):
         pos = group_vector_property([x, y])
 
         cairo_draw(self.g, pos, ctx, self.vprops, self.eprops,
-                   self.vorder, self.eorder, self.nodesfirst, self.kwargs)
+                   self.vorder, self.eorder, self.nodesfirst, **self.kwargs)
 
         ctx.restore()
 
