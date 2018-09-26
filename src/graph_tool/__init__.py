@@ -2012,15 +2012,15 @@ class Graph(object):
             vs = numpy.unique(vs)[::-1]
             vmax, vmin = vs[0], vs[-1]
         else:
-            vmax = int(vertex)
+            vmax = vmin = int(vertex)
+            vs = numpy.asarray((vertex,), dtype="int64")
 
         if vmax > back:
             raise ValueError("Vertex index %d is invalid" % vmax)
 
         # move / shift all known property maps
-        if (vmax-vmin >= len(vs) if is_iter else vmax != back):
-            if not is_iter:
-                vs = numpy.asarray((vertex,), dtype="int64")
+        # (unless removing a contiguous range at the end)
+        if vmax - vmin >= len(vs) or vmax != back:
             vfilt = self.get_vertex_filter()[0]
             if vfilt is not None:
                 vfiltptr = vfilt.data_ptr()
