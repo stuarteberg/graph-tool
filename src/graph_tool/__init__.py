@@ -2108,7 +2108,8 @@ class Graph(object):
                 def wrap(elist):
                     for row in elist:
                         yield (val if i < 2 else convert[i - 2](val)
-                               for (i, val) in enumerate(row))
+                               for (i, val) in enumerate(row)
+                               if len(convert) > i - 2)
                 edge_list = wrap(edge_list)
         if not hashed:
             if isinstance(edge_list, numpy.ndarray):

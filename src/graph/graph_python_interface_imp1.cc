@@ -152,6 +152,8 @@ struct add_edge_list_hash
                 for (; iter != end; ++iter)
                     eprops.emplace_back(*iter, writable_edge_properties());
 
+                size_t n_props = std::min(eprops.size(), edge_list.shape()[1] - 2);
+
                 auto get_vertex = [&] (const Value& r) -> size_t
                     {
                         auto iter = vertices.find(r);
@@ -170,7 +172,7 @@ struct add_edge_list_hash
                     size_t s = get_vertex(e[0]);
                     size_t t = get_vertex(e[1]);
                     auto ne = add_edge(vertex(s, g), vertex(t, g), g).first;
-                    for (size_t i = 0; i < e.size() - 2; ++i)
+                    for (size_t i = 0; i < n_props; ++i)
                     {
                         try
                         {
