@@ -68,6 +68,18 @@ bool operator==(const PeriodicDelaunayTriangulation::Vertex& a,
 }
 #endif
 
+// comparison missing in 4.13
+#if (CGAL_VERSION_NR >= 1041301000)
+namespace CGAL
+{
+bool operator==(const DelaunayTriangulation::Vertex& a,
+                const DelaunayTriangulation::Vertex& b)
+{
+    return a.point() == b.point();
+}
+}
+#endif
+
 #include "graph_triangulation.hh"
 #include "numpy_bind.hh"
 
