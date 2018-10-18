@@ -593,19 +593,21 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
     def sync_q(self):
         ra, rb = self.transform(self.n.fa, self.x.fa)
-        self.q.fa = log(ra) - log(rb)
+        self.q.fa = ra - rb
         dra, drb = self.transform(self.n_default, self.x_default)
-        self.q_default = log(dra) - log(drb)
+        self.q_default = dra - drb
 
-        self.S_const = (self.M - self.g.num_edges()) * log(drb) + log(rb).sum()
+        self.S_const = (self.M - self.g.num_edges()) * drb + rb.sum()
 
         if self._state is not None:
             self._state.set_q_default(self.q_default)
             self._state.set_S_const(self.S_const)
 
     def transform(self, na, xa):
-        ra = scipy.special.beta(na - xa + self.alpha, xa + self.beta) / scipy.special.beta(self.alpha, self.beta)
-        rb = scipy.special.beta(xa + self.mu, na - xa + self.nu) / scipy.special.beta(self.mu, self.nu)
+        ra = (scipy.special.betaln(na - xa + self.alpha, xa + self.beta) -
+              scipy.special.betaln(self.alpha, self.beta))
+        rb = (scipy.special.betaln(xa + self.mu, na - xa + self.nu) -
+              scipy.special.betaln(self.mu, self.nu))
         return ra, rb
 
     def set_hparams(self, alpha, beta, mu, nu):
