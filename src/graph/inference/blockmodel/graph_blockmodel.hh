@@ -1730,7 +1730,7 @@ public:
         // attempt random block
         size_t s;
         std::bernoulli_distribution new_r(d);
-        if (new_r(rng) && (_candidate_blocks.size() - 1 < num_vertices(_g)))
+        if (d > 0 && new_r(rng) && (_candidate_blocks.size() - 1 < num_vertices(_g)))
         {
             if (_empty_blocks.empty())
                 add_block();
@@ -1749,12 +1749,6 @@ public:
                 hb[s] = t;
             }
             return s;
-        }
-        else
-        {
-            s = uniform_sample(_candidate_blocks.begin() + 1,
-                               _candidate_blocks.end(),
-                               rng);
         }
 
         if (!std::isinf(c) && !_neighbor_sampler.empty(v))
@@ -1783,6 +1777,18 @@ public:
                 else
                     assert(size_t(_b[source(e, _g)]) == t);
             }
+            else
+            {
+                s = uniform_sample(_candidate_blocks.begin() + 1,
+                                   _candidate_blocks.end(),
+                                   rng);
+            }
+        }
+        else
+        {
+            s = uniform_sample(_candidate_blocks.begin() + 1,
+                               _candidate_blocks.end(),
+                               rng);
         }
 
         return s;
