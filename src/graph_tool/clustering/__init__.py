@@ -112,16 +112,10 @@ def local_clustering(g, prop=None, undirected=True):
 
     Examples
     --------
-    .. testcode::
-       :hide:
-
-       np.random.seed(42)
-       gt.seed_rng(42)
-
-    >>> g = gt.random_graph(1000, lambda: (5,5))
+    >>> g = gt.collection.data["karate"]
     >>> clust = gt.local_clustering(g)
     >>> print(gt.vertex_average(g, clust))
-    (0.008177777777777779, 0.00042080229075093...)
+    (0.5706384782..., 0.05869813676...)
 
     References
     ----------
@@ -174,15 +168,9 @@ def global_clustering(g):
 
     Examples
     --------
-    .. testcode::
-       :hide:
-
-       np.random.seed(42)
-       gt.seed_rng(42)
-
-    >>> g = gt.random_graph(1000, lambda: (5,5))
+    >>> g = gt.collection.data["karate"]
     >>> print(gt.global_clustering(g))
-    (0.008177777777777779, 0.0004212235142651...)
+    (0.2556818181..., 0.06314746595...)
 
     References
     ----------
@@ -252,22 +240,16 @@ def extended_clustering(g, props=None, max_depth=3, undirected=False):
 
     Examples
     --------
-    .. testcode::
-       :hide:
-
-       np.random.seed(42)
-       gt.seed_rng(42)
-
-    >>> g = gt.random_graph(1000, lambda: (5,5))
+    >>> g = gt.collection.data["karate"]
     >>> clusts = gt.extended_clustering(g, max_depth=5)
     >>> for i in range(0, 5):
     ...    print(gt.vertex_average(g, clusts[i]))
     ...
-    (0.0050483333333333335, 0.0004393940240073...)
-    (0.024593787878787878, 0.0009963004021144...)
-    (0.11238924242424242, 0.001909615401971...)
-    (0.40252272727272725, 0.003113987400030...)
-    (0.43629378787878786, 0.003144159256565...)
+    (0.5706384782076..., 0.05869813676256...)
+    (0.3260389360735..., 0.04810773205917...)
+    (0.0530678759917..., 0.01513061504691...)
+    (0.0061658977316..., 0.00310690511463...)
+    (0.0002162629757..., 0.00021305890271...)
 
     References
     ----------
@@ -349,9 +331,9 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
     >>> g = gt.random_graph(1000, lambda: (5,5))
     >>> motifs, counts = gt.motifs(gt.GraphView(g, directed=False), 4)
     >>> print(len(motifs))
-    18
+    11
     >>> print(counts)
-    [115557, 390005, 627, 700, 1681, 2815, 820, 12, 27, 44, 15, 7, 12, 4, 6, 1, 2, 1]
+    [116386, 392916, 443, 507, 2574, 1124, 741, 5, 5, 8, 2]
 
     References
     ----------
@@ -520,9 +502,9 @@ def motif_significance(g, k, n_shuffles=100, p=1.0, motif_list=None,
     >>> g = gt.random_graph(100, lambda: (3,3))
     >>> motifs, zscores = gt.motif_significance(g, 3)
     >>> print(len(motifs))
-    11
+    12
     >>> print(zscores)
-    [0.22728646681107012, 0.21409572051644973, 0.007022040788902111, 0.5872141967123348, -0.37770179603294357, -0.3484733504783734, 0.8861811801325502, -0.08, -0.2, -0.38, -0.2]
+    [2.59252643351441, 2.5966529814390387, 2.3459237708258587, -1.0829180621127024, -1.3368754665984663, -2.33027728409781, -3.055817397993647, -0.1, -0.15, -0.19, -0.4, -0.01]
 
     References
     ----------

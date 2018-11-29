@@ -134,7 +134,7 @@ illustrate its use with the neural network of the `C. elegans
 
 .. testsetup:: celegans
 
-   gt.seed_rng(47)
+   gt.seed_rng(51)
 
 .. testcode:: celegans
 
@@ -186,9 +186,9 @@ which shows the number of nodes and groups in all levels:
 
 .. testoutput:: celegans
 
-   l: 0, N: 297, B: 17
-   l: 1, N: 17, B: 9
-   l: 2, N: 9, B: 3
+   l: 0, N: 297, B: 16
+   l: 1, N: 16, B: 8
+   l: 2, N: 8, B: 3
    l: 3, N: 3, B: 1
 
 The hierarchical levels themselves are represented by individual
@@ -203,10 +203,10 @@ The hierarchical levels themselves are represented by individual
 
 .. testoutput:: celegans
 
-   <BlockState object with 17 blocks (17 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
-   <BlockState object with 9 blocks (9 nonempty), for graph <Graph object, directed, with 17 vertices and 156 edges at 0x...>, at 0x...>
-   <BlockState object with 3 blocks (3 nonempty), for graph <Graph object, directed, with 9 vertices and 57 edges at 0x...>, at 0x...>
-   <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 3 vertices and 9 edges at 0x...>, at 0x...>
+    <BlockState object with 16 blocks (16 nonempty), degree-corrected, for graph <Graph object, directed, with 297 vertices and 2359 edges at 0x...>, at 0x...>
+    <BlockState object with 8 blocks (8 nonempty), for graph <Graph object, directed, with 16 vertices and 134 edges at 0x...>, at 0x...>
+    <BlockState object with 3 blocks (3 nonempty), for graph <Graph object, directed, with 8 vertices and 50 edges at 0x...>, at 0x...>
+    <BlockState object with 1 blocks (1 nonempty), for graph <Graph object, directed, with 3 vertices and 8 edges at 0x...>, at 0x...>
 
 This means that we can inspect the hierarchical partition just as before:
 
@@ -221,6 +221,6 @@ This means that we can inspect the hierarchical partition just as before:
 
 .. testoutput:: celegans
 
-   7
-   0
+   2
+   1
    0

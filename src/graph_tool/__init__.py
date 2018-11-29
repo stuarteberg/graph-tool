@@ -1837,9 +1837,9 @@ class Graph(object):
         --------
         >>> g = gt.random_graph(6, lambda: 1, directed=False)
         >>> g.get_edges()
-        array([[2, 1, 2],
-               [3, 4, 0],
-               [5, 0, 1]], dtype=uint64)
+        array([[0, 3, 2],
+               [1, 4, 1],
+               [2, 5, 0]], dtype=uint64)
         """
         edges = libcore.get_edge_list(self.__graph)
         E = edges.shape[0] // 3

@@ -2067,7 +2067,7 @@ class BlockState(object):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pe = state.collect_edge_marginals(pe)
            >>> gt.bethe_entropy(g, pe)[0]
-           -0.901611...
+           12.204791...
         """
 
         if p is None:
@@ -2124,7 +2124,7 @@ class BlockState(object):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     pv = state.collect_vertex_marginals(pv)
            >>> gt.mf_entropy(g, pv)
-           26.887021...
+           16.904653...
            >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_shape="pie",
            ...               vertex_pie_fractions=pv, output="polbooks_blocks_soft_B4.pdf")
            <...>
@@ -2193,8 +2193,7 @@ class BlockState(object):
            ...     ret = state.mcmc_sweep(niter=10)
            ...     ph = state.collect_partition_histogram(ph)
            >>> gt.microstate_entropy(ph)
-           129.330077...
-
+           137.024741...
         """
 
         if h is None:

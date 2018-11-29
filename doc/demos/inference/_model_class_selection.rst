@@ -154,8 +154,8 @@ evidence efficiently, as we show below, using
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -569.590426... (mean field), -817.788531... (Bethe)
-   Model evidence for deg_corr = False: -587.028530... (mean field), -736.990655... (Bethe)
+   Model evidence for deg_corr = True: -579.300446... (mean field), -832.245049... (Bethe)
+   Model evidence for deg_corr = False: -586.652245... (mean field), -737.721423... (Bethe)
 
 If we consider the more accurate approximation, the outcome shows a
 preference for the non-degree-corrected model.
@@ -219,8 +219,8 @@ approach for the same network, using the nested model.
 
 .. testoutput:: model-evidence
 
-   Model evidence for deg_corr = True: -551.228195... (mean field), -740.460493... (Bethe)
-   Model evidence for deg_corr = False: -544.660366... (mean field), -649.135026... (Bethe)
+   Model evidence for deg_corr = True: -555.768070... (mean field), -731.501041... (Bethe)
+   Model evidence for deg_corr = False: -544.346500... (mean field), -630.951518... (Bethe)
 
 The results are similar: If we consider the most accurate approximation,
 the non-degree-corrected model possesses the largest evidence. Note also
