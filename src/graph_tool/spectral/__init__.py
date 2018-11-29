@@ -41,7 +41,8 @@ Contents
 
 from __future__ import division, absolute_import, print_function
 
-from .. import _degree, _prop, Graph, GraphView, _limit_args, Vector_int64_t
+from .. import _degree, _prop, Graph, GraphView, _limit_args, Vector_int64_t, \
+    Vector_double
 from .. stats import label_self_loops
 import numpy
 import scipy.sparse
@@ -619,7 +620,7 @@ def modularity_matrix(g, weight=None, index=None):
 
     return B
 
-def hashimoto(g, weight=None, index=None):
+def hashimoto(g, index=None, compact=False):
     r"""Return the Hashimoto (or non-backtracking) matrix of a graph.
 
     Parameters
@@ -650,6 +651,21 @@ def hashimoto(g, weight=None, index=None):
     where :math:`E` is the edge set. It is therefore a :math:`2|E|\times 2|E|`
     asymmetric square matrix (or :math:`|E|\times |E|` for directed graphs),
     indexed over edge directions.
+
+    If the option ``compact=True`` is passed, the matrix returned has shape
+    :math:`2|V|\times 2|V|`, where :math:`|V|` is the number of vertices, and is
+    given by
+
+    .. math::
+
+        \boldsymbol h =
+        \left(\begin{array}{c|c}
+            \boldsymbol A & -\boldsymbol 1 \\ \hline
+            \boldsymbol D-\boldsymbol 1 & \boldsymbol 0
+        \end{array}\right)
+
+    where :math:`\boldsymbol A` is the adjacency matrix, and :math:`\boldsymbol
+    D` is the diagonal matrix with the node degrees.
 
     Examples
     --------
@@ -687,28 +703,42 @@ def hashimoto(g, weight=None, index=None):
     .. [hashimoto] Hashimoto, Ki-ichiro. "Zeta functions of finite graphs and
        representations of p-adic groups." Automorphic forms and geometry of
        arithmetic varieties. 1989. 211-280. :DOI:`10.1016/B978-0-12-330580-0.50015-X`
-
+    .. [krzakala_spectral] Florent Krzakala, Cristopher Moore, Elchanan Mossel,
+       Joe Neeman, Allan Sly, Lenka Zdeborová, and Pan Zhang, "Spectral redemption
+       in clustering sparse networks", PNAS 110 (52) 20935-20940, 2013.
+       :doi:`10.1073/pnas.1312486110`, :arxiv:`1306.5550`
     """
 
-    if index is None:
-        if g.get_edge_filter()[0] is not None:
-            index = g.new_edge_property("int64_t")
-            index.fa = numpy.arange(g.num_edges())
-            E = index.fa.max() + 1
-        else:
-            index = g.edge_index
-            E = g.edge_index_range
+    if compact:
+        i = Vector_int64_t()
+        j = Vector_int64_t()
+        x = Vector_double()
 
-    if not g.is_directed():
-        E *= 2
+        libgraph_tool_spectral.compact_nonbacktracking(g._Graph__graph,
+                                                       i, j, x)
 
-    i = Vector_int64_t()
-    j = Vector_int64_t()
+        N = g.num_vertices(ignore_filter=True)
+        m = scipy.sparse.coo_matrix((x, (i.a,j.a)), shape=(2 * N, 2 * N))
+    else:
+        if index is None:
+            if g.get_edge_filter()[0] is not None:
+                index = g.new_edge_property("int64_t")
+                index.fa = numpy.arange(g.num_edges())
+                E = index.fa.max() + 1
+            else:
+                index = g.edge_index
+                E = g.edge_index_range
 
-    libgraph_tool_spectral.nonbacktracking(g._Graph__graph, _prop("e", g, index),
-                                           i, j)
+        if not g.is_directed():
+            E *= 2
 
-    data = numpy.ones(i.a.shape)
-    m = scipy.sparse.coo_matrix((data, (i.a,j.a)), shape=(E, E))
+        i = Vector_int64_t()
+        j = Vector_int64_t()
+
+        libgraph_tool_spectral.nonbacktracking(g._Graph__graph, _prop("e", g, index),
+                                               i, j)
+
+        data = numpy.ones(i.a.shape)
+        m = scipy.sparse.coo_matrix((data, (i.a,j.a)), shape=(E, E))
     m = m.tocsr()
     return m

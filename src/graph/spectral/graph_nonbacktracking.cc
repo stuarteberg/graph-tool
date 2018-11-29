@@ -41,3 +41,11 @@ void nonbacktracking(GraphInterface& gi, boost::any index,
          edge_scalar_properties())(index);
 
 }
+
+void compact_nonbacktracking(GraphInterface& gi, std::vector<int64_t>& i,
+                             std::vector<int64_t>& j, std::vector<double>& x)
+{
+    run_action<>()
+        (gi, [&](auto& g){ get_compact_nonbacktracking(g, i, j, x);})();
+
+}

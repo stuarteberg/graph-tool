@@ -49,6 +49,9 @@ void transition(GraphInterface& g, boost::any index, boost::any weight,
 void nonbacktracking(GraphInterface& gi, boost::any index,
                      std::vector<int64_t>& i, std::vector<int64_t>& j);
 
+void compact_nonbacktracking(GraphInterface& gi, std::vector<int64_t>& i,
+                             std::vector<int64_t>& j, std::vector<double>& x);
+
 BOOST_PYTHON_MODULE(libgraph_tool_spectral)
 {
     using namespace boost::python;
@@ -59,4 +62,5 @@ BOOST_PYTHON_MODULE(libgraph_tool_spectral)
     def("incidence", &incidence);
     def("transition", &transition);
     def("nonbacktracking", &nonbacktracking);
+    def("compact_nonbacktracking", &compact_nonbacktracking);
 }

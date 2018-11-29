@@ -54,6 +54,42 @@ void get_nonbacktracking(Graph& g, Index index,
     }
 }
 
+template <class Graph>
+void get_compact_nonbacktracking(Graph& g,
+                                 std::vector<int64_t>& i,
+                                 std::vector<int64_t>& j,
+                                 std::vector<double>& x)
+{
+    for (auto e : edges_range(g))
+    {
+        auto u = source(e, g);
+        auto v = target(e, g);
+        i.push_back(u);
+        j.push_back(v);
+        x.push_back(1);
+
+        i.push_back(v);
+        j.push_back(u);
+        x.push_back(1);
+    }
+
+    auto N = num_vertices(g);
+
+    for (auto u : vertices_range(g))
+    {
+        int32_t k = out_degree(u, g);
+        auto idx = u + N;
+
+        i.push_back(u);
+        j.push_back(idx);
+        x.push_back(-1);
+
+        i.push_back(idx);
+        j.push_back(u);
+        x.push_back(k-1);
+    }
+}
+
 } // namespace graph_tool
 
 #endif // GRAPH_NONBACKTRACKING_MATRIX_HH
