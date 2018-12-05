@@ -24,6 +24,7 @@
 #include <boost/python/stl_iterator.hpp>
 #include <set>
 
+#include "coroutine.hh"
 
 using namespace std;
 using namespace boost;
@@ -327,112 +328,264 @@ python::object GraphInterface::degree_map(string deg, boost::any weight) const
     return deg_map;
 }
 
-python::object get_vertex_list(GraphInterface& gi)
+template <class PMaps>
+int value_type_promotion(std::vector<boost::any>& props)
 {
-    std::vector<size_t> vlist;
-    vlist.reserve(gi.get_num_vertices());
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       for (auto v: vertices_range(g))
-                           vlist.push_back(v);
-                   })();
-    return wrap_vector_owned(vlist);
+    int type_pos = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    for (auto& aep : props)
+    {
+        gt_dispatch<>()([&](auto& ep)
+                        {
+                            typedef std::remove_reference_t<decltype(ep)> pmap_t;
+                            typedef typename property_traits<pmap_t>::value_type val_t;
+                            if (std::is_same<val_t, size_t>::value)
+                                return;
+                            constexpr int ep_t = boost::mpl::find<value_types,val_t>::type::pos::value;
+                            type_pos = std::max(type_pos, ep_t);
+                        },
+                        PMaps())(aep);
+    }
+    return type_pos;
 }
 
-python::object get_edge_list(GraphInterface& gi)
+template <int kind>
+python::object get_vertex_list(GraphInterface& gi, size_t v,
+                               python::list ovprops)
 {
-    std::vector<size_t> elist;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       auto edge_index = get(edge_index_t(), g);
-                       for (auto e: edges_range(g))
-                       {
-                           elist.push_back(source(e, g));
-                           elist.push_back(target(e, g));
-                           elist.push_back(edge_index[e]);
-                       }
-                   })();
-    return wrap_vector_owned(elist);
+    std::vector<boost::any> avprops;
+    for (int i = 0; i < python::len(ovprops); ++i)
+    {
+        avprops.push_back(python::extract<boost::any>(ovprops[i])());
+        if (!belongs<vertex_scalar_properties>()(avprops.back()))
+            throw ValueException("vertex property map must be of scalar type");
+    }
+
+    int vtype = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    if (!avprops.empty())
+        vtype = value_type_promotion<vertex_scalar_properties>(avprops);
+
+    python::object ret;
+    auto dispatch =
+        [&](auto&& vrange)
+        {
+            mpl::for_each<scalar_types>(
+                [&](auto t)
+                {
+                    typedef decltype(t) t_t;
+                    if (vtype != boost::mpl::find<value_types, t_t>::type::pos::value)
+                        return;
+                    typedef DynamicPropertyMapWrap<t_t, GraphInterface::vertex_t>
+                        converted_map_t;
+                    std::vector<converted_map_t> vprops;
+                    for (auto& aep: avprops)
+                        vprops.emplace_back(aep, vertex_scalar_properties());
+
+                    std::vector<t_t> vlist;
+                    run_action<>()(gi,
+                                   [&](auto& g)
+                                   {
+                                       for (auto u: vrange(g))
+                                       {
+                                           vlist.push_back(u);
+                                           for (auto& vp : vprops)
+                                               vlist.push_back(get(vp, u));
+                                       }
+                                   })();
+                    ret = wrap_vector_owned(vlist);
+                });
+        };
+
+    switch (kind)
+    {
+    case 0:
+        dispatch([&](auto& g){return vertices_range(g);});
+        break;
+    case 1:
+        dispatch([&](auto& g){return out_neighbors_range(v, g);});
+        break;
+    case 2:
+        dispatch([&](auto& g){return in_neighbors_range(v, g);});
+        break;
+    case 3:
+        dispatch([&](auto& g){return all_neighbors_range(v, g);});
+    }
+    return ret;
 }
 
-python::object get_out_edge_list(GraphInterface& gi, size_t v)
+enum range_t { FULL, OUT, IN, ALL };
+
+template <int kind>
+python::object get_vertex_iter(GraphInterface& gi, int v, python::list ovprops)
 {
-    std::vector<size_t> elist;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       if (!is_valid_vertex(v, g))
-                           throw ValueException("invalid vertex: " +
-                                                lexical_cast<string>(v));
-                       auto edge_index = get(edge_index_t(), g);
-                       elist.reserve(3 * out_degree(v, g));
-                       for (auto e: out_edges_range(v, g))
-                       {
-                           elist.push_back(source(e, g));
-                           elist.push_back(target(e, g));
-                           elist.push_back(edge_index[e]);
-                       }
-                   })();
-    return wrap_vector_owned(elist);
+#ifdef HAVE_BOOST_COROUTINE
+    auto dispatch = [&](auto&&vrange)
+        {
+            auto yield_dispatch = [&](auto& yield)
+                {
+                    if (python::len(ovprops) == 0)
+                    {
+                        run_action<>()(gi,
+                                       [&](auto& g)
+                                       {
+                                           for (auto v: vertices_range(g))
+                                               yield(python::object(v));
+                                       })();
+                    }
+                    else
+                    {
+                        typedef DynamicPropertyMapWrap<python::object,
+                                                       GraphInterface::vertex_t>
+                            converted_map_t;
+
+                        std::vector<converted_map_t> vprops;
+                        for (int i = 0; i < python::len(ovprops); ++i)
+                            vprops.emplace_back(python::extract<boost::any>(ovprops[i])(),
+                                                vertex_properties());
+                        run_action<>()(gi,
+                                       [&](auto& g)
+                                       {
+                                           for (auto v: vrange(g))
+                                           {
+                                               python::list vlist;
+                                               vlist.append(python::object(v));
+                                               for (auto& vp : vprops)
+                                                   vlist.append(get(vp, v));
+                                               yield(vlist);
+                                           }
+                                       })();
+                    }
+                };
+            return boost::python::object(CoroGenerator(yield_dispatch));
+        };
+    switch (kind)
+    {
+    case range_t::FULL:
+        return dispatch([&](auto& g){return vertices_range(g);});
+    case range_t::OUT:
+        return dispatch([&](auto& g){return out_neighbors_range(v, g);});
+    case range_t::IN:
+        return dispatch([&](auto& g){return in_neighbors_range(v, g);});
+    case range_t::ALL:
+        return dispatch([&](auto& g){return all_neighbors_range(v, g);});
+    }
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif
 }
 
-python::object get_in_edge_list(GraphInterface& gi, size_t v)
+template <int kind>
+python::object get_edge_list(GraphInterface& gi, size_t v, python::list oeprops)
 {
-    std::vector<size_t> elist;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       if (!is_valid_vertex(v, g))
-                           throw ValueException("invalid vertex: " +
-                                                lexical_cast<string>(v));
-                       auto edge_index = get(edge_index_t(), g);
-                       elist.reserve(3 * in_degree(v, g));
-                       for (auto e: in_edges_range(v, g))
-                       {
-                           elist.push_back(source(e, g));
-                           elist.push_back(target(e, g));
-                           elist.push_back(edge_index[e]);
-                       }
-                   })();
-    return wrap_vector_owned(elist);
+    std::vector<boost::any> aeprops;
+    for (int i = 0; i < python::len(oeprops); ++i)
+    {
+        aeprops.push_back(python::extract<boost::any>(oeprops[i])());
+        if (!belongs<edge_scalar_properties>()(aeprops.back()))
+            throw ValueException("edge property map must be of scalar type");
+    }
+
+    int etype = boost::mpl::find<value_types,int64_t>::type::pos::value;
+    if (!aeprops.empty())
+        etype = value_type_promotion<edge_scalar_properties>(aeprops);
+
+    python::object ret;
+    auto dispatch =
+        [&](auto&& erange)
+        {
+            mpl::for_each<scalar_types>(
+                [&](auto t)
+                {
+                    typedef decltype(t) t_t;
+                    if (etype != boost::mpl::find<value_types, t_t>::type::pos::value)
+                        return;
+                    typedef DynamicPropertyMapWrap<t_t, GraphInterface::edge_t>
+                        converted_map_t;
+                    std::vector<converted_map_t> eprops;
+                    for (auto& aep: aeprops)
+                        eprops.emplace_back(aep, edge_scalar_properties());
+
+                    std::vector<t_t> elist;
+                    run_action<>()(gi,
+                                   [&](auto& g)
+                                   {
+                                       for (auto e: erange(g))
+                                       {
+                                           elist.push_back(source(e, g));
+                                           elist.push_back(target(e, g));
+                                           for (auto& ep : eprops)
+                                               elist.push_back(get(ep,e));
+                                       }
+                                   })();
+                    ret = wrap_vector_owned(elist);
+                });
+        };
+    switch (kind)
+    {
+    case range_t::FULL:
+        dispatch([&](auto& g){return edges_range(g);});
+        break;
+    case range_t::OUT:
+        dispatch([&](auto& g){return out_edges_range(v, g);});
+        break;
+    case range_t::IN:
+        dispatch([&](auto& g){return in_edges_range(v, g);});
+        break;
+    case range_t::ALL:
+        dispatch([&](auto& g){return all_edges_range(v, g);});
+    }
+    return ret;
 }
 
-python::object get_out_neighbors_list(GraphInterface& gi, size_t v)
+template <int kind>
+python::object get_edge_iter(GraphInterface& gi, size_t v, python::list oeprops)
 {
-    std::vector<size_t> vlist;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       if (!is_valid_vertex(v, g))
-                           throw ValueException("invalid vertex: " +
-                                                lexical_cast<string>(v));
-                       vlist.reserve(out_degree(v, g));
-                       for (auto u: out_neighbors_range(v, g))
-                           vlist.push_back(u);
-                   })();
-    return wrap_vector_owned(vlist);
-}
+#ifdef HAVE_BOOST_COROUTINE
+   auto dispatch = [&](auto&&erange)
+        {
+            auto yield_dispatch = [&](auto& yield)
+                {
+                    typedef DynamicPropertyMapWrap<python::object,
+                                                   GraphInterface::edge_t>
+                        converted_map_t;
 
-python::object get_in_neighbors_list(GraphInterface& gi, size_t v)
-{
-    std::vector<size_t> vlist;
-    run_action<>()(gi,
-                   [&](auto& g)
-                   {
-                       if (!is_valid_vertex(v, g))
-                           throw ValueException("invalid vertex: " +
-                                                lexical_cast<string>(v));
-                       vlist.reserve(in_degree(v, g));
-                       for (auto u: in_neighbors_range(v, g))
-                           vlist.push_back(u);
-                   })();
-    return wrap_vector_owned(vlist);
+                    std::vector<converted_map_t> eprops;
+                    for (int i = 0; i < python::len(oeprops); ++i)
+                        eprops.emplace_back(python::extract<boost::any>(oeprops[i])(),
+                                            edge_properties());
+                    run_action<>()(gi,
+                                   [&](auto& g)
+                                   {
+                                       for (auto e: erange(g))
+                                       {
+                                           python::list elist;
+                                           elist.append(python::object(source(e, g)));
+                                           elist.append(python::object(target(e, g)));
+                                           for (auto& ep : eprops)
+                                               elist.append(get(ep, e));
+                                           yield(elist);
+                                       }
+                                   })();
+                };
+            return boost::python::object(CoroGenerator(yield_dispatch));
+        };
+   switch (kind)
+    {
+    case range_t::FULL:
+        return dispatch([&](auto& g){return edges_range(g);});
+    case range_t::OUT:
+        return dispatch([&](auto& g){return out_edges_range(v, g);});
+    case range_t::IN:
+        return dispatch([&](auto& g){return in_edges_range(v, g);});
+    case range_t::ALL:
+        return dispatch([&](auto& g){return all_edges_range(v, g);});
+    }
+#else
+    throw GraphException("This functionality is not available because boost::coroutine was not found at compile-time");
+#endif
 }
 
 python::object get_degree_list(GraphInterface& gi, python::object ovlist,
-                               boost::any eprop, bool out)
+                               boost::any eprop, int kind)
 {
     python::object ret;
     auto vlist = get_array<uint64_t,1>(ovlist);
@@ -473,11 +626,18 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
                            }, eprops_t())(eprop);
         };
 
-    if (out)
+    switch (kind)
+    {
+    case 0:
         get_degs(out_degreeS());
-    else
+        break;
+    case 1:
         get_degs(in_degreeS());
-
+        break;
+    case 3:
+        get_degs(total_degreeS());
+        break;
+    }
     return ret;
 }
 
@@ -706,12 +866,22 @@ void export_python_interface()
     def("add_edge_list_iter", graph_tool::do_add_edge_list_iter);
     def("get_edge", get_edge);
 
-    def("get_vertex_list", get_vertex_list);
-    def("get_edge_list", get_edge_list);
-    def("get_out_edge_list", get_out_edge_list);
-    def("get_in_edge_list", get_in_edge_list);
-    def("get_out_neighbors_list", get_out_neighbors_list);
-    def("get_in_neighbors_list", get_in_neighbors_list);
+    def("get_vertex_list", &get_vertex_list<range_t::FULL>);
+    def("get_vertex_iter", &get_vertex_iter<range_t::FULL>);
+    def("get_edge_list", &get_edge_list<range_t::FULL>);
+    def("get_edge_iter", &get_edge_iter<range_t::FULL>);
+    def("get_out_edge_list", &get_edge_list<range_t::OUT>);
+    def("get_out_edge_iter", &get_edge_iter<range_t::OUT>);
+    def("get_in_edge_list", &get_edge_list<range_t::IN>);
+    def("get_in_edge_iter", &get_edge_iter<range_t::IN>);
+    def("get_all_edge_list", &get_edge_list<range_t::ALL>);
+    def("get_all_edge_iter", &get_edge_iter<range_t::ALL>);
+    def("get_out_neighbors_list", &get_vertex_list<range_t::OUT>);
+    def("get_out_neighbors_iter", &get_vertex_iter<range_t::OUT>);
+    def("get_in_neighbors_list", &get_vertex_list<range_t::IN>);
+    def("get_in_neighbors_iter", &get_vertex_iter<range_t::IN>);
+    def("get_all_neighbors_list", &get_vertex_list<range_t::ALL>);
+    def("get_all_neighbors_iter", &get_vertex_iter<range_t::ALL>);
     def("get_degree_list", get_degree_list);
 
     def("get_vertex_index", get_vertex_index);

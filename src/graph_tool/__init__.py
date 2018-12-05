@@ -32,6 +32,9 @@ Summary
    GraphView
    Vertex
    Edge
+   VertexPropertyMap
+   EdgePropertyMap
+   GraphPropertyMap
    PropertyMap
    PropertyArray
    load_graph
@@ -147,9 +150,9 @@ __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
            "Vector_double", "Vector_long_double", "Vector_string",
            "Vector_size_t", "value_types", "load_graph", "load_graph_from_csv",
-           "PropertyMap", "PropertyArray", "group_vector_property",
-           "ungroup_vector_property", "map_property_values",
-           "infect_vertex_property", "edge_endpoint_property",
+           "VertexPropertyMap", "EdgePropertyMap", "GraphPropertyMap", "PropertyMap",
+           "PropertyArray", "group_vector_property", "ungroup_vector_property",
+           "map_property_values", "infect_vertex_property", "edge_endpoint_property",
            "incident_edges_op", "perfect_prop_hash", "seed_rng", "show_config",
            "openmp_enabled", "openmp_get_num_threads", "openmp_set_num_threads",
            "openmp_get_schedule", "openmp_set_schedule", "__author__",
@@ -351,7 +354,7 @@ def conv_pickle_state(state):
 ################################################################################
 
 class PropertyMap(object):
-    """This class provides a mapping from vertices, edges or whole graphs to
+    """This base class provides a mapping from vertices, edges or whole graphs to
     arbitrary properties.
 
     See :ref:`sec_property_maps` for more details.
@@ -381,6 +384,8 @@ class PropertyMap(object):
         =======================     ======================
     """
     def __init__(self, pmap, g, key_type):
+        if type(self) == PropertyMap:
+            raise Exception("PropertyMap cannot be instantiated directly")
         self.__map = pmap
         self.__g = weakref.ref(g)
         self.__base_g = weakref.ref(g.base)  # keep reference to the
@@ -402,29 +407,6 @@ class PropertyMap(object):
         self.reserve(N)
         return self.__map.get_map()
 
-    def __key_trans(self, key):
-        if self.key_type() == "g":
-            return key._Graph__graph
-        else:
-            return key
-
-    def __key_convert(self, k):
-        if self.key_type() == "e":
-            try:
-                k = (int(k[0]), int(k[1]))
-            except:
-                raise ArgumentError
-            key = self.__g().edge(k[0], k[1])
-            if key is None:
-                raise ValueError("Nonexistent edge: %s" % str(k))
-        elif self.key_type() == "v":
-            try:
-                key = int(k)
-            except:
-                raise ArgumentError
-            key = self.__g().vertex(key)
-        return key
-
     def __register_map(self):
         for g in [self.__g(), self.__base_g()]:
             if g is not None:
@@ -436,62 +418,8 @@ class PropertyMap(object):
                 del g._Graph__known_properties[id(self)]
 
     def __del__(self):
-        self.__unregister_map()
-
-    def __getitem__(self, k):
-        k = self.__key_trans(k)
-        try:
-            return self.__map[k]
-        except ArgumentError:
-            try:
-                k = self.__key_convert(k)
-                return self.__map[k]
-            except ArgumentError:
-                if self.key_type() == "e":
-                    kt = "Edge"
-                elif self.key_type() == "v":
-                    kt = "Vertex"
-                else:
-                    kt = "Graph"
-                raise ValueError("invalid key '%s' of type '%s', wanted type: %s"
-                                 % (str(k), str(type(k)), kt) )
-
-    def __setitem__(self, k, v):
-        key = self.__key_trans(k)
-        try:
-            try:
-                self.__map[key] = v
-            except TypeError:
-                self.__map[key] = self.__convert(v)
-        except ArgumentError:
-            try:
-                key = self.__key_convert(key)
-                try:
-                    self.__map[key] = v
-                except TypeError:
-                    self.__map[key] = self.__convert(v)
-            except ArgumentError:
-                if self.key_type() == "e":
-                    kt = "Edge"
-                elif self.key_type() == "v":
-                    kt = "Vertex"
-                else:
-                    kt = "Graph"
-                vt = self.value_type()
-                raise ValueError("invalid key value pair '(%s, %s)' of types "
-                                 "'(%s, %s)', wanted types: (%s, %s)" %
-                                 (str(k), str(v), str(type(k)),
-                                  str(type(v)), kt, vt))
-    def __iter__(self):
-        g = self.__g()
-        if self.key_type() == "g":
-            iters = [g]
-        elif self.key_type() == "v":
-            iters = g.vertices()
-        else:
-            iters = g.edges()
-        for x in iters:
-            yield self[x]
+        if type(self) != PropertyMap:
+            self.__unregister_map()
 
     def __repr__(self):
         # provide some more useful information
@@ -506,7 +434,7 @@ class PropertyMap(object):
             g = "a non-existent graph"
         else:
             g = "Graph 0x%x" % id(g)
-        return ("<PropertyMap object with key type '%s' and value type '%s',"
+        return ("<%sPropertyMap object with value type '%s',"
                 + " for %s, at 0x%x>") % (k, self.value_type(), g, id(self))
 
     def copy(self, value_type=None, full=True):
@@ -578,21 +506,6 @@ class PropertyMap(object):
 
         """
         return self._get_data()
-
-    def _get_data(self):
-        g = self.get_graph()
-        if g is None:
-            raise ValueError("Cannot get array for an orphaned property map")
-        if self.__key_type == 'v':
-            n = g._Graph__graph.get_num_vertices(False)
-        elif self.__key_type == 'e':
-            n = g.edge_index_range
-        else:
-            n = 1
-        a = self.__map.get_array(n)
-        if a is None:
-            return a
-        return PropertyArray(a, self)
 
     def __set_array(self, v):
         a = self.get_array()
@@ -894,6 +807,143 @@ class PropertyMap(object):
         self.__key_type = key_type
         self.__convert = _converter(self.value_type())
         self.__register_map()
+
+    # Guarantee pickle backward compatibility
+
+    def __getitem__(self, k):
+        if self.key_type() == "v":
+            return VertexPropertyMap.__getitem__(self, k)
+        if self.key_type() == "e":
+            return EdgePropertyMap.__getitem__(self, k)
+        if self.key_type() == "g":
+            return GraphPropertyMap.__getitem__(self, k)
+
+    def __setitem__(self, k, v):
+        if self.key_type() == "v":
+            VertexPropertyMap.__setitem__(self, k, v)
+        if self.key_type() == "e":
+            EdgePropertyMap.__setitem__(self, k, v)
+        if self.key_type() == "g":
+            GraphPropertyMap.__setitem__(self, k, v)
+
+    def __iter__(self):
+        if self.key_type() == "v":
+            return VertexPropertyMap.__iter__(self)
+        if self.key_type() == "e":
+            return EdgePropertyMap.__iter__(self)
+        if self.key_type() == "g":
+            return GraphPropertyMap.__iter__(self)
+
+    def _get_data(self):
+        if self.key_type() == "v":
+            return VertexPropertyMap._get_data(self, k)
+        if self.key_type() == "e":
+            return EdgePropertyMap._get_data(self, k)
+        if self.key_type() == "g":
+            return GraphPropertyMap._get_data(self, k)
+
+
+class VertexPropertyMap(PropertyMap):
+    """This class provides a mapping from vertices to arbitrary properties.
+
+    See :ref:`sec_property_maps` and :class:`PropertyMap` for more details.
+
+    """
+
+    def __init__(self, pmap, g):
+        PropertyMap.__init__(self, pmap, g, "v")
+
+    def __getitem__(self, k):
+        return self._PropertyMap__map[int(k)]
+
+    def __setitem__(self, k, v):
+        k = int(k)
+        try:
+            self._PropertyMap__map[k] = v
+        except TypeError:
+            self._PropertyMap__map[k] = self._PropertyMap__convert(v)
+
+    def __iter__(self):
+        g = self.get_graph()
+        for v in g.vertices():
+            yield self[v]
+
+    def _get_data(self):
+        g = self.get_graph()
+        if g is None:
+            raise ValueError("Cannot get array for an orphaned property map")
+        n = g._Graph__graph.get_num_vertices(False)
+        a = self._PropertyMap__map.get_array(n)
+        if a is None:
+            return None
+        return PropertyArray(a, self)
+
+class EdgePropertyMap(PropertyMap):
+    """This class provides a mapping from edges to arbitrary properties.
+
+    See :ref:`sec_property_maps` and :class:`PropertyMap` for more details.
+
+    """
+
+    def __init__(self, pmap, g):
+        PropertyMap.__init__(self, pmap, g, "e")
+
+    def __getitem__(self, k):
+        return self._PropertyMap__map[k]
+
+    def __setitem__(self, k, v):
+        try:
+            self._PropertyMap__map[k] = v
+        except TypeError:
+            self._PropertyMap__map[k] = self.__convert(v)
+
+    def __iter__(self):
+        g = self.get_graph()
+        for e in g.edges():
+            yield self[e]
+
+    def _get_data(self):
+        g = self.get_graph()
+        if g is None:
+            raise ValueError("Cannot get array for an orphaned property map")
+        n = g.edge_index_range
+        a = self._PropertyMap__map.get_array(n)
+        if a is None:
+            return None
+        return PropertyArray(a, self)
+
+class GraphPropertyMap(PropertyMap):
+    """This class provides a mapping from graphs to arbitrary properties.
+
+    See :ref:`sec_property_maps` and :class:`PropertyMap` for more details.
+
+    """
+
+    def __init__(self, pmap, g):
+        PropertyMap.__init__(self, pmap, g, "g")
+
+    def __getitem__(self, k):
+        return self._PropertyMap__map[self.get_graph()._Graph__graph]
+
+    def __setitem__(self, k, v):
+        g = self.get_graph()._Graph__graph
+        try:
+            self._PropertyMap__map[g] = v
+        except TypeError:
+            self._PropertyMap__map[g] = self._PropertyMap__convert(v)
+
+    def __iter__(self):
+        return [self.get_graph()]
+
+    def _get_data(self):
+        g = self.get_graph()
+        if g is None:
+            raise ValueError("Cannot get array for an orphaned property map")
+        a = self.__map.get_array(1)
+        if a is None:
+            return None
+        return PropertyArray(a, self)
+
 
 class PropertyArray(numpy.ndarray):
     """This is a :class:`~numpy.ndarray` subclass which keeps a reference of its
@@ -1557,9 +1607,9 @@ class Graph(object):
 
             # internal index maps
             self.__vertex_index = \
-                     PropertyMap(libcore.get_vertex_index(self.__graph), self, "v")
+                     VertexPropertyMap(libcore.get_vertex_index(self.__graph), self)
             self.__edge_index = \
-                     PropertyMap(libcore.get_edge_index(self.__graph), self, "e")
+                     EdgePropertyMap(libcore.get_edge_index(self.__graph), self)
 
         else:
             if isinstance(prune, bool):
@@ -1586,9 +1636,9 @@ class Graph(object):
 
                 # internal index maps
                 self.__vertex_index = \
-                         PropertyMap(libcore.get_vertex_index(self.__graph), self, "v")
+                         VertexPropertyMap(libcore.get_vertex_index(self.__graph), self)
                 self.__edge_index = \
-                         PropertyMap(libcore.get_edge_index(self.__graph), self, "e")
+                         EdgePropertyMap(libcore.get_edge_index(self.__graph), self)
 
                 nvfilt = nefilt = None
                 for k, m in g.properties.items():
@@ -1644,22 +1694,22 @@ class Graph(object):
                                                       _prop("v", gv, vorder))
                 # internal index maps
                 self.__vertex_index = \
-                         PropertyMap(libcore.get_vertex_index(self.__graph), self, "v")
+                         VertexPropertyMap(libcore.get_vertex_index(self.__graph), self)
                 self.__edge_index = \
-                         PropertyMap(libcore.get_edge_index(self.__graph), self, "e")
+                         EdgePropertyMap(libcore.get_edge_index(self.__graph), self)
 
                 # Put the copied properties in the internal dictionary
                 for i, (k, m) in enumerate(gv.vertex_properties.items()):
                     pmap = new_vertex_property(m.value_type() if m.is_writable() else "int32_t",
                                                self.__graph.get_vertex_index(),
                                                vprops[i][1])
-                    self.vertex_properties[k] = PropertyMap(pmap, self, "v")
+                    self.vertex_properties[k] = VertexPropertyMap(pmap, self)
 
                 for i, (k, m) in enumerate(gv.edge_properties.items()):
                     pmap = new_edge_property(m.value_type() if m.is_writable() else "int32_t",
                                              self.__graph.get_edge_index(),
                                              eprops[i][1])
-                    self.edge_properties[k] = PropertyMap(pmap, self, "e")
+                    self.edge_properties[k] = EdgePropertyMap(pmap, self)
 
                 for k, v in gv.graph_properties.items():
                     new_p = self.new_graph_property(v.value_type())
@@ -1671,12 +1721,12 @@ class Graph(object):
                     vpmap = new_vertex_property("bool",
                                                 self.__graph.get_vertex_index(),
                                                 vprops[vf_pos][1])
-                    vpmap = PropertyMap(vpmap, self, "v")
+                    vpmap = VertexPropertyMap(vpmap, self)
                 if ef_pos is not None:
                     epmap = new_edge_property("bool",
                                               self.__graph.get_edge_index(),
                                               eprops[ef_pos][1])
-                    epmap = PropertyMap(epmap, self, "e")
+                    epmap = EdgePropertyMap(epmap, self)
                 self.set_filters(epmap, vpmap,
                                  inverted_edges=g.get_edge_filter()[1],
                                  inverted_vertices=g.get_vertex_filter()[1])
@@ -1746,8 +1796,40 @@ class Graph(object):
         """
         return libcore.get_vertices(self.__graph)
 
-    def get_vertices(self):
-        """Return a :class:`numpy.ndarray` with the vertex indices.
+    def iter_vertices(self, vprops=[]):
+        """Return an iterator over the vertex indices, and optional vertex properties
+        list ``vprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Graph.vertices`, as descriptor objects are not
+           created.
+
+        Examples
+        --------
+        >>> g = gt.Graph()
+        >>> g.add_vertex(5)
+        <...>
+        >>> for v in g.iter_vertices():
+        ...     print(v)
+        0
+        1
+        2
+        3
+        4
+        5
+
+        """
+        return libcore.get_vertex_iter(self.__graph, 0,
+                                       [vp._get_any() for vp in vprops])
+
+    def get_vertices(self, vprops=[]):
+        """Return a :class:`numpy.ndarray` containing the vertex indices, and optional
+        vertex properties list ``vprops``. If ``vprops`` is not empty, the shape
+        of the array will be ``(V, 1 + len(vprops))``, where ``V`` is the number
+        of vertices, and each line will contain the vertex and the vertex
+        property values.
 
         .. note::
 
@@ -1763,7 +1845,13 @@ class Graph(object):
         array([0, 1, 2, 3, 4], dtype=uint64)
 
         """
-        return libcore.get_vertex_list(self.__graph)
+        vertices = libcore.get_vertex_list(self.__graph, 0,
+                                           [vp._get_any() for vp in vprops])
+        if len(vprops) == 0:
+            return vertices
+        else:
+            V = vertices.shape[0] // (1 + len(vprops))
+            return numpy.reshape(vertices, (V, 1 + len(vprops)))
 
     def vertex(self, i, use_index=True, add_missing=False):
         """Return the vertex with index ``i``. If ``use_index=False``, the
@@ -1823,10 +1911,34 @@ class Graph(object):
         """
         return libcore.get_edges(self.__graph)
 
-    def get_edges(self):
-        """Return a :class:`numpy.ndarray` containing the edges. The shape of
-        the array will be ``(E, 3)``, where ``E`` is the number of edges, and
-        each line will contain the source, target and index of an edge.
+    def iter_edges(self, eprops=[]):
+        """Return an iterator over the edge ```(source, target)`` pairs, and optional
+        edge properties list ``eprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Graph.edges`, as descriptor objects are not
+           created.
+
+        Examples
+        --------
+        >>> g = gt.random_graph(6, lambda: 1, directed=False)
+        >>> for s, t, i in g.iter_edges([g.edge_index])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_edge_iter(self.__graph, 0,
+                                     [ep._get_any() for ep in eprops])
+
+    def get_edges(self, eprops=[]):
+        """Return a :class:`numpy.ndarray` containing the edges, and optional edge
+        properties list ``eprops``. The shape of the array will be ``(E, 2 +
+        len(eprops))``, where ``E`` is the number of edges, and each line will
+        contain the source, target and the edge property values.
 
         .. note::
 
@@ -1836,57 +1948,179 @@ class Graph(object):
         Examples
         --------
         >>> g = gt.random_graph(6, lambda: 1, directed=False)
-        >>> g.get_edges()
-        array([[0, 3, 2],
-               [1, 4, 1],
-               [2, 5, 0]], dtype=uint64)
+        >>> g.get_edges([g.edge_index])
+        array([[2, 1, 2],
+               [3, 4, 0],
+               [5, 0, 1]])
         """
-        edges = libcore.get_edge_list(self.__graph)
-        E = edges.shape[0] // 3
-        return numpy.reshape(edges, (E, 3))
+        edges = libcore.get_edge_list(self.__graph, 0,
+                                      [ep._get_any() for ep in eprops])
+        E = edges.shape[0] // (2 + len(eprops))
+        return numpy.reshape(edges, (E, 2 + len(eprops)))
 
-    def get_out_edges(self, v):
-        """Return a :class:`numpy.ndarray` containing the out-edges of vertex ``v``. The
-        shape of the array will be ``(k, 3)``, where ``k`` is the out-degree of
-        ``v``, and each line will contain the source, target and index of an
-        edge.
+    def iter_out_edges(self, v, eprops=[]):
+        """Return an iterator over the out-edge ```(source, target)`` pairs for vertex
+        ``v``, and optional edge properties list ``eprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.out_edges`, as descriptor objects are not
+           created.
 
         Examples
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
-        >>> g.get_out_edges(66)
+        >>> for s, t, i in g.iter_out_edges(66, [g.edge_index])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_out_edge_iter(self.__graph, int(v),
+                                         [ep._get_any() for ep in eprops])
+
+    def get_out_edges(self, v, eprops=[]):
+        """Return a :class:`numpy.ndarray` containing the out-edges of vertex ``v``, and
+        optional edge properties list ``eprops``. The shape of the array will be
+        ``(E, 2 + len(eprops))``, where ``E`` is the number of edges, and each
+        line will contain the source, target and the edge property values.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_out_edges(66, [g.edge_index])
         array([[   66,    63,  5266],
                [   66, 20369,  5267],
                [   66, 13980,  5268],
                [   66,  8687,  5269],
-               [   66, 38674,  5270]], dtype=uint64)
-        """
-        edges = libcore.get_out_edge_list(self.__graph, int(v))
-        E = edges.shape[0] // 3
-        return numpy.reshape(edges, (E, 3))
+               [   66, 38674,  5270]])
 
-    def get_in_edges(self, v):
-        """Return a :class:`numpy.ndarray` containing the out-edges of vertex ``v``. The
-        shape of the array will be ``(k, 3)``, where ``k`` is the out-degree of
-        ``v``, and each line will contain the source, target and index of an
-        edge.
+        """
+        edges = libcore.get_out_edge_list(self.__graph, int(v), 0,
+                                          [ep._get_any() for ep in eprops])
+        E = edges.shape[0] // (2 + len(eprops))
+        return numpy.reshape(edges, (E, 2 + len(eprops)))
+
+    def iter_in_edges(self, v, eprops=[]):
+        """Return an iterator over the in-edge ```(source, target)`` pairs for vertex
+        ``v``, and optional edge properties list ``eprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.in_edges`, as descriptor objects are not
+           created.
 
         Examples
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
-        >>> g.get_in_edges(66)
+        >>> for s, t, i in g.iter_in_edges(66, [g.edge_index])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_out_edge_iter(self.__graph, int(v),
+                                         [ep._get_any() for ep in eprops])
+
+    def get_in_edges(self, v, eprops=[]):
+        """Return a :class:`numpy.ndarray` containing the in-edges of vertex ``v``, and
+        optional edge properties list ``eprops``. The shape of the array will be
+        ``(E, 2 + len(eprops))``, where ``E`` is the number of edges, and each
+        line will contain the source, target and the edge property values.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_in_edges(66, [g.edge_index])
         array([[  8687,     66, 179681],
                [ 20369,     66, 255033],
                [ 38674,     66, 300230]], dtype=uint64)
 
         """
-        edges = libcore.get_in_edge_list(self.__graph, int(v))
-        E = edges.shape[0] // 3
-        return numpy.reshape(edges, (E, 3))
+        edges = libcore.get_in_edge_list(self.__graph, int(v),
+                                          [ep._get_any() for ep in eprops])
+        E = edges.shape[0] // (2 + len(eprops))
+        return numpy.reshape(edges, (E, 2 + len(eprops)))
 
-    def get_out_neighbors(self, v):
-        """Return a :class:`numpy.ndarray` containing the out-neighbors of vertex
-        ``v``.
+    def iter_all_edges(self, v, eprops=[]):
+        """Return an iterator over the in- and out-edge ```(source, target)`` pairs for
+        vertex ``v``, and optional edge properties list ``eprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.in_edges`, as descriptor objects are not
+           created.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> for s, t, i in g.iter_all_edges(66, [g.edge_index])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_out_edge_iter(self.__graph, int(v),
+                                         [ep._get_any() for ep in eprops])
+
+    def get_all_edges(self, v, eprops=[]):
+        """Return a :class:`numpy.ndarray` containing the in- and out-edges of vertex v,
+        and optional edge properties list ``eprops``. The shape of the array
+        will be ``(E, 2 + len(eprops))``, where ``E`` is the number of edges,
+        and each line will contain the source, target and the edge property
+        values.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_all_edges(66, [g.edge_index])
+        array([[  8687,     66, 179681],
+               [ 20369,     66, 255033],
+               [ 38674,     66, 300230]], dtype=uint64)
+
+        """
+        edges = libcore.get_all_edge_list(self.__graph, int(v),
+                                          [ep._get_any() for ep in eprops])
+        E = edges.shape[0] // (2 + len(eprops))
+        return numpy.reshape(edges, (E, 2 + len(eprops)))
+
+    def iter_out_neighbors(self, v, vprops=[]):
+        """Return an iterator over the out-neighbors of vertex ``v``, and optional vertex
+        properties list ``vprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.out_neighbors`, as descriptor objects are
+           not created.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> for s, t, i in g.iter_out_neighbors(66, [g.vp.uid])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_out_neighbors_iter(self.__graph, int(v),
+                                              [vp._get_any() for vp in vprops])
+
+    iter_out_neighbours = iter_out_neighbors
+
+    def get_out_neighbors(self, v, vprops=[]):
+        """Return a :class:`numpy.ndarray` containing the out-neighbors of vertex ``v``,
+        and optional vertex properties list ``vprops``. If ``vprops`` is not
+        empty, the shape of the array will be ``(V, 1 + len(eprops))``, where
+        ``V`` is the number of vertices, and each line will contain a vertex and
+        its property values.
 
         Examples
         --------
@@ -1895,12 +2129,47 @@ class Graph(object):
         array([   63, 20369, 13980,  8687, 38674], dtype=uint64)
 
         """
-        return libcore.get_out_neighbors_list(self.__graph, int(v))
+        vertices = libcore.get_out_neighbors_list(self.__graph, int(v),
+                                                  [vp._get_any() for vp in vprops])
+        if len(vprops) == 0:
+            return vertices
+        else:
+            V = vertices.shape[0] // (1 + len(vprops))
+            return numpy.reshape(vertices, (V, 1 + len(vprops)))
 
     get_out_neighbours = get_out_neighbors
 
-    def get_in_neighbors(self, v):
-        """Return a :class:`numpy.ndarray` containing the in-neighbors of vertex ``v``.
+    def iter_in_neighbors(self, v, vprops=[]):
+        """Return an iterator over the in-neighbors of vertex ``v``, and optional vertex
+        properties list ``vprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.in_neighbors`, as descriptor objects are
+           not created.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> for s, t, i in g.iter_in_neighbors(66, [g.vp.uid])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_in_neighbors_iter(self.__graph, int(v),
+                                             [vp._get_any() for vp in vprops])
+
+    iter_in_neighbours = iter_in_neighbors
+
+    def get_in_neighbors(self, v, vprops=[]):
+        """Return a :class:`numpy.ndarray` containing the in-neighbors of vertex ``v``,
+        and optional vertex properties list ``vprops``. If ``vprops`` is not
+        empty, the shape of the array will be ``(V, 1 + len(eprops))``, where
+        ``V`` is the number of vertices, and each line will contain a vertex and
+        its property values.
 
         Examples
         --------
@@ -1909,9 +2178,64 @@ class Graph(object):
         array([ 8687, 20369, 38674], dtype=uint64)
 
         """
-        return libcore.get_in_neighbors_list(self.__graph, int(v))
+        vertices = libcore.get_in_neighbors_list(self.__graph, int(v),
+                                                 [vp._get_any() for vp in vprops])
+        if len(vprops) == 0:
+            return vertices
+        else:
+            V = vertices.shape[0] // (1 + len(vprops))
+            return numpy.reshape(vertices, (V, 1 + len(vprops)))
 
     get_in_neighbours = get_in_neighbors
+
+    def iter_all_neighbors(self, v, vprops=[]):
+        """Return an iterator over the in- and out-neighbors of vertex ``v``, and
+        optional vertex properties list ``vprops``.
+
+        .. note::
+
+           This mode of iteration is more efficient than using
+           :meth:`~graph_tool.Vertex.all_neighbors`, as descriptor objects are
+           not created.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> for s, t, i in g.iter_all_neighbors(66, [g.vp.uid])
+        ...     print(s, t, i)
+        2 1 2
+        3 4 0
+        5 0 1
+
+        """
+        return libcore.get_in_neighbors_iter(self.__graph, int(v),
+                                             [vp._get_any() for vp in vprops])
+
+    iter_all_neighbours = iter_all_neighbors
+
+    def get_all_neighbors(self, v, vprops=[]):
+        """Return a :class:`numpy.ndarray` containing the in-neighbors and
+        out-neighbours of vertex ``v``, and optional vertex properties list
+        ``vprops``. If ``vprops`` is not empty, the shape of the array will be
+        ``(V, 1 + len(eprops))``, where ``V`` is the number of vertices, and
+        each line will contain a vertex and its property values.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_all_neighbors(66)
+        array([ 8687, 20369, 38674], dtype=uint64)
+
+        """
+        vertices = libcore.get_all_neighbors_list(self.__graph, int(v),
+                                                 [vp._get_any() for vp in vprops])
+        if len(vprops) == 0:
+            return vertices
+        else:
+            V = vertices.shape[0] // (1 + len(vprops))
+            return numpy.reshape(vertices, (V, 1 + len(vprops)))
+
+    get_all_neighbours = get_all_neighbors
 
     def get_out_degrees(self, vs, eweight=None):
         """Return a :class:`numpy.ndarray` containing the out-degrees of vertex list
@@ -2186,7 +2510,16 @@ class Graph(object):
     def own_property(self, prop):
         """Return a version of the property map 'prop' (possibly belonging to
         another graph) which is owned by the current graph."""
-        return PropertyMap(prop._PropertyMap__map, self, prop.key_type())
+        PMap = type(prop)
+        if not isinstance(prop, (VertexPropertyMap, EdgePropertyMap,
+                                 GraphPropertyMap)):  # pickle backward compatibility
+            if prop.key_type() == "v":
+                PMap = VertexPropertyMap
+            elif prop.key_type() == "e":
+                PMap = EdgePropertyMap
+            elif prop.key_type() == "g":
+                PMap = GraphPropertyMap
+        return PMap(prop._PropertyMap__map, self)
 
     def list_properties(self):
         """Print a list of all internal properties.
@@ -2310,10 +2643,10 @@ class Graph(object):
         provided, the values will be initialized by ``vals``, which should be
         sequence or by ``val`` which should be  a single value.
         """
-        prop = PropertyMap(new_vertex_property(_type_alias(value_type),
-                                               self.__graph.get_vertex_index(),
-                                               libcore.any()),
-                           self, "v")
+        prop = VertexPropertyMap(new_vertex_property(_type_alias(value_type),
+                                                     self.__graph.get_vertex_index(),
+                                                     libcore.any()),
+                           self)
         if vals is not None:
             try:
                 prop.fa = vals
@@ -2332,10 +2665,10 @@ class Graph(object):
         provided, the values will be initialized by ``vals``, which should be
         sequence or by ``val`` which should be a single value.
         """
-        prop = PropertyMap(new_edge_property(_c_str(_type_alias(value_type)),
-                                             self.__graph.get_edge_index(),
-                                             libcore.any()),
-                           self, "e")
+        prop = EdgePropertyMap(new_edge_property(_c_str(_type_alias(value_type)),
+                                                 self.__graph.get_edge_index(),
+                                                 libcore.any()),
+                               self)
         if vals is not None:
             try:
                 prop.fa = vals
@@ -2352,10 +2685,10 @@ class Graph(object):
     def new_graph_property(self, value_type, val=None):
         """Create a new graph property map of type ``value_type``, and return
         it. If ``val`` is not None, the property is initialized to its value."""
-        prop = PropertyMap(new_graph_property(_c_str(_type_alias(value_type)),
-                                              self.__graph.get_graph_index(),
-                                              libcore.any()),
-                           self, "g")
+        prop = GraphPropertyMap(new_graph_property(_c_str(_type_alias(value_type)),
+                                                   self.__graph.get_graph_index(),
+                                                   libcore.any()),
+                                self)
         if val is not None:
             prop[self] = val
         return prop
@@ -2431,7 +2764,7 @@ class Graph(object):
         If provided, ``weight`` should be an edge :class:`~graph_tool.PropertyMap`
         containing the edge weights which should be summed."""
         pmap = self.__graph.degree_map(_to_str(deg), _prop("e", self, weight))
-        return PropertyMap(pmap, self, "v")
+        return VertexPropertyMap(pmap, self)
 
     # I/O operations
     # ==============
@@ -2494,11 +2827,11 @@ class Graph(object):
             props = self.__graph.read_from_file("", file_name, _c_str(fmt),
                                                 ignore_vp, ignore_ep, ignore_gp)
         for name, prop in props[0].items():
-            self.vertex_properties[name] = PropertyMap(prop, self, "v")
+            self.vertex_properties[name] = VertexPropertyMap(prop, self)
         for name, prop in props[1].items():
-            self.edge_properties[name] = PropertyMap(prop, self, "e")
+            self.edge_properties[name] = EdgePropertyMap(prop, self)
         for name, prop in props[2].items():
-            self.graph_properties[name] = PropertyMap(prop, self, "g")
+            self.graph_properties[name] = GraphPropertyMap(prop, self)
         if "_Graph__save__vfilter" in self.graph_properties:
             self.set_vertex_filter(self.vertex_properties["_Graph__save__vfilter"],
                                    self.graph_properties["_Graph__save__vfilter"])
@@ -3121,7 +3454,7 @@ class GraphView(Graph):
         self.set_filters(ef[0], vf[0], ef[1], vf[1])
 
         if efilt is not None:
-            if type(efilt) is not PropertyMap:
+            if not isinstance(efilt, PropertyMap):
                 emap = self.new_edge_property("bool")
                 if isinstance(efilt, collections.Iterable):
                     emap.fa = efilt
@@ -3141,7 +3474,7 @@ class GraphView(Graph):
                 self.set_edge_filter(efilt)
 
         if vfilt is not None:
-            if type(vfilt) is not PropertyMap:
+            if not isinstance(vfilt, PropertyMap):
                 vmap = self.new_vertex_property("bool")
                 if isinstance(vfilt, collections.Iterable):
                     vmap.fa = vfilt

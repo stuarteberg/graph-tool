@@ -198,6 +198,12 @@
    .. autoclass:: Vertex
    .. autoclass:: Edge
    .. autoclass:: PropertyMap
+   .. autoclass:: VertexPropertyMap
+       :show-inheritance:
+   .. autoclass:: EdgePropertyMap
+       :show-inheritance:
+   .. autoclass:: GraphPropertyMap
+       :show-inheritance:
    .. autoclass:: PropertyArray
        :show-inheritance:
        :no-members:

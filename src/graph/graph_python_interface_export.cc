@@ -91,9 +91,9 @@ struct export_vertex_property_map
         void operator()(Graph*, PClass& pclass, ReturnPolicy return_policy) const
         {
             pclass
-                .def("__getitem__", &pmap_t::template get_value<PythonVertex<Graph>>,
+                .def("__getitem__", &pmap_t::get_value_int,
                      return_policy)
-                .def("__setitem__", &pmap_t::template set_value<PythonVertex<Graph>>);
+                .def("__setitem__", &pmap_t::set_value_int);
         }
     };
 };

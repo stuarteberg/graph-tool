@@ -459,8 +459,13 @@ public:
     template <class PythonDescriptor>
     reference get_value(const PythonDescriptor& key)
     {
-        key.check_valid();
+        //key.check_valid();
         return get(_pmap, key.get_descriptor());
+    }
+
+    reference get_value_int(size_t v)
+    {
+        return get(_pmap, v);
     }
 
     // in this case, val should be a copy, not a reference. This is to avoid a
@@ -468,24 +473,20 @@ public:
     template <class PythonDescriptor>
     void set_value(const PythonDescriptor& key, value_type val)
     {
-        set_value_dispatch(key, val,
-                           std::is_convertible<typename boost::property_traits<PropertyMap>::category,
-                                               boost::writable_property_map_tag>());
+        if constexpr (std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                          boost::writable_property_map_tag>::value)
+            put(_pmap, key.get_descriptor(), val);
+        else
+            throw ValueException("property is read-only");
     }
 
-    template <class PythonDescriptor>
-    void set_value_dispatch(const PythonDescriptor& key, const value_type& val,
-                            std::true_type)
+    void set_value_int(size_t v, value_type val)
     {
-        key.check_valid();
-        put(_pmap, key.get_descriptor(), val);
-    }
-
-    template <class PythonDescriptor>
-    void set_value_dispatch(const PythonDescriptor&, const value_type&,
-                            std::false_type)
-    {
-        throw ValueException("property is read-only");
+        if constexpr (std::is_convertible<typename boost::property_traits<PropertyMap>::category,
+                                          boost::writable_property_map_tag>::value)
+            put(_pmap, v, val);
+        else
+            throw ValueException("property is read-only");
     }
 
     size_t get_hash() const

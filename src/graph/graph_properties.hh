@@ -257,35 +257,15 @@ struct convert
 {
     Type1 operator()(const Type2& v) const
     {
-        return do_convert(v, std::is_convertible<Type2,Type1>());
-    }
-
-    Type1 do_convert(const Type2& v, std::true_type) const
-    {
-        return Type1(v);
-    }
-
-    Type1 do_convert(const Type2& v, std::false_type) const
-    {
-        return specific_convert<Type1,Type2>()(v);
-    }
-
-    template <class T1, class T2>
-    struct specific_convert
-    {
-        T1 operator()(const T2&) const
+        if constexpr (std::is_same<Type1, boost::python::object>::value)
         {
-            throw boost::bad_lexical_cast(); // default action
+            return boost::python::object(v);
         }
-    };
-
-    // specific specializations
-
-    // python::object
-    template <class T1>
-    struct specific_convert<T1,boost::python::object>
-    {
-        T1 operator()(const boost::python::object& v) const
+        else if constexpr (std::is_convertible<Type2,Type1>::value)
+        {
+            return Type1(v);
+        }
+        else if constexpr (std::is_same<Type2, boost::python::object>::value)
         {
             boost::python::extract<Type1> x(v);
             if (x.check())
@@ -293,34 +273,39 @@ struct convert
             else
                 throw boost::bad_lexical_cast();
         }
-    };
-
-    // std::string
-    template <class T1>
-    struct specific_convert<T1,std::string>
-    {
-        T1 operator()(const std::string& v) const
+        else if constexpr (std::is_same<Type2, std::string>::value)
         {
             //uint8_t is not char, it is bool!
-            if (std::is_same<T1, uint8_t>::value)
-                return convert<T1,int>()(boost::lexical_cast<int>(v));
+            if (std::is_same<Type1, uint8_t>::value)
+                return convert<Type1,int>()(boost::lexical_cast<int>(v));
             else
-                return boost::lexical_cast<T1>(v);
+                return boost::lexical_cast<Type1>(v);
         }
-    };
-
-    template <class T2>
-    struct specific_convert<std::string,T2>
-    {
-        std::string operator()(const T2& v) const
+        else if constexpr (std::is_same<Type1, std::string>::value)
         {
             //uint8_t is not char, it is bool!
-            if (std::is_same<T2, uint8_t>::value)
-                return boost::lexical_cast<std::string>(convert<int,T2>()(v));
+            if (std::is_same<Type2, uint8_t>::value)
+                return boost::lexical_cast<std::string>(convert<int,Type2>()(v));
             else
                 return boost::lexical_cast<std::string>(v);
         }
+        else
+        {
+            return specific_convert<Type1, Type2>()(v);
+        }
+    }
+
+    // default action
+    template <class T1, class T2>
+    struct specific_convert
+    {
+        T1 operator()(const T2&) const
+        {
+            throw boost::bad_lexical_cast();
+        }
     };
+
+    // specific specializations
 
     // vectors
     template <class T1, class T2>
@@ -336,20 +321,6 @@ struct convert
         }
     };
 
-};
-
-// python::object to std::string, to solve ambiguity
-template<> template<>
-struct convert<std::string,boost::python::object>::specific_convert<std::string,boost::python::object>
-{
-    std::string operator()(const boost::python::object& v) const
-    {
-        boost::python::extract<std::string> x(v);
-        if (x.check())
-            return x();
-        else
-            throw boost::bad_lexical_cast();
-    }
 };
 
 // No op
@@ -435,30 +406,30 @@ private:
         }
 
         template <class PMap>
-        Value get_dispatch(PMap pmap, const typename boost::property_traits<PMap>::key_type& k,
+        Value get_dispatch(PMap&& pmap, const typename boost::property_traits<std::remove_reference_t<PMap>>::key_type& k,
                            std::true_type)
         {
             return _c_get(boost::get(pmap, k));
         }
 
         template <class PMap>
-        Value get_dispatch(PMap, const typename boost::property_traits<PMap>::key_type&,
+        Value get_dispatch(PMap&&, const typename boost::property_traits<std::remove_reference_t<PMap>>::key_type&,
                            std::false_type)
         {
             throw graph_tool::ValueException("Property map is not readable.");
         }
 
         template <class PMap>
-        void put_dispatch(PMap pmap, const typename boost::property_traits<PMap>::key_type& k,
-                          typename boost::property_traits<PMap>::value_type val,
+        void put_dispatch(PMap&& pmap, const typename boost::property_traits<std::remove_reference_t<PMap>>::key_type& k,
+                          typename boost::property_traits<std::remove_reference_t<PMap>>::value_type val,
                           std::true_type)
         {
             boost::put(pmap, k, val);
         }
 
         template <class PMap>
-        void put_dispatch(PMap, const typename boost::property_traits<PMap>::key_type&,
-                          typename boost::property_traits<PMap>::value_type,
+        void put_dispatch(PMap&&, const typename boost::property_traits<std::remove_reference_t<PMap>>::key_type&,
+                          typename boost::property_traits<std::remove_reference_t<PMap>>::value_type,
                           std::false_type)
         {
             throw ValueException("Property map is not writable.");

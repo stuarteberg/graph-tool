@@ -430,7 +430,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
             else:
                 n = libgv.agnode(gvg, str(int(v)).encode("utf8"))
 
-            if type(vsize) == PropertyMap:
+            if isinstance(vsize, PropertyMap):
                 vw = vh = vsize[v]
             else:
                 vw = vh = vsize

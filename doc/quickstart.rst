@@ -373,10 +373,11 @@ Property maps
 
 Property maps are a way of associating additional information to the
 vertices, edges or to the graph itself. There are thus three types of
-property maps: vertex, edge and graph. All of them are handled by the
-same class, :class:`~graph_tool.PropertyMap`. Each created property map
-has an associated *value type*, which must be chosen from the predefined
-set:
+property maps: vertex, edge and graph. They are handled by the
+classes :class:`~graph_tool.VertexPropertyMap`,
+:class:`~graph_tool.EdgePropertyMap`, and
+:class:`~graph_tool.GraphPropertyMap`. Each created property map has an
+associated *value type*, which must be chosen from the predefined set:
 
 .. tabularcolumns:: |l|l|
 
@@ -402,10 +403,15 @@ set:
     ``python::object``           ``object``
     ========================     ======================
 
-New property maps can be created for a given graph by calling the
-:meth:`~graph_tool.Graph.new_vertex_property`, :meth:`~graph_tool.Graph.new_edge_property`, or
-:meth:`~graph_tool.Graph.new_graph_property`, for each map type. The values are then
-accessed by vertex or edge descriptors, or the graph itself, as such:
+New property maps can be created for a given graph by calling one of the
+methods :meth:`~graph_tool.Graph.new_vertex_property` (alias
+:meth:`~graph_tool.Graph.new_vp`),
+:meth:`~graph_tool.Graph.new_edge_property` (alias
+:meth:`~graph_tool.Graph.new_ep`), or
+:meth:`~graph_tool.Graph.new_graph_property` (alias
+:meth:`~graph_tool.Graph.new_gp`), for each map type. The values are
+then accessed by vertex or edge descriptors, or the graph itself, as
+such:
 
 .. doctest::
 
@@ -414,26 +420,30 @@ accessed by vertex or edge descriptors, or the graph itself, as such:
 
     g = Graph()
     g.add_vertex(100)
+
     # insert some random links
     for s,t in izip(randint(0, 100, 100), randint(0, 100, 100)):
         g.add_edge(g.vertex(s), g.vertex(t))
 
     vprop_double = g.new_vertex_property("double")            # Double-precision floating point
-    vprop_double[g.vertex(10)] = 3.1416
+    v = g.vertex(10)
+    vprop_double[v] = 3.1416
 
     vprop_vint = g.new_vertex_property("vector<int>")         # Vector of ints
-    vprop_vint[g.vertex(40)] = [1, 3, 42, 54]
+    v = g.vertex(40)
+    vprop_vint[v] = [1, 3, 42, 54]
     
     eprop_dict = g.new_edge_property("object")                # Arbitrary python object.
-    eprop_dict[g.edges().next()] = {"foo": "bar", "gnu": 42}  # In this case, a dict.
+    e = g.edges().next()
+    eprop_dict[e] = {"foo": "bar", "gnu": 42}                 # In this case, a dict.
 
-    gprop_bool = g.new_graph_property("bool")                  # Boolean
+    gprop_bool = g.new_graph_property("bool")                 # Boolean
     gprop_bool[g] = True
 
 Property maps with scalar value types can also be accessed as a
 :class:`numpy.ndarray`, with the
 :meth:`~graph_tool.PropertyMap.get_array` method, or the
-:attr:`~graph_tool.PropertyMap.a` attribute, i.e.,
+:attr:`~graph_tool.PropertyMap.a` attribute, e.g.,
 
 .. doctest::
 
