@@ -71,6 +71,10 @@ dnl set default visibility
 dnl set default optimizations
 [CXXFLAGS="-O3 ${CXXFLAGS}"]
 
+dnl Python 2 compatibility
+[CXXFLAGS="${CXXFLAGS} -Wno-register"]
+
+
 dnl OpenMP
 AC_DEFINE([OPENMP_MIN_THRESH], 300, [default minimum number of vertices for parallel loops])
 AC_MSG_CHECKING(whether to enable parallel algorithms with openmp)
