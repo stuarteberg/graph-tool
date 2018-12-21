@@ -52,6 +52,7 @@ Summary
    label_components
    label_biconnected_components
    label_largest_component
+   extract_largest_component
    label_out_component
    vertex_percolation
    edge_percolation
@@ -83,13 +84,13 @@ __all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
            "min_spanning_tree", "random_spanning_tree", "dominator_tree",
            "topological_sort", "transitive_closure", "tsp_tour",
            "sequential_vertex_coloring", "label_components",
-           "label_largest_component", "label_biconnected_components",
-           "label_out_component", "vertex_percolation", "edge_percolation",
-           "kcore_decomposition", "shortest_distance", "shortest_path",
-           "all_shortest_paths", "all_predecessors", "all_paths",
-           "all_circuits", "pseudo_diameter", "is_bipartite", "is_DAG",
-           "is_planar", "make_maximal_planar", "similarity", "vertex_similarity",
-           "edge_reciprocity"]
+           "label_largest_component", "extract_largest_component",
+           "label_biconnected_components", "label_out_component",
+           "vertex_percolation", "edge_percolation", "kcore_decomposition",
+           "shortest_distance", "shortest_path", "all_shortest_paths",
+           "all_predecessors", "all_paths", "all_circuits", "pseudo_diameter",
+           "is_bipartite", "is_DAG", "is_planar", "make_maximal_planar",
+           "similarity", "vertex_similarity", "edge_reciprocity"]
 
 def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
                norm=True, p=1., distance=False, asymmetric=False):
@@ -1097,7 +1098,7 @@ def label_largest_component(g, directed=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    directed : bool (optional, default:None)
+    directed : bool (optional, default: ``None``)
         Treat graph as directed or not, independently of its actual
         directionality.
 
@@ -1135,6 +1136,56 @@ def label_largest_component(g, directed=None):
     vfilt, inv = g.get_vertex_filter()
     label.fa = c.fa == h.argmax()
     return label
+
+def extract_largest_component(g, directed=None, prune=False):
+    """Extract the largest (strong) component in the graph as a
+    :class:`~graph_tool.GraphView` (or :class:`~graph_tool.Graph` if
+    ``prune==True``).
+
+    If the graph is directed, then the largest strongly connected component is
+    returned.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    directed : bool (optional, default: ``None``)
+        Treat graph as directed or not, independently of its actual
+        directionality.
+    prune : bool (optional, default: ``False``)
+        If ``True``, a pruned copy of the component is returned. Otherwise a
+        :class:`~graph_tool.GraphView` is returned.
+
+    Returns
+    -------
+    comp : :class:`~graph_tool.GraphView` or :class:`~graph_tool.Graph`
+         Largest (strong) component.
+
+    Notes
+    -----
+    The algorithm runs in :math:`O(V + E)` time.
+
+    Examples
+    --------
+    .. testcode::
+       :hide:
+
+       import numpy.random
+       numpy.random.seed(42)
+       gt.seed_rng(42)
+
+    >>> g = gt.random_graph(100, lambda: poisson(1), directed=False)
+    >>> u = gt.extract_largest_component(g)
+    >>> print(u)
+    <GraphView object, undirected, with 14 vertices and 13 edges, edges filtered by (<EdgePropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, False), vertices filtered by (<VertexPropertyMap object with value type 'bool', for Graph 0x..., at 0x...>, False) at 0x...>
+
+    """
+
+    c = label_largest_component(g, directed=directed)
+    u = GraphView(g, vfilt=c)
+    if prune:
+        u = Graph(u, prune=True)
+    return u
 
 
 def label_out_component(g, root, label=None):
