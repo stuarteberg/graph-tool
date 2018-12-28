@@ -1998,7 +1998,7 @@ class Graph(object):
                [   66, 38674,  5270]])
 
         """
-        edges = libcore.get_out_edge_list(self.__graph, int(v), 0,
+        edges = libcore.get_out_edge_list(self.__graph, int(v),
                                           [ep._get_any() for ep in eprops])
         E = edges.shape[0] // (2 + len(eprops))
         return numpy.reshape(edges, (E, 2 + len(eprops)))
@@ -3625,6 +3625,7 @@ for Vertex in libcore.get_vlist():
     Vertex.out_neighbors = _out_neighbors
     Vertex.out_neighbours = _out_neighbors
     Vertex.in_neighbors = _in_neighbors
+    Vertex.in_neighbours = _in_neighbors
     Vertex.all_edges = _all_edges
     Vertex.all_neighbors = _all_neighbors
     Vertex.all_neighbours = _all_neighbors
