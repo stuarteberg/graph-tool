@@ -124,6 +124,69 @@ struct vertex_selector
     }
 };
 
+template <class PropertyMaps>
+struct copy_external_edge_property_dispatch
+{
+    template <class GraphTgt, class GraphSrc, class PropertyTgt>
+    void operator()(const GraphTgt& tgt, const GraphSrc& src,
+                    PropertyTgt dst_map, boost::any prop_src) const
+    {
+        try
+        {
+            auto src_map = boost::any_cast<typename PropertyTgt::checked_t>(prop_src);
+            dispatch(tgt, src, dst_map, src_map);
+        }
+        catch (boost::bad_any_cast&)
+        {
+            typedef typename boost::property_traits<PropertyTgt>::value_type val_tgt;
+            typedef typename boost::graph_traits<GraphSrc>::edge_descriptor edge_t;
+
+            DynamicPropertyMapWrap<val_tgt, edge_t> src_map(prop_src, PropertyMaps());
+
+            dispatch(tgt, src, dst_map, src_map);
+        }
+    }
+
+    template <class GraphTgt, class GraphSrc, class PropertyTgt,
+              class PropertySrc>
+    void dispatch(const GraphTgt& tgt, const GraphSrc& src,
+                  PropertyTgt dst_map, PropertySrc src_map) const
+    {
+        typedef typename boost::graph_traits<GraphSrc>::edge_descriptor edge_t;
+        gt_hash_map<std::tuple<size_t,size_t>, std::deque<edge_t>> src_edges;
+        for (auto e : edges_range(src))
+        {
+            auto u = source(e, src);
+            auto v = target(e, src);
+            if (!graph_tool::is_directed(src) && u > v)
+                std::swap(u, v);
+            src_edges[std::make_tuple(u, v)].push_back(e);
+        }
+
+        try
+        {
+            for (auto e : edges_range(tgt))
+            {
+                auto u = source(e, tgt);
+                auto v = target(e, tgt);
+                if (!graph_tool::is_directed(src) && u > v)
+                    std::swap(u, v);
+                auto& es = src_edges[std::make_tuple(u, v)];
+                if (es.empty())
+                    throw ValueException("source and target graphs are not compatible");
+                put(dst_map, e, get(src_map, es.front()));
+                es.pop_front();
+            }
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+            throw ValueException("property values are not convertible");
+        }
+    }
+
+};
+
+
 } // namespace graph_tool
 
 #endif // GRAPH_PROPERTIES_COPY_HH

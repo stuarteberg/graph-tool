@@ -2724,10 +2724,15 @@ class Graph(object):
         sf = self
 
         if full:
-            g = GraphView(g, skip_properties=True, skip_efilt=True,
-                          skip_vfilt=True, directed=True)
-            sf = GraphView(sf, skip_properties=True, skip_efilt=True,
-                           skip_vfilt=True, directed=True)
+            if g is sf:
+                g = GraphView(g, skip_properties=True, skip_efilt=True,
+                              skip_vfilt=True, directed=True)
+                sf = g
+            else:
+                g = GraphView(g, skip_properties=True, skip_efilt=True,
+                              skip_vfilt=True, directed=True)
+                sf = GraphView(sf, skip_properties=True, skip_efilt=True,
+                               skip_vfilt=True, directed=True)
         if src.key_type() == "v":
             if g.num_vertices() > sf.num_vertices():
                 raise ValueError("graphs with incompatible sizes (%d, %d)" %
@@ -2736,22 +2741,26 @@ class Graph(object):
                 sf.__graph.copy_vertex_property(g.__graph,
                                                 _prop("v", g, src),
                                                 _prop("v", sf, tgt))
-            except ValueError:
-                raise ValueError("property maps with the following types are"
-                                 " not convertible: %s, %s" %
-                                 (src.value_type(), tgt.value_type()))
+            except ValueError as e:
+                raise ValueError("error copying maps with types %s, %s: %s" %
+                                 (src.value_type(), tgt.value_type(), str(e)))
         elif src.key_type() == "e":
             if g.num_edges() > sf.num_edges():
                 raise ValueError("graphs with incompatible sizes (%d, %d)" %
                                  (g.num_edges(), sf.num_edges()))
             try:
-                sf.__graph.copy_edge_property(g.__graph,
-                                              _prop("e", g, src),
-                                              _prop("e", sf, tgt))
-            except ValueError:
-                raise ValueError("property maps with the following types are"
-                                 " not convertible: %s, %s" %
-                                 (src.value_type(), tgt.value_type()))
+                if g is sf:
+                    sf.__graph.copy_edge_property(g.__graph,
+                                                  _prop("e", g, src),
+                                                  _prop("e", sf, tgt))
+                else:
+                    libcore.copy_external_edge_property(g.__graph,
+                                                        self.__graph,
+                                                        _prop("e", g, src),
+                                                        _prop("e", sf, tgt))
+            except ValueError as e:
+                raise ValueError("error copying maps with types %s, %s: %s" %
+                                 (src.value_type(), tgt.value_type(), str(e)))
         else:
             tgt[sf] = src[g]
         return ret

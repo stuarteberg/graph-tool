@@ -40,3 +40,17 @@ void GraphInterface::copy_edge_property(const GraphInterface& src,
          writable_edge_properties())
         (this->get_graph_view(), src.get_graph_view(), prop_tgt);
 }
+
+void copy_external_edge_property(const GraphInterface& src,
+                                 const GraphInterface& tgt,
+                                 boost::any prop_src,
+                                 boost::any prop_tgt)
+{
+    gt_dispatch<>()
+        (std::bind(copy_external_edge_property_dispatch<edge_properties>(),
+                   std::placeholders::_1, std::placeholders::_2,
+                   std::placeholders::_3, prop_src),
+         all_graph_views(), all_graph_views(),
+         writable_edge_properties())
+        (tgt.get_graph_view(), src.get_graph_view(), prop_tgt);
+}

@@ -435,6 +435,10 @@ void set_vertex_property(GraphInterface& gi, boost::any prop,
 void set_edge_property(GraphInterface& gi, boost::any prop,
                        boost::python::object val);
 
+void copy_external_edge_property(const GraphInterface& src,
+                                 const GraphInterface& tgt,
+                                 boost::any prop_src,
+                                 boost::any prop_tgt);
 
 void export_python_interface();
 
@@ -563,6 +567,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_core)
     def("perfect_vhash", &perfect_vhash);
     def("set_vertex_property", &set_vertex_property);
     def("set_edge_property", &set_edge_property);
+    def("copy_external_edge_property", &copy_external_edge_property);
 
     class_<LibInfo>("mod_info")
         .add_property("name", &LibInfo::GetName)
