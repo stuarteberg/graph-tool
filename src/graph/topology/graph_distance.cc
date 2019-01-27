@@ -28,6 +28,7 @@
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
 #include <boost/graph/bellman_ford_shortest_paths.hpp>
+#include <boost/graph/dag_shortest_paths.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python.hpp>
 
@@ -335,7 +336,7 @@ struct do_djk_search
                     boost::python::object otarget_list,
                     VertexIndexMap vertex_index, DistMap dist_map,
                     PredMap pred_map, WeightMap weight, long double max_dist,
-                    std::vector<size_t>& reached) const
+                    std::vector<size_t>& reached, bool dag) const
     {
         auto target_list = get_array<int64_t, 1>(otarget_list);
 
@@ -359,22 +360,55 @@ struct do_djk_search
                 size_t target = tgt.empty() ?
                     graph_traits<GraphInterface::multigraph_t>::null_vertex() :
                     *tgt.begin();
-                dijkstra_shortest_paths_no_color_map_no_init
-                    (g, vertex(source, g), pred_map, dist_map, weight,
-                     vertex_index, std::less<dist_t>(),
-                     boost::closed_plus<dist_t>(), inf, dist_t(),
-                     djk_max_visitor<DistMap>(dist_map, max_d, inf, target,
-                                              reached));
+                if (!dag)
+                {
+                    dijkstra_shortest_paths_no_color_map_no_init
+                        (g, vertex(source, g), pred_map, dist_map, weight,
+                         vertex_index, std::less<dist_t>(),
+                         boost::closed_plus<dist_t>(), inf, dist_t(),
+                         djk_max_visitor<DistMap>(dist_map, max_d, inf, target,
+                                                  reached));
+                }
+                else
+                {
+                    unchecked_vector_property_map<boost::default_color_type, VertexIndexMap>
+                        color_map(vertex_index, num_vertices(g));
+                    dag_shortest_paths
+                        (g, vertex(source, g), dist_map, weight,
+                         color_map, pred_map,
+                         djk_max_visitor<DistMap>(dist_map, max_d, inf, target,
+                                                  reached),
+                         std::less<dist_t>(),
+                         boost::closed_plus<dist_t>(), inf, dist_t());
+                }
             }
             else
             {
-                dijkstra_shortest_paths_no_color_map_no_init
-                    (g, vertex(source, g), pred_map, dist_map, weight,
-                     vertex_index, std::less<dist_t>(),
-                     boost::closed_plus<dist_t>(), inf, dist_t(),
-                     djk_max_multiple_targets_visitor<DistMap>(dist_map, max_d,
-                                                               inf, tgt,
-                                                               reached));
+                if (!dag)
+                {
+                    dijkstra_shortest_paths_no_color_map_no_init
+                        (g, vertex(source, g), pred_map, dist_map, weight,
+                         vertex_index, std::less<dist_t>(),
+                         boost::closed_plus<dist_t>(), inf, dist_t(),
+                         djk_max_multiple_targets_visitor<DistMap>(dist_map,
+                                                                   max_d, inf,
+                                                                   tgt,
+                                                                   reached));
+                }
+                else
+                {
+                    unchecked_vector_property_map<boost::default_color_type, VertexIndexMap>
+                        color_map(vertex_index, num_vertices(g));
+                    dag_shortest_paths
+                        (g, vertex(source, g), dist_map, weight, color_map,
+                         pred_map,
+                         djk_max_multiple_targets_visitor<DistMap>(dist_map,
+                                                                   max_d, inf,
+                                                                   tgt,
+                                                                   reached),
+                         std::less<dist_t>(), boost::closed_plus<dist_t>(), inf,
+                         dist_t());
+                }
             }
 
         }
@@ -411,7 +445,8 @@ struct do_bf_search
 
 void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
                boost::any dist_map, boost::any weight, boost::any pred_map,
-               long double max_dist, bool bf, std::vector<size_t>& reached)
+               long double max_dist, bool bf, std::vector<size_t>& reached,
+               bool dag)
 {
     typedef property_map_type
         ::apply<int64_t, GraphInterface::vertex_index_map_t>::type pred_map_t;
@@ -444,7 +479,7 @@ void get_dists(GraphInterface& gi, size_t source, boost::python::object tgt,
             run_action<>()
                 (gi, std::bind(do_djk_search(), std::placeholders::_1, source, tgt, gi.get_vertex_index(),
                                std::placeholders::_2, pmap.get_unchecked(num_vertices(gi.get_graph())),
-                               std::placeholders::_3, max_dist, std::ref(reached)),
+                               std::placeholders::_3, max_dist, std::ref(reached), dag),
                  writable_vertex_scalar_properties(),
                  edge_scalar_properties())
                 (dist_map, weight);

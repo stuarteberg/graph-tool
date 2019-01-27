@@ -1540,7 +1540,7 @@ def kcore_decomposition(g, vprop=None):
 def shortest_distance(g, source=None, target=None, weights=None,
                       negative_weights=False, max_dist=None, directed=None,
                       dense=False, dist_map=None, pred_map=False,
-                      return_reached=False):
+                      return_reached=False, dag=False):
     """Calculate the distance from a source to a target vertex, or to of all
     vertices from a given source, or the all pairs shortest paths, if the source
     is not specified.
@@ -1604,6 +1604,11 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     return_reached : ``bool`` (optional, default: ``False``)
         If ``True``, return an array of visited vertices.
+    dag : ``bool`` (optional, default:``False``)
+        If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
+        which will be faster if ``weights`` are given, in which case they are
+        also allowed to contain negative values (irrespective of the parameter
+        ``negative_weights``).
 
     Returns
     -------
@@ -1635,9 +1640,10 @@ def shortest_distance(g, source=None, target=None, weights=None,
     or ``inf`` in case of floating point types.
 
     If source is specified, the algorithm runs in :math:`O(V + E)` time, or
-    :math:`O(V \log V)` if weights are given. If ``negative_weights == True``,
-    the complexity is :math:`O(VE)`. If source is not specified, it runs in
-    :math:`O(VE\log V)` time, or :math:`O(V^3)` if dense == True.
+    :math:`O(V \log V)` if weights are given (if ``dag == True`` this improves
+    to :math:`O(V+E)`). If ``negative_weights == True``, the complexity is
+    :math:`O(VE)`. If source is not specified, it runs in :math:`O(VE\log V)`
+    time, or :math:`O(V^3)` if dense == True.
 
     Examples
     --------
@@ -1763,7 +1769,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
                                          _prop("e", u, weights),
                                          _prop("v", u, pmap),
                                          float(max_dist),
-                                         negative_weights, reached)
+                                         negative_weights, reached, dag)
     else:
         libgraph_tool_topology.get_all_dists(u._Graph__graph,
                                              _prop("v", u, dist_map),
@@ -1790,7 +1796,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
         return dist_map
 
 def shortest_path(g, source, target, weights=None, negative_weights=False,
-                  pred_map=None):
+                  pred_map=None, dag=False):
     """Return the shortest path from ``source`` to ``target``.
 
     Parameters
@@ -1809,6 +1815,11 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
         from this map.
+    dag : ``bool`` (optional, default:``False``)
+        If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
+        which will be faster if ``weights`` are given, in which case they are
+        also allowed to contain negative values (irrespective of the parameter
+        ``negative_weights``).
 
     Returns
     -------
@@ -1826,7 +1837,7 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
     negative weights, as long as there are no negative loops.
 
     The algorithm runs in :math:`O(V + E)` time, or :math:`O(V \log V)` if
-    weights are given.
+    weights are given (if ``dag == True`` this improves to :math:`O(V+E)`).
 
     Examples
     --------
@@ -1855,12 +1866,13 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
        graphs." Numerische Mathematik, 1:269-271, 1959.
     .. [dijkstra-boost] http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html
     .. [bellman-ford] http://www.boost.org/libs/graph/doc/bellman_ford_shortest.html
+
     """
 
     if pred_map is None:
         pred_map = shortest_distance(g, source, target, weights=weights,
                                      negative_weights=negative_weights,
-                                     pred_map=True)[1]
+                                     pred_map=True, dag=dag)[1]
 
     if pred_map[target] == int(target):  # no path to target
         return [], []
@@ -1932,7 +1944,7 @@ def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
 
 def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
                        dist_map=None, pred_map=None, all_preds_map=None,
-                       epsilon=1e-8):
+                       epsilon=1e-8, dag=False):
     """Return an iterator over all shortest paths from `source` to `target`.
 
     Parameters
@@ -1961,6 +1973,11 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
     epsilon : `float` (optional, default: `1e-8`)
         Maximum relative difference between distances to be considered "equal",
         in case floating-point weights are used.
+    dag : ``bool`` (optional, default:``False``)
+        If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
+        which will be faster if ``weights`` are given, in which case they are
+        also allowed to contain negative values (irrespective of the parameter
+        ``negative_weights``).
 
     Returns
     -------
@@ -2006,7 +2023,7 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
     if dist_map is None or pred_map is None:
         dist_map, pred_map = shortest_distance(g, source, weights=weights,
                                                negative_weights=negative_weights,
-                                               pred_map=True)
+                                               pred_map=True, dag=dag)
     if all_preds_map is None:
         all_preds_map = all_predecessors(g, dist_map, pred_map, weights, epsilon)
 
