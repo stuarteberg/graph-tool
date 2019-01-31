@@ -61,8 +61,7 @@ __all__ = ["pagerank", "betweenness", "central_point_dominance", "closeness",
 
 def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
              max_iter=None, ret_iter=False):
-    r"""
-    Calculate the PageRank of each vertex.
+    r"""Calculate the PageRank of each vertex.
 
     Parameters
     ----------
@@ -109,8 +108,8 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
         PR(v) = \frac{1-d}{N} + d \sum_{u \in \Gamma^{-}(v)}
                 \frac{PR (u)}{d^{+}(u)}
 
-    where :math:`\Gamma^{-}(v)` are the in-neighbors of v, :math:`d^{+}(w)` is
-    the out-degree of w, and d is a damping factor.
+    where :math:`\Gamma^{-}(v)` are the in-neighbors of v, :math:`d^{+}(u)` is
+    the out-degree of u, and d is a damping factor.
 
     If a personalization property :math:`p(v)` is given, the definition becomes:
 
@@ -128,6 +127,10 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
 
     where :math:`d^{+}(u)=\sum_{y}A_{u,y}w_{u\to y}` is redefined to be the sum
     of the weights of the out-going edges from u.
+
+    If a node has out-degree zero, it is assumed to connect to every other node
+    with a weight proportional to :math:`p(v)` or a constant if no
+    personalization is given.
 
     The implemented algorithm progressively iterates the above equations, until
     it no longer changes, according to the parameter epsilon. It has a

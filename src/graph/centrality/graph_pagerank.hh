@@ -41,12 +41,14 @@ struct get_pagerank
         RankMap deg(vertex_index, num_vertices(g));
 
         // init degs
-        parallel_vertex_loop
-            (g,
-             [&](auto v)
-             {
-                 put(deg, v, out_degreeS()(v, g, weight));
-             });
+        std::vector<size_t> sinks;
+        for (auto v : vertices_range(g))
+        {
+            auto k = out_degreeS()(v, g, weight);
+            put(deg, v, k);
+            if (k == 0)
+                sinks.push_back(v);
+        }
 
         rank_type delta = epsilon + 1;
         rank_type d = damping;
@@ -54,13 +56,21 @@ struct get_pagerank
         while (delta >= epsilon)
         {
             delta = 0;
-            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+
+            double p_sink = 0;
+            #pragma omp parallel if (sinks.size() > OPENMP_MIN_THRESH)      \
+                reduction(+:p_sink)
+            parallel_loop_no_spawn
+                (sinks,
+                 [&](auto, auto v){ p_sink += get(rank, v); });
+
+            #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH)   \
                 reduction(+:delta)
             parallel_vertex_loop_no_spawn
                 (g,
                  [&](auto v)
                  {
-                     rank_type r = 0;
+                     rank_type r = p_sink * get(pers, v);
                      for (const auto& e : in_or_out_edges_range(v, g))
                      {
                          auto s = source(e, g);
