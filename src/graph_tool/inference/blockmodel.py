@@ -1523,20 +1523,15 @@ class BlockState(object):
                                                           _get_rng())
 
 
-    def multiflip_mcmc_sweep(self, a1=.99, an=.9, beta=1., c=1., d=.01, niter=1,
-                             entropy_args={}, allow_vacate=True,
-                             sequential=True, verbose=False, **kwargs):
+    def multiflip_mcmc_sweep(self, beta=1., c=1., a1=.95, psplit=.5,
+                             d=0.01, gibbs_sweeps=0, niter=1, entropy_args={},
+                             verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC with multiple simultaneous moves to sample network
         partitions.
 
         Parameters
         ----------
-        a1 : ``float`` (optional, default: ``.9``)
-            Probability of single moves.
-        an : ``float`` (optional, default: ``.9``)
-            Relative probability of group merges. The complementary probability
-            will correspond to multiple moves within a group.
         beta : ``float`` (optional, default: ``1.``)
             Inverse temperature.
         c : ``float`` (optional, default: ``1.``)
@@ -1545,16 +1540,23 @@ class BlockState(object):
             node and their block connections; for :math:`c\to\infty` the blocks
             are sampled randomly. Note that only for :math:`c > 0` the MCMC is
             guaranteed to be ergodic.
+        a1 : ``float`` (optional, default: ``.95``)
+            Probability of proposing a single node move.
+        psplit : ``float`` (optional, default: ``.5``)
+            Probability of proposing a group split. A group merge will be
+            proposed with probability ``1-psplit``.
         d : ``float`` (optional, default: ``.01``)
-            Probability of selecting a new (i.e. empty) group for a given move.
+            Probability of selecting a new (i.e. empty) group for a given
+            single-node move.
+        gibbs_sweeps : ``int`` (optional, default: ``0``)
+            Number of sweeps of Gibbs sampling to be performed (i.e. each node
+            is attempted once per sweep) to refine a split proposal.
         niter : ``int`` (optional, default: ``1``)
             Number of sweeps to perform. During each sweep, a move attempt is
-            made for each node.
+            made for each node, on average.
         entropy_args : ``dict`` (optional, default: ``{}``)
             Entropy arguments, with the same meaning and defaults as in
             :meth:`graph_tool.inference.blockmodel.BlockState.entropy`.
-        allow_vacate : ``bool`` (optional, default: ``True``)
-            Allow groups to be vacated.
         verbose : ``bool`` (optional, default: ``False``)
             If ``verbose == True``, detailed information will be displayed.
 
@@ -1582,16 +1584,6 @@ class BlockState(object):
             not isinstance(self.degs, libinference.simple_degs_t)):
             entropy_args["multigraph"] = False
         mcmc_state.entropy_args = get_entropy_args(entropy_args)
-        mcmc_state.mproposals = Vector_size_t()
-        M = self.g.num_vertices() + 1
-        mcmc_state.mproposals.resize(M)
-        if "mproposals" in kwargs:
-            mcmc_state.mproposals.a = kwargs["mproposals"][:M]
-        mcmc_state.maccept = Vector_size_t()
-        mcmc_state.maccept.resize(M)
-        if "maccept" in kwargs:
-            mcmc_state.maccept.a = kwargs["maccept"][:M]
-        mcmc_state.E = self.get_E()
         mcmc_state.state = self._state
 
         dispatch = kwargs.pop("dispatch", True)

@@ -74,6 +74,14 @@ inline auto lbeta(T x, T y)
     return (std::lgamma(x) + std::lgamma(y)) - std::lgamma(x + y);
 }
 
+template <class T>
+T log_sum(T a, T b)
+{
+    if (a < b)
+        std::swap(a, b);
+    return a + std::log1p(exp(b-a));
+}
+
 template <class Vec, class PosMap, class Val>
 void remove_element(Vec& vec, PosMap& pos, Val val)
 {

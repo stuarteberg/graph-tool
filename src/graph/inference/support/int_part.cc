@@ -32,11 +32,6 @@ using namespace std;
 
 boost::multi_array<double, 2> __q_cache;
 
-double log_sum(double a, double b)
-{
-    return std::max(a, b) + std::log1p(exp(-abs(a-b)));
-}
-
 void init_q_cache(size_t n_max)
 {
     size_t old_n = __q_cache.shape()[0];

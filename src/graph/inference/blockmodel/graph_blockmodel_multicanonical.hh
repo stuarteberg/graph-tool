@@ -71,7 +71,10 @@ struct Multicanonical
 
         int _i;
         double _dS;
-        size_t _null_move = null_group;
+
+        typedef decltype(_state._null_move) move_t;
+
+        move_t _null_move = _state._null_move;
 
         int get_bin(double S)
         {
@@ -95,12 +98,12 @@ struct Multicanonical
         }
 
         template <class RNG>
-        size_t move_proposal(size_t v, RNG& rng)
+        move_t move_proposal(size_t v, RNG& rng)
         {
             return _state.move_proposal(v, rng);
         }
 
-        auto virtual_move_dS(size_t v, size_t nr)
+        auto virtual_move_dS(size_t v, move_t nr)
         {
             auto dS = _state.virtual_move_dS(v, nr);
             double nS = _S + get<0>(dS);
@@ -117,7 +120,7 @@ struct Multicanonical
             return dS;
         }
 
-        void perform_move(size_t v, size_t nr)
+        void perform_move(size_t v, move_t nr)
         {
             _state.perform_move(v, nr);
             _S += _dS;
@@ -149,14 +152,13 @@ struct Multicanonical
             return _state.get_niter();
         }
 
-        void step(size_t, size_t)
+        void step(size_t, move_t)
         {
             _hist[_i]++;
             _dens[_i] += _f;
         }
     };
 };
-
 
 } // graph_tool namespace
 

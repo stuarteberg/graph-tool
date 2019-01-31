@@ -92,17 +92,19 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
 
             nattempts += state.node_weight(v);
 
+            bool accept = false;
             if (metropolis_accept(dS, mP, beta, rng))
             {
                 state.perform_move(v, s);
                 nmoves += state.node_weight(v);
                 S += dS;
+                accept = true;
             }
 
             state.step(v, s);
 
             if (state._verbose)
-                cout << v << ": " << r << " -> " << s << " " << S << endl;
+                cout << v << ": " << r << " -> " << s << " " << accept << " " << dS << " " << mP << " " << -dS * beta + mP << " " << S << endl;
         }
 
         if (state.is_sequential() && state.is_deterministic())
