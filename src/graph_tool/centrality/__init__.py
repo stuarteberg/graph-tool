@@ -95,7 +95,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
     betweenness: betweenness centrality
     eigentrust: eigentrust centrality
     eigenvector: eigenvector centrality
-    hits: hubs and authority centralities
+    hits: authority and hub centralities
     trust_transitivity: pervasive trust transitivity
 
     Notes
@@ -263,7 +263,7 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
     pagerank: PageRank centrality
     eigentrust: eigentrust centrality
     eigenvector: eigenvector centrality
-    hits: hubs and authority centralities
+    hits: authority and hub centralities
     trust_transitivity: pervasive trust transitivity
 
     Notes
@@ -388,7 +388,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     pagerank: PageRank centrality
     eigentrust: eigentrust centrality
     eigenvector: eigenvector centrality
-    hits: hubs and authority centralities
+    hits: authority and hub centralities
     trust_transitivity: pervasive trust transitivity
 
     Notes
@@ -579,7 +579,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     --------
     betweenness: betweenness centrality
     pagerank: PageRank centrality
-    hits: hubs and authority centralities
+    hits: authority and hub centralities
     trust_transitivity: pervasive trust transitivity
 
     Notes
@@ -706,7 +706,7 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
     betweenness: betweenness centrality
     pagerank: PageRank centrality
     eigenvector: eigenvector centrality
-    hits: hubs and authority centralities
+    hits: authority and hub centralities
     trust_transitivity: pervasive trust transitivity
 
     Notes
