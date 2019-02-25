@@ -2083,7 +2083,7 @@ class BlockState(object):
                                     update)
         return p
 
-    def collect_vertex_marginals(self, p=None, unlabel=False, update=1):
+    def collect_vertex_marginals(self, p=None, b=None, unlabel=False, update=1):
         r"""Collect the vertex marginal histogram, which counts the number of times a
         node was assigned to a given block.
 
@@ -2092,9 +2092,12 @@ class BlockState(object):
 
         Parameters
         ----------
-        p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        p : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             Vertex property map with vector-type values, storing the previous block
             membership counts. If not provided, an empty histogram will be created.
+        b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            Vertex property map with group partition. If not provided, the
+            state's partition will be used.
         unlabel : bool (optional, default: ``False``)
             If ``True``, a canonical labelling of the groups will be used, so
             that each partition is uniquely represented.
@@ -2144,9 +2147,9 @@ class BlockState(object):
         """
 
         if p is None:
-            p = self.g.new_vp("vector<double>")
-
-        b = self.b
+            p = self.g.new_vp("vector<int>")
+        if b is None:
+            b = self.b
         if unlabel:
             b = perfect_prop_hash([b])[0]
         libinference.vertex_marginals(self.g._Graph__graph,
