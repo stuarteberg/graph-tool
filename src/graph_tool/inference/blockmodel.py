@@ -840,6 +840,16 @@ class BlockState(object):
         r"Returns the total number of nonempty blocks."
         return int((self.wr.a > 0).sum())
 
+    def get_Be(self):
+        r"""Returns the effective number of blocks, defined as :math:`e^{H}`, with
+        :math:`H=-\sum_r\frac{n_r}{N}\ln \frac{n_r}{N}`, where :math:`n_r` is
+        the number of nodes in group r.
+        """
+        w = numpy.array(self.wr.a, dtype="double")
+        w = w[w>0]
+        w /= w.sum()
+        return numpy.exp(-(w*log(w)).sum())
+
     def get_bclabel(self, clabel=None):
         r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to constraint
         labels for the block graph."""
