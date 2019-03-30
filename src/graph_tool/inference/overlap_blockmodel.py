@@ -268,7 +268,8 @@ class OverlapBlockState(BlockState):
                                   partition_dl=True, degree_dl=True,
                                   degree_dl_kind="distributed", edges_dl=True,
                                   dense=False, multigraph=True, exact=True,
-                                  recs=True, recs_dl=True, beta_dl=1.)
+                                  recs=True, recs_dl=True, beta_dl=1.,
+                                  Bfield=True)
 
         self._coupled_state = None
 

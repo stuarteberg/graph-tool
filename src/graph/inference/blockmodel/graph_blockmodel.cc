@@ -161,7 +161,8 @@ void export_blockmodel_state()
         .def_readwrite("degree_dl_kind", &entropy_args_t::degree_dl_kind)
         .def_readwrite("edges_dl", &entropy_args_t::edges_dl)
         .def_readwrite("recs_dl", &entropy_args_t::recs_dl)
-        .def_readwrite("beta_dl", &entropy_args_t::beta_dl);
+        .def_readwrite("beta_dl", &entropy_args_t::beta_dl)
+        .def_readwrite("Bfield", &entropy_args_t::Bfield);
 
     enum_<deg_dl_kind>("deg_dl_kind")
         .value("ent", deg_dl_kind::ENT)

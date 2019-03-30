@@ -157,12 +157,14 @@ def get_entropy_args(kargs, ignore=None):
         ea.recs_dl = False
     ea.degree_dl_kind = kind
     ea.beta_dl = args.beta_dl
+    ea.Bfield = args.Bfield
     del kargs["dl"]
     del kargs["partition_dl"]
     del kargs["degree_dl"]
     del kargs["edges_dl"]
     del kargs["recs_dl"]
     del kargs["beta_dl"]
+    del kargs["Bfield"]
     kargs.pop("callback", None)
     if len(kargs) > 0:
         raise ValueError("unrecognized entropy arguments: " +
@@ -260,7 +262,8 @@ class BlockState(object):
 
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
                  rec_types=[], rec_params=[], clabel=None, pclabel=None,
-                 bfield=None, deg_corr=True, allow_empty=False, max_BE=1000, **kwargs):
+                 bfield=None, Bfield=None, deg_corr=True, allow_empty=False,
+                 max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
@@ -463,6 +466,11 @@ class BlockState(object):
         self.bfield = g.new_vp("vector<double>") if bfield is None else bfield
         if self.bfield.value_type() != "vector<double>":
             raise ValueError("'bfield' property map must be of type 'vector<double>'")
+        if Bfield is None:
+            self.Bfield = Vector_double()
+        else:
+            self.Bfield = Vector_double(len(Bfield))
+            self.Bfield.a = Bfield
         self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
         self._avweight = self.vweight._get_any()
@@ -480,7 +488,8 @@ class BlockState(object):
                                   partition_dl=True, degree_dl=True,
                                   degree_dl_kind="distributed", edges_dl=True,
                                   dense=False, multigraph=True, exact=True,
-                                  recs=True, recs_dl=True, beta_dl=1.)
+                                  recs=True, recs_dl=True, beta_dl=1.,
+                                  Bfield=True)
 
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
@@ -940,8 +949,8 @@ class BlockState(object):
 
     def entropy(self, adjacency=True, dl=True, partition_dl=True,
                 degree_dl=True, degree_dl_kind="distributed", edges_dl=True,
-                dense=False, multigraph=True, deg_entropy=True,
-                recs=True, recs_dl=True, beta_dl=1., exact=True, **kwargs):
+                dense=False, multigraph=True, deg_entropy=True, recs=True,
+                recs_dl=True, beta_dl=1., Bfield=True, exact=True, **kwargs):
         r"""Calculate the entropy (a.k.a. negative log-likelihood) associated
         with the current block partition.
 

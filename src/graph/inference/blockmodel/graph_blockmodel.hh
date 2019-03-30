@@ -89,6 +89,7 @@ typedef mpl::vector1<std::false_type> rmap_tr;
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
     ((bfield,, vprop_map_t<std::vector<double>>::type, 0))                     \
+    ((Bfield, &, std::vector<double>&, 0))                                     \
     ((merge_map,, vmap_t, 0))                                                  \
     ((deg_corr,, bool, 0))                                                     \
     ((rec_types,, std::vector<int32_t>, 0))                                    \
@@ -1456,6 +1457,26 @@ public:
             dS_dl += (r < f.size()) ? f[r] : f.back();
         }
 
+        if (!_Bfield.empty() && ea.Bfield)
+        {
+            int dB = 0;
+            if (virtual_remove_size(v) == 0)
+                dB--;
+            if (_wr[nr] == 0)
+                dB++;
+            if (dB != 0)
+            {
+                size_t actual_B = 0;
+                for (auto& ps : _partition_stats)
+                    actual_B += ps.get_actual_B();
+                dS_dl += (actual_B < _Bfield.size()) ?
+                    _Bfield[actual_B] : _Bfield.back();
+                actual_B += dB;
+                dS_dl -= (actual_B < _Bfield.size()) ?
+                    _Bfield[actual_B] : _Bfield.back();
+            }
+        }
+
         int dL = 0;
         if (ea.recs && _rt != weight_type::NONE)
         {
@@ -2089,6 +2110,15 @@ public:
             auto rdS = rec_entropy(*this, ea);
             S += get<0>(rdS);
             S_dl += get<1>(rdS);
+        }
+
+        if (!_Bfield.empty() && ea.Bfield)
+        {
+            size_t actual_B = 0;
+            for (auto& ps : _partition_stats)
+                actual_B += ps.get_actual_B();
+            S_dl -= (actual_B < _Bfield.size()) ?
+                _Bfield[actual_B] : _Bfield.back();
         }
 
         if (_coupled_state != nullptr && propagate)
