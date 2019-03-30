@@ -31,22 +31,45 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-boost::python::tuple global_clustering(GraphInterface& g)
+boost::python::tuple global_clustering(GraphInterface& g, boost::any weight)
 {
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
+    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
+        weight_props_t;
+
+    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+        throw ValueException("weight edge property must have a scalar value type");
+
+    if(weight.empty())
+        weight = weight_map_t();
+
     double c, c_err;
     run_action<graph_tool::detail::never_directed>()
         (g, std::bind(get_global_clustering(), std::placeholders::_1,
-                      std::ref(c), std::ref(c_err)))();
+                      std::placeholders::_2, std::ref(c), std::ref(c_err)),
+         weight_props_t())(weight);
     return boost::python::make_tuple(c, c_err);
 }
 
-void local_clustering(GraphInterface& g, boost::any prop)
+void local_clustering(GraphInterface& g, boost::any prop, boost::any weight)
 {
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
+    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
+        weight_props_t;
+
+    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+        throw ValueException("weight edge property must have a scalar value type");
+
+    if(weight.empty())
+        weight = weight_map_t();
+
     run_action<>()
         (g, std::bind(set_clustering_to_property(),
                       std::placeholders::_1,
-                      std::placeholders::_2),
-         writable_vertex_scalar_properties())(prop);
+                      std::placeholders::_2,
+                      std::placeholders::_3),
+         weight_props_t(),
+         writable_vertex_scalar_properties())(weight, prop);
 }
 
 using namespace boost::python;

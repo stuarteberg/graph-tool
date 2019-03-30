@@ -60,7 +60,7 @@ __all__ = ["local_clustering", "global_clustering", "extended_clustering",
            "motifs", "motif_significance"]
 
 
-def local_clustering(g, prop=None, undirected=True):
+def local_clustering(g, weight=None, prop=None, undirected=True):
     r"""
     Return the local clustering coefficients for all vertices.
 
@@ -68,6 +68,8 @@ def local_clustering(g, prop=None, undirected=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
+    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+        Edge weights. If omitted, a constant value of 1 will be used.
     prop : :class:`~graph_tool.PropertyMap` or string, optional
         Vertex property map where results will be stored. If specified, this
         parameter will also be the return value.
@@ -105,8 +107,8 @@ def local_clustering(g, prop=None, undirected=True):
     .. math::
        c'_i = 2c_i.
 
-    The implemented algorithm runs in :math:`O(|V|\left< k\right>^2)` time,
-    where :math:`\left< k\right>` is the average out-degree.
+    The implemented algorithm runs in :math:`O(|V|\left<k^2\right>)` time,
+    where :math:`\left<k^2\right>` is second moment of the degree distribution.
 
     If enabled during compilation, this algorithm runs in parallel.
 
@@ -128,18 +130,20 @@ def local_clustering(g, prop=None, undirected=True):
         prop = g.new_vertex_property("double")
     if g.is_directed() and undirected:
         g = GraphView(g, directed=False, skip_properties=True)
-    _gt.local_clustering(g._Graph__graph, _prop("v", g, prop))
+    _gt.local_clustering(g._Graph__graph, _prop("v", g, prop),
+                         _prop("e", g, weight))
     return prop
 
 
-def global_clustering(g):
-    r"""
-    Return the global clustering coefficient.
+def global_clustering(g, weight=None):
+    r"""Return the global clustering coefficient.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
+    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+        Edge weights. If omitted, a constant value of 1 will be used.
 
     Returns
     -------
@@ -161,8 +165,17 @@ def global_clustering(g):
        c = 3 \times \frac{\text{number of triangles}}
                           {\text{number of connected triples}}
 
-    The implemented algorithm runs in :math:`O(|V|\left< k\right>^2)` time,
-    where :math:`\left< k\right>` is the average (total) degree.
+    If weights are given, the following definition is used
+
+    .. math::
+       c = \frac{\operatorname{Tr}{{\boldsymbol A}^3}}{\sum_{i\ne j}[{\boldsymbol A}^2]_{ij}},
+
+    where :math:`\boldsymbol A` is the weighted adjacency matrix, and it is
+    assumed that the weights are normalized, i.e. :math:`A_{ij} \le 1`.
+
+    The implemented algorithm runs in time :math:`O(|V|\left<k^2\right>)`,
+    where :math:`\left< k^2\right>` is the second moment of the degree
+    distribution.
 
     If enabled during compilation, this algorithm runs in parallel.
 
@@ -177,11 +190,12 @@ def global_clustering(g):
     .. [newman-structure-2003] M. E. J. Newman, "The structure and function of
        complex networks", SIAM Review, vol. 45, pp. 167-256, 2003,
        :doi:`10.1137/S003614450342480`
+
     """
 
     if g.is_directed():
         g = GraphView(g, directed=False, skip_properties=True)
-    c = _gt.global_clustering(g._Graph__graph)
+    c = _gt.global_clustering(g._Graph__graph, _prop("e", g, weight))
     return c
 
 

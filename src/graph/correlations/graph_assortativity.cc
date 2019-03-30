@@ -26,28 +26,50 @@ using namespace std;
 using namespace graph_tool;
 
 pair<double,double>
-assortativity_coefficient(GraphInterface& gi,
-                          GraphInterface::deg_t deg)
+assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
+                          boost::any weight)
 {
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
+    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
+        weight_props_t;
+
+    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+        throw ValueException("weight edge property must have a scalar value type");
+
+    if(weight.empty())
+        weight = weight_map_t();
+
     double a = 0, a_err = 0;
     run_action<>()(gi,std::bind(get_assortativity_coefficient(),
                                 std::placeholders::_1, std::placeholders::_2,
+                                std::placeholders::_3,
                                 std::ref(a), std::ref(a_err)),
-                   scalar_selectors())
-        (degree_selector(deg));
+                   scalar_selectors(), weight_props_t())
+        (degree_selector(deg), weight);
     return make_pair(a, a_err);
 }
 
 pair<double,double>
-scalar_assortativity_coefficient(GraphInterface& gi,
-                                 GraphInterface::deg_t deg)
+scalar_assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
+                                 boost::any weight)
 {
+    typedef UnityPropertyMap<size_t,GraphInterface::edge_t> weight_map_t;
+    typedef boost::mpl::push_back<edge_scalar_properties, weight_map_t>::type
+        weight_props_t;
+
+    if (!weight.empty() && !belongs<edge_scalar_properties>()(weight))
+        throw ValueException("weight edge property must have a scalar value type");
+
+    if(weight.empty())
+        weight = weight_map_t();
+
     double a = 0, a_err = 0;
     run_action<>()(gi, std::bind(get_scalar_assortativity_coefficient(),
                                  std::placeholders::_1, std::placeholders::_2,
+                                 std::placeholders::_3,
                                  std::ref(a), std::ref(a_err)),
-                   scalar_selectors())
-        (degree_selector(deg));
+                   scalar_selectors(), weight_props_t())
+        (degree_selector(deg), weight);
     return make_pair(a, a_err);
 }
 

@@ -44,52 +44,58 @@ using namespace boost;
 using namespace std;
 
 // calculates the number of triangles to which v belongs
-template <class Graph, class VProp>
-pair<int,int>
-get_triangles(typename graph_traits<Graph>::vertex_descriptor v, VProp& mark,
-              const Graph& g)
+template <class Graph, class EWeight, class VProp>
+auto get_triangles(typename graph_traits<Graph>::vertex_descriptor v,
+                   EWeight& eweight, VProp& mark, const Graph& g)
 {
-    size_t triangles = 0;
+    typedef typename property_traits<EWeight>::value_type val_t;
+    val_t triangles = 0, w1 = 0, w2 = 0, k = 0;
 
-    for (auto n : adjacent_vertices_range(v, g))
+    for (auto e : out_edges_range(v, g))
     {
+        auto n = target(e, g);
         if (n == v)
             continue;
-        mark[n] = true;
+        auto w = eweight[e];
+        mark[n] = w;
+        k += w;
     }
 
-    for (auto n : adjacent_vertices_range(v, g))
+    for (auto e : out_edges_range(v, g))
     {
+        auto n = target(e, g);
         if (n == v)
             continue;
-        for (auto n2 : adjacent_vertices_range(n, g))
+        w1 = eweight[e];
+        for (auto e2 : out_edges_range(n, g))
         {
+            auto n2 = target(e2, g);
             if (n2 == n)
                 continue;
-            if (mark[n2])
-                ++triangles;
+            w2 = eweight[e2];
+            triangles += mark[n2] * w1 * w2;
         }
     }
 
     for (auto n : adjacent_vertices_range(v, g))
-        mark[n] = false;
+        mark[n] = 0;
 
-    size_t k = out_degree(v, g);
     if (graph_tool::is_directed(g))
-        return make_pair(triangles, (k * (k - 1)));
+        return make_pair(val_t(triangles), val_t((k * (k - 1))));
     else
-        return make_pair(triangles / 2, (k * (k - 1)) / 2);
+        return make_pair(val_t(triangles / 2), val_t((k * (k - 1)) / 2));
 }
 
 
 // retrieves the global clustering coefficient
 struct get_global_clustering
 {
-    template <class Graph>
-    void operator()(const Graph& g, double& c, double& c_err) const
+    template <class Graph, class EWeight>
+    void operator()(const Graph& g, EWeight eweight, double& c, double& c_err) const
     {
-        size_t triangles = 0, n = 0;
-        vector<bool> mask(num_vertices(g), false);
+        typedef typename property_traits<EWeight>::value_type val_t;
+        val_t triangles = 0, n = 0;
+        vector<val_t> mask(num_vertices(g), 0);
 
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             firstprivate(mask) reduction(+:triangles, n)
@@ -97,7 +103,7 @@ struct get_global_clustering
                 (g,
                  [&](auto v)
                  {
-                     auto temp = get_triangles(v, mask, g);
+                     auto temp = get_triangles(v, eweight, mask, g);
                      triangles += temp.first;
                      n += temp.second;
                  });
@@ -112,7 +118,7 @@ struct get_global_clustering
                 (g,
                  [&](auto v)
                  {
-                     auto temp = get_triangles(v, mask, g);
+                     auto temp = get_triangles(v, eweight, mask, g);
                      double cl = double(triangles - temp.first) /
                          (n - temp.second);
                      cerr += power(c - cl, 2);
@@ -124,11 +130,11 @@ struct get_global_clustering
 // sets the local clustering coefficient to a property
 struct set_clustering_to_property
 {
-    template <class Graph, class ClustMap>
-    void operator()(const Graph& g, ClustMap clust_map) const
+    template <class Graph, class EWeight, class ClustMap>
+    void operator()(const Graph& g, EWeight eweight, ClustMap clust_map) const
     {
-        typedef typename property_traits<ClustMap>::value_type c_type;
-        vector<bool> mask(num_vertices(g), false);
+        typedef typename property_traits<EWeight>::value_type val_t;
+        vector<val_t> mask(num_vertices(g), false);
 
         #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
             firstprivate(mask)
@@ -136,11 +142,11 @@ struct set_clustering_to_property
             (g,
              [&](auto v)
              {
-                 auto triangles = get_triangles(v, mask, g);
+                 auto triangles = get_triangles(v, eweight, mask, g);
                  double clustering = (triangles.second > 0) ?
                      double(triangles.first)/triangles.second :
                      0.0;
-                 clust_map[v] = c_type(clustering);
+                 clust_map[v] = clustering;
              });
     }
 

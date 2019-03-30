@@ -37,12 +37,13 @@ using namespace boost;
 
 struct get_assortativity_coefficient
 {
-    template <class Graph, class DegreeSelector>
-    void operator()(const Graph& g, DegreeSelector deg, double& r,
-                    double& r_err) const
+    template <class Graph, class DegreeSelector, class Eweight>
+    void operator()(const Graph& g, DegreeSelector deg, Eweight eweight,
+                    double& r, double& r_err) const
     {
-        size_t n_edges = 0;
-        size_t e_kk = 0;
+        typedef typename property_traits<Eweight>::value_type wval_t;
+        wval_t n_edges = 0;
+        wval_t e_kk = 0;
 
         typedef typename DegreeSelector::value_type val_t;
         typedef gt_hash_map<val_t, size_t> map_t;
@@ -56,14 +57,16 @@ struct get_assortativity_coefficient
              [&](auto v)
              {
                  val_t k1 = deg(v, g);
-                 for (auto w : out_neighbors_range(v, g))
+                 for (auto e : out_edges_range(v, g))
                  {
-                     val_t k2 = deg(w, g);
+                     auto u = target(e, g);
+                     auto w = eweight[e];
+                     val_t k2 = deg(u, g);
                      if (k1 == k2)
-                         e_kk++;
-                     sa[k1]++;
-                     sb[k2]++;
-                     n_edges++;
+                         e_kk += w;
+                     sa[k1] += w;
+                     sb[k2] += w;
+                     n_edges += w;
                  }
              });
 
@@ -100,16 +103,18 @@ struct get_assortativity_coefficient
              [&](auto v)
              {
                  val_t k1 = deg(v, g);
-                 for (auto w : out_neighbors_range(v, g))
+                 for (auto e : out_edges_range(v, g))
                  {
-                     val_t k2 = deg(w, g);
+                     auto u = target(e, g);
+                     auto w = eweight[e];
+                     val_t k2 = deg(u, g);
                      double tl2 = (t2 * (n_edges * n_edges)
-                                   - one * b[k1] - one * a[k2]) /
-                         ((n_edges - one) * (n_edges - one));
+                                   - w * one * b[k1] - w * one * a[k2]) /
+                         ((n_edges - w * one) * (n_edges - w * one));
                      double tl1 = t1 * n_edges;
                      if (k1 == k2)
-                         tl1 -= one;
-                     tl1 /= n_edges - one;
+                         tl1 -= one * w;
+                     tl1 /= n_edges - one * w;
                      double rl = (tl1 - tl2) / (1.0 - tl2);
                      err += (r - rl) * (r - rl);
                 }
@@ -132,11 +137,12 @@ struct get_assortativity_coefficient
 
 struct get_scalar_assortativity_coefficient
 {
-    template <class Graph, class DegreeSelector>
-    void operator()(const Graph& g, DegreeSelector deg, double& r,
-                    double& r_err) const
+    template <class Graph, class DegreeSelector, class Eweight>
+    void operator()(const Graph& g, DegreeSelector deg, Eweight eweight,
+                    double& r, double& r_err) const
     {
-        size_t n_edges = 0;
+        typedef typename property_traits<Eweight>::value_type val_t;
+        val_t n_edges = 0;
         double e_xy = 0;
         double a = 0, b = 0, da = 0, db = 0;
 
@@ -147,15 +153,17 @@ struct get_scalar_assortativity_coefficient
              [&](auto v)
              {
                  auto k1 = deg(v, g);
-                 for (auto u : out_neighbors_range(v, g))
+                 for (auto e : out_edges_range(v, g))
                  {
+                     auto u = target(e, g);
+                     auto w = eweight[e];
                      auto k2 = deg(u, g);
-                     a += k1;
-                     da += k1 * k1;
-                     b += k2;
-                     db += k2 * k2;
-                     e_xy += k1 * k2;
-                     n_edges++;
+                     a += k1 * w;
+                     da += k1 * k1 * w;
+                     b += k2 * w;
+                     db += k2 * k2 * w;
+                     e_xy += k1 * k2 * w;
+                     n_edges += w;
                  }
              });
 
@@ -205,12 +213,14 @@ struct get_scalar_assortativity_coefficient
                  double al = (a * n_edges - k1) / (n_edges - one);
                  double dal = sqrt((da - k1 * k1) / (n_edges - one) - al * al);
 
-                 for (auto u : out_neighbors_range(v, g))
+                 for (auto e : out_edges_range(v, g))
                  {
+                     auto u = target(e, g);
+                     auto w = eweight[e];
                      double k2 = deg(u, g);
-                     double bl = (b * n_edges - k2 * one) / (n_edges - one);
-                     double dbl = sqrt((db - k2 * k2 * one) / (n_edges - one) - bl * bl);
-                     double t1l = (e_xy - k1 * k2 * one)/(n_edges - one);
+                     double bl = (b * n_edges - k2 * one * w) / (n_edges - one * w);
+                     double dbl = sqrt((db - k2 * k2 * one * w) / (n_edges - one * w) - bl * bl);
+                     double t1l = (e_xy - k1 * k2 * one * w)/(n_edges - one * w);
                      double rl;
                      if (dal * dbl > 0)
                          rl = (t1l - al * bl)/(dal * dbl);

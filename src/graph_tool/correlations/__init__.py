@@ -52,17 +52,19 @@ __all__ = ["assortativity", "scalar_assortativity", "corr_hist",
            "avg_combined_corr"]
 
 
-def assortativity(g, deg):
-    r"""
-    Obtain the assortativity coefficient for the given graph.
+def assortativity(g, deg, eweight=None):
+    r"""Obtain the assortativity coefficient for the given graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
     deg : string or :class:`~graph_tool.PropertyMap`
-        degree type ("in", "out" or "total") or vertex property map, which
+        Degree type ("in", "out" or "total") or vertex property map, which
         specifies the vertex types.
+    eweight : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+        If given, this will specify the edge weights, otherwise a constant value
+        of one will be used.
 
     Returns
     -------
@@ -114,10 +116,11 @@ def assortativity(g, deg):
 
     """
     return libgraph_tool_correlations.\
-           assortativity_coefficient(g._Graph__graph, _degree(g, deg))
+           assortativity_coefficient(g._Graph__graph, _degree(g, deg),
+                                     _prop("e", g, eweight))
 
 
-def scalar_assortativity(g, deg):
+def scalar_assortativity(g, deg, eweight=None):
     r"""
     Obtain the scalar assortativity coefficient for the given graph.
 
@@ -126,8 +129,11 @@ def scalar_assortativity(g, deg):
     g : :class:`~graph_tool.Graph`
         Graph to be used.
     deg : string or :class:`~graph_tool.PropertyMap`
-        degree type ("in", "out" or "total") or vertex property map, which
-        specifies the vertex types.
+        Degree type ("in", "out" or "total") or vertex property map, which
+        specifies the vertex scalar values.
+    eweight : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+        If given, this will specify the edge weights, otherwise a constant value
+        of one will be used.
 
     Returns
     -------
@@ -177,8 +183,8 @@ def scalar_assortativity(g, deg):
     .. _jackknife method: http://en.wikipedia.org/wiki/Resampling_%28statistics%29#Jackknife
     """
     return libgraph_tool_correlations.\
-           scalar_assortativity_coefficient(g._Graph__graph,
-                                            _degree(g, deg))
+           scalar_assortativity_coefficient(g._Graph__graph, _degree(g, deg),
+                                            _prop("e", g, eweight))
 
 
 def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
