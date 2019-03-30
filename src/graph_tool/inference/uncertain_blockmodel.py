@@ -159,6 +159,7 @@ class UncertainBaseState(object):
         kwargs = kwargs.copy()
         beta = kwargs.get("beta", 1.)
         niter = kwargs.get("niter", 1)
+        edges_only = kwargs.pop("edges_only", False)
         verbose = kwargs.get("verbose", False)
         slist = self.slist
         tlist = self.tlist

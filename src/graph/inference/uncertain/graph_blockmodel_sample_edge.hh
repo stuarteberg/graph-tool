@@ -38,11 +38,25 @@ template <class State>
 class SBMEdgeSampler
 {
 public:
-    SBMEdgeSampler(State& state)
+    SBMEdgeSampler(State& state, bool edges_only=false)
         : _state(state),
           _v_in_sampler(graph_tool::is_directed(state._g) ?
-                        __v_in_sampler : _v_out_sampler)
+                        __v_in_sampler : _v_out_sampler),
+          _edges_only(edges_only)
     {
+        _N = num_vertices(state._g);
+
+        for (auto e : edges_range(state._g))
+        {
+            size_t u = source(e, state._g);
+            size_t v = target(e, state._g);
+            _edges.push_back(get_edge(u, v));
+            _edge_pos[_edges.back()] = _edges.size() - 1;
+        }
+
+        if (_edges_only)
+            return;
+
         for (auto me : edges_range(state._bg))
         {
             auto r = source(me, state._bg);
@@ -87,15 +101,6 @@ public:
 
         auto B = _groups.size();
         _NB = B * B;
-        _N = num_vertices(state._g);
-
-        for (auto e : edges_range(state._g))
-        {
-            size_t u = source(e, state._g);
-            size_t v = target(e, state._g);
-            _edges.push_back(get_edge(u, v));
-            _edge_pos[_edges.back()] = _edges.size() - 1;
-        }
     }
 
     std::tuple<size_t, size_t> get_edge(size_t u, size_t v)
@@ -109,6 +114,9 @@ public:
     template <bool add>
     void update_edge(size_t u, size_t v, size_t m)
     {
+        if (_edges_only)
+            return;
+
         if (add)
         {
             if (m == 0)
@@ -203,6 +211,22 @@ public:
         // std::uniform_int_distribution<size_t> sample(0, _N-1);
         // return {sample(rng), sample(rng)};
 
+        if (_edges_only)
+        {
+            std::bernoulli_distribution coin(_edges.size() /
+                                             double(_edges.size() + _N));
+            if (coin(rng))
+            {
+                return uniform_sample(_edges, rng);
+            }
+            else
+            {
+                std::uniform_int_distribution<size_t> vsample(0, _N-1);
+                auto v = vsample(rng);
+                return {v, v};
+            }
+        }
+
         if (!_edges.empty())
         {
             std::bernoulli_distribution coin(.5);
@@ -231,7 +255,8 @@ public:
 
     double log_prob(size_t u, size_t v, size_t m, int delta)
     {
-        // return 0;
+        if (_edges_only)
+            return 0;
 
         auto& g = _state._g;
         size_t r = _state._b[u];
@@ -344,6 +369,8 @@ private:
     size_t _NB = 0;
     size_t _E = 0;
     size_t _N = 0;
+
+    bool _edges_only;
 };
 
 

@@ -39,6 +39,7 @@ typedef std::vector<size_t> vlist_t;
     ((state, &, State&, 0))                                                    \
     ((beta,, double, 0))                                                       \
     ((entropy_args,, uentropy_args_t, 0))                                      \
+    ((edges_only,, bool, 0))                                                   \
     ((verbose,, bool, 0))                                                      \
     ((niter,, size_t, 0))
 
@@ -62,7 +63,7 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCUncertainState(ATs&&... as)
             : MCMCUncertainStateBase<Ts...>(as...),
-              _edge_sampler(_state._block_state),
+              _edge_sampler(_state._block_state, _edges_only),
               _vlist(num_vertices(_state._u))
         {
         }
