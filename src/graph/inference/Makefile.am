@@ -77,6 +77,7 @@ libgraph_tool_inference_la_SOURCES = \
     support/int_part.cc \
     support/spence.cc \
     graph_inference.cc \
+    graph_latent_multigraph.cc \
     graph_modularity.cc
 
 libgraph_tool_inference_la_include_HEADERS = \
@@ -122,4 +123,5 @@ libgraph_tool_inference_la_include_HEADERS = \
     support/graph_state.hh \
     support/int_part.hh \
     support/util.hh \
-    graph_modularity.hh
+    graph_modularity.hh \
+    graph_latent_multigraph.hh

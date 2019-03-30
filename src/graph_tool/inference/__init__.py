@@ -175,7 +175,8 @@ __all__ = ["minimize_blockmodel_dl",
            "half_edge_graph",
            "get_block_edge_gradient",
            "get_hierarchy_tree",
-           "modularity"]
+           "modularity",
+           "latent_multigraph"]
 
 from . blockmodel import *
 from . overlap_blockmodel import *
@@ -188,3 +189,4 @@ from . minimize import *
 from . blockmodel_em import *
 from . util import *
 from . modularity import *
+from . latent_multigraph import *

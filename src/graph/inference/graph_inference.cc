@@ -117,6 +117,7 @@ extern void export_ising_glauber_state();
 extern void export_ising_glauber_mcmc();
 extern void export_marginals();
 extern void export_modularity();
+extern void export_latent_multigraph();
 extern void export_pseudo_cising_state();
 extern void export_pseudo_cising_mcmc();
 extern void export_pseudo_cising_mcmc_h();
@@ -176,6 +177,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_ising_glauber_mcmc();
     export_marginals();
     export_modularity();
+    export_latent_multigraph();
     export_pseudo_cising_state();
     export_pseudo_cising_mcmc();
     export_pseudo_cising_mcmc_h();
