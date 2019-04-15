@@ -194,7 +194,7 @@ Edges and vertices can also be removed at any time with the
    As a consequence, if more than one vertex is to be removed at a given
    time, they should **always** be removed in decreasing index order:
    
-   .. code::
+   .. code-block::
 
        # 'del_list' is a list of vertex descriptors
        for v in reversed(sorted(del_list)):
@@ -282,7 +282,7 @@ In order to iterate through all the vertices or edges of a graph, the
 :meth:`~graph_tool.Graph.vertices` and :meth:`~graph_tool.Graph.edges`
 methods should be used:
 
-.. doctest::
+.. testcode::
 
    for v in g.vertices():
        print(v)
@@ -300,7 +300,7 @@ iterated through with the :meth:`~graph_tool.Vertex.out_edges`,
 :meth:`~graph_tool.Vertex.in_edges`, :meth:`~graph_tool.Vertex.out_neighbors`
 and :meth:`~graph_tool.Vertex.in_neighbors` methods, respectively.
 
-.. doctest::
+.. testcode::
 
    from itertools import izip
    for v in g.vertices():
@@ -413,7 +413,7 @@ methods :meth:`~graph_tool.Graph.new_vertex_property` (alias
 then accessed by vertex or edge descriptors, or the graph itself, as
 such:
 
-.. doctest::
+.. testcode::
 
     from itertools import izip
     from numpy.random import randint
@@ -433,7 +433,7 @@ such:
     v = g.vertex(40)
     vprop_vint[v] = [1, 3, 42, 54]
     
-    eprop_dict = g.new_edge_property("object")                # Arbitrary python object.
+    eprop_dict = g.new_edge_property("object")                # Arbitrary Python object.
     e = g.edges().next()
     eprop_dict[e] = {"foo": "bar", "gnu": 42}                 # In this case, a dict.
 
@@ -445,7 +445,7 @@ Property maps with scalar value types can also be accessed as a
 :meth:`~graph_tool.PropertyMap.get_array` method, or the
 :attr:`~graph_tool.PropertyMap.a` attribute, e.g.,
 
-.. doctest::
+.. testcode::
 
     from numpy.random import random
 
@@ -536,7 +536,7 @@ and :attr:`~graph_tool.Graph.load` methods, which take either a file name or a
 file-like object. A graph can also be loaded from disc with the
 :func:`~graph_tool.load_graph` function, as such:
 
-.. doctest::
+.. testcode::
 
     g = Graph()
     #  ... fill the graph ...
@@ -563,7 +563,7 @@ in-degree. The following program implements this construction using
    Note that it would be much faster just to use the
    :func:`~graph_tool.generation.price_network` function, which is
    implemented in C++, as opposed to the script below which is in pure
-   python. The code below is merely a demonstration on how to use the
+   Python. The code below is merely a demonstration on how to use the
    library.
 
 .. literalinclude:: price.py

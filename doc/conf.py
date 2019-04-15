@@ -197,11 +197,16 @@ import pyenv
 plot_rcparams = pyenv.rcParams
 #plot_pre_code = open("pyenv.py").read()
 
-autodoc_default_flags = ['members', 'undoc-members']
+
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'undoc-members': True
+}
+
 autosummary_gerenerate = True
 numpydoc_show_class_members = False
 autodoc_docstring_signature = False
-autodoc_member_order = 'bysource'
 autoclass_content = 'both'
 imported_members = True
 

@@ -205,7 +205,7 @@ div.admonition {
     padding: 0px 12px 12px 12px; 
     /* line-height: 24px; */
     margin-bottom: 24px;
-    margin-top: 12px;
+    margin-top: 20px;
     /* padding: 10px 30px; */
     /* border-top: 1px solid #ccc; */
     /* border-bottom: 1px solid #ccc; */
@@ -220,10 +220,15 @@ div.admonition p.admonition-title {
     line-height: 1;
 
     display: block;
-    color: #FFF;
-    margin: -12px -12px 12px;
+    /* color: #FFF; */
+    margin: -12px -12px 8px;
     padding: 6px 12px;
 
+}
+
+div.admonition p {
+    margin-bottom: 0;
+    margin-top: 0;
 }
 
 div.admonition p.last {
@@ -365,10 +370,39 @@ dl.function dt, dl.class dt, dl.exception dt{
     background-color: #E7F2FA;
 }
 
+dd.field-even dt, dd.field-odd dt{
+    background-color: inherit;
+}
+
+dl.function dt.field-even, dl.function dt.field-odd,
+dl.class dt.field-even, dl.class dt.field-odd,
+dl.exception dt.field-even, dl.exception dt.field-odd {
+    background-color: inherit;
+}
+
 dl.docutils dt {
     background-color: inherit;
 }
 
+dl.citation dt {
+    background-color: inherit;
+}
+
+ol.arabic li dl dt {
+    background-color: inherit;
+}
+
+.brackets:before {
+  content: "[";
+}
+
+.brackets:after {
+  content: "]";
+}
+
+.fn-backref {
+    margin-right: 10px;
+}
 
 pre {
     background: #eee;

@@ -13,7 +13,7 @@ font_size=14
 rcParams["backend"] = "PDF"
 rcParams["figure.figsize"] = (4, 3)
 rcParams["font.family"] = "Serif"
-rcParams["font.serif"] = ["Palatino"]
+rcParams["font.serif"] = ["Times"]
 rcParams["font.size"] = font_size
 rcParams["axes.labelsize"] = font_size
 rcParams["xtick.labelsize"] = font_size - 2
@@ -28,7 +28,7 @@ rcParams["figure.subplot.top"] = 0.95
 rcParams["figure.subplot.left"] = 0.2
 rcParams["figure.subplot.bottom"] = 0.2
 
-rcParams["image.cmap"] = "hot"
+rcParams["image.cmap"] = "magma"
 
 rcParams["text.usetex"] = True
 
@@ -36,8 +36,8 @@ rcParams["ps.usedistiller"] = "xpdf"
 rcParams["pdf.compression"] = 9
 rcParams["ps.useafm"] = True
 rcParams["path.simplify"] = True
-rcParams["text.latex.preamble"] = [#"\usepackage{times}",
-                                   #"\usepackage{euler}",
+rcParams["text.latex.preamble"] = [r"\usepackage{times}",
+                                   #r"\usepackage{euler}",
                                    r"\usepackage{amssymb}",
                                    r"\usepackage{amsmath}"]
 
