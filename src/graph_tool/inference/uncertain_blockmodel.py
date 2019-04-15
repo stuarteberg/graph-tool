@@ -33,6 +33,8 @@ from . blockmodel import *
 from . nested_blockmodel import *
 from . blockmodel import _bm_test
 
+import collections
+
 def get_uentropy_args(kargs):
     ea = get_entropy_args(kargs, ignore=["latent_edges", "density"])
     uea = libinference.uentropy_args(ea)
@@ -124,18 +126,16 @@ class UncertainBaseState(object):
 
     def entropy(self, latent_edges=True, density=True, **kwargs):
         """Return the entropy, i.e. negative log-likelihood."""
+        S = self._state.entropy(latent_edges, density)
         if self.nbstate is None:
-            S = self._state.entropy(latent_edges, density) + \
-                self.bstate.entropy(**kwargs)
+            S += self.bstate.entropy(**kwargs)
         else:
-            S = self._state.entropy(latent_edges, density) + \
-                self.nbstate.entropy(**kwargs)
+            S += self.nbstate.entropy(**kwargs)
 
         if kwargs.get("test", True) and _bm_test():
+            args = kwargs.copy()
             assert not isnan(S) and not isinf(S), \
                 "invalid entropy %g (%s) " % (S, str(args))
-
-            args = kwargs.copy()
             args["test"] = False
             state_copy = self.copy()
             Salt = state_copy.entropy(latent_edges, density, **args)
@@ -156,7 +156,6 @@ class UncertainBaseState(object):
         return self._state.add_edge_dS(int(u), int(v), entropy_args)
 
     def _algo_sweep(self, algo, r=.5, **kwargs):
-
         kwargs = kwargs.copy()
         beta = kwargs.get("beta", 1.)
         niter = kwargs.get("niter", 1)
@@ -169,7 +168,12 @@ class UncertainBaseState(object):
         kwargs.get("entropy_args", {}).pop("latent_edges", None)
         kwargs.get("entropy_args", {}).pop("density", None)
         state = self._state
-        mcmc_state = DictState(locals())
+
+        mcmc_state = DictState(dict(kwargs, **locals()))
+
+        kwargs.pop("xlog", None)
+        kwargs.pop("xstep", None)
+        kwargs.pop("xdefault", None)
 
         if _bm_test():
             Si = self.entropy(**dentropy_args)
@@ -375,9 +379,6 @@ class UncertainBlockState(UncertainBaseState):
 
     def __copy__(self):
         return self.copy()
-
-    def __setstate__(self, state):
-        self.__init__(**state)
 
     def __repr__(self):
         return "<UncertainBlockState object with %s, at 0x%x>" % \
@@ -645,33 +646,37 @@ class MixedMeasuredBlockState(UncertainBaseState):
             (self.nbstate if self.nbstate is not None else self.bstate,
              id(self))
 
-    def _algo_sweep(self, algo, r=.5, h=.1, hstep=1, **kwargs):
+    def _algo_sweep(self, algo, r=.5, h=.1, hstep=1, niter=1, **kwargs):
         if numpy.random.random() < h:
-            hs = [self.alpha, self.beta, self.mu, self.nu]
-            j = numpy.random.randint(len(hs))
+            dS = nt = nm = 0
+            for i in range(niter):
+                hs = [self.alpha, self.beta, self.mu, self.nu]
+                j = numpy.random.randint(len(hs))
 
-            f_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
-            pf = 1./(f_dh[1] - f_dh[0])
+                f_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
+                pf = 1./(f_dh[1] - f_dh[0])
 
-            old_hs = hs[j]
-            hs[j] = f_dh[0] + numpy.random.random() * (f_dh[1] - f_dh[0])
+                old_hs = hs[j]
+                hs[j] = f_dh[0] + numpy.random.random() * (f_dh[1] - f_dh[0])
 
-            b_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
-            pb = 1./min(1, hs[j])
+                b_dh = [max(0, hs[j] - hstep), hs[j] + hstep]
+                pb = 1./min(1, hs[j])
 
-            latent_edges = kwargs.get("entropy_args", {}).get("latent_edges", True)
-            density = False
+                latent_edges = kwargs.get("entropy_args", {}).get("latent_edges", True)
+                density = False
 
-            Sb = self._state.entropy(latent_edges, density)
-            self.set_hparams(*hs)
-            Sa = self._state.entropy(latent_edges, density)
-
-            if Sa < Sb or numpy.random.random() < exp(-(Sa-Sb) + log(pb) - log(pf)):
-                return (Sa-Sb, 1, 1)
-            else:
-                hs[j] = old_hs
+                Sb = self._state.entropy(latent_edges, density)
                 self.set_hparams(*hs)
-                return (0., 1, 0)
+                Sa = self._state.entropy(latent_edges, density)
+
+                nt += 1
+                if Sa < Sb or numpy.random.random() < exp(-(Sa-Sb) + log(pb) - log(pf)):
+                    dS += Sa - Sb
+                    nm +=1
+                else:
+                    hs[j] = old_hs
+                    self.set_hparams(*hs)
+            return (dS, nt, nm)
         else:
             return super(MixedMeasuredBlockState, self)._algo_sweep(algo, r, **kwargs)
 
@@ -679,3 +684,413 @@ class MixedMeasuredBlockState(UncertainBaseState):
         return libinference.mcmc_uncertain_sweep(mcmc_state,
                                                  self._state,
                                                  _get_rng())
+
+class DynamicsBlockStateBase(UncertainBaseState):
+    def __init__(self, g, s, t, x=None, aE=numpy.nan, nested=True,
+                 state_args={}, bstate=None, self_loops=False,
+                 **kwargs):
+        super(DynamicsBlockStateBase, self).__init__(g, nested=nested,
+                                                     state_args=state_args,
+                                                     bstate=bstate,
+                                                     self_loops=self_loops)
+        self.s = [g.own_property(x) for x in s]
+        self.t = [g.own_property(x) for x in t]
+        if x is None:
+            x = self.u.new_ep("double")
+        else:
+            x = self.u.copy_property(x, g=x.get_graph())
+        self.x = x
+
+        self.aE = aE
+        if numpy.isnan(aE):
+            self.E_prior = False
+        else:
+            self.E_prior = True
+
+        for k in kwargs.keys():
+            v = kwargs[k]
+            if isinstance(v, PropertyMap):
+                kwargs[k] = g.own_property(v)
+            elif (isinstance(v, collections.Iterable) and len(v) > 0 and
+                  isinstance(v[0], PropertyMap)):
+                kwargs[k] = [g.own_property(x) for x in v]
+        self.params = kwargs
+        self.os = [ns._get_any() for ns in s]
+        self.ot = [nt._get_any() for nt in t]
+        self._state = self._make_state()
+
+    def set_params(self, params):
+        self.params = dict(self.params, **params)
+        self._state.set_params(self.params)
+
+    def __getstate__(self):
+        return dict(g=self.g, s=self.s, t=self.t, x=self.x, aE=self.aE,
+                    nested=self.nbstate is not None,
+                    bstate=(self.nbstate.copy() if self.nbstate is not None else
+                            self.bstate.copy()), self_loops=self.self_loops,
+                    **self.params)
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def copy(self, **kwargs):
+        """Return a copy of the state."""
+        return type(self)(**dict(self.__getstate__(), **kwargs))
+
+    def __copy__(self):
+        return self.copy()
+
+    def __repr__(self):
+        return "<%s object with %s, at 0x%x>" % \
+            (self.__class__.__name__,
+             self.nbstate if self.nbstate is not None else self.bstate,
+             id(self))
+
+    def _move_proposal(self, name, beta, step, rg, transform, entropy_args):
+        x = x_orig = self.params[name]
+
+        if isinstance(x, collections.Iterable):
+            idx = numpy.random.randint(len(x))
+            x = x[idx]
+        else:
+            idx = None
+
+        if transform is not None:
+            x = transform[1](x)
+
+        if rg is not None:
+            mi = max(rg[0], x - step)
+            ma = min(rg[1], x + step)
+        else:
+            mi = x - step
+            ma = x + step
+        nx = numpy.random.random() * (ma - mi) + mi
+
+        a = 0
+        if rg is not None:
+            a -= -log(ma - mi)
+            mi = max(rg[0], nx - step)
+            ma = min(rg[1], nx + step)
+            a += -log(ma - mi)
+
+        if transform is not None:
+            nx = transform[0](nx)
+
+        latent_edges = entropy_args.get("latent_edges", True)
+        density = False
+
+        Sb = self._state.entropy(latent_edges, density)
+
+        if idx is not None:
+            y = self.params[name]
+            y[idx] = nx
+            nx = y
+
+        self.set_params({name:nx})
+        Sa = self._state.entropy(latent_edges, density)
+
+        a += beta * (Sb - Sa)
+
+        if a > 0 or numpy.random.random() < exp(a):
+            self.set_params({name:nx})
+            return Sa-Sb, 1, 1
+
+        if idx is not None:
+            y = self.params[name]
+            y[idx] = x_orig
+            x_orig = y
+        self.set_params({name:x_orig})
+
+        return 0, 0, 0
+
+    def get_x(self):
+        return x
+
+    def get_edge_prob(self, u, v, x, entropy_args={}, epsilon=1e-8):
+        r"""Return conditional posterior probability of edge :math:`(u,v)`."""
+        entropy_args = dict(self.bstate._entropy_args, **entropy_args)
+        ea = get_uentropy_args(entropy_args)
+        return self._state.get_edge_prob(u, v, x, ea, epsilon)
+
+    def collect_marginal(self, g=None):
+        r"""Collect marginal inferred network during MCMC runs.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph` (optional, default: ``None``)
+            Previous marginal graph.
+
+        Returns
+        -------
+        g : :class:`~graph_tool.Graph`
+            New marginal graph, with internal edge :class:`~graph_tool.PropertyMap`
+            ``"eprob"``, containing the marginal probabilities for each edge.
+
+        Notes
+        -----
+        The posterior marginal probability of an edge :math:`(i,j)` is defined as
+
+        .. math::
+
+           \pi_{ij} = \sum_{\boldsymbol A}A_{ij}P(\boldsymbol A|\boldsymbol D)
+
+        where :math:`P(\boldsymbol A|\boldsymbol D)` is the posterior
+        probability given the data.
+
+        """
+
+        if g is None:
+            g = Graph(directed=self.g.is_directed())
+            g.add_vertex(self.g.num_vertices())
+            g.gp.count = g.new_gp("int", 0)
+            g.ep.count = g.new_ep("int")
+            g.ep.eprob = g.new_ep("double")
+
+        if "x" not in g.ep:
+            g.ep.xsum = g.new_ep("double")
+            g.ep.x2sum = g.new_ep("double")
+            g.ep.x = g.new_ep("double")
+            g.ep.xdev = g.new_ep("double")
+
+        u = self.get_graph()
+        x = self.get_x()
+        libinference.collect_xmarginal(g._Graph__graph,
+                                       u._Graph__graph,
+                                       _prop("e", u, x),
+                                       _prop("e", g, g.ep.count),
+                                       _prop("e", g, g.ep.xsum),
+                                       _prop("e", g, g.ep.x2sum))
+        g.gp.count += 1
+        g.ep.eprob.fa = g.ep.count.fa / g.gp.count
+        g.ep.x.fa = g.ep.xsum.fa / g.gp.count
+        g.ep.xdev.fa = sqrt(g.ep.x2sum.fa / g.gp.count - g.ep.x.fa ** 2)
+        return g
+
+class EpidemicsBlockState(DynamicsBlockStateBase):
+    def __init__(self, g, s, beta, r, r_v=None, global_beta=None, active=None,
+                 t=[], exposed=False, aE=numpy.nan, nested=True, state_args={},
+                 bstate=None, self_loops=False, **kwargs):
+        if beta is None:
+            beta = global_beta
+        x = kwargs.pop("x", None)
+        if x is None:
+            if bstate is not None:
+                if nested:
+                    u = bstate.levels[0].g
+                else:
+                    u = bstate.g
+            else:
+                u = g
+            if isinstance(beta, PropertyMap):
+                x = u.own_property(beta.copy())
+            else:
+                x = u.new_ep("double", val=beta)
+            x.fa = log1p(-x.fa)
+        super(EpidemicsBlockState, self).__init__(g, s=s, t=t,
+                                                  global_beta=global_beta,
+                                                  active=active,
+                                                  x=x, r=r, r_v=r_v,
+                                                  exposed=exposed, aE=aE,
+                                                  nested=nested,
+                                                  state_args=state_args,
+                                                  bstate=bstate,
+                                                  self_loops=self_loops,
+                                                  **kwargs)
+    def _make_state(self):
+        return libinference.make_epidemics_state(self.bstate._state, self)
+
+    def __setstate__(self, state):
+        beta = state.pop("beta", None)
+        if "x" not in state:
+            state["global_beta"] = beta
+        self.__init__(**state, beta=beta)
+
+    def set_params(self, params):
+        self.params = dict(self.params, **params)
+        self._state.set_params(self.params)
+        beta = self.params["global_beta"]
+        if beta is not None:
+            self.x.fa = log1p(-beta)
+
+    def get_x(self):
+        x = self.x.copy()
+        x.fa = 1-exp(x.fa)
+        return x
+
+    def _algo_sweep(self, algo, r=.5, p=.1, pstep=.1, h=.1, hstep=1,
+                    xstep=.1, niter=1, **kwargs):
+        if numpy.random.random() < p:
+            if self.params["r_v"] is None:
+                h = 0
+            if numpy.random.random() < h:
+                mcmc_state = DictState(dict(beta=kwargs.get("beta", 1),
+                                            hstep=hstep,
+                                            verbose=kwargs.get("verbose", False),
+                                            niter=niter,
+                                            state=self._state))
+                return libinference.mcmc_epidemics_sweep_r(mcmc_state,
+                                                           self._state,
+                                                           _get_rng())
+            else:
+                dS = nt = nm = 0
+                for i in range(niter):
+                    if self.params["global_beta"] is not None:
+                        ret = self._move_proposal("global_beta",
+                                                  kwargs.get("beta", 1),
+                                                  pstep, (0, 1),
+                                                  (lambda beta: log1p(-beta),
+                                                   lambda x: 1-exp(x)),
+                                                  kwargs.get("entropy_args", {}))
+                        dS += ret[0]
+                        nt += ret[1]
+                        nm += ret[2]
+                    ret = self._move_proposal("r",
+                                              kwargs.get("beta", 1),
+                                              pstep, (0, 1),
+                                              None,
+                                              kwargs.get("entropy_args", {}))
+                    dS += ret[0]
+                    nt += ret[1]
+                    nm += ret[2]
+                return (dS, nt, nm)
+        else:
+            beta = self.params["global_beta"]
+            if beta is not None:
+                xdefault = log1p(-beta)
+            else:
+                xdefault = 0
+            return super(EpidemicsBlockState, self)._algo_sweep(algo, r,
+                                                                xlog=True,
+                                                                xstep=xstep,
+                                                                xdefault=xdefault,
+                                                                **kwargs)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_epidemics_sweep(mcmc_state, self._state,
+                                                 _get_rng())
+
+class IsingBaseBlockState(DynamicsBlockStateBase):
+    def __init__(self, g, s, beta, x=None, t=None, h=None, aE=numpy.nan,
+                 nested=True, state_args={}, bstate=None, self_loops=False,
+                 has_zero=False, **kwargs):
+        if isinstance(s, PropertyMap):
+            s = [s]
+        if isinstance(t, PropertyMap):
+            t = [t]
+        if t is None:
+            t = []
+        if h is None:
+            h = g.new_vp("double")
+        if bstate is not None:
+            if nested:
+                u = bstate.levels[0].g
+            else:
+                u = bstate.g
+        else:
+            u = g
+        if x == 1:
+            x = u.new_ep("double", 1)
+        elif x is None:
+            x = u.new_ep("double", numpy.random.random(g.num_edges()) - 1/2)
+        super(IsingBaseBlockState, self).__init__(g, s=s, t=t, beta=beta, x=x,
+                                                  aE=aE, nested=nested,
+                                                  state_args=state_args,
+                                                  bstate=bstate,
+                                                  self_loops=self_loops, h=h,
+                                                  has_zero=has_zero, **kwargs)
+    def __setstate__(self, state):
+        beta = state.pop("beta", None)
+        if "x" not in state:
+            state["x"] = 1
+        self.__init__(**state, beta=beta)
+
+    def get_x(self):
+        x = self.x.copy()
+        x.fa *= self.params["beta"]
+        return x
+
+    def _algo_sweep(self, algo, r=.5, p=.1, pstep=1, h=.5, hstep=1, niter=1,
+                    xstep=1, **kwargs):
+        if numpy.random.random() < p:
+            if numpy.random.random() < h:
+                mcmc_state = DictState(dict(beta=kwargs.get("beta", 1),
+                                            hstep=hstep,
+                                            verbose=kwargs.get("verbose", False),
+                                            niter=niter,
+                                            n=numpy.random.randint(len(self.s)),
+                                            state=self._state))
+                return self._mcmc_sweep_h(mcmc_state)
+            else:
+                dS = nt = nm = 0
+                for i in range(niter):
+                    ret = self._move_proposal("beta",
+                                              kwargs.get("beta", 1),
+                                              pstep, None, None,
+                                              kwargs.get("entropy_args", {}))
+                    dS += ret[0]
+                    nt += ret[1]
+                    nm += ret[2]
+                return (dS, nt, nm)
+        else:
+            return super(IsingBaseBlockState, self)._algo_sweep(algo, r,
+                                                                xlog=False,
+                                                                xstep=xstep,
+                                                                xdefault=1,
+                                                                **kwargs)
+
+class PseudoIsingBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        super(PseudoIsingBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_pseudo_ising_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_pseudo_ising_sweep(mcmc_state, self._state,
+                                                    _get_rng())
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_pseudo_ising_sweep_h(mcmc_state, self._state,
+                                                      _get_rng())
+
+class IsingGlauberBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        super(IsingGlauberBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_ising_glauber_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_ising_glauber_sweep(mcmc_state, self._state,
+                                                     _get_rng())
+
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_ising_glauber_sweep_h(mcmc_state, self._state,
+                                                       _get_rng())
+
+class PseudoCIsingBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        super(PseudoCIsingBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_pseudo_cising_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_pseudo_cising_sweep(mcmc_state, self._state,
+                                                     _get_rng())
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_pseudo_cising_sweep_h(mcmc_state, self._state,
+                                                       _get_rng())
+
+class CIsingGlauberBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        super(CIsingGlauberBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_cising_glauber_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_cising_glauber_sweep(mcmc_state, self._state,
+                                                      _get_rng())
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_cising_glauber_sweep_h(mcmc_state, self._state,
+                                                        _get_rng())

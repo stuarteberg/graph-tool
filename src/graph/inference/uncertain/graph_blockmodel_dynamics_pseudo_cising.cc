@@ -23,7 +23,8 @@
 
 #include "../blockmodel/graph_blockmodel.hh"
 #define BASE_STATE_params BLOCK_STATE_params
-#include "graph_blockmodel_uncertain.hh"
+#include "graph_blockmodel_dynamics.hh"
+#include "graph_blockmodel_dynamics_continuous.hh"
 #include "../support/graph_state.hh"
 
 using namespace boost;
@@ -32,11 +33,14 @@ using namespace graph_tool;
 GEN_DISPATCH(block_state, BlockState, BLOCK_STATE_params)
 
 template <class BaseState>
-GEN_DISPATCH(uncertain_state, Uncertain<BaseState>::template UncertainState,
-             UNCERTAIN_STATE_params)
+struct Dyn : Dynamics<BaseState, PseudoCIsingState> {};
 
-python::object make_uncertain_state(boost::python::object oblock_state,
-                                    boost::python::object ouncertain_state)
+template <class BaseState>
+GEN_DISPATCH(dynamics_state, Dyn<BaseState>::template DynamicsState,
+             DYNAMICS_STATE_params)
+
+python::object make_pseudo_cising_state(boost::python::object oblock_state,
+                                       boost::python::object opseudo_cising_state)
 {
     python::object state;
     auto dispatch = [&](auto& block_state)
@@ -44,8 +48,8 @@ python::object make_uncertain_state(boost::python::object oblock_state,
             typedef typename std::remove_reference<decltype(block_state)>::type
             state_t;
 
-            uncertain_state<state_t>::make_dispatch
-                (ouncertain_state,
+            dynamics_state<state_t>::make_dispatch
+                (opseudo_cising_state,
                  [&](auto& s)
                  {
                      state = python::object(s);
@@ -56,30 +60,18 @@ python::object make_uncertain_state(boost::python::object oblock_state,
     return state;
 }
 
-void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                               boost::any aecount);
-
-void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
-                                boost::any aecount, boost::any ax,
-                                boost::any axsum, boost::any ax2sum);
-
-void export_uncertain_state()
+void export_pseudo_cising_state()
 {
     using namespace boost::python;
 
-    class_<uentropy_args_t, bases<entropy_args_t>>("uentropy_args",
-                                                   init<entropy_args_t>())
-        .def_readwrite("latent_edges", &uentropy_args_t::latent_edges)
-        .def_readwrite("density", &uentropy_args_t::density);
-
-    def("make_uncertain_state", &make_uncertain_state);
+    def("make_pseudo_cising_state", &make_pseudo_cising_state);
 
     block_state::dispatch
         ([&](auto* bs)
          {
              typedef typename std::remove_reference<decltype(*bs)>::type block_state_t;
 
-             uncertain_state<block_state_t>::dispatch
+             dynamics_state<block_state_t>::dispatch
                  ([&](auto* s)
                   {
                       typedef typename std::remove_reference<decltype(*s)>::type state_t;
@@ -92,27 +84,24 @@ void export_uncertain_state()
                           .def("remove_edge_dS", &state_t::remove_edge_dS)
                           .def("add_edge_dS", &state_t::add_edge_dS)
                           .def("entropy", &state_t::entropy)
-                          .def("set_q_default", &state_t::set_q_default)
-                          .def("set_S_const", &state_t::set_S_const)
+                          .def("get_node_prob", &state_t::get_node_prob)
                           .def("get_edge_prob",
-                               +[](state_t& state, size_t u, size_t v,
+                               +[](state_t& state, size_t u, size_t v, double x,
                                    uentropy_args_t ea, double epsilon)
                                 {
                                     return get_edge_prob(state, u, v, ea,
-                                                         epsilon);
+                                                         epsilon, x);
                                 })
                           .def("get_edges_prob",
                                +[](state_t& state, python::object edges,
                                    python::object probs, uentropy_args_t ea,
                                    double epsilon)
                                 {
-                                    get_edges_prob(state, edges, probs, ea,
-                                                   epsilon);
-                                });
-
+                                    get_xedges_prob(state, edges, probs, ea,
+                                                    epsilon);
+                                })
+                          .def("set_params", &state_t::set_params);
                   });
          });
 
-    def("collect_marginal", &collect_marginal_dispatch);
-    def("collect_xmarginal", &collect_xmarginal_dispatch);
 }

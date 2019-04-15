@@ -31,8 +31,9 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-template <class Graph, class UGraph, class Eprop>
-void collect_marginal(Graph& g, UGraph& u, Eprop ecount)
+template <class Graph, class UGraph, class Eprop, class Xprop>
+void collect_marginal(Graph& g, UGraph& u, Eprop ecount, Xprop x, Xprop xsum,
+                      Xprop x2sum)
 {
     typedef typename graph_traits<Graph>::edge_descriptor edge_t;
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
@@ -57,12 +58,16 @@ void collect_marginal(Graph& g, UGraph& u, Eprop ecount)
             ge = add_edge(get<0>(vs), get<1>(vs), g).first;
             emap[vs] = ge;
             ecount[ge] = 0;
+            put(xsum, ge, 0);
+            put(x2sum, ge, 0);
         }
         else
         {
             ge = iter->second;
         }
         ecount[ge]++;
+        put(xsum, ge, get(xsum, ge) + get(x, e));
+        put(x2sum, ge, get(x2sum, ge) + get(x, e) * get(x, e));
     }
 }
 

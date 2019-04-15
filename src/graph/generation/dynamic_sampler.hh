@@ -127,7 +127,7 @@ public:
         _n_items--;
     }
 
-    void clear(bool shrink)
+    void clear(bool shrink=false)
     {
         _items.clear();
         _ipos.clear();

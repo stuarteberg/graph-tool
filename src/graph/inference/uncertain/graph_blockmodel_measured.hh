@@ -121,6 +121,7 @@ struct Measured
             _block_state.enable_partition_stats();
         }
 
+        typedef BlockState block_state_t;
         BlockState& _block_state;
         typename BlockState::g_t& _u = _block_state._g;
         typename BlockState::eweight_t& _eweight = _block_state._eweight;
@@ -129,8 +130,6 @@ struct Measured
 
         std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _u_edges;
         std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _edges;
-
-        SBMEdgeSampler<typename BlockState::g_t> _edge_sampler;
 
         double _pe = log(_aE);
         uint64_t _NP = 0;

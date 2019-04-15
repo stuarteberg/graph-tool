@@ -21,6 +21,14 @@
 using namespace boost;
 using namespace graph_tool;
 
+class dummy_property
+{};
+
+template <class Key>
+constexpr double get(dummy_property&, Key&&) { return 0.; }
+
+template <class Key>
+constexpr void put(dummy_property&, Key&&, double) {}
 
 void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
                                boost::any aecount)
@@ -29,7 +37,29 @@ void collect_marginal_dispatch(GraphInterface& gi, GraphInterface& ui,
     auto ecount = any_cast<emap_t>(aecount);
 
     gt_dispatch<>()
-        ([&](auto& g, auto& u) { collect_marginal(g, u, ecount); },
+        ([&](auto& g, auto& u) { collect_marginal(g, u, ecount,
+                                                  dummy_property(),
+                                                  dummy_property(),
+                                                  dummy_property()); },
+         all_graph_views(), all_graph_views())(gi.get_graph_view(),
+                                               ui.get_graph_view());
+}
+
+void collect_xmarginal_dispatch(GraphInterface& gi, GraphInterface& ui,
+                                boost::any ax, boost::any aecount,
+                                boost::any axsum, boost::any ax2sum)
+{
+    typedef eprop_map_t<int32_t>::type emap_t;
+    auto ecount = any_cast<emap_t>(aecount);
+
+    typedef eprop_map_t<double>::type xmap_t;
+    auto x = any_cast<xmap_t>(ax);
+    auto xsum = any_cast<xmap_t>(axsum);
+    auto x2sum = any_cast<xmap_t>(ax2sum);
+
+    gt_dispatch<>()
+        ([&](auto& g, auto& u) { collect_marginal(g, u, ecount,
+                                                  x, xsum, x2sum); },
          all_graph_views(), all_graph_views())(gi.get_graph_view(),
                                                ui.get_graph_view());
 }

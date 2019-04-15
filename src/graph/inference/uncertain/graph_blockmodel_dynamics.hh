@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef GRAPH_BLOCKMODEL_UNCERTAIN_HH
-#define GRAPH_BLOCKMODEL_UNCERTAIN_HH
+#ifndef GRAPH_BLOCKMODEL_DYNAMICS_HH
+#define GRAPH_BLOCKMODEL_DYNAMICS_HH
 
 #include "config.h"
 
@@ -31,35 +31,59 @@ namespace graph_tool
 using namespace boost;
 using namespace std;
 
-#define UNCERTAIN_STATE_params                                                 \
+typedef typename eprop_map_t<double>::type xmap_t;
+
+
+#define DYNAMICS_STATE_params                                                  \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((g, &, all_graph_views, 1))                                               \
-    ((q,, eprop_map_t<double>::type, 0))                                       \
-    ((q_default,, double, 0))                                                  \
-    ((S_const,, double, 0))                                                    \
+    ((params,, python::dict, 0))                                               \
+    ((ot,, python::list, 0))                                                   \
+    ((os,, python::list, 0))                                                   \
+    ((x,, xmap_t, 0))                                                          \
     ((aE,, double, 0))                                                         \
     ((E_prior,, bool, 0))                                                      \
     ((self_loops,, bool, 0))
 
-template <class BlockState>
-struct Uncertain
+
+template <class Type>
+std::vector<typename Type::unchecked_t> from_list(python::object list)
 {
-    GEN_STATE_BASE(UncertainStateBase, UNCERTAIN_STATE_params)
+    vector<typename Type::unchecked_t> v;
+    for (int i = 0; i < python::len(list); ++i)
+    {
+        boost::any a = python::extract<boost::any>(list[i])();
+        v.push_back(boost::any_cast<Type>(a).get_unchecked());
+    }
+    return v;
+};
+
+template <class BlockState, class DState>
+struct Dynamics
+{
+    GEN_STATE_BASE(DynamicsStateBase, DYNAMICS_STATE_params)
 
     template <class... Ts>
-    class UncertainState
-        : public UncertainStateBase<Ts...>
+    class DynamicsState
+        : public DynamicsStateBase<Ts...>
     {
     public:
-        GET_PARAMS_USING(UncertainStateBase<Ts...>,
-                         UNCERTAIN_STATE_params)
-        GET_PARAMS_TYPEDEF(Ts, UNCERTAIN_STATE_params)
+        GET_PARAMS_USING(DynamicsStateBase<Ts...>,
+                         DYNAMICS_STATE_params)
+        GET_PARAMS_TYPEDEF(Ts, DYNAMICS_STATE_params)
+
+        typedef typename DState::tmap_t tmap_t;
+        typedef typename DState::smap_t smap_t;
 
         template <class... ATs,
                   typename std::enable_if_t<sizeof...(ATs) == sizeof...(Ts)>* = nullptr>
-        UncertainState(BlockState& block_state, ATs&&... args)
-            : UncertainStateBase<Ts...>(std::forward<ATs>(args)...),
-              _block_state(block_state)
+        DynamicsState(BlockState& block_state, ATs&&... args)
+            : DynamicsStateBase<Ts...>(std::forward<ATs>(args)...),
+              _block_state(block_state),
+              _t(from_list<tmap_t>(_ot)),
+              _s(from_list<smap_t>(_os)),
+              _dstate(*this, _params),
+              _xc(_x.get_checked())
         {
             _u_edges.resize(num_vertices(_u));
             for (auto e : edges_range(_u))
@@ -67,45 +91,40 @@ struct Uncertain
                 get_u_edge<true>(source(e, _u), target(e, _u)) = e;
                 _E += _eweight[e];
             }
-            _edges.resize(num_vertices(_g));
-            for (auto e : edges_range(_g))
-                get_edge<true>(source(e, _g), target(e, _g)) = e;
             _block_state.enable_partition_stats();
         }
 
-        UncertainState(const UncertainState& other)
-            : UncertainStateBase<Ts...>(static_cast<const UncertainStateBase<Ts...>&>(other)),
+        DynamicsState(const DynamicsState& other)
+            : DynamicsStateBase<Ts...>(static_cast<const DynamicsStateBase<Ts...>&>(other)),
               _block_state(other._block_state),
+              _t(other._t),
+              _s(other._s),
               _u_edges(other._u_edges),
-              _edges(other._edges),
               _pe(other._pe),
-              _E(other._E)
+              _E(other._E),
+              _dstate(*this, _params),
+              _xc(_x.get_checked())
         {
             _block_state.enable_partition_stats();
         }
 
         typedef BlockState block_state_t;
         BlockState& _block_state;
+        std::vector<typename tmap_t::unchecked_t> _t;
+        std::vector<typename smap_t::unchecked_t> _s;
         typename BlockState::g_t& _u = _block_state._g;
         typename BlockState::eweight_t& _eweight = _block_state._eweight;
         GraphInterface::edge_t _null_edge;
         std::vector<double> _recs;
 
         std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _u_edges;
-        std::vector<gt_hash_map<size_t, GraphInterface::edge_t>> _edges;
 
         double _pe = log(_aE);
         size_t _E = 0;
 
-        void set_q_default(double q_default)
-        {
-            _q_default = q_default;
-        }
+        DState _dstate;
 
-        void set_S_const(double S_const)
-        {
-            _S_const = S_const;
-        }
+        xmap_t _xc;
 
         template <bool insert, class Graph, class Elist>
         auto& _get_edge(size_t u, size_t v, Graph& g, Elist& edges)
@@ -127,10 +146,9 @@ struct Uncertain
             return _get_edge<insert>(u, v, _u, _u_edges);
         }
 
-        template <bool insert=false>
-        auto& get_edge(size_t u, size_t v)
+        double get_node_prob(size_t u)
         {
-            return _get_edge<insert>(u, v, _g, _edges);
+            return _dstate.get_node_prob(u);
         }
 
         double entropy(bool latent_edges, bool density)
@@ -138,28 +156,8 @@ struct Uncertain
             double S = 0;
             if (latent_edges)
             {
-                for (auto m : edges_range(_g))
-                {
-                    double q_e = _q[m];
-                    if (q_e == std::numeric_limits<double>::infinity())
-                        continue;
-                    auto& e = get_u_edge<false>(source(m, _g), target(m, _g));
-                    if (e != _null_edge && _eweight[e] > 0 &&
-                        (_self_loops || (source(e, _u) != target(e, _u))))
-                        S += q_e;
-                }
-
-                for (auto e : edges_range(_u))
-                {
-                    auto& m = get_edge<false>(source(e, _u), target(e, _u));
-                    if (m != _null_edge || _eweight[e] == 0 ||
-                        (!_self_loops && source(m, _g) == target(m, _g)))
-                        continue;
-                    if (_q_default == std::numeric_limits<double>::infinity())
-                        continue;
-                    S += _q_default;
-                }
-                S += _S_const;
+                for (auto v : vertices_range(_u))
+                    S += _dstate.get_node_prob(v);
             }
 
             if (density && _E_prior)
@@ -171,9 +169,12 @@ struct Uncertain
         double remove_edge_dS(size_t u, size_t v, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
+            auto x = _xc[e];
             double dS = _block_state.template modify_edge_dS<false>(source(e, _u),
                                                                     target(e, _u),
                                                                     e, _recs, ea);
+            _xc[e] = x;
+
             if (ea.density && _E_prior)
             {
                 dS += _pe;
@@ -184,15 +185,15 @@ struct Uncertain
             {
                 if (_eweight[e] == 1 && (_self_loops || u != v))
                 {
-                    auto& m = get_edge<false>(u, v);
-                    double q_e = (m == _null_edge) ? _q_default : _q[m];
-                    dS += q_e;
+                    dS += _dstate.template get_edge_dS<false>(u, v, _xc[e]);
+                    if (u != v && !graph_tool::is_directed(_u))
+                        dS += _dstate.template get_edge_dS<false>(v, u, _xc[e]);
                 }
             }
             return dS;
         }
 
-        double add_edge_dS(size_t u, size_t v, uentropy_args_t ea)
+        double add_edge_dS(size_t u, size_t v, double x, uentropy_args_t ea)
         {
             auto& e = get_u_edge(u, v);
             double dS = _block_state.template modify_edge_dS<true>(u, v, e,
@@ -207,9 +208,24 @@ struct Uncertain
             {
                 if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
                 {
-                    auto& m = get_edge<false>(u, v);
-                    double q_e = (m == _null_edge) ? _q_default : _q[m];
-                    dS -= q_e;
+                    dS += _dstate.template get_edge_dS<true>(u, v, x);
+                    if (u != v && !graph_tool::is_directed(_u))
+                        dS += _dstate.template get_edge_dS<true>(v, u, x);
+                }
+            }
+            return dS;
+        }
+
+        double update_edge_dS(size_t u, size_t v, double dx, uentropy_args_t ea)
+        {
+            double dS = 0;
+            if (ea.latent_edges)
+            {
+                if (_self_loops || u != v)
+                {
+                    dS += _dstate.template get_edge_dS<true>(u, v, dx);
+                    if (u != v && !graph_tool::is_directed(_u))
+                        dS += _dstate.template get_edge_dS<true>(v, u, dx);
                 }
             }
             return dS;
@@ -218,22 +234,56 @@ struct Uncertain
         void remove_edge(size_t u, size_t v)
         {
             auto& e = get_u_edge(u, v);
+            auto x = _xc[e];
+
             _block_state.template modify_edge<false>(u, v, e,
                                                      _recs);
+
+            if ((e == _null_edge || _eweight[e] == 0) && (_self_loops || u != v))
+            {
+                _dstate.template update_edge<false>(u, v, x);
+                if (u != v && !graph_tool::is_directed(_u))
+                    _dstate.template update_edge<false>(v, u, x);
+            }
+
             _E--;
         }
 
-        void add_edge(size_t u, size_t v)
+        void add_edge(size_t u, size_t v, double x)
         {
             auto& e = get_u_edge<true>(u, v);
             _block_state.template modify_edge<true>(u, v, e,
                                                     _recs);
+
+            if (_eweight[e] == 1 && (_self_loops || u != v))
+            {
+                _xc[e] = x;
+                _dstate.template update_edge<true>(u, v, x);
+                if (u != v && !graph_tool::is_directed(_u))
+                    _dstate.template update_edge<true>(v, u, x);
+            }
             _E++;
         }
 
+        void update_edge(size_t u, size_t v, double dx)
+        {
+            if (_self_loops || u != v)
+            {
+                auto& e = get_u_edge(u, v);
+                _xc[e] += dx;
+                _dstate.template update_edge<true>(u, v, dx);
+                if (u != v && !graph_tool::is_directed(_u))
+                    _dstate.template update_edge<true>(v, u, dx);
+            }
+        }
+
+        void set_params(python::dict params)
+        {
+            _dstate.set_params(params);
+        }
     };
 };
 
 } // graph_tool namespace
 
-#endif //GRAPH_BLOCKMODEL_UNCERTAIN_HH
+#endif //GRAPH_BLOCKMODEL_DYNAMICS_HH

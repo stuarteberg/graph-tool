@@ -55,6 +55,19 @@ libgraph_tool_inference_la_SOURCES = \
     layers/graph_blockmodel_layers_overlap_multicanonical_multiflip.cc \
     layers/graph_blockmodel_layers_overlap_multiflip_mcmc.cc \
     layers/graph_blockmodel_layers_overlap_vacate.cc \
+    uncertain/graph_blockmodel_dynamics_epidemics.cc \
+    uncertain/graph_blockmodel_dynamics_epidemics_mcmc.cc \
+    uncertain/graph_blockmodel_dynamics_epidemics_mcmc_r.cc \
+    uncertain/graph_blockmodel_dynamics_cising_glauber.cc \
+    uncertain/graph_blockmodel_dynamics_cising_glauber_mcmc.cc \
+    uncertain/graph_blockmodel_dynamics_ising_glauber.cc \
+    uncertain/graph_blockmodel_dynamics_ising_glauber_mcmc.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_cising.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_cising_mcmc.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_cising_mcmc_h.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_ising.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc.cc \
+    uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc_h.cc \
     uncertain/graph_blockmodel_measured.cc \
     uncertain/graph_blockmodel_measured_mcmc.cc \
     uncertain/graph_blockmodel_uncertain.cc \
@@ -89,6 +102,11 @@ libgraph_tool_inference_la_include_HEADERS = \
     overlap/graph_blockmodel_overlap_partition.hh \
     layers/graph_blockmodel_layers.hh \
     layers/graph_blockmodel_layers_util.hh \
+    uncertain/graph_blockmodel_dynamics.hh \
+    uncertain/graph_blockmodel_dynamics_discrete.hh \
+    uncertain/graph_blockmodel_dynamics_continuous.hh \
+    uncertain/graph_blockmodel_dynamics_epidemics_mcmc_h.hh \
+    uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc_h.hh \
     uncertain/graph_blockmodel_measured.hh \
     uncertain/graph_blockmodel_uncertain.hh \
     uncertain/graph_blockmodel_uncertain_marginal.hh \

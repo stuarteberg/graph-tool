@@ -108,8 +108,21 @@ extern void export_uncertain_state();
 extern void export_uncertain_mcmc();
 extern void export_measured_state();
 extern void export_measured_mcmc();
+extern void export_epidemics_state();
+extern void export_epidemics_mcmc();
+extern void export_epidemics_mcmc_r();
+extern void export_cising_glauber_state();
+extern void export_cising_glauber_mcmc();
+extern void export_ising_glauber_state();
+extern void export_ising_glauber_mcmc();
 extern void export_marginals();
 extern void export_modularity();
+extern void export_pseudo_cising_state();
+extern void export_pseudo_cising_mcmc();
+extern void export_pseudo_cising_mcmc_h();
+extern void export_pseudo_ising_state();
+extern void export_pseudo_ising_mcmc();
+extern void export_pseudo_ising_mcmc_h();
 
 BOOST_PYTHON_MODULE(libgraph_tool_inference)
 {
@@ -154,8 +167,21 @@ BOOST_PYTHON_MODULE(libgraph_tool_inference)
     export_uncertain_mcmc();
     export_measured_state();
     export_measured_mcmc();
+    export_epidemics_state();
+    export_epidemics_mcmc();
+    export_epidemics_mcmc_r();
+    export_cising_glauber_state();
+    export_cising_glauber_mcmc();
+    export_ising_glauber_state();
+    export_ising_glauber_mcmc();
     export_marginals();
     export_modularity();
+    export_pseudo_cising_state();
+    export_pseudo_cising_mcmc();
+    export_pseudo_cising_mcmc_h();
+    export_pseudo_ising_state();
+    export_pseudo_ising_mcmc();
+    export_pseudo_ising_mcmc_h();
 
     def("vector_map", vector_map<int32_t>);
     def("vector_map64", vector_map<int64_t>);

@@ -25,6 +25,7 @@
 #include "graph_tool.hh"
 #include "../support/graph_state.hh"
 #include "graph_blockmodel_uncertain.hh"
+#include "graph_blockmodel_sample_edge.hh"
 
 namespace graph_tool
 {
@@ -36,8 +37,6 @@ typedef std::vector<size_t> vlist_t;
 #define MCMC_UNCERTAIN_STATE_params(State)                                     \
     ((__class__,&, mpl::vector<python::object>, 1))                            \
     ((state, &, State&, 0))                                                    \
-    ((slist, &, vlist_t&, 0))                                                  \
-    ((tlist, &, vlist_t&, 0))                                                  \
     ((beta,, double, 0))                                                       \
     ((entropy_args,, uentropy_args_t, 0))                                      \
     ((verbose,, bool, 0))                                                      \
@@ -63,38 +62,34 @@ struct MCMC
                                             sizeof...(Ts)>* = nullptr>
         MCMCUncertainState(ATs&&... as)
             : MCMCUncertainStateBase<Ts...>(as...),
-              _vlist(_slist.size())
+              _edge_sampler(_state._block_state),
+              _vlist(num_vertices(_state._u))
         {
-            for (size_t i = 0; i < _vlist.size(); ++i)
-                _vlist[i] = i;
-            _state._edge_sampler.sync(_state._g, _state._block_state);
         }
+
+        SBMEdgeSampler<typename State::block_state_t> _edge_sampler;
 
         std::tuple<size_t, size_t> _e;
         std::vector<size_t> _vlist;
         int _null_move = 0;
 
-        std::pair<size_t, size_t> get_edge(size_t ei)
+        std::tuple<size_t, size_t> get_edge()
         {
-            size_t u = _slist[ei];
-            size_t v = _tlist[ei];
-            if (u >= num_vertices(_state._g))
-                std::tie(u, v) = _e;
-            return {u, v};
+            return _e;
         }
 
         size_t node_state(size_t u, size_t v)
         {
-            auto&& m = _state.get_u_edge(u, v);
-            if (m == _state._null_edge)
+            auto&& e = _state.get_u_edge(u, v);
+            if (e == _state._null_edge)
                 return 0;
-            return _state._eweight[m];
+            return _state._eweight[e];
         }
 
-        size_t node_state(size_t ei)
+        size_t node_state(size_t)
         {
             size_t u, v;
-            std::tie(u, v) = get_edge(ei);
+            std::tie(u, v) = get_edge();
             return node_state(u, v);
         }
 
@@ -111,19 +106,15 @@ struct MCMC
         }
 
         template <class RNG>
-        int move_proposal(size_t ei, RNG& rng)
+        int move_proposal(size_t, RNG& rng)
         {
-            if (_slist[ei] >= num_vertices(_state._g))
-                _e = _state._edge_sampler.sample(rng);
+            _e = _edge_sampler.sample(rng);
 
             std::bernoulli_distribution coin(.5);
-            if (coin(rng))
+            size_t m = node_state(get<0>(_e), get<1>(_e));
+            if (m > 0 && coin(rng))
             {
-                size_t m = node_state(ei);
-                if (m > 0)
-                    return -1;
-                else
-                    return _null_move;
+                return -1;
             }
             else
             {
@@ -132,13 +123,10 @@ struct MCMC
         }
 
         std::tuple<double, double>
-        virtual_move_dS(size_t ei, int dm)
+        virtual_move_dS(size_t, int dm)
         {
-            if (dm == 0)
-                return std::make_tuple(0., 0.);
-
             size_t u, v;
-            std::tie(u, v) = get_edge(ei);
+            std::tie(u, v) = get_edge();
 
             double dS = 0;
             if (dm < 0)
@@ -146,19 +134,39 @@ struct MCMC
             else
                 dS = _state.add_edge_dS(u, v, _entropy_args);
 
-            return std::make_tuple(dS, 0.);
+            size_t m = node_state(u, v);
+            double a = (_edge_sampler.log_prob(u, v, m + dm, dm) -
+                        _edge_sampler.log_prob(u, v, m, 0));
+
+            if (m > 0)
+            {
+                a -= -log(2);
+            }
+            if (m + dm > 0)
+            {
+                a += -log(2);
+            }
+
+            return std::make_tuple(dS, a);
         }
 
-        void perform_move(size_t ei, int dm)
+        void perform_move(size_t, int dm)
         {
             if (dm == 0)
                 return;
             size_t u, v;
-            std::tie(u, v) = get_edge(ei);
+            std::tie(u, v) = get_edge();
+            size_t m = node_state(u, v);
             if (dm < 0)
+            {
+                _edge_sampler.template update_edge<false>(u, v, m);
                 _state.remove_edge(u, v);
+            }
             else
+            {
                 _state.add_edge(u, v);
+                _edge_sampler.template update_edge<true>(u, v, m);
+            }
         }
 
         bool is_deterministic()
