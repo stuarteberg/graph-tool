@@ -74,7 +74,7 @@ auto mcmc_sweep(MCMCState state, RNG& rng)
 
         for (size_t vi = 0; vi < vlist.size(); ++vi)
         {
-            auto&& v = (state.is_sequential()) ?
+            auto v = (state.is_sequential()) ?
                 vlist[vi] : uniform_sample(vlist, rng);
 
             if (state.skip_node(v))

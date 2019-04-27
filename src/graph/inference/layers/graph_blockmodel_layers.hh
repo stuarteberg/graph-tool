@@ -487,9 +487,9 @@ struct Layers
             set_partition(b.get_unchecked());
         }
 
-        bool allow_move(size_t r, size_t nr, bool allow_empty = true)
+        bool allow_move(size_t v, size_t r, size_t nr, bool allow_empty = true)
         {
-            return BaseState::allow_move(r, nr, allow_empty);
+            return BaseState::allow_move(v, r, nr, allow_empty);
         }
 
         template <class MEntries>
@@ -707,7 +707,7 @@ struct Layers
                     entropy_args_t mea = {false, false, false, false, true,
                                           false, false, false,
                                           ea.degree_dl_kind, false, ea.recs_dl,
-                                          ea.beta_dl};
+                                          ea.beta_dl, false};
                     for (auto& state : _layers)
                         S += state.entropy(mea);
                 }

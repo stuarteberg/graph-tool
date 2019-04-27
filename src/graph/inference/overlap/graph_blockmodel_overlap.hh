@@ -206,14 +206,14 @@ public:
         modify_vertex<true>(v, r);
     }
 
-    bool allow_move(size_t r, size_t nr)
+    bool allow_move(size_t, size_t r, size_t nr)
     {
         return (_bclabel[r] == _bclabel[nr]);
     }
 
-    bool allow_move(size_t r, size_t nr, bool)
+    bool allow_move(size_t v, size_t r, size_t nr, bool)
     {
-        return allow_move(r, nr);
+        return allow_move(v, r, nr);
     }
 
     // move a vertex from its current block to block nr
@@ -224,7 +224,7 @@ public:
         if (r == nr)
             return;
 
-        if (!allow_move(r, nr))
+        if (!allow_move(v, r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
         bool r_vacate = (_overlap_stats.virtual_remove_size(v, r) == 0);
@@ -393,7 +393,7 @@ public:
             return 0;
         }
 
-        if (!allow_move(r, nr))
+        if (!allow_move(v, r, nr))
             return std::numeric_limits<double>::infinity();
 
         get_move_entries(v, r, nr, m_entries);

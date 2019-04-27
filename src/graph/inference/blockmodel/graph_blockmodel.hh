@@ -287,8 +287,15 @@ public:
         }
     }
 
-    bool allow_move(size_t r, size_t nr, bool allow_empty = true)
+    bool allow_move(size_t v, size_t r, size_t nr, bool allow_empty = true)
     {
+        if (_coupled_state != nullptr && is_last(v))
+        {
+            auto& bh = _coupled_state->get_b();
+            if (bh[r] != bh[nr])
+                return false;
+        }
+
         if (allow_empty)
             return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
         else
@@ -301,7 +308,7 @@ public:
         if (r == nr)
             return;
 
-        if (!allow_move(r, nr))
+        if (!allow_move(v, r, nr))
             throw ValueException("cannot move vertex across clabel barriers");
 
         get_move_entries(v, r, nr, _m_entries, std::forward<EFilt>(efilt));
@@ -1405,7 +1412,7 @@ public:
     {
         assert(size_t(_b[v]) == r || r == null_group);
 
-        if (r != null_group && nr != null_group && !allow_move(r, nr))
+        if (r != null_group && nr != null_group && !allow_move(v, r, nr))
             return std::numeric_limits<double>::infinity();
 
         get_move_entries(v, r, nr, m_entries, [](auto) { return false; });
@@ -1760,14 +1767,7 @@ public:
             if (_coupled_state != nullptr)
             {
                 auto& hb = _coupled_state->get_b();
-                size_t t;
-                do
-                {
-                    t = _coupled_state->sample_block(_b[v], c, d, rng);
-                }
-                while (!_coupled_state->allow_move(hb[_b[v]], t,
-                                                   _allow_empty));
-                hb[s] = t;
+                hb[s] = hb[_b[v]];
             }
             return s;
         }

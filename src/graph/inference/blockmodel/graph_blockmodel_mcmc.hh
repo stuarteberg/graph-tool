@@ -106,7 +106,7 @@ struct MCMC
 
             size_t s = _state.sample_block(v, _c, _d, rng);
 
-            if (!_state.allow_move(r, s))
+            if (!_state.allow_move(v, r, s))
                 return null_group;
 
             return s;

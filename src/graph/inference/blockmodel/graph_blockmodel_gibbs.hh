@@ -102,7 +102,7 @@ struct Gibbs
                 nr = _state._empty_blocks.back();
             }
             size_t r = _state._b[v];
-            if (!_state.allow_move(r, nr))
+            if (!_state.allow_move(v, r, nr))
                 return numeric_limits<double>::infinity();
             return _state.virtual_move(v, r, nr, _entropy_args, _m_entries);
         }

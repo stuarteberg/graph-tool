@@ -89,17 +89,17 @@ struct MCMC
                               _entropy_args.edges_dl));
             for (auto v : vertices_range(_state._g))
             {
-                if (_state._vweight[v] > 0)
-                {
-                    add_element(_groups[_state._b[v]], _vpos, v);
-                    _N++;
-                }
+                if (_state._vweight[v] == 0)
+                    continue;
+                add_element(_groups[_state._b[v]], _vpos, v);
+                _N++;
             }
 
             for (auto r : vertices_range(_state._bg))
             {
-                if (_state._wr[r] > 0)
-                    add_element(_vlist, _rpos, r);
+                if (_state._wr[r] == 0)
+                    continue;
+                add_element(_vlist, _rpos, r);
             }
         }
 
@@ -129,7 +129,6 @@ struct MCMC
         size_t _t = null_group;
         size_t _u = null_group;
         size_t _v = null_group;
-        std::vector<size_t> _mschanged;
 
         size_t node_state(size_t r)
         {
@@ -155,13 +154,16 @@ struct MCMC
                 _groups.resize(t + 1);
                 _rpos.resize(t + 1);
             }
+
             assert(_state._wr[t] == 0);
             return t;
         }
 
         void move_vertex(size_t v, size_t r)
         {
-            auto s = _state._b[v];
+            size_t s = _state._b[v];
+            if (s == r)
+                return;
             remove_element(_groups[s], _vpos, v);
             _state.move_vertex(v, r);
             add_element(_groups[r], _vpos, v);
@@ -197,7 +199,11 @@ struct MCMC
 
                 if (rt[1] == null_group)
                 {
-                    rt[1] = sample_new_group(v, rng);
+                    if (forward)
+                        rt[1] = sample_new_group(v, rng);
+                    else
+                        rt[1] = (_state.virtual_remove_size(v) == 0) ?
+                            r : sample_new_group(v, rng);
                     dS += _state.virtual_move(v, _state._b[v], rt[1],
                                               _entropy_args);
                     if (forward)
@@ -260,7 +266,7 @@ struct MCMC
                     else
                         ddS = std::numeric_limits<double>::infinity();
 
-                    if (!std::isinf(_beta))
+                    if (!std::isinf(_beta) && !std::isinf(ddS))
                     {
                         double Z = log_sum(0., -ddS * _beta);
                         p[0] = -ddS * _beta - Z;
@@ -303,7 +309,8 @@ struct MCMC
         template <class RNG>
         double split_prob(size_t r, size_t s, RNG& rng)
         {
-            size_t t = sample_new_group(_vs.front(), rng);
+            size_t t = (_state._wr[r] == 0) ? r : s;
+
             for (auto v : _vs)
             {
                 _btemp[v] = _state._b[v];
@@ -366,13 +373,16 @@ struct MCMC
                         else
                             ddS = std::numeric_limits<double>::infinity();
 
-                        double Z = log_sum(0., -ddS * _beta);
+                        if (!std::isinf(ddS))
+                            ddS *= _beta;
+
+                        double Z = log_sum(0., -ddS);
 
                         double p;
                         if ((size_t(_bprev[v]) == r) == (nbv == r_))
                         {
                             _state.move_vertex(v, nbv);
-                            p = -ddS * _beta - Z;
+                            p = -ddS - Z;
                         }
                         else
                         {
@@ -399,6 +409,17 @@ struct MCMC
                 _state.move_vertex(v, _btemp[v]);
 
             return lp;
+        }
+
+        bool allow_merge(size_t r, size_t s)
+        {
+            if (_state._coupled_state != nullptr)
+            {
+                auto& bh = _state._coupled_state->get_b();
+                if (bh[r] != bh[s])
+                    return false;
+            }
+            return _state._bclabel[r] == _state._bclabel[s];
         }
 
 
@@ -481,7 +502,7 @@ struct MCMC
                     _groups.resize(_s + 1);
                     _rpos.resize(_s + 1);
                 }
-                if (r == _s || !_state.allow_move(r, _s))
+                if (r == _s || !_state.allow_move(v, r, _s))
                     return _null_move;
                 _dS = _state.virtual_move(v, r, _s, _entropy_args);
                 if (!std::isinf(_beta))
@@ -527,7 +548,7 @@ struct MCMC
                         size_t v = uniform_sample(_groups[r], rng);
                         _s = _state.sample_block(v, _c, 0, rng);
                     }
-                    if (!_state.allow_move(r, _s))
+                    if (!allow_merge(r, _s))
                     {
                         _nproposals += _groups[r].size() + _groups[_s].size();
                         return _null_move;
@@ -551,6 +572,7 @@ struct MCMC
                 _a = 0;
 
             _nproposals += _vs.size();
+
             return move;
         }
 

@@ -48,7 +48,7 @@ struct entropy_args_t
     bool edges_dl;
     bool recs_dl;
     double beta_dl;
-    double Bfield;
+    bool Bfield;
 };
 
 // Sparse entropy terms
