@@ -142,7 +142,7 @@ class GraphWidget(Gtk.DrawingArea):
         ----------
         g : :class:`~graph_tool.Graph`
             Graph to be drawn.
-        pos : :class:`~graph_tool.PropertyMap`
+        pos : :class:`~graph_tool.VertexPropertyMap`
             Vector-valued vertex property map containing the x and y coordinates of
             the vertices.
         vprops : dict (optional, default: ``None``)
@@ -153,9 +153,9 @@ class GraphWidget(Gtk.DrawingArea):
             Dictionary with the edge properties. Individual properties may also be
             given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
-        vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the vertices are drawn.
-        eorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the edges are drawn.
         nodesfirst : bool (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
@@ -165,7 +165,7 @@ class GraphWidget(Gtk.DrawingArea):
             Parameter ``K`` passed to :func:`~graph_tool.draw.sfdp_layout`.
         multilevel : bool (optional, default: ``False``)
             Parameter ``multilevel`` passed to :func:`~graph_tool.draw.sfdp_layout`.
-        display_props : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``None``)
+        display_props : list of :class:`~graph_tool.VertexPropertyMap` instances (optional, default: ``None``)
             List of properties to be displayed when the mouse passes over a vertex.
         display_props_size : float (optional, default: ``11.``)
             Font size used to display the vertex properties.
@@ -208,11 +208,11 @@ class GraphWidget(Gtk.DrawingArea):
             representing the vertices currently selected, and ``vprops`` and
             ``eprops`` are dictionaries with the vertex and edge properties
             currently being used by the layout.
-        vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
             Parameters following the pattern ``vertex_<prop-name>`` specify the
             vertex property with name ``<prop-name>``, as an alternative to the
             ``vprops`` parameter.
-        edge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+        edge_* : :class:`~graph_tool.EdgePropertyMap` or arbitrary types (optional, default: ``None``)
             Parameters following the pattern ``edge_<prop-name>`` specify the edge
             property with name ``<prop-name>``, as an alternative to the ``eprops``
             parameter.
@@ -1138,7 +1138,7 @@ class GraphWindow(Gtk.Window):
         ----------
         g : :class:`~graph_tool.Graph`
             Graph to be drawn.
-        pos : :class:`~graph_tool.PropertyMap`
+        pos : :class:`~graph_tool.VertexPropertyMap`
             Vector-valued vertex property map containing the x and y coordinates of
             the vertices.
         geometry : tuple
@@ -1151,9 +1151,9 @@ class GraphWindow(Gtk.Window):
             Dictionary with the edge properties. Individual properties may also be
             given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
             the name of the property.
-        vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the vertices are drawn.
-        eorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             If provided, defines the relative order in which the edges are drawn.
         nodesfirst : bool (optional, default: ``False``)
             If ``True``, the vertices are drawn first, otherwise the edges are.
@@ -1190,7 +1190,7 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be drawn.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices. If not given, it will be computed using :func:`sfdp_layout`.
     vprops : dict (optional, default: ``None``)
@@ -1201,9 +1201,9 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
         Dictionary with the vertex properties. Individual properties may also be
         given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
-    vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the vertices are drawn.
-    eorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the edges are drawn.
     nodesfirst : bool (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
@@ -1221,9 +1221,9 @@ def interactive_window(g, pos=None, vprops=None, eprops=None, vorder=None,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         Vector vertex property map with the x and y coordinates of the vertices.
-    selected : :class:`~graph_tool.PropertyMap` (optional, only if ``output is None``)
+    selected : :class:`~graph_tool.VertexPropertyMap` (optional, only if ``output is None``)
         Boolean-valued vertex property map marking the vertices which were
         selected interactively.
 

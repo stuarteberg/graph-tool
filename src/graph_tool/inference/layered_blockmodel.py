@@ -56,10 +56,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    ec : :class:`~graph_tool.PropertyMap` Edge :class:`~graph_tool.PropertyMap`
-        containing discrete edge covariates that will split the network in
-        discrete layers.
-    recs : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``[]``)
+    ec : :class:`~graph_tool.EdgePropertyMap`
+        Edge property map containing discrete edge covariates that will split
+        the network in discrete layers.
+    recs : list of :class:`~graph_tool.EdgePropertyMap` instances (optional, default: ``[]``)
         List of real or discrete-valued edge covariates.
     rec_types : list of edge covariate types (optional, default: ``[]``)
         List of types of edge covariates. The possible types are:
@@ -69,20 +69,20 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         Model hyperparameters for edge covariates. This should a list of
         ``dict`` instances. See :class:`~graph_tool.inference.blockmodel.BlockState` for
         more details.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge multiplicities (for multigraphs or block graphs).
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex multiplicities (for block graphs).
-    b : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
+    b : :class:`~graph_tool.VertexPropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
         Initial block labels on the vertices or half-edges. If not supplied, it
         will be randomly sampled.
     B : ``int`` (optional, default: ``None``)
         Number of blocks (or vertex groups). If not supplied it will be obtained
         from the parameter ``b``.
-    clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
-    pclabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pclabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Partition constraint labels on the vertices. This has the same
         interpretation as ``clabel``, but will be used to compute the partition
         description length.
@@ -100,6 +100,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this value, a sparse matrix is used for
         the block graph. Otherwise a dense matrix will be used.
+
     """
 
     def __init__(self, g, ec, eweight=None, vweight=None, recs=[], rec_types=[],
@@ -725,16 +726,16 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
         Returns
         -------
-        bv : :class:`~graph_tool.PropertyMap`
+        bv : :class:`~graph_tool.VertexPropertyMap`
            A vector-valued vertex property map containing the block memberships
            of each node.
-        bc_in : :class:`~graph_tool.PropertyMap`
+        bc_in : :class:`~graph_tool.VertexPropertyMap`
            The labelled in-degrees of each node, i.e. how many in-edges belong
            to each group, in the same order as the ``bv`` property above.
-        bc_out : :class:`~graph_tool.PropertyMap`
+        bc_out : :class:`~graph_tool.VertexPropertyMap`
            The labelled out-degrees of each node, i.e. how many out-edges belong
            to each group, in the same order as the ``bv`` property above.
-        bc_total : :class:`~graph_tool.PropertyMap`
+        bc_total : :class:`~graph_tool.VertexPropertyMap`
            The labelled total degrees of each node, i.e. how many incident edges
            belong to each group, in the same order as the ``bv`` property above.
 

@@ -184,8 +184,8 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'ipython': ('https://ipython.org/ipython-doc/stable/', None),
                        'panda': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
 
-extlinks_fancy = {'ticket': (['https://graph-tool.skewed.de/tickets/ticket/{0}'],
-                             ['ticket {0}']),
+extlinks_fancy = {'issue': (['https://git.skewed.de/count0/graph-tool/issues/{0}'],
+                             ['issue #{0}']),
                   'doi': (['https://dx.doi.org/{0}',
                            'https://sci-hub.tw/{0}',
                            'https://scihub22266oqcxt.onion.link/{0}'],

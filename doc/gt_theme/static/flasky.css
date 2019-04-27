@@ -392,13 +392,13 @@ ol.arabic li dl dt {
     background-color: inherit;
 }
 
-.brackets:before {
-  content: "[";
-}
+/* .brackets:before { */
+/*   content: "["; */
+/* } */
 
-.brackets:after {
-  content: "]";
-}
+/* .brackets:after { */
+/*   content: "]"; */
+/* } */
 
 .fn-backref {
     margin-right: 10px;

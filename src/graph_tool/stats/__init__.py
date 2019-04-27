@@ -68,7 +68,7 @@ def vertex_hist(g, deg, bins=[0, 1], float_count=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : string or :class:`~graph_tool.PropertyMap`
+    deg : string or :class:`~graph_tool.VertexPropertyMap`
         Degree or property to be used for the histogram. It can be either "in",
         "out" or "total", for in-, out-, or total degree of the vertices. It can
         also be a vertex property map.
@@ -132,7 +132,7 @@ def edge_hist(g, eprop, bins=[0, 1], float_count=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    eprop : :class:`~graph_tool.PropertyMap`
+    eprop : :class:`~graph_tool.EdgePropertyMap`
         Edge property to be used for the histogram.
     bins : list of bins (optional, default: [0, 1])
         List of bins to be used for the histogram. The values given represent
@@ -196,7 +196,7 @@ def vertex_average(g, deg):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : string or :class:`~graph_tool.PropertyMap`
+    deg : string or :class:`~graph_tool.VertexPropertyMap`
         Degree or property to be used for the histogram. It can be either "in",
         "out" or "total", for in-, out-, or total degree of the vertices. It can
         also be a vertex property map.
@@ -257,7 +257,7 @@ def edge_average(g, eprop):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    eprop : :class:`~graph_tool.PropertyMap`
+    eprop : :class:`~graph_tool.EdgePropertyMap`
         Edge property to be used for the histogram.
 
     Returns
@@ -325,7 +325,7 @@ def label_parallel_edges(g, mark_only=False, eprop=None):
     vertices. For each parallel edge set :math:`PE`, the labelling starts from 0
     to :math:`|PE|-1`. If `mark_only==True`, all parallel edges are simply
     marked with the value 1. If the `eprop` parameter is given (a
-    :class:`~graph_tool.PropertyMap`), the labelling is stored there."""
+    :class:`~graph_tool.EdgePropertyMap`), the labelling is stored there."""
     if eprop is None:
         if mark_only:
             eprop = g.new_edge_property("bool")
@@ -349,7 +349,7 @@ def label_self_loops(g, mark_only=False, eprop=None):
     the same. For each self-loop edge set :math:`SL`, the labelling starts from 0
     to :math:`|SL|-1`. If `mark_only == True`, self-loops are labeled with 1
     and others with 0. If the `eprop` parameter is given
-    (a :class:`~graph_tool.PropertyMap`), the labelling is stored there."""
+    (a :class:`~graph_tool.EdgePropertyMap`), the labelling is stored there."""
 
     if eprop is None:
         if mark_only:
@@ -377,7 +377,7 @@ def distance_histogram(g, weight=None, bins=[0, 1], samples=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge weights.
     bins : list of bins (optional, default: `[0, 1]`)
         List of bins to be used for the histogram. The values given represent

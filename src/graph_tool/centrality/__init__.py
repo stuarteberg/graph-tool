@@ -69,12 +69,12 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
         Graph to be used.
     damping : float, optional (default: 0.85)
         Damping factor.
-    pers : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    pers : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
         Personalization vector. If omitted, a constant value of :math:`1/N`
         will be used.
-    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge weights. If omitted, a constant value of 1 will be used.
-    prop : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    prop : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
         Vertex property map to store the PageRank values. If supplied, it will
         be used uninitialized.
     epsilon : float, optional (default: 1e-6)
@@ -87,7 +87,7 @@ def pagerank(g, damping=0.85, pers=None, weight=None, prop=None, epsilon=1e-6,
 
     Returns
     -------
-    pagerank : :class:`~graph_tool.PropertyMap`
+    pagerank : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the PageRank values.
 
     See Also
@@ -243,11 +243,11 @@ def betweenness(g, pivots=None, vprop=None, eprop=None, weight=None, norm=True):
         this list as pivots. If the list contains all nodes (the default) the
         algorithm will be exact, and if the vertices are randomly chosen the
         result will be an unbiased estimator.
-    vprop : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: None)
         Vertex property map to store the vertex betweenness values.
-    eprop : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    eprop : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge property map to store the edge betweenness values.
-    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge property map corresponding to the weight value of each edge.
     norm : bool, optional (default: True)
         Whether or not the betweenness values should be normalized.
@@ -365,11 +365,11 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge property map corresponding to the weight value of each edge.
     source : :class:`~graph_tool.Vertex`, optional (default: ``None``)
         If specified, the centrality is computed for this vertex alone.
-    vprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map to store the vertex centrality values.
     norm : bool, optional (default: ``True``)
         Whether or not the centrality values should be normalized.
@@ -379,7 +379,7 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
 
     Returns
     -------
-    vertex_closeness : :class:`~graph_tool.PropertyMap`
+    vertex_closeness : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the vertex closeness values.
 
     See Also
@@ -491,15 +491,14 @@ def closeness(g, weight=None, source=None, vprop=None, norm=True, harmonic=False
 
 
 def central_point_dominance(g, betweenness):
-    r"""
-    Calculate the central point dominance of the graph, given the betweenness
+    r"""Calculate the central point dominance of the graph, given the betweenness
     centrality of each vertex.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    betweenness : :class:`~graph_tool.PropertyMap`
+    betweenness : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the betweenness centrality values. The values
         must be normalized.
 
@@ -539,8 +538,8 @@ def central_point_dominance(g, betweenness):
     References
     ----------
     .. [freeman-set-1977] Linton C. Freeman, "A Set of Measures of Centrality
-       Based on Betweenness", Sociometry, Vol. 40, No. 1,  pp. 35-41, 1977,
-       `http://www.jstor.org/stable/3033543 <http://www.jstor.org/stable/3033543>`_
+       Based on Betweenness", Sociometry, Vol. 40, No. 1, pp. 35-41, 1977,
+       :doi:`10.2307/3033543`
     """
 
     return libgraph_tool_centrality.\
@@ -557,9 +556,9 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
-    vprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the values of eigenvector must be stored. If
         provided, it will be used uninitialized.
     epsilon : float, optional (default: ``1e-6``)
@@ -572,7 +571,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
     -------
     eigenvalue : float
         The largest eigenvalue of the (weighted) adjacency matrix.
-    eigenvector : :class:`~graph_tool.PropertyMap`
+    eigenvector : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the eigenvector values.
 
     See Also
@@ -677,15 +676,15 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
     alpha : float, optional (default: ``0.01``)
         Free parameter :math:`\alpha`. This must be smaller than the inverse of
         the largest eigenvalue of the adjacency matrix.
-    beta : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    beta : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the local personalization values. If not
         provided, the global value of 1 will be used.
-    vprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the values of eigenvector must be stored. If
         provided, it will be used uninitialized.
     epsilon : float, optional (default: ``1e-6``)
@@ -698,7 +697,7 @@ def katz(g, alpha=0.01, beta=None, weight=None, vprop=None, epsilon=1e-6,
 
     Returns
     -------
-    centrality : :class:`~graph_tool.PropertyMap`
+    centrality : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the Katz centrality values.
 
     See Also
@@ -795,11 +794,11 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map with the edge weights.
-    xprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    xprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the authority centrality must be stored.
-    yprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    yprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the hub centrality must be stored.
     epsilon : float, optional (default: ``1e-6``)
         Convergence condition. The iteration will stop if the total delta of all
@@ -811,9 +810,9 @@ def hits(g, weight=None, xprop=None, yprop=None, epsilon=1e-6, max_iter=None):
     -------
     eig : `float`
         The largest eigenvalue of the cocitation matrix.
-    x : :class:`~graph_tool.PropertyMap`
+    x : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the authority centrality values.
-    y : :class:`~graph_tool.PropertyMap`
+    y : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the hub centrality values.
 
     See Also
@@ -932,10 +931,10 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    trust_map : :class:`~graph_tool.PropertyMap`
+    trust_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the values of trust associated with each
         edge. The values must lie in the range [0,1].
-    vprop : :class:`~graph_tool.PropertyMap`, optional (default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap`, optional (default: ``None``)
         Vertex property map where the values of eigentrust must be stored.
     norm : bool, optional (default:  ``False``)
         Norm eigentrust values so that the total sum equals 1.
@@ -949,7 +948,7 @@ def eigentrust(g, trust_map, vprop=None, norm=False, epsilon=1e-6, max_iter=0,
 
     Returns
     -------
-    eigentrust : :class:`~graph_tool.PropertyMap`
+    eigentrust : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map containing the eigentrust values.
 
     See Also
@@ -1049,7 +1048,7 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    trust_map : :class:`~graph_tool.PropertyMap`
+    trust_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the values of trust associated with each
         edge. The values must lie in the range [0,1].
     source : :class:`~graph_tool.Vertex` (optional, default: None)
@@ -1058,13 +1057,13 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
     target : :class:`~graph_tool.Vertex` (optional, default: None)
         The only target for which the trust value will be calculated. If left
         unspecified, the trust values for all targets are computed.
-    vprop : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         A vertex property map where the values of transitive trust must be
         stored.
 
     Returns
     -------
-    trust_transitivity : :class:`~graph_tool.PropertyMap` or float
+    trust_transitivity : :class:`~graph_tool.VertexPropertyMap` or float
         A vertex vector property map containing, for each source vertex, a
         vector with the trust values for the other vertices. If only one of
         `source` or `target` is specified, this will be a single-valued vertex

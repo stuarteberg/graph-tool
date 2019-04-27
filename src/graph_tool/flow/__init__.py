@@ -100,14 +100,14 @@ def edmonds_karp_max_flow(g, source, target, capacity, residual=None):
         The source vertex.
     target : Vertex
         The target (or "sink") vertex.
-    capacity : :class:`~graph_tool.PropertyMap`
+    capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.PropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
         Edge property map where the residuals should be stored.
 
     Returns
     -------
-    residual : :class:`~graph_tool.PropertyMap`
+    residual : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the residual capacities (capacity - flow).
 
     Notes
@@ -197,14 +197,14 @@ def push_relabel_max_flow(g, source, target, capacity, residual=None):
         The source vertex.
     target : Vertex
         The target (or "sink") vertex.
-    capacity : :class:`~graph_tool.PropertyMap`
+    capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.PropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
         Edge property map where the residuals should be stored.
 
     Returns
     -------
-    residual : :class:`~graph_tool.PropertyMap`
+    residual : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the residual capacities (capacity - flow).
 
     Notes
@@ -274,14 +274,14 @@ def boykov_kolmogorov_max_flow(g, source, target, capacity, residual=None):
         The source vertex.
     target : Vertex
         The target (or "sink") vertex.
-    capacity : :class:`~graph_tool.PropertyMap`
+    capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.PropertyMap` (optional, default: none)
+    residual : :class:`~graph_tool.EdgePropertyMap` (optional, default: none)
         Edge property map where the residuals should be stored.
 
     Returns
     -------
-    residual : :class:`~graph_tool.PropertyMap`
+    residual : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the residual capacities (capacity - flow).
 
     Notes
@@ -357,14 +357,14 @@ def min_st_cut(g, source, capacity, residual):
         Graph to be used.
     source : Vertex
         The source vertex.
-    capacity : :class:`~graph_tool.PropertyMap`
+    capacity : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge capacities.
-    residual : :class:`~graph_tool.PropertyMap`
+    residual : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the residual capacities (capacity - flow).
 
     Returns
     -------
-    partition : :class:`~graph_tool.PropertyMap`
+    partition : :class:`~graph_tool.EdgePropertyMap`
         Boolean-valued vertex property map with the cut partition. Vertices with
         value `True` belong to the source side of the cut.
 
@@ -441,14 +441,14 @@ def min_cut(g, weight):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the edge weights.
 
     Returns
     -------
     min_cut : float
         The value of the minimum cut.
-    partition : :class:`~graph_tool.PropertyMap`
+    partition : :class:`~graph_tool.VertexPropertyMap`
         Boolean-valued vertex property map with the cut partition.
 
     Notes

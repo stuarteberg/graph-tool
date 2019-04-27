@@ -138,7 +138,7 @@ def random_graph(N, deg_sampler, directed=True,
     -------
     random_graph : :class:`~graph_tool.Graph`
         The generated graph.
-    blocks : :class:`~graph_tool.PropertyMap`
+    blocks : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the block values. This is only returned if
         ``block_membership is not None``.
 
@@ -549,7 +549,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         respective vertices, as specified via the ``block_membership``
         parameter. The value of ``p`` should be a number proportional to the
         probability of such an edge existing in the generated graph.
-    block_membership : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    block_membership : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If supplied, the graph will be rewired to conform to a blockmodel
         ensemble. The value must be a vertex property map which defines the
         block of each vertex.
@@ -567,7 +567,7 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
         some probabilistic models, and should be sufficiently fast for sparse
         graphs, but otherwise it may result in many repeated attempts for
         certain corner-cases in which edges are difficult to swap.
-    pin : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pin : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map which, if provided, specifies which edges are allowed
         to be rewired. Edges for which the property value is ``1`` (or ``True``)
         will be left unmodified in the graph.
@@ -1142,7 +1142,7 @@ def graph_union(g1, g2, intersection=None, props=None, include=False,
        First graph in the union.
     g2 : :class:`~graph_tool.Graph`
        Second graph in the union.
-    intersection : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    intersection : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
        Vertex property map owned by `g2` which maps each of its vertices
        to vertex indexes belonging to `g1`. Negative values mean no mapping
        exists, and thus both vertices in `g1` and `g2` will be present in the
@@ -1358,7 +1358,7 @@ def triangulation(points, type="simple", periodic=False):
     -------
     triangulation_graph : :class:`~graph_tool.Graph`
         The generated graph.
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the Cartesian coordinates.
 
     See Also
@@ -1651,7 +1651,7 @@ def geometric_graph(points, radius, ranges=None):
     -------
     geometric_graph : :class:`~graph_tool.Graph`
         The generated graph.
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the position of each vertex.
 
     Notes
@@ -1890,16 +1890,16 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    prop : :class:`~graph_tool.PropertyMap`
+    prop : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the community partition.
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the optional vertex weights.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge property map with the optional edge weights.
-    avprops : list of :class:`~graph_tool.PropertyMap` (optional, default: None)
+    avprops : list of :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         If provided, the sum of each property map in this list for
         each vertex in the condensed graph will be computed and returned.
-    aeprops : list of :class:`~graph_tool.PropertyMap` (optional, default: None)
+    aeprops : list of :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         If provided, the sum of each property map in this list for
         each edge in the condensed graph will be computed and returned.
     self_loops : ``bool`` (optional, default: ``False``)
@@ -1914,16 +1914,16 @@ def condensation_graph(g, prop, vweight=None, eweight=None, avprops=None,
     -------
     condensation_graph : :class:`~graph_tool.Graph`
         The community network
-    prop : :class:`~graph_tool.PropertyMap`
+    prop : :class:`~graph_tool.VertexPropertyMap`
         The community values.
-    vcount : :class:`~graph_tool.PropertyMap`
+    vcount : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the vertex count for each community.
-    ecount : :class:`~graph_tool.PropertyMap`
+    ecount : :class:`~graph_tool.EdgePropertyMap`
         An edge property map with the inter-community edge count for each edge.
-    va : list of :class:`~graph_tool.PropertyMap`
+    va : list of :class:`~graph_tool.VertexPropertyMap`
         A list of vertex property maps with summed values of the properties
         passed via the ``avprops`` parameter.
-    ea : list of :class:`~graph_tool.PropertyMap`
+    ea : list of :class:`~graph_tool.EdgePropertyMap`
         A list of edge property maps with summed values of the properties
         passed via the ``avprops`` parameter.
 

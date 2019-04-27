@@ -1193,7 +1193,7 @@ def infect_vertex_property(g, prop, vals=None):
 
     Parameters
     ----------
-    prop : :class:`~graph_tool.PropertyMap`
+    prop : :class:`~graph_tool.VertexPropertyMap`
         Property map to be modified.
     vals : list (optional, default: `None`)
         List of values to be propagated. If not provided, all values
@@ -1225,17 +1225,17 @@ def edge_endpoint_property(g, prop, endpoint, eprop=None):
 
     Parameters
     ----------
-    prop : :class:`~graph_tool.PropertyMap`
+    prop : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map to be used to propagated to the edge.
     endpoint : `"source"` or `"target"`
         Edge endpoint considered. If the graph is undirected, the source is
         always the vertex with the lowest index.
-    eprop : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    eprop : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If provided, the resulting edge properties will be stored here.
 
     Returns
     -------
-    eprop : :class:`~graph_tool.PropertyMap`
+    eprop : :class:`~graph_tool.EdgePropertyMap`
         Propagated edge property.
 
     Examples
@@ -1283,14 +1283,14 @@ def incident_edges_op(g, direction, op, eprop, vprop=None):
         Direction of the incident edges.
     op : `"sum"`, `"prod"`, `"min"` or `"max"`
         Operation performed on incident edges.
-    eprop : :class:`~graph_tool.PropertyMap`
+    eprop : :class:`~graph_tool.EdgePropertyMap`
         Edge property map to be summed.
-    vprop : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
         If provided, the resulting vertex properties will be stored here.
 
     Returns
     -------
-    vprop : :class:`~graph_tool.PropertyMap`
+    vprop : :class:`~graph_tool.VertexPropertyMap`
         Resulting vertex property.
 
     Examples
@@ -1581,7 +1581,7 @@ class Graph(object):
     filters, respectively.
 
     If ``vorder`` is specified, it should correspond to a vertex
-    :class:`~graph_tool.PropertyMap` specifying the ordering of the vertices in
+    :class:`~graph_tool.VertexPropertyMap` specifying the ordering of the vertices in
     the copied graph.
 
     The graph is implemented as an `adjacency list`_, where both vertex and edge
@@ -1842,7 +1842,7 @@ class Graph(object):
         >>> g.add_vertex(5)
         <...>
         >>> g.get_vertices()
-        array([0, 1, 2, 3, 4], dtype=uint64)
+        array([0, 1, 2, 3, 4])
 
         """
         vertices = libcore.get_vertex_list(self.__graph, 0,
@@ -1949,9 +1949,9 @@ class Graph(object):
         --------
         >>> g = gt.random_graph(6, lambda: 1, directed=False)
         >>> g.get_edges([g.edge_index])
-        array([[2, 1, 2],
-               [3, 4, 0],
-               [5, 0, 1]])
+        array([[0, 3, 2],
+               [1, 4, 1],
+               [2, 5, 0]])
         """
         edges = libcore.get_edge_list(self.__graph, 0,
                                       [ep._get_any() for ep in eprops])
@@ -2038,8 +2038,7 @@ class Graph(object):
         >>> g.get_in_edges(66, [g.edge_index])
         array([[  8687,     66, 179681],
                [ 20369,     66, 255033],
-               [ 38674,     66, 300230]], dtype=uint64)
-
+               [ 38674,     66, 300230]])
         """
         edges = libcore.get_in_edge_list(self.__graph, int(v),
                                           [ep._get_any() for ep in eprops])
@@ -2082,7 +2081,7 @@ class Graph(object):
         >>> g.get_all_edges(66, [g.edge_index])
         array([[  8687,     66, 179681],
                [ 20369,     66, 255033],
-               [ 38674,     66, 300230]], dtype=uint64)
+               [ 38674,     66, 300230]])
 
         """
         edges = libcore.get_all_edge_list(self.__graph, int(v),
@@ -2126,7 +2125,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_out_neighbors(66)
-        array([   63, 20369, 13980,  8687, 38674], dtype=uint64)
+        array([   63, 20369, 13980,  8687, 38674])
 
         """
         vertices = libcore.get_out_neighbors_list(self.__graph, int(v),
@@ -2175,7 +2174,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_in_neighbors(66)
-        array([ 8687, 20369, 38674], dtype=uint64)
+        array([ 8687, 20369, 38674])
 
         """
         vertices = libcore.get_in_neighbors_list(self.__graph, int(v),
@@ -2224,7 +2223,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_all_neighbors(66)
-        array([ 8687, 20369, 38674], dtype=uint64)
+        array([ 8687, 20369, 38674])
 
         """
         vertices = libcore.get_all_neighbors_list(self.__graph, int(v),
@@ -2240,13 +2239,13 @@ class Graph(object):
     def get_out_degrees(self, vs, eweight=None):
         """Return a :class:`numpy.ndarray` containing the out-degrees of vertex list
         ``vs``. If supplied, the degrees will be weighted according to the edge
-        :class:`~graph_tool.PropertyMap` ``eweight``.
+        :class:`~graph_tool.EdgePropertyMap` ``eweight``.
 
         Examples
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_out_degrees([42, 666])
-        array([20, 38], dtype=uint64)
+        array([20, 38])
 
         """
         return libcore.get_degree_list(self.__graph,
@@ -2256,13 +2255,13 @@ class Graph(object):
     def get_in_degrees(self, vs, eweight=None):
         """Return a :class:`numpy.ndarray` containing the in-degrees of vertex list
         ``vs``. If supplied, the degrees will be weighted according to the edge
-        :class:`~graph_tool.PropertyMap` ``eweight``.
+        :class:`~graph_tool.EdgePropertyMap` ``eweight``.
 
         Examples
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_in_degrees([42, 666])
-        array([20, 39], dtype=uint64)
+        array([20, 39])
 
         """
         return libcore.get_degree_list(self.__graph,
@@ -2571,7 +2570,7 @@ class Graph(object):
                             .. note::
 
                                 Like :attr:`~graph_tool.Graph.edge_index`, this
-                                is a special instance of a :class:`~graph_tool.PropertyMap`
+                                is a special instance of a :class:`~graph_tool.VertexPropertyMap`
                                 class, which is **immutable**, and cannot be
                                 accessed as an array.""")
 
@@ -2585,7 +2584,7 @@ class Graph(object):
                             .. note::
 
                                 Like :attr:`~graph_tool.Graph.vertex_index`, this
-                                is a special instance of a :class:`~graph_tool.PropertyMap`
+                                is a special instance of a :class:`~graph_tool.EdgePropertyMap`
                                 class, which is **immutable**, and cannot be
                                 accessed as an array.
 
@@ -2770,7 +2769,7 @@ class Graph(object):
     def degree_property_map(self, deg, weight=None):
         """Create and return a vertex property map containing the degree type
         given by ``deg``, which can be any of ``"in"``, ``"out"``, or ``"total"``.
-        If provided, ``weight`` should be an edge :class:`~graph_tool.PropertyMap`
+        If provided, ``weight`` should be an edge :class:`~graph_tool.EdgePropertyMap`
         containing the edge weights which should be summed."""
         pmap = self.__graph.degree_map(_to_str(deg), _prop("e", self, weight))
         return VertexPropertyMap(pmap, self)
@@ -3556,7 +3555,7 @@ def _all_neighbors(self):
 
 def _in_degree(self, weight=None):
     """Return the in-degree of the vertex. If provided, ``weight`` should be a
-    scalar edge :class:`~graph_tool.PropertyMap`, and the in-degree will
+    scalar edge :class:`~graph_tool.EdgePropertyMap`, and the in-degree will
     correspond to the sum of the weights of the in-edges.
     """
 
@@ -3567,7 +3566,7 @@ def _in_degree(self, weight=None):
 
 def _out_degree(self, weight=None):
     """Return the out-degree of the vertex. If provided, ``weight`` should be a
-    scalar edge :class:`~graph_tool.PropertyMap`, and the out-degree will
+    scalar edge :class:`~graph_tool.EdgePropertyMap`, and the out-degree will
     correspond to the sum of the weights of the out-edges.
     """
 

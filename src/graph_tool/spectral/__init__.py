@@ -62,24 +62,24 @@ def adjacency(g, weight=None, index=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: True)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: True)
         Edge property map with the edge weights.
-    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map specifying the row/column indexes. If not provided, the
         internal vertex index is used.
 
     Returns
     -------
-    a : :class:`~scipy.sparse.csr_matrix`
+    A : :class:`~scipy.sparse.csr_matrix`
         The (sparse) adjacency matrix.
 
     Notes
     -----
-    The adjacency matrix is defined as
+    For undirected graphs, the adjacency matrix is defined as
 
     .. math::
 
-        a_{i,j} =
+        A_{ij} =
         \begin{cases}
             1 & \text{if } (j, i) \in E, \\
             2 & \text{if } i = j \text{ and } (i, i) \in E, \\
@@ -88,16 +88,27 @@ def adjacency(g, weight=None, index=None):
 
     where :math:`E` is the edge set.
 
+    For directed graphs, we have instead simply
+
+    .. math::
+
+        A_{ij} =
+        \begin{cases}
+            1 & \text{if } (j, i) \in E, \\
+            0 & \text{otherwise}.
+        \end{cases}
+
     In the case of weighted edges, the entry values are multiplied by the weight
     of the respective edge.
 
     In the case of networks with parallel edges, the entries in the matrix
-    become simply the edge multiplicities (or twice them for the diagonal).
+    become simply the edge multiplicities (or twice them for the diagonal, for
+    undirected graphs).
 
     .. note::
 
         For directed graphs the definition above means that the entry
-        :math:`a_{i,j}` corresponds to the directed edge :math:`j\to
+        :math:`A_{ij}` corresponds to the directed edge :math:`j\to
         i`. Although this is a typical definition in network and graph theory
         literature, many also use the transpose of this matrix.
 
@@ -136,6 +147,7 @@ def adjacency(g, weight=None, index=None):
     References
     ----------
     .. [wikipedia-adjacency] http://en.wikipedia.org/wiki/Adjacency_matrix
+
     """
 
     if index is None:
@@ -176,9 +188,9 @@ def laplacian(g, deg="total", normalized=False, weight=None, index=None):
         Degree to be used, in case of a directed graph.
     normalized : bool (optional, default: False)
         Whether to compute the normalized Laplacian.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: True)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: True)
         Edge property map with the edge weights.
-    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map specifying the row/column indexes. If not provided, the
         internal vertex index is used.
 
@@ -328,10 +340,10 @@ def incidence(g, vindex=None, eindex=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    vindex : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    vindex : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map specifying the row indexes. If not provided, the
         internal vertex index is used.
-    eindex : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    eindex : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge property map specifying the column indexes. If not provided, the
         internal edge index is used.
 
@@ -421,9 +433,9 @@ def transition(g, weight=None, index=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: True)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: True)
         Edge property map with the edge weights.
-    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map specifying the row/column indexes. If not provided, the
         internal vertex index is used.
 
@@ -523,9 +535,9 @@ def modularity_matrix(g, weight=None, index=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: True)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: True)
         Edge property map with the edge weights.
-    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map specifying the row/column indexes. If not provided, the
         internal vertex index is used.
 
@@ -627,9 +639,12 @@ def hashimoto(g, index=None, compact=False):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    index : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    index : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Edge property map specifying the row/column indexes. If not provided, the
         internal edge index is used.
+    compact : ``boolean`` (optional, default: ``False``)
+        If ``True``, a compact :math:`2|V|\times 2|V|` version of the matrix is
+        returned.
 
     Returns
     -------
@@ -707,6 +722,7 @@ def hashimoto(g, index=None, compact=False):
        Joe Neeman, Allan Sly, Lenka Zdeborová, and Pan Zhang, "Spectral redemption
        in clustering sparse networks", PNAS 110 (52) 20935-20940, 2013.
        :doi:`10.1073/pnas.1312486110`, :arxiv:`1306.5550`
+
     """
 
     if compact:

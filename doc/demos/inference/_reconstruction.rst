@@ -5,11 +5,12 @@ An important application of generative models is to be able to
 generalize from observations and make predictions that go beyond what is
 seen in the data. This is particularly useful when the network we
 observe is incomplete, or contains errors, i.e. some of the edges are
-either missing or are outcomes of mistakes in measurement. In this
-situation, we can use statistical inference to reconstruct the original
-network. Following [peixoto-reconstructing-2018]_, if
-:math:`\boldsymbol{\mathcal{D}}` is the observed data, the network can
-be reconstructed according to the posterior distribution,
+either missing or are outcomes of mistakes in measurement, or is not
+even observed at all. In this situation, we can use statistical
+inference to reconstruct the original network. Following
+[peixoto-reconstructing-2018]_, if :math:`\boldsymbol{\mathcal{D}}` is
+the observed data, the network can be reconstructed according to the
+posterior distribution,
 
 .. math::
 
@@ -55,7 +56,7 @@ information and the uncertainty in the measurement data. Furthermore,
 the use of the SBM means that the reconstruction can take advantage of
 the *correlations* observed in the data to further inform it, which
 generally can lead to substantial improvements
-[peixoto-reconstructing-2018]_.
+[peixoto-reconstructing-2018]_ [peixoto-network-2019]_.
        
 In graph-tool there is support for reconstruction with the above
 framework for three measurement processes: 1. Repeated measurements with
@@ -66,6 +67,9 @@ measurements with heterogeneous errors (via
 and 3. Extraneously obtained edge probabilities (via
 :class:`~graph_tool.inference.uncertain_blockmodel.UncertainBlockState`),
 which we describe in the following.
+
+In addition, it is also possible to reconstruct networks from observed
+dynamical, as described in :ref:`reconstruction_dynamics`.
 
 Measured networks
 +++++++++++++++++
@@ -185,9 +189,9 @@ Which yields the following output:
    
 .. testoutput:: measured
 
-   Posterior probability of edge (11, 36): 0.841384...
-   Posterior probability of non-edge (15, 73): 0.100010...
-   Estimated average local clustering: 0.571836 ± 0.005152...
+   Posterior probability of edge (11, 36): 0.890889...
+   Posterior probability of non-edge (15, 73): 0.056005...
+   Estimated average local clustering: 0.572758 ± 0.003998...
 
 We have a successful reconstruction, where both ambiguous adjacency
 matrix entries are correctly recovered. The value for the average
@@ -306,9 +310,9 @@ Which yields:
    
 .. testoutput:: measured
 
-   Posterior probability of edge (11, 36): 0.593359...
-   Posterior probability of non-edge (15, 73): 0.050705...
-   Estimated average local clustering: 0.570958 ± 0.006660...
+   Posterior probability of edge (11, 36): 0.515651...
+   Posterior probability of non-edge (15, 73): 0.009000...
+   Estimated average local clustering: 0.571673 ± 0.003228...
 
 The results are very similar to the ones obtained with the uniform model
 in this case, but can be quite different in situations where a large
@@ -434,9 +438,9 @@ The above yields the output:
    
 .. testoutput:: uncertain
 
-   Posterior probability of edge (11, 36): 0.948894...
-   Posterior probability of non-edge (15, 73): 0.049004...
-   Estimated average local clustering: 0.552446 ± 0.019751...
+   Posterior probability of edge (11, 36): 0.951195...
+   Posterior probability of non-edge (15, 73): 0.020702...
+   Estimated average local clustering: 0.538731 ± 0.017645...
 
 The reconstruction is accurate, despite the two ambiguous entries having
 the same measurement probability. The reconstructed network is visualized below.
@@ -480,3 +484,5 @@ the same measurement probability. The reconstructed network is visualized below.
    ambiguity, both errors are successfully corrected by the
    reconstruction. The pie fractions on the nodes correspond to the
    probability of being in group associated with the respective color.
+
+.. include:: _reconstruction_dynamics.rst

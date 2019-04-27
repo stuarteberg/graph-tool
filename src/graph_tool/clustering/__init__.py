@@ -68,9 +68,9 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge weights. If omitted, a constant value of 1 will be used.
-    prop : :class:`~graph_tool.PropertyMap` or string, optional
+    prop : :class:`~graph_tool.VertexPropertyMap` or string, optional
         Vertex property map where results will be stored. If specified, this
         parameter will also be the return value.
     undirected : bool (default: True)
@@ -79,7 +79,7 @@ def local_clustering(g, weight=None, prop=None, undirected=True):
 
     Returns
     -------
-    prop : :class:`~graph_tool.PropertyMap`
+    prop : :class:`~graph_tool.VertexPropertyMap`
         Vertex property containing the clustering coefficients.
 
     See Also
@@ -142,7 +142,7 @@ def global_clustering(g, weight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`, optional (default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap`, optional (default: None)
         Edge weights. If omitted, a constant value of 1 will be used.
 
     Returns
@@ -207,18 +207,18 @@ def extended_clustering(g, props=None, max_depth=3, undirected=False):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    props : list of :class:`~graph_tool.PropertyMap` objects, optional
+    props : list of :class:`~graph_tool.VertexPropertyMap` objects (optional, default: ``None``)
         list of vertex property maps where results will be stored. If specified,
         this parameter will also be the return value.
-    max_depth : int, optional
-        Maximum clustering order (default: 3).
-    undirected : bool, optional
+    max_depth : int (optional, default: ``3``)
+        Maximum clustering order.
+    undirected : boolean (optional, default: ``False``)
         Calculate the *undirected* clustering coefficients, if graph is directed
         (this option has no effect if the graph is undirected).
 
     Returns
     -------
-    prop : list of :class:`~graph_tool.PropertyMap` objects
+    prop : list of :class:`~graph_tool.VertexPropertyMap` objects
         List of vertex properties containing the clustering coefficients.
 
     See Also
@@ -316,7 +316,7 @@ def motifs(g, k, p=1.0, motif_list=None, return_maps=False):
         out-degree-sequence, and number of edges (in this order).
     counts : list of ints
         The number of times the respective motif in the motifs list was counted
-    vertex_maps : list of lists of :class:`~graph_tool.PropertyMap` objects
+    vertex_maps : list of lists of :class:`~graph_tool.VertexPropertyMap` objects
         List for each motif graph containing the locations in the main
         graph. This is only returned if `return_maps == True`.
 

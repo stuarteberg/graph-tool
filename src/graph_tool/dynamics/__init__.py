@@ -115,7 +115,8 @@ class DiscreteStateBase(object):
         return type(self)(state["g"], s=state["s"], **state["params"])
 
     def get_state(self):
-        """Returns the internal :class:`VertexPropertyMap` with the current state."""
+        """Returns the internal :class:`~graph_tool.VertexPropertyMap` with the current
+        state."""
         return self.s
 
     def get_active(self):
@@ -1366,7 +1367,7 @@ class KirmanState(DiscreteStateBase):
         Notes
         -----
 
-        This implements Kirman's "ant colony" model [kirman_ant_1993]_ on a
+        This implements Kirman's "ant colony" model [kirman_ants_1993]_ on a
         network.
 
         If a node :math:`i` is updated at time :math:`t`, the transition
@@ -1625,7 +1626,8 @@ class ContinuousStateBase(object):
         return type(self)(state["g"], s=state["s"], **state["params"])
 
     def get_state(self):
-        r"""Returns the internal :class:`VertexPropertyMap` with the current state."""
+        r"""Returns the internal :class:`~graph_tool.VertexPropertyMap` with the current
+        state."""
         return self.s
 
     def get_diff(self, dt):

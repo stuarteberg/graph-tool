@@ -59,10 +59,10 @@ def assortativity(g, deg, eweight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : string or :class:`~graph_tool.PropertyMap`
+    deg : string or :class:`~graph_tool.VertexPropertyMap`
         Degree type ("in", "out" or "total") or vertex property map, which
         specifies the vertex types.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If given, this will specify the edge weights, otherwise a constant value
         of one will be used.
 
@@ -128,10 +128,10 @@ def scalar_assortativity(g, deg, eweight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg : string or :class:`~graph_tool.PropertyMap`
+    deg : string or :class:`~graph_tool.VertexPropertyMap`
         Degree type ("in", "out" or "total") or vertex property map, which
         specifies the vertex scalar values.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If given, this will specify the edge weights, otherwise a constant value
         of one will be used.
 
@@ -196,10 +196,10 @@ def corr_hist(g, deg_source, deg_target, bins=[[0, 1], [0, 1]], weight=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg_source : string or :class:`~graph_tool.PropertyMap`
+    deg_source : string or :class:`~graph_tool.VertexPropertyMap`
         degree type ("in", "out" or "total") or vertex property map for the
         source vertex.
-    deg_target : string or :class:`~graph_tool.PropertyMap`
+    deg_target : string or :class:`~graph_tool.VertexPropertyMap`
         degree type ("in", "out" or "total") or vertex property map for the
         target vertex.
     bins : list of lists (optional, default: [[0, 1], [0, 1]])
@@ -304,9 +304,9 @@ def combined_corr_hist(g, deg1, deg2, bins=[[0, 1], [0, 1]], float_count=True):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg1 : string or :class:`~graph_tool.PropertyMap`
+    deg1 : string or :class:`~graph_tool.VertexPropertyMap`
         first degree type ("in", "out" or "total") or vertex property map.
-    deg2 : string or :class:`~graph_tool.PropertyMap`
+    deg2 : string or :class:`~graph_tool.VertexPropertyMap`
         second degree type ("in", "out" or "total") or vertex property map.
     bins : list of lists (optional, default: [[0, 1], [0, 1]])
         A list of bin edges to be used for the first and second degrees. If any
@@ -401,10 +401,10 @@ def avg_neighbor_corr(g, deg_source, deg_target, bins=[0, 1], weight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg_source : string or :class:`~graph_tool.PropertyMap`
+    deg_source : string or :class:`~graph_tool.VertexPropertyMap`
         degree type ("in", "out" or "total") or vertex property map for the
         source vertex.
-    deg_target : string or :class:`~graph_tool.PropertyMap`
+    deg_target : string or :class:`~graph_tool.VertexPropertyMap`
         degree type ("in", "out" or "total") or vertex property map for the
         target vertex.
     bins : list (optional, default: [0, 1])
@@ -502,9 +502,9 @@ def avg_combined_corr(g, deg1, deg2, bins=[0, 1]):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    deg1 : string or :class:`~graph_tool.PropertyMap`
+    deg1 : string or :class:`~graph_tool.VertexPropertyMap`
         first degree type ("in", "out" or "total") or vertex property map.
-    deg2 : string or :class:`~graph_tool.PropertyMap`
+    deg2 : string or :class:`~graph_tool.VertexPropertyMap`
         second degree type ("in", "out" or "total") or vertex property map.
     bins : list (optional, default: [0, 1])
         Bins to be used for the first degrees. If the list has size 2, it is

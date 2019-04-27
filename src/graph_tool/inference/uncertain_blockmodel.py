@@ -201,27 +201,26 @@ class UncertainBaseState(object):
 
         return dS, nattempts, nmoves
 
-    def mcmc_sweep(self, r=.5, **kwargs):
+    def mcmc_sweep(self, r=.5, multiflip=True, **kwargs):
         r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
-        sample network partitions and latent edges. The parameter ``r```
-        controls the probability with which edge move will be attempted, instead
-        of partition moves. The remaining keyword parameters will be passed to
-        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep`.
+        sample network partitions and latent edges. The parameter ``r`` controls
+        the probability with which edge move will be attempted, instead of
+        partition moves. The remaining keyword parameters will be passed to
+        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep` or
+        :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`,
+        if ``multiflip=True``.
         """
 
-        return self._algo_sweep(lambda s, **kw: s.mcmc_sweep(**kw),
-                                r=r, **kwargs)
+        if multiflip:
+            return self._algo_sweep(lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
+                                    r=r, **kwargs)
+        else:
+            return self._algo_sweep(lambda s, **kw: s.mcmc_sweep(**kw),
+                                    r=r, **kwargs)
 
-    def multiflip_mcmc_sweep(self, r=.5, **kwargs):
-        r"""Perform sweeps of a multiflip Metropolis-Hastings acceptance-rejection
-        sampling MCMC to sample network partitions and latent edges. The
-        parameter ``r``` controls the probability with which edge move will be
-        attempted, instead of partition moves. The remaining keyword parameters
-        will be passed to :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`.
-        """
-
-        return self._algo_sweep(lambda s, **kw: s.multiflip_mcmc_sweep(**kw),
-                                r=r, **kwargs)
+    def multiflip_mcmc_sweep(self, **kwargs):
+        r"""Alias for :meth:`~UncertainBaseState.mcmc_sweep` with ``multiflip=True``."""
+        return self.mcmc_sweep(multiflip=True, **kwargs)
 
     def get_edge_prob(self, u, v, entropy_args={}, epsilon=1e-8):
         r"""Return conditional posterior probability of edge :math:`(u,v)`."""
@@ -261,7 +260,7 @@ class UncertainBaseState(object):
         Returns
         -------
         g : :class:`~graph_tool.Graph`
-            New marginal graph, with internal edge :class:`~graph_tool.PropertyMap`
+            New marginal graph, with internal edge :class:`~graph_tool.EdgePropertyMap`
             ``"eprob"``, containing the marginal probabilities for each edge.
 
         Notes
@@ -296,14 +295,14 @@ class UncertainBaseState(object):
         return g
 
 class UncertainBlockState(UncertainBaseState):
-    r"""The inference state of an uncertain graph, using the stochastic block model
-    as a prior.
+    r"""Inference state of an uncertain graph, using the stochastic block model as a
+    prior.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Measured graph.
-    q : :class:`~graph_tool.PropertyMap`
+    q : :class:`~graph_tool.EdgePropertyMap`
         Edge probabilities in range :math:`[0,1]`.
     q_default : ``float`` (optional, default: ``0.``)
         Non-edge probability in range :math:`[0,1]`.
@@ -327,9 +326,9 @@ class UncertainBlockState(UncertainBaseState):
 
     References
     ----------
-    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
-       with unknown and heterogeneous errors" :arxiv:`1806.07956`
-
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
+       networks with unknown and heterogeneous errors", Phys. Rev. X 8
+       041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
     """
 
     def __init__(self, g, q, q_default=0., aE=numpy.nan, nested=True, state_args={},
@@ -392,17 +391,17 @@ class UncertainBlockState(UncertainBaseState):
                                                  _get_rng())
 
 class MeasuredBlockState(UncertainBaseState):
-    r"""The inference state of a measured graph, using the stochastic block model as
-    a prior.
+    r"""Inference state of a measured graph, using the stochastic block model as a
+    prior.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Measured graph.
-    n : :class:`~graph_tool.PropertyMap`
+    n : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``int``, containing the total number of
         measurements for each edge.
-    x : :class:`~graph_tool.PropertyMap`
+    x : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``int``, containing the number of
         positive measurements for each edge.
     n_default : ``int`` (optional, default: ``1``)
@@ -435,8 +434,9 @@ class MeasuredBlockState(UncertainBaseState):
 
     References
     ----------
-    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
-       with unknown and heterogeneous errors" :arxiv:`1806.07956`
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
+       networks with unknown and heterogeneous errors", Phys. Rev. X 8
+       041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
     """
 
     def __init__(self, g, n, x, n_default=1, x_default=0,
@@ -515,17 +515,17 @@ class MeasuredBlockState(UncertainBaseState):
         return X - T + self.mu, N - X - (M - T) + self.nu
 
 class MixedMeasuredBlockState(UncertainBaseState):
-    r"""The inference state of a measured graph with heterogeneous errors, using the
+    r"""Inference state of a measured graph with heterogeneous errors, using the
     stochastic block model as a prior.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Measured graph.
-    n : :class:`~graph_tool.PropertyMap`
+    n : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``int``, containing the total number of
         measurements for each edge.
-    x : :class:`~graph_tool.PropertyMap`
+    x : :class:`~graph_tool.EdgePropertyMap`
         Edge property map of type ``int``, containing the number of
         positive measurements for each edge.
     n_default : ``int`` (optional, default: ``1``)
@@ -558,8 +558,9 @@ class MixedMeasuredBlockState(UncertainBaseState):
 
     References
     ----------
-    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing networks
-       with unknown and heterogeneous errors" :arxiv:`1806.07956`
+    .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
+       networks with unknown and heterogeneous errors", Phys. Rev. X 8
+       041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
     """
 
     def __init__(self, g, n, x, n_default=1, x_default=0,
@@ -647,6 +648,23 @@ class MixedMeasuredBlockState(UncertainBaseState):
             (self.nbstate if self.nbstate is not None else self.bstate,
              id(self))
 
+    def mcmc_sweep(self, r=.5, h=.1, hstep=1, multiflip=True, **kwargs):
+        r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
+        sample network partitions and latent edges. The parameter ``r`` controls
+        the probability with which edge move will be attempted, instead of
+        partition moves. The parameter ``h`` controls the relative probability
+        with which hyperparamters moves will be attempted, and ``hstep`` is the
+        size of the step.
+
+        The remaining keyword parameters will be passed to
+        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep` or
+        :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`,
+        if ``multiflip=True``.
+        """
+
+        return super(MixedMeasuredBlockState, self).mcmc_sweep(r=r, multiflip=multiflip,
+                                                               h=h, hstep=hstep)
+
     def _algo_sweep(self, algo, r=.5, h=.1, hstep=1, niter=1, **kwargs):
         if numpy.random.random() < h:
             dS = nt = nm = 0
@@ -690,6 +708,10 @@ class DynamicsBlockStateBase(UncertainBaseState):
     def __init__(self, g, s, t, x=None, aE=numpy.nan, nested=True,
                  state_args={}, bstate=None, self_loops=False,
                  **kwargs):
+        r"""Base state for network reconstruction based on dynamical data, using
+        the stochastic block model as a prior. This class is not meant to be
+        instantiated directly, only indirectly via one of its subclasses."""
+
         super(DynamicsBlockStateBase, self).__init__(g, nested=nested,
                                                      state_args=state_args,
                                                      bstate=bstate,
@@ -721,6 +743,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         self._state = self._make_state()
 
     def set_params(self, params):
+        r"""Sets the model parameters via the dictionary ``params``."""
         self.params = dict(self.params, **params)
         self._state.set_params(self.params)
 
@@ -805,7 +828,8 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return 0, 0, 0
 
     def get_x(self):
-        return x
+        """Return latent edge covariates."""
+        return self.x
 
     def get_edge_prob(self, u, v, x, entropy_args={}, epsilon=1e-8):
         r"""Return conditional posterior probability of edge :math:`(u,v)`."""
@@ -824,7 +848,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         Returns
         -------
         g : :class:`~graph_tool.Graph`
-            New marginal graph, with internal edge :class:`~graph_tool.PropertyMap`
+            New marginal graph, with internal edge :class:`~graph_tool.EdgePropertyMap`
             ``"eprob"``, containing the marginal probabilities for each edge.
 
         Notes
@@ -871,6 +895,82 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
     def __init__(self, g, s, beta, r, r_v=None, global_beta=None, active=None,
                  t=[], exposed=False, aE=numpy.nan, nested=True, state_args={},
                  bstate=None, self_loops=False, **kwargs):
+        r"""Inference state for network reconstruction based on epidemic dynamics, using
+        the stochastic block model as a prior.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+            Initial graph state.
+        s : ``list`` of :class:`~graph_tool.VertexPropertyMap`
+            Collection of time-series with node states over time. Each entry in
+            this list must be a :class:`~graph_tool.VertexPropertyMap` with type
+            ``vector<int>`` containing the states of each node in each time
+            step. A value of ``1`` means infected and ``0`` susceptible. Other
+            values are allowed (e.g. for recovered), but their actual value is
+            unimportant for reconstruction.
+
+            If the parameter ``t`` below is given, each property map value for a
+            given node should contain only the states for the same points in
+            time given by that parameter.
+        beta : ``float`` or :class:`~graph_tool.EdgePropertyMap`
+            Initial value of the global or local transmission probability for
+            each edge.
+        r : ``float``
+            Spontaneous infection probability.
+        r_v : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If given, this will set the initial spontaneous infection
+            probability for each node, and trigger the use of a model where this
+            quantity is in principle different for each node.
+        global_beta : ``float`` (optional, default: ``None``)
+            If provided, and ``beta is None`` this will trigger the use of a
+            model where all transmission probabilities on edges are the same,
+            and given (initially) by this value.
+        t : ``list`` of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``[]``)
+            If nonempty, this allows for a compressed representation of the
+            time-series parameter ``s``, corresponding only to points in time
+            where the state of each node changes. Each each entry in this list
+            must be a :class:`~graph_tool.VertexPropertyMap` with type
+            ``vector<int>`` containing the points in time where the state of
+            each node change. The corresponding state of the nodes at these
+            times are given by parameter ``s``.
+        active : ``list`` of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If given, this specifies the points in time where each node is
+            "active", and prepared to change its state according to the state of
+            its neighbors. Each entry in this list must be a
+            :class:`~graph_tool.VertexPropertyMap` with type ``vector<int>``
+            containing the states of each node in each time step. A value of
+            ``1`` means active and ``0`` inactive.
+        exposed : ``boolean`` (optional, default: ``False``)
+            If ``True``, the data is supposed to come from a SEI, SEIR,
+            etc. model, where a susceptible node (valued ``0``) first transits
+            to an exposed state (valued ``-1``) upon transmission, before
+            transiting to the infective state (valued ``1``).
+        aE : ``float`` (optional, default: ``NaN``)
+            Expected total number of edges used in prior. If ``NaN``, a flat
+            prior will be used instead.
+        nested : ``boolean`` (optional, default: ``True``)
+            If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
+            will be used, otherwise
+            :class:`~graph_tool.inference.blockmodel.BlockState`.
+        state_args : ``dict`` (optional, default: ``{}``)
+            Arguments to be passed to
+            :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or
+            :class:`~graph_tool.inference.blockmodel.BlockState`.
+        bstate : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or :class:`~graph_tool.inference.blockmodel.BlockState`  (optional, default: ``None``)
+            If passed, this will be used to initialize the block state
+            directly.
+        self_loops : bool (optional, default: ``False``)
+            If ``True``, it is assumed that the inferred graph can contain
+            self-loops.
+
+        References
+        ----------
+        .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
+           community detection from dynamics", :arxiv:`1903.10833`
+
+        """
+
         if beta is None:
             beta = global_beta
         x = kwargs.pop("x", None)
@@ -907,6 +1007,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         self.__init__(**state, beta=beta)
 
     def set_params(self, params):
+        r"""Sets the model parameters via the dictionary ``params``."""
         self.params = dict(self.params, **params)
         self._state.set_params(self.params)
         beta = self.params["global_beta"]
@@ -914,9 +1015,35 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
             self.x.fa = log1p(-beta)
 
     def get_x(self):
+        """Return latent edge transmission probabilities."""
         x = self.x.copy()
         x.fa = 1-exp(x.fa)
         return x
+
+    def mcmc_sweep(self, r=.5, p=.1, pstep=.1, h=.1, hstep=1, xstep=.1,
+                   multiflip=True, **kwargs):
+        r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
+        sample network partitions and latent edges. The parameter ``r`` controls
+        the probability with which edge move will be attempted, instead of
+        partition moves. The parameter ``h`` controls the relative probability
+        with which moves for the parameters ``r_v`` will be attempted, and
+        ``hstep`` is the size of the step. The parameter ``p`` controls the
+        relative probability with which moves for the parameters ``global_beta``
+        and ``r`` will be attempted, and ``pstep`` is the size of the step.  The
+        paramter ``xstep`` determines the size of the attempted steps for the
+        edge transmission probabilities.
+
+        The remaining keyword parameters will be passed to
+        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep` or
+        :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`,
+        if ``multiflip=True``.
+
+        """
+
+        return super(EpidemicBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
+                                                          h=h, hstep=hstep,
+                                                          xstep=xstep,
+                                                          multiflip=multiflip)
 
     def _algo_sweep(self, algo, r=.5, p=.1, pstep=.1, h=.1, hstep=1,
                     xstep=.1, niter=1, **kwargs):
@@ -971,9 +1098,74 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
                                                  _get_rng())
 
 class IsingBaseBlockState(DynamicsBlockStateBase):
-    def __init__(self, g, s, beta, x=None, t=None, h=None, aE=numpy.nan,
+    def __init__(self, g, s, beta, x=None, h=None, t=None, aE=numpy.nan,
                  nested=True, state_args={}, bstate=None, self_loops=False,
                  has_zero=False, **kwargs):
+        r"""Base state for network reconstruction based on the Ising model, using the
+        stochastic block model as a prior. This class is not supposed to be
+        instantiated directly. Instead one of it's specialized subclasses must
+        be used, which have the same signature: :class:`IsingGlauberBlockState`,
+        :class:`PseudoIsingBlockState`, :class:`CIsingGlauberBlockState`,
+        :class:`PseudoCIsingBlockState`.
+
+        Parameters
+        ----------
+        g : :class:`~graph_tool.Graph`
+            Initial graph state.
+        s : ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`~graph_tool.VertexPropertyMap`
+            Collection of time-series with node states over time, or a single
+            time-series. Each time-series must be a
+            :class:`~graph_tool.VertexPropertyMap` with type ``vector<int>``
+            containing the Ising states (``-1`` or ``+1``) of each node in each
+            time step.
+
+            If the parameter ``t`` below is given, each property map value for a
+            given node should contain only the states for the same points in
+            time given by that parameter.
+        beta : ``float``
+            Initial value of the global inverse temperature.
+        x : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+            Initial value of the local coupling for each edge. If not given, a
+            uniform value of ``1`` will be used.
+        h : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+            If given, this will set the initial local fields of each
+            node. Otherwise a value of ``0`` will be used.
+        t : ``list`` of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``[]``)
+            If nonempty, this allows for a compressed representation of the
+            time-series parameter ``s``, corresponding only to points in time
+            where the state of each node changes. Each each entry in this list
+            must be a :class:`~graph_tool.VertexPropertyMap` with type
+            ``vector<int>`` containing the points in time where the state of
+            each node change. The corresponding state of the nodes at these
+            times are given by parameter ``s``.
+        aE : ``float`` (optional, default: ``NaN``)
+            Expected total number of edges used in prior. If ``NaN``, a flat
+            prior will be used instead.
+        nested : ``boolean`` (optional, default: ``True``)
+            If ``True``, a :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
+            will be used, otherwise
+            :class:`~graph_tool.inference.blockmodel.BlockState`.
+        state_args : ``dict`` (optional, default: ``{}``)
+            Arguments to be passed to
+            :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or
+            :class:`~graph_tool.inference.blockmodel.BlockState`.
+        bstate : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState` or :class:`~graph_tool.inference.blockmodel.BlockState`  (optional, default: ``None``)
+            If passed, this will be used to initialize the block state
+            directly.
+        self_loops : bool (optional, default: ``False``)
+            If ``True``, it is assumed that the inferred graph can contain
+            self-loops.
+        has_zero : bool (optional, default: ``False``)
+            If ``True``, the three-state "Ising" model with values ``{-1,0,1}``
+            is used.
+
+        References
+        ----------
+        .. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
+           community detection from dynamics", :arxiv:`1903.10833`
+
+        """
+
         if isinstance(s, PropertyMap):
             s = [s]
         if isinstance(t, PropertyMap):
@@ -1006,9 +1198,34 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
         self.__init__(**state, beta=beta)
 
     def get_x(self):
+        """Return edge couplings."""
         x = self.x.copy()
         x.fa *= self.params["beta"]
         return x
+
+    def mcmc_sweep(self, r=.5, p=.1, pstep=.1, h=.1, hstep=1, xstep=.1,
+                   multiflip=True, **kwargs):
+        r"""Perform sweeps of a Metropolis-Hastings acceptance-rejection sampling MCMC to
+        sample network partitions and latent edges. The parameter ``r`` controls
+        the probability with which edge move will be attempted, instead of
+        partition moves. The parameter ``h`` controls the relative probability
+        with which moves for the parameters ``r_v`` will be attempted, and
+        ``hstep`` is the size of the step. The parameter ``p`` controls the
+        relative probability with which moves for the parameters ``global_beta``
+        and ``r`` will be attempted, and ``pstep`` is the size of the step. The
+        paramter ``xstep`` determines the size of the attempted steps for the
+        edge coupling parameters.
+
+        The remaining keyword parameters will be passed to
+        :meth:`~graph_tool.inference.blockmodel.BlockState.mcmc_sweep` or
+        :meth:`~graph_tool.inference.blockmodel.BlockState.multiflip_mcmc_sweep`,
+        if ``multiflip=True``.
+        """
+
+        return super(IsingBaseBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
+                                                           h=h, hstep=hstep,
+                                                           xstep=xstep,
+                                                           multiflip=multiflip)
 
     def _algo_sweep(self, algo, r=.5, p=.1, pstep=1, h=.5, hstep=1, niter=1,
                     xstep=1, **kwargs):
@@ -1039,22 +1256,14 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
                                                                 xdefault=1,
                                                                 **kwargs)
 
-class PseudoIsingBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
-        super(PseudoIsingBlockState, self).__init__(*args, **kwargs)
-
-    def _make_state(self):
-        return libinference.make_pseudo_ising_state(self.bstate._state, self)
-
-    def _mcmc_sweep(self, mcmc_state):
-        return libinference.mcmc_pseudo_ising_sweep(mcmc_state, self._state,
-                                                    _get_rng())
-    def _mcmc_sweep_h(self, mcmc_state):
-        return libinference.mcmc_pseudo_ising_sweep_h(mcmc_state, self._state,
-                                                      _get_rng())
-
 class IsingGlauberBlockState(IsingBaseBlockState):
     def __init__(self, *args, **kwargs):
+        r"""State for network reconstruction based on the Glauber dynamics of the Ising
+        model, using the stochastic block model as a prior.
+
+        See documentation for :class:`IsingBaseBlockState` for details.
+        """
+
         super(IsingGlauberBlockState, self).__init__(*args, **kwargs)
 
     def _make_state(self):
@@ -1068,22 +1277,15 @@ class IsingGlauberBlockState(IsingBaseBlockState):
         return libinference.mcmc_ising_glauber_sweep_h(mcmc_state, self._state,
                                                        _get_rng())
 
-class PseudoCIsingBlockState(IsingBaseBlockState):
-    def __init__(self, *args, **kwargs):
-        super(PseudoCIsingBlockState, self).__init__(*args, **kwargs)
-
-    def _make_state(self):
-        return libinference.make_pseudo_cising_state(self.bstate._state, self)
-
-    def _mcmc_sweep(self, mcmc_state):
-        return libinference.mcmc_pseudo_cising_sweep(mcmc_state, self._state,
-                                                     _get_rng())
-    def _mcmc_sweep_h(self, mcmc_state):
-        return libinference.mcmc_pseudo_cising_sweep_h(mcmc_state, self._state,
-                                                       _get_rng())
-
 class CIsingGlauberBlockState(IsingBaseBlockState):
     def __init__(self, *args, **kwargs):
+        r"""State for network reconstruction based on the Glauber dynamics of the
+        continuous Ising model, using the stochastic block model as a prior.
+
+        See documentation for :class:`IsingBaseBlockState` for details. Note
+        that in this case the ``s`` parameter should contain property maps of
+        type ``vector<double>``, with values in the range :math:`[-1,1]`.
+        """
         super(CIsingGlauberBlockState, self).__init__(*args, **kwargs)
 
     def _make_state(self):
@@ -1095,3 +1297,49 @@ class CIsingGlauberBlockState(IsingBaseBlockState):
     def _mcmc_sweep_h(self, mcmc_state):
         return libinference.mcmc_cising_glauber_sweep_h(mcmc_state, self._state,
                                                         _get_rng())
+
+class PseudoIsingBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        r"""State for network reconstruction based on the equilibrium configurations of
+        the Ising model, using the Pseudolikelihood approximation and the
+        stochastic block model as a prior.
+
+        See documentation for :class:`IsingBaseBlockState` for details. Note
+        that in this model "time-series" should be interpreted as a set of
+        uncorrelated samples, not a temporal sequence.
+        """
+        super(PseudoIsingBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_pseudo_ising_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_pseudo_ising_sweep(mcmc_state, self._state,
+                                                    _get_rng())
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_pseudo_ising_sweep_h(mcmc_state, self._state,
+                                                      _get_rng())
+
+class PseudoCIsingBlockState(IsingBaseBlockState):
+    def __init__(self, *args, **kwargs):
+        r"""State for network reconstruction based on the equilibrium configurations of
+        the continuous Ising model, using the Pseudolikelihood approximation and
+        the stochastic block model as a prior.
+
+        See documentation for :class:`IsingBaseBlockState` for details. Note
+        that in this model "time-series" should be interpreted as a set of
+        uncorrelated samples, not a temporal sequence. Additionally, the ``s``
+        parameter should contain property maps of type ``vector<double>``, with
+        values in the range :math:`[-1,1]`.
+        """
+        super(PseudoCIsingBlockState, self).__init__(*args, **kwargs)
+
+    def _make_state(self):
+        return libinference.make_pseudo_cising_state(self.bstate._state, self)
+
+    def _mcmc_sweep(self, mcmc_state):
+        return libinference.mcmc_pseudo_cising_sweep(mcmc_state, self._state,
+                                                     _get_rng())
+    def _mcmc_sweep_h(self, mcmc_state):
+        return libinference.mcmc_pseudo_cising_sweep_h(mcmc_state, self._state,
+                                                       _get_rng())

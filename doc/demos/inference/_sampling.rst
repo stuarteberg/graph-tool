@@ -275,8 +275,8 @@ network as above.
 
 .. testoutput:: nested-model-averaging
 
-   Change in description length: 20.223115...
-   Number of accepted vertex moves: 58320
+   Change in description length: 15.483135...
+   Number of accepted vertex moves: 57684
 
 Similarly to the the non-nested case, we can use
 :func:`~graph_tool.inference.mcmc.mcmc_equilibrate` to do most of the boring

@@ -47,6 +47,7 @@ import numpy as np
 from pylab import *
 from numpy import *
 import graph_tool.all as gt
+import graph_tool.draw
 import random as prandom
 
 figure()

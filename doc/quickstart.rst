@@ -289,6 +289,24 @@ methods should be used:
    for e in g.edges():
        print(e)
 
+.. testoutput::
+   :hide:
+
+   0
+   1
+   2
+   3
+   4
+   5
+   6
+   7
+   8
+   9
+   10
+   11
+   (0, 1)
+   (2, 3)
+
 The code above will print the vertices and edges of the graph in the order they
 are found.
 
@@ -302,7 +320,6 @@ and :meth:`~graph_tool.Vertex.in_neighbors` methods, respectively.
 
 .. testcode::
 
-   from itertools import izip
    for v in g.vertices():
       for e in v.out_edges():
           print(e)
@@ -310,8 +327,16 @@ and :meth:`~graph_tool.Vertex.in_neighbors` methods, respectively.
           print(w)
 
       # the edge and neighbors order always match
-      for e, w in izip(v.out_edges(), v.out_neighbors()):
+      for e, w in zip(v.out_edges(), v.out_neighbors()):
           assert e.target() == w
+
+.. testoutput::
+   :hide:
+
+   (0, 1)
+   1
+   (2, 3)
+   3
 
 The code above will print the out-edges and out-neighbors of all
 vertices in the graph.
@@ -352,7 +377,7 @@ For example, using this interface we can get the out-degree of each node via:
 
 .. testoutput::
 
-   [1 0 1 0 0 0 0 0 0 0 0 0]
+   [0 1 0 1 0 0 0 0 0 0 0 0]
 
 or the sum of the product of the in and out-degrees of the endpoints of
 each edge with:
@@ -415,14 +440,13 @@ such:
 
 .. testcode::
 
-    from itertools import izip
     from numpy.random import randint
 
     g = Graph()
     g.add_vertex(100)
 
     # insert some random links
-    for s,t in izip(randint(0, 100, 100), randint(0, 100, 100)):
+    for s,t in zip(randint(0, 100, 100), randint(0, 100, 100)):
         g.add_edge(g.vertex(s), g.vertex(t))
 
     vprop_double = g.new_vertex_property("double")            # Double-precision floating point

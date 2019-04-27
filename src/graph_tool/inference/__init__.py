@@ -103,6 +103,13 @@ State classes
    ~graph_tool.inference.uncertain_blockmodel.MixedMeasuredBlockState
    ~graph_tool.inference.uncertain_blockmodel.UncertainBlockState
    ~graph_tool.inference.uncertain_blockmodel.UncertainBaseState
+   ~graph_tool.inference.uncertain_blockmodel.DynamicsBlockStateBase
+   ~graph_tool.inference.uncertain_blockmodel.EpidemicsBlockState
+   ~graph_tool.inference.uncertain_blockmodel.IsingBaseBlockState
+   ~graph_tool.inference.uncertain_blockmodel.IsingGlauberBlockState
+   ~graph_tool.inference.uncertain_blockmodel.CIsingGlauberBlockState
+   ~graph_tool.inference.uncertain_blockmodel.PseudoIsingBlockState
+   ~graph_tool.inference.uncertain_blockmodel.PseudoCIsingBlockState
 
 Semiparametric stochastic block model inference
 +++++++++++++++++++++++++++++++++++++++++++++++

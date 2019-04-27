@@ -740,7 +740,7 @@ def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
     source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Source vertex. If unspecified, all vertices will be traversed, by
@@ -750,10 +750,10 @@ def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
         :class:`~graph_tool.search.DijkstraVisitor`.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
         stored (must have value type "int64_t").
     combine : binary function (optional, default: ``lambda a, b: a + b``)
@@ -771,9 +771,9 @@ def dijkstra_search(g, weight, source=None, visitor=DijkstraVisitor(), dist_map=
 
     Returns
     -------
-    dist_map : :class:`~graph_tool.PropertyMap`
+    dist_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the computed distances from the source.
-    pred_map : :class:`~graph_tool.PropertyMap`
+    pred_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the predecessor tree.
 
     See Also
@@ -981,13 +981,13 @@ def dijkstra_iterator(g, weight, source=None, dist_map=None, combine=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
     source : :class:`~graph_tool.Vertex` (optional, default: ``None``)
         Source vertex. If unspecified, all vertices will be traversed, by
         iterating over starting vertices according to their index in increasing
         order.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
     combine : binary function (optional, default: ``lambda a, b: a + b``)
@@ -1166,16 +1166,16 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
         Graph to be used.
     source : :class:`~graph_tool.Vertex`
         Source vertex.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
     visitor : :class:`~graph_tool.search.DijkstraVisitor` (optional, default: ``DijkstraVisitor()``)
         A visitor object that is invoked at the event points inside the
         algorithm. This should be a subclass of
         :class:`~graph_tool.search.DijkstraVisitor`.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
         stored (must have value type "int64_t").
     combine : binary function (optional, default: ``lambda a, b: a + b``)
@@ -1197,9 +1197,9 @@ def bellman_ford_search(g, source, weight, visitor=BellmanFordVisitor(),
     minimized : bool
         True if all edges were successfully minimized, or False if there is a
         negative loop in the graph.
-    dist_map : :class:`~graph_tool.PropertyMap`
+    dist_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the computed distances from the source.
-    pred_map : :class:`~graph_tool.PropertyMap`
+    pred_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the predecessor tree.
 
     See Also
@@ -1455,7 +1455,7 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
         Graph to be used.
     source : :class:`~graph_tool.Vertex`
         Source vertex.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
     visitor : :class:`~graph_tool.search.AStarVisitor` (optional, default: ``AStarVisitor()``)
         A visitor object that is invoked at the event points inside the
@@ -1465,13 +1465,13 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
         The heuristic function that guides the search. It should take a single
         argument which is a :class:`~graph_tool.Vertex`, and output an estimated
         distance from the supplied vertex to the target vertex.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the predecessor map will be
         stored (must have value type "int64_t").
-    cost_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    cost_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the vertex costs will be stored. It must
         have the same value type as ``dist_map``. This parameter is only used if
         ``implicit`` is True.
@@ -1494,9 +1494,9 @@ def astar_search(g, source, weight, visitor=AStarVisitor(),
 
     Returns
     -------
-    dist_map : :class:`~graph_tool.PropertyMap`
+    dist_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the computed distances from the source.
-    pred_map : :class:`~graph_tool.PropertyMap`
+    pred_map : :class:`~graph_tool.VertexPropertyMap`
         A vertex property map with the predecessor tree.
 
     See Also
@@ -1854,13 +1854,13 @@ def astar_iterator(g, source, weight, heuristic=lambda v: 1, dist_map=None,
         Graph to be used.
     source : :class:`~graph_tool.Vertex`
         Source vertex.
-    weight : :class:`~graph_tool.PropertyMap`
+    weight : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with weight values.
     heuristic : unary function (optional, default: ``lambda v: 1``)
         The heuristic function that guides the search. It should take a single
         argument which is a :class:`~graph_tool.Vertex`, and output an estimated
         distance from the supplied vertex to the target vertex.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map where the distances from the source will be
         stored.
     combine : binary function (optional, default: ``lambda a, b: a + b``)

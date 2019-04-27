@@ -40,7 +40,7 @@ class NestedBlockState(object):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modeled.
-    bs : ``list`` of :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
+    bs : ``list`` of :class:`~graph_tool.VertexPropertyMap` or :class:`numpy.ndarray`
         Hierarchical node partition.
     base_type : ``type`` (optional, default: :class:`~graph_tool.inference.blockmodel.BlockState`)
         State type for lowermost level
@@ -861,8 +861,8 @@ class NestedBlockState(object):
             if _bm_test():
                 Sf = self.entropy(**entropy_args)
                 assert math.isclose(dS, (Sf - Si), abs_tol=1e-8), \
-                    "inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
-                                                                str(entropy_args))
+                    r"inconsistent entropy delta %g (%g): %s" % (dS, Sf - Si,
+                                                                 str(entropy_args))
             return dS, nattempts, nmoves
         else:
             return self._h_sweep_states(lambda s, **a: s.multiflip_mcmc_sweep(**a),
@@ -942,9 +942,9 @@ def hierarchy_minimize(state, B_min=None, B_max=None, b_min=None, b_max=None,
         The minimum number of blocks.
     B_max : ``int`` (optional, default: ``None``)
         The maximum number of blocks.
-    b_min : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_min : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the minimum number of blocks.
-    b_max : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_max : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the maximum number of blocks.
     frozen_levels : sequence of ``int`` values (optional, default: ``None``)
         List of hierarchy levels that are kept constant during the minimization.
@@ -1200,9 +1200,9 @@ def get_hierarchy_tree(state, empty_branches=True):
     tree : :class:`~graph_tool.Graph`
        A directed graph, where vertices are blocks, and a directed edge points
        to an upper to a lower level in the hierarchy.
-    label : :class:`~graph_tool.PropertyMap`
+    label : :class:`~graph_tool.VertexPropertyMap`
        A vertex property map containing the block label for each node.
-    order : :class:`~graph_tool.PropertyMap`
+    order : :class:`~graph_tool.VertexPropertyMap`
        A vertex property map containing the relative ordering of each layer
        according to the total degree of the groups at the specific levels.
     """

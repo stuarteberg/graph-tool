@@ -130,9 +130,9 @@ def minimize_blockmodel_dl(g, B_min=None, B_max=None, b_min=None, b_max=None,
         The minimum number of blocks.
     B_max : ``int`` (optional, default: ``None``)
         The maximum number of blocks.
-    b_min : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_min : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the minimum number of blocks.
-    b_max : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_max : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the maximum number of blocks.
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the model will be used.
@@ -331,9 +331,9 @@ def minimize_nested_blockmodel_dl(g, B_min=None, B_max=None, b_min=None,
         The minimum number of blocks.
     B_max : ``int`` (optional, default: ``None``)
         The maximum number of blocks.
-    b_min : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_min : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the minimum number of blocks.
-    b_max : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b_max : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         The partition to be used with the maximum number of blocks.
     Bs : ``list`` of ints (optional, default: ``None``)
         If provided, it will correspond to the sizes of the initial hierarchy.

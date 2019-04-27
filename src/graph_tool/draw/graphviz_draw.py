@@ -122,13 +122,13 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be drawn.
-    pos : :class:`~graph_tool.PropertyMap` or tuple of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` or tuple of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property maps containing the x and y coordinates of the vertices.
     size : tuple of scalars (optional, default: ``(15,15)``)
         Size (in centimeters) of the canvas.
-    pin : bool or :class:`~graph_tool.PropertyMap` (default: ``False``)
+    pin : bool or :class:`~graph_tool.VertexPropertyMap` (default: ``False``)
         If ``True``, the vertices are not moved from their initial position. If
-        a :class:`~graph_tool.PropertyMap` is passed, it is used to pin nodes
+        a :class:`~graph_tool.VertexPropertyMap` is passed, it is used to pin nodes
         individually.
     layout : string (default: ``"neato" if g.num_vertices() <= 1000 else "sfdp"``)
         Layout engine to be used. Possible values are ``"neato"``, ``"fdp"``,
@@ -195,15 +195,15 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
     splines : bool (default: ``False``)
         If ``True``, the edges are drawn as splines and routed around the
         vertices.
-    vsize : float, :class:`~graph_tool.PropertyMap`, or tuple (default: ``0.105``)
+    vsize : float, :class:`~graph_tool.VertexPropertyMap`, or tuple (default: ``0.105``)
         Default vertex size (width and height). If a tuple is specified, the
         first value should be a property map, and the second is a scale factor.
-    penwidth : float, :class:`~graph_tool.PropertyMap` or tuple (default: ``1.0``)
+    penwidth : float, :class:`~graph_tool.EdgePropertyMap` or tuple (default: ``1.0``)
         Specifies the width of the pen, in points, used to draw lines and
         curves, including the boundaries of edges and clusters. It has no effect
         on text. If a tuple is specified, the first value should be a property
         map, and the second is a scale factor.
-    elen : float or :class:`~graph_tool.PropertyMap` (default: ``None``)
+    elen : float or :class:`~graph_tool.EdgePropertyMap` (default: ``None``)
         Preferred edge length, in inches.
     gprops : dict (default: ``{}``)
         Additional graph properties, as a dictionary. The keys are the property
@@ -216,11 +216,11 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
         Additional edge properties, as a dictionary. The keys are the property
         names, and the values must be convertible to string, or edge property
         maps, with values convertible to strings.
-    vcolor : string or :class:`~graph_tool.PropertyMap` (default: ``"#a40000"``)
+    vcolor : string or :class:`~graph_tool.VertexPropertyMap` (default: ``"#a40000"``)
         Drawing color for vertices. If the valued supplied is a property map,
         the values must be scalar types, whose color values are obtained from
         the ``vcmap`` argument.
-    ecolor : string or :class:`~graph_tool.PropertyMap` (default: ``"#2e3436"``)
+    ecolor : string or :class:`~graph_tool.EdgePropertyMap` (default: ``"#2e3436"``)
         Drawing color for edges. If the valued supplied is a property map,
         the values must be scalar types, whose color values are obtained from
         the ``ecmap`` argument.
@@ -235,7 +235,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
     vorder : :class:`~graph_tool.PropertyMap` (default: ``None``)
         Scalar vertex property map which specifies the order with which vertices
         are drawn.
-    eorder : :class:`~graph_tool.PropertyMap` (default: ``None``)
+    eorder : :class:`~graph_tool.VertexPropertyMap` (default: ``None``)
         Scalar edge property map which specifies the order with which edges
         are drawn.
     output : string (default: ``""``)
@@ -258,7 +258,7 @@ def graphviz_draw(g, pos=None, size=(15, 15), pin=False, layout=None,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         Vector vertex property map with the x and y coordinates of the vertices.
     gv : gv.digraph or gv.graph (optional, only if ``returngv == True``)
         Internally used graphviz graph.

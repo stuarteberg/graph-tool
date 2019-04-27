@@ -21,7 +21,7 @@ We set up the classification task by dividing the edges/non-edges into
 two sets :math:`\boldsymbol A` and :math:`\delta \boldsymbol A`, where
 the former corresponds to the observed network and the latter either to
 the missing or spurious edges. We may compute the posterior of
-:math:`\delta \boldsymbol A` as [valles-catala-consistency-2017]_
+:math:`\delta \boldsymbol A` as [valles-catala-consistencies-2018]_
 
 .. math::
    :label: posterior-missing

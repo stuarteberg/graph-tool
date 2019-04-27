@@ -73,7 +73,11 @@ References
    :arxiv:`1310.4378`
 
 .. [peixoto-reconstructing-2018] Tiago P. Peixoto, "Reconstructing
-   networks with unknown and heterogeneous errors", :arxiv:`1806.07956`
+   networks with unknown and heterogeneous errors", Phys. Rev. X 8
+   041011 (2018). :doi:`10.1103/PhysRevX.8.041011`, :arxiv:`1806.07956`
+
+.. [peixoto-network-2019] Tiago P. Peixoto, "Network reconstruction and
+   community detection from dynamics", :arxiv:`1903.10833`
 
 .. [martin-structural-2015] Travis Martin, Brian Ball, M. E. J. Newman,
    "Structural inference for uncertain networks", Phys. Rev. E 93,
@@ -88,13 +92,15 @@ References
    spurious interactions and the reconstruction of complex networks", PNAS
    vol. 106 no. 52 (2009). :doi:`10.1073/pnas.0908366106`
           
-.. [valles-catala-consistency-2017] Toni Vallès-Català,
-   Tiago P. Peixoto, Roger Guimerà, Marta Sales-Pardo, "On the consistency
-   between model selection and link prediction in networks". :arxiv:`1705.07967`
+.. [valles-catala-consistencies-2018] Toni Vallès-Català,
+   Tiago P. Peixoto, Roger Guimerà, Marta Sales-Pardo, "Consistencies
+   and inconsistencies between model selection and link prediction in
+   networks", Phys. Rev. E 97 062316 (2018),
+   :doi:`10.1103/PhysRevE.97.062316`, :arxiv:`1705.07967`
 
 .. [mezard-information-2009] Marc Mézard, Andrea Montanari, "Information,
    Physics, and Computation", Oxford Univ Press (2009).
-   :DOI:`10.1093/acprof:oso/9780198570837.001.0001`
+   :doi:`10.1093/acprof:oso/9780198570837.001.0001`
 
 .. [guimera-modularity-2004] Roger Guimerà, Marta Sales-Pardo, and
    Luís A. Nunes Amaral, "Modularity from fluctuations in random graphs

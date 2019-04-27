@@ -184,17 +184,17 @@ class BlockState(object):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    b : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    b : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Initial block labels on the vertices. If not supplied, it will be
         randomly sampled.
     B : ``int`` (optional, default: ``None``)
         Number of blocks (or vertex groups). If not supplied it will be obtained
         from the parameter ``b``.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge multiplicities (for multigraphs or block graphs).
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex multiplicities (for block graphs).
-    recs : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``[]``)
+    recs : list of :class:`~graph_tool.EdgePropertyMap` instances (optional, default: ``[]``)
         List of real or discrete-valued edge covariates.
     rec_types : list of edge covariate types (optional, default: ``[]``)
         List of types of edge covariates. The possible types are:
@@ -237,14 +237,14 @@ class BlockState(object):
             ``k0 = 1``, ``v0 = rec.fa.std() ** 2``, and ``nu0 = 3``, where
             ``rec`` is the corresponding edge covariate property map.
 
-    clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
-    pclabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pclabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Partition constraint labels on the vertices. This has the same
         interpretation as ``clabel``, but will be used to compute the partition
         description length.
-    bfield : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    bfield : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Local field acting as a prior for the node partition. This should be a
         vector property map of type ``vector<double>``, and contain the
         log-probability for each node to be placed in each group.
@@ -860,7 +860,7 @@ class BlockState(object):
         return numpy.exp(-(w*log(w)).sum())
 
     def get_bclabel(self, clabel=None):
-        r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to constraint
+        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to constraint
         labels for the block graph."""
 
         bclabel = self.bg.new_vertex_property("int")
@@ -876,7 +876,7 @@ class BlockState(object):
         pmap(self.clabel, self.bclabel)
 
     def get_bpclabel(self):
-        r"""Returns a :class:`~graph_tool.PropertyMap` corresponding to partition
+        r"""Returns a :class:`~graph_tool.VertexPropertyMap` corresponding to partition
         constraint labels for the block graph."""
 
         return self.get_bclabel(self.pclabel)
@@ -1886,7 +1886,7 @@ class BlockState(object):
             If ``callback is None`` and ``hist is not None``, the function will
             return the values of each bin (``Ss``) and the state count of each
             bin (``counts``).
-        b_min : :class:`~graph_tool.PropertyMap`
+        b_min : :class:`~graph_tool.VertexPropertyMap`
             If ``callback is not None`` or ``hist is not None``, the function
             will also return partition with smallest entropy.
 
@@ -2048,7 +2048,7 @@ class BlockState(object):
 
         Parameters
         ----------
-        p : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+        p : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
             Edge property map with edge marginals to be updated.  If not
             provided, an empty histogram will be created.
         update : float (optional, default: ``1``)
@@ -2057,7 +2057,7 @@ class BlockState(object):
 
         Returns
         -------
-        p : :class:`~graph_tool.PropertyMap`
+        p : :class:`~graph_tool.EdgePropertyMap`
             Edge property map with updated edge marginals.
 
         Examples
@@ -2116,7 +2116,7 @@ class BlockState(object):
 
         Returns
         -------
-        p : :class:`~graph_tool.PropertyMap`
+        p : :class:`~graph_tool.VertexPropertyMap`
             Vertex property map with vector-type values, storing the accumulated
             block membership counts.
 
@@ -2389,7 +2389,7 @@ def bethe_entropy(g, p):
     ----------
     g : :class:`~graph_tool.Graph`
         The graph.
-    p : :class:`~graph_tool.PropertyMap`
+    p : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with edge marginals.
 
     Returns
@@ -2399,7 +2399,7 @@ def bethe_entropy(g, p):
     Hmf : ``float``
         The "mean field" entropy value (in `nats <http://en.wikipedia.org/wiki/Nat_%28information%29>`__),
         as would be returned by the :func:`mf_entropy` function.
-    pv : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pv : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property map with vector-type values, storing the accumulated
         block membership counts. These are the node marginals, as would be
         returned by the
@@ -2444,7 +2444,7 @@ def mf_entropy(g, p):
     ----------
     g : :class:`~graph_tool.Graph`
         The graph.
-    p : :class:`~graph_tool.PropertyMap`
+    p : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with vector-type values, storing the accumulated block
         membership counts.
 

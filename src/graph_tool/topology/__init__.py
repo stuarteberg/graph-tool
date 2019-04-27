@@ -74,8 +74,9 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_topology")
 
 from .. import _prop, Vector_int32_t, _check_prop_writable, \
-     _check_prop_scalar, _check_prop_vector, Graph, PropertyMap, GraphView,\
-     libcore, _get_rng, _degree, perfect_prop_hash, _limit_args
+     _check_prop_scalar, _check_prop_vector, Graph, VertexPropertyMap, \
+     EdgePropertyMap, PropertyMap, GraphView, libcore, _get_rng, _degree, \
+     perfect_prop_hash, _limit_args
 from .. stats import label_self_loops
 import random, sys, numpy, collections
 
@@ -102,14 +103,14 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         First graph to be compared.
     g2 : :class:`~graph_tool.Graph`
         Second graph to be compared.
-    eweight1 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eweight1 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights for the first graph to be used in comparison.
-    eweight2 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eweight2 : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge weights for the second graph to be used in comparison.
-    label1 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    label1 : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex labels for the first graph to be used in comparison. If not
         supplied, the vertex indexes are used.
-    label2 : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    label2 : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex labels for the second graph to be used in comparison. If not
         supplied, the vertex indexes are used.
     norm : bool (optional, default: ``True``)
@@ -280,17 +281,17 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
     self_loops : bool (optional, default: ``True``)
         If ``True``, vertices will be considered adjacent to themselves for the
         purpose of the similarity computation.
-    sim_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    sim_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, and ``vertex_pairs is None``, the vertex similarities will
         be stored in this vector-valued property. Otherwise, a new one will be
         created.
 
     Returns
     -------
-    similarities : :class:`numpy.ndarray` or :class:`~graph_tool.PropertyMap`
+    similarities : :class:`numpy.ndarray` or :class:`~graph_tool.VertexPropertyMap`
         If ``vertex_pairs`` was supplied, this will be a :class:`numpy.ndarray`
         with the corresponding similarities, otherwise it will be a
-        vector-valued vertex :class:`~graph_tool.PropertyMap`, with the
+        vector-valued vertex :class:`~graph_tool.VertexPropertyMap`, with the
         similarities to all other vertices.
 
     Notes
@@ -415,21 +416,21 @@ def isomorphism(g1, g2, vertex_inv1=None, vertex_inv2=None, isomap=False):
         First graph.
     g2 : :class:`~graph_tool.Graph`
         Second graph.
-    vertex_inv1 : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    vertex_inv1 : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
         Vertex invariant of the first graph. Only vertices with with the same
         invariants are considered in the isomorphism.
-    vertex_inv2 : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    vertex_inv2 : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
         Vertex invariant of the second graph. Only vertices with with the same
         invariants are considered in the isomorphism.
     isomap : ``bool`` (optional, default: ``False``)
-        If ``True``, a vertex :class:`~graph_tool.PropertyMap` with the
+        If ``True``, a :class:`~graph_tool.VertexPropertyMap` with the
         isomorphism mapping is returned as well.
 
     Returns
     -------
     is_isomorphism : ``bool``
         ``True`` if both graphs are isomorphic, otherwise ``False``.
-    isomap : :class:`~graph_tool.PropertyMap`
+    isomap : :class:`~graph_tool.VertexPropertyMap`
          Isomorphism mapping corresponding to a property map belonging to the
          first graph which maps its vertices to their corresponding vertices of
          the second graph.
@@ -503,13 +504,13 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
     max_n : int (optional, default: ``0``)
         Maximum number of matches to find. If `max_n == 0`, all matches are
         found.
-    vertex_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        If provided, this should be a pair of :class:`~graph_tool.PropertyMap`
+    vertex_label : pair of :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
+        If provided, this should be a pair of :class:`~graph_tool.VertexPropertyMap`
         objects, belonging to ``sub`` and ``g`` (in this order), which specify
         vertex labels which should match, in addition to the topological
         isomorphism.
-    edge_label : pair of :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
-        If provided, this should be a pair of :class:`~graph_tool.PropertyMap`
+    edge_label : pair of :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        If provided, this should be a pair of :class:`~graph_tool.EdgePropertyMap`
         objects, belonging to ``sub`` and ``g`` (in this order), which specify
         edge labels which should match, in addition to the topological
         isomorphism.
@@ -525,7 +526,7 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
 
     Returns
     -------
-    vertex_maps : list (or generator) of :class:`~graph_tool.PropertyMap` objects
+    vertex_maps : list (or generator) of :class:`~graph_tool.VertexPropertyMap` objects
         List (or generator) containing vertex property map objects which
         indicate different isomorphism mappings. The property maps vertices in
         `sub` to the corresponding vertex index in `g`.
@@ -618,9 +619,9 @@ def subgraph_isomorphism(sub, g, max_n=0, vertex_label=None, edge_label=None,
                                  max_n, induced, not subgraph,
                                  generator)
     if generator:
-        return (PropertyMap(vmap, sub, "v") for vmap in vmaps)
+        return (VertexPropertyMap(vmap, sub) for vmap in vmaps)
     else:
-        return [PropertyMap(vmap, sub, "v") for vmap in vmaps]
+        return [VertexPropertyMap(vmap, sub) for vmap in vmaps]
 
 
 def mark_subgraph(g, sub, vmap, vmask=None, emask=None):
@@ -663,18 +664,18 @@ def min_spanning_tree(g, weights=None, root=None, tree_map=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         The edge weights. If provided, the minimum spanning tree will minimize
         the edge weights.
     root : :class:`~graph_tool.Vertex` (optional, default: `None`)
         Root of the minimum spanning tree. If this is provided, Prim's algorithm
         is used. Otherwise, Kruskal's algorithm is used.
-    tree_map : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If provided, the edge tree map will be written in this property map.
 
     Returns
     -------
-    tree_map : :class:`~graph_tool.PropertyMap`
+    tree_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with mark the tree edges: 1 for tree edge, 0
         otherwise.
 
@@ -755,17 +756,17 @@ def random_spanning_tree(g, weights=None, root=None, tree_map=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         The edge weights. If provided, the probability of a particular spanning
         tree being selected is the product of its edge weights.
     root : :class:`~graph_tool.Vertex` (optional, default: `None`)
         Root of the spanning tree. If not provided, it will be selected randomly.
-    tree_map : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    tree_map : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If provided, the edge tree map will be written in this property map.
 
     Returns
     -------
-    tree_map : :class:`~graph_tool.PropertyMap`
+    tree_map : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with mark the tree edges: 1 for tree edge, 0
         otherwise.
 
@@ -860,12 +861,12 @@ def dominator_tree(g, root, dom_map=None):
         Graph to be used.
     root : :class:`~graph_tool.Vertex`
         The root vertex.
-    dom_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    dom_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         If provided, the dominator map will be written in this property map.
 
     Returns
     -------
-    dom_map : :class:`~graph_tool.PropertyMap`
+    dom_map : :class:`~graph_tool.VertexPropertyMap`
         The dominator map. It contains for each vertex, the index of its
         dominator vertex.
 
@@ -1011,7 +1012,7 @@ def label_components(g, vprop=None, directed=None, attractors=False):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    vprop : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property to store the component labels. If none is supplied, one
         is created.
     directed : bool (optional, default: ``None``)
@@ -1024,7 +1025,7 @@ def label_components(g, vprop=None, directed=None, attractors=False):
 
     Returns
     -------
-    comp : :class:`~graph_tool.PropertyMap`
+    comp : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with component labels.
     hist : :class:`~numpy.ndarray`
         Histogram of component labels.
@@ -1104,7 +1105,7 @@ def label_largest_component(g, directed=None):
 
     Returns
     -------
-    comp : :class:`~graph_tool.PropertyMap`
+    comp : :class:`~graph_tool.VertexPropertyMap`
          Boolean vertex property map which labels the largest component.
 
     Notes
@@ -1199,13 +1200,13 @@ def label_out_component(g, root, label=None):
         Graph to be used.
     root : :class:`~graph_tool.Vertex`
         The root vertex.
-    label : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    label : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, this must be an initialized Boolean vertex property map
         where the out-component will be labeled.
 
     Returns
     -------
-    label : :class:`~graph_tool.PropertyMap`
+    label : :class:`~graph_tool.VertexPropertyMap`
          Boolean vertex property map which labels the out-component.
 
     Notes
@@ -1263,19 +1264,19 @@ def label_biconnected_components(g, eprop=None, vprop=None):
     g : :class:`~graph_tool.Graph`
         Graph to be used.
 
-    eprop : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    eprop : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge property to label the biconnected components.
 
-    vprop : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property to mark the articulation points. If none is supplied,
         one is created.
 
 
     Returns
     -------
-    bicomp : :class:`~graph_tool.PropertyMap`
+    bicomp : :class:`~graph_tool.EdgePropertyMap`
         Edge property map with the biconnected component labels.
-    articulation : :class:`~graph_tool.PropertyMap`
+    articulation : :class:`~graph_tool.VertexPropertyMap`
         Boolean vertex property map which has value 1 for each vertex which is
         an articulation point, and zero otherwise.
     nc : int
@@ -1361,7 +1362,7 @@ def vertex_percolation(g, vertices, second=False):
     size : :class:`numpy.ndarray`
         Size of the largest (or second-largest) component prior to removal of
         each vertex.
-    comp : :class:`~graph_tool.PropertyMap`
+    comp : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with component labels.
 
     Notes
@@ -1449,7 +1450,7 @@ def edge_percolation(g, edges, second=False):
     size : :class:`numpy.ndarray`
         Size of the largest (or second-largest) component prior to removal of
         each edge.
-    comp : :class:`~graph_tool.PropertyMap`
+    comp : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with component labels.
 
     Notes
@@ -1521,13 +1522,13 @@ def kcore_decomposition(g, vprop=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    vprop : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vprop : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property to store the decomposition. If ``None`` is supplied,
         one is created.
 
     Returns
     -------
-    kval : :class:`~graph_tool.PropertyMap`
+    kval : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the k-core decomposition, i.e. a given vertex v
         belongs to the ``kval[v]``-core.
 
@@ -1606,7 +1607,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
     target : :class:`~graph_tool.Vertex` or iterable of such objects (optional, default: ``None``)
         Target vertex (or vertices) of the search. If unspecified, the distance
         to all vertices from the source will be computed.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         The edge weights. If provided, the shortest path will correspond to the
         minimal sum of weights.
     negative_weights : ``bool`` (optional, default: ``False``)
@@ -1623,7 +1624,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
         If ``True``, and source is ``None``, the Floyd-Warshall algorithm is used,
         otherwise the Johnson algorithm is used. If source is not ``None``, this option
         has no effect.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vertex property to store the distances. If none is supplied, one
         is created.
 
@@ -1640,9 +1641,9 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
             depending on the distance type.
 
-    pred_map : ``bool`` or :class:`~graph_tool.PropertyMap` (optional, default: ``False``)
+    pred_map : ``bool`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``False``)
         If ``True``, a vertex property map with the predecessors is returned.
-        If a :class:`~graph_tool.PropertyMap` is passed, it must be of value
+        If a :class:`~graph_tool.VertexPropertyMap` is passed, it must be of value
         ``int64_t`` and it will be used to store the predecessors.  Ignored if
         ``source`` is ``None``.
 
@@ -1663,14 +1664,14 @@ def shortest_distance(g, source=None, target=None, weights=None,
 
     Returns
     -------
-    dist_map : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray`
+    dist_map : :class:`~graph_tool.VertexPropertyMap` or :class:`numpy.ndarray`
         Vertex property map with the distances from source. If ``source`` is
         ``None``, it will have a vector value type, with the distances to every
         vertex. If ``target`` is an iterable, instead of
-        :class:`~graph_tool.PropertyMap`, this will be of type
+        :class:`~graph_tool.VertexPropertyMap`, this will be of type
         :class:`numpy.ndarray`, and contain only the distances to those specific
         targets.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, if ``pred_map == True``)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, if ``pred_map == True``)
         Vertex property map with the predecessors in the search tree.
     pred_map : :class:`numpy.ndarray` (optional, if ``return_reached == True``)
         Array containing vertices visited during the search.
@@ -1858,11 +1859,11 @@ def shortest_path(g, source, target, weights=None, negative_weights=False,
         Source vertex of the search.
     target : :class:`~graph_tool.Vertex`
         Target vertex of the search.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         The edge weights.
     negative_weights : ``bool`` (optional, default: ``False``)
         If ``True``, this will trigger the use of the Bellman-Ford algorithm.
-    pred_map :  :class:`~graph_tool.PropertyMap` (optional, default: None)
+    pred_map :  :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
         from this map.
@@ -1965,12 +1966,12 @@ def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    dist_map : :class:`~graph_tool.PropertyMap`
+    dist_map : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the distances from ``source`` to all other
         vertices.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the predecessors in the search tree.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         The edge weights.
     epsilon : `float` (optional, default: `1e-8`)
         Maximum relative difference between distances to be considered "equal",
@@ -1978,7 +1979,7 @@ def all_predecessors(g, dist_map, pred_map, weights=None, epsilon=1e-8):
 
     Returns
     -------
-    all_preds_map : :class:`~graph_tool.PropertyMap`
+    all_preds_map : :class:`~graph_tool.VertexPropertyMap`
         Vector-valued vertex property map with all possible predecessors in the
         search tree.
 
@@ -2006,18 +2007,18 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
         Source vertex of the search.
     target : :class:`~graph_tool.Vertex`
         Target vertex of the search.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         The edge weights.
     negative_weights : ``bool`` (optional, default: ``False``)
         If ``True``, this will trigger the use of the Bellman-Ford algorithm.
-    dist_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    dist_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the distances from ``source`` to all other
         vertices.
-    pred_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    pred_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vertex property map with the predecessors in the search tree. If this is
         provided, the shortest paths are not computed, and are obtained directly
         from this map.
-    all_preds_map : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    all_preds_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Vector-valued vertex property map with all possible predecessors in the
         search tree. If this is provided, the shortest paths are obtained
         directly from this map.
@@ -2203,7 +2204,7 @@ def pseudo_diameter(g, source=None, weights=None):
     source : :class:`~graph_tool.Vertex` (optional, default: `None`)
         Source vertex of the search. If not supplied, the first vertex
         in the graph will be chosen.
-    weights : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    weights : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         The edge weights.
 
     Returns
@@ -2288,7 +2289,7 @@ def is_bipartite(g, partition=False, find_odd_cycle=False):
     -------
     is_bipartite : ``bool``
         Whether or not the graph is bipartite.
-    partition : :class:`~graph_tool.PropertyMap` (only if ``partition=True``)
+    partition : :class:`~graph_tool.VertexPropertyMap` (only if ``partition=True``)
         A vertex property map with the graph partitioning (or ``None``) if the
         graph is not bipartite.
     odd_cycle : list of vertices (only if ``find_odd_cycle=True``)
@@ -2377,10 +2378,10 @@ def is_planar(g, embedding=False, kuratowski=False):
     -------
     is_planar : bool
         Whether or not the graph is planar.
-    embedding : :class:`~graph_tool.PropertyMap` (only if `embedding=True`)
+    embedding : :class:`~graph_tool.VertexPropertyMap` (only if `embedding=True`)
         A vertex property map with the out-edges indexes in clockwise order in
         the planar embedding,
-    kuratowski : :class:`~graph_tool.PropertyMap` (only if `kuratowski=True`)
+    kuratowski : :class:`~graph_tool.EdgePropertyMap` (only if `kuratowski=True`)
         An edge property map with the minimal set of edges that form the
         obstructing Kuratowski subgraph (if the value of kuratowski[e] is 1,
         the edge belongs to the set)
@@ -2563,19 +2564,19 @@ def max_cardinality_matching(g, heuristic=False, weight=None, minimize=True,
         Graph to be used.
     heuristic : bool (optional, default: `False`)
         If true, a random heuristic will be used, which runs in linear time.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         If provided, the matching will minimize the edge weights (or maximize
         if ``minimize == False``). This option has no effect if
         ``heuristic == False``.
     minimize : bool (optional, default: `True`)
         If `True`, the matching will minimize the weights, otherwise they will
         be maximized. This option has no effect if ``heuristic == False``.
-    match : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    match : :class:`~graph_tool.EdgePropertyMap` (optional, default: `None`)
         Edge property map where the matching will be specified.
 
     Returns
     -------
-    match : :class:`~graph_tool.PropertyMap`
+    match : :class:`~graph_tool.EdgePropertyMap`
         Boolean edge property map where the matching is specified.
 
     Notes
@@ -2664,12 +2665,12 @@ def max_independent_vertex_set(g, high_deg=False, mivs=None):
     high_deg : bool (optional, default: `False`)
         If `True`, vertices with high degree will be included first in the set,
         otherwise they will be included last.
-    mivs : :class:`~graph_tool.PropertyMap` (optional, default: `None`)
+    mivs : :class:`~graph_tool.VertexPropertyMap` (optional, default: `None`)
         Vertex property map where the vertex set will be specified.
 
     Returns
     -------
-    mivs : :class:`~graph_tool.PropertyMap`
+    mivs : :class:`~graph_tool.VertexPropertyMap`
         Boolean vertex property map where the set is specified.
 
     Notes
@@ -2790,7 +2791,7 @@ def tsp_tour(g, src, weight=None):
         Graph to be used. The graph must be undirected.
     src : :class:`~graph_tool.Vertex`
         The source (and target) of the tour.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge weights.
 
     Returns
@@ -2834,14 +2835,14 @@ def sequential_vertex_coloring(g, order=None, color=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    order : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    order : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Order with which the vertices will be colored.
-    color : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    color : :class:`~graph_tool.VertexPropertyMap` (optional, default: None)
         Integer-valued vertex property map to store the colors.
 
     Returns
     -------
-    color : :class:`~graph_tool.PropertyMap`
+    color : :class:`~graph_tool.VertexPropertyMap`
         Integer-valued vertex property map with the vertex colors.
 
     Notes

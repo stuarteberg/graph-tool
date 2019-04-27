@@ -46,7 +46,7 @@ class OverlapBlockState(BlockState):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be modelled.
-    b : :class:`~graph_tool.PropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
+    b : :class:`~graph_tool.VertexPropertyMap` or :class:`numpy.ndarray` (optional, default: ``None``)
         Initial block labels on the vertices or half-edges. If not supplied, it
         will be randomly sampled.
         If the value passed is a vertex property map, it will be assumed to be a
@@ -59,7 +59,7 @@ class OverlapBlockState(BlockState):
     B : ``int`` (optional, default: ``None``)
         Number of blocks (or vertex groups). If not supplied it will be obtained
         from the parameter ``b``.
-    recs : list of :class:`~graph_tool.PropertyMap` instances (optional, default: ``[]``)
+    recs : list of :class:`~graph_tool.EdgePropertyMap` instances (optional, default: ``[]``)
         List of real or discrete-valued edge covariates.
     rec_types : list of edge covariate types (optional, default: ``[]``)
         List of types of edge covariates. The possible types are:
@@ -69,7 +69,7 @@ class OverlapBlockState(BlockState):
         Model hyperparameters for edge covariates. This should a list of
         ``dict`` instances. See :class:`~graph_tool.inference.blockmodel.BlockState` for
         more details.
-    clabel : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    clabel : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Constraint labels on the vertices. If supplied, vertices with different
         label values will not be clustered in the same group.
     deg_corr : ``bool`` (optional, default: ``True``)
@@ -398,16 +398,16 @@ class OverlapBlockState(BlockState):
 
         Returns
         -------
-        bv : :class:`~graph_tool.PropertyMap`
+        bv : :class:`~graph_tool.VertexPropertyMap`
            A vector-valued vertex property map containing the block memberships
            of each node.
-        bc_in : :class:`~graph_tool.PropertyMap`
+        bc_in : :class:`~graph_tool.VertexPropertyMap`
            The labelled in-degrees of each node, i.e. how many in-edges belong
            to each group, in the same order as the ``bv`` property above.
-        bc_out : :class:`~graph_tool.PropertyMap`
+        bc_out : :class:`~graph_tool.VertexPropertyMap`
            The labelled out-degrees of each node, i.e. how many out-edges belong
            to each group, in the same order as the ``bv`` property above.
-        bc_total : :class:`~graph_tool.PropertyMap`
+        bc_total : :class:`~graph_tool.VertexPropertyMap`
            The labelled total degrees of each node, i.e. how many incident edges
            belong to each group, in the same order as the ``bv`` property above.
 
@@ -851,7 +851,7 @@ def get_block_edge_gradient(g, be, cmap=None):
     ----------
     g : :class:`~graph_tool.Graph`
         The graph.
-    be : :class:`~graph_tool.PropertyMap`
+    be : :class:`~graph_tool.EdgePropertyMap`
         Vector-valued edge property map with the block membership at each
         endpoint.
     cmap : :class:`matplotlib.colors.Colormap` (optional, default: ``default_cm``)
@@ -859,7 +859,7 @@ def get_block_edge_gradient(g, be, cmap=None):
 
     Returns
     -------
-    cp : :class:`~graph_tool.PropertyMap`
+    cp : :class:`~graph_tool.EdgePropertyMap`
        A vector-valued edge property map containing a color gradient.
     """
 

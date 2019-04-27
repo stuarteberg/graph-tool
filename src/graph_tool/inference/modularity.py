@@ -31,9 +31,9 @@ def modularity(g, b, weight=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    b : :class:`~graph_tool.PropertyMap`
+    b : :class:`~graph_tool.VertexPropertyMap`
         Vertex property map with the community partition.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: None)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: None)
         Edge property map with the optional edge weights.
 
     Returns

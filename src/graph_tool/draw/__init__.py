@@ -37,7 +37,6 @@ Layout algorithms
    radial_tree_layout
    planar_layout
    random_layout
-   get_hierarchy_control_points
 
 Graph drawing
 =============
@@ -49,6 +48,7 @@ Graph drawing
    draw_hierarchy
    graphviz_draw
    prop_to_size
+   get_hierarchy_control_points
 
 
 Low-level graph drawing
@@ -101,14 +101,14 @@ def random_layout(g, shape=None, pos=None, dim=2):
         match `dim`, and each element can be either a pair specifying a range,
         or a single value specifying a range starting from zero. If None is
         passed, a square of linear size :math:`\sqrt{N}` is used.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored.
     dim : int (optional, default: ``2``)
         Number of coordinates per vertex.
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -165,12 +165,12 @@ def planar_layout(g, pos=None):
     ----------
     g : :class:`~graph_tool.Graph`
         Planar graph to be used.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored.
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -229,7 +229,7 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
     a : float (optional, default: :math:`V`)
         Attracting force between adjacent vertices.
@@ -248,14 +248,14 @@ def fruchterman_reingold_layout(g, weight=None, a=None, r=1., scale=None,
         displacement at each iteration.
     n_iter : int (optional, default: ``100``)
         Total number of iterations.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored. If
         provided, this will also be used as the initial position of the
         vertices.
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -326,7 +326,7 @@ def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    weight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
     d : float (optional, default: ``0.5``)
         Opposing force between vertices.
@@ -339,14 +339,14 @@ def arf_layout(g, weight=None, d=0.5, a=10, dt=0.001, epsilon=1e-6,
     max_iter : int (optional, default: ``1000``)
         Maximum number of iterations. If this value is ``0``, it runs until
         convergence.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector vertex property maps where the coordinates should be stored.
     dim : int (optional, default: ``2``)
         Number of coordinates per vertex.
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -581,14 +581,14 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    vweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vweight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map with the respective weights.
-    eweight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         An edge property map with the respective weights.
-    pin : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pin : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map with boolean values, which, if given,
         specify the vertices which will not have their positions modified.
-    groups : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    groups : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         A vertex property map with group assignments. Vertices belonging to the
         same group will be put close together.
     C : float (optional, default: ``0.2``)
@@ -622,7 +622,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
     max_iter : int (optional, default: ``0``)
         Maximum number of iterations. If this value is ``0``, it runs until
         convergence.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Initial vertex layout. If not provided, it will be randomly chosen.
     multilevel : bool (optional, default: ``None``)
         Use a multilevel layout algorithm. If ``None`` is given, it will be
@@ -643,7 +643,7 @@ def sfdp_layout(g, vweight=None, eweight=None, pin=None, groups=None, C=0.2,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -778,7 +778,7 @@ def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
         Graph to be used.
     root : :class:`~graph_tool.Vertex` or ``int``
         The root of the radial tree.
-    rel_order : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    rel_order : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Relative order of the nodes at each respective branch.
     rel_order_leaf : ``bool`` (optional, default: ``False``)
         If ``True``, the relative order of the leafs will propagate to the
@@ -786,7 +786,7 @@ def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
     weighted : ``bool`` (optional, default: ``False``)
         If true, the angle between the child branches will be computed according
         to weight of the entire sub-branches.
-    node_weight : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    node_weight : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If given, the relative spacing between leafs will correspond to the node
         weights.
     r : ``float`` (optional, default: ``1.``)
@@ -794,7 +794,7 @@ def radial_tree_layout(g, root, rel_order=None, rel_order_leaf=False,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         A vector-valued vertex property map with the coordinates of the
         vertices.
 
@@ -854,9 +854,9 @@ def prop_to_size(prop, mi=0, ma=5, log=False, power=0.5):
 
     .. math::
 
-        y = mi + (ma - mi) \left(\frac{x_i - min(x)} {max(x) - min(x)}\right)^\text{power}
+        y = mi + (ma - mi) \left(\frac{x_i - \min(x)} {\max(x) - \min(x)}\right)^\text{power}
 
-    If `log=True`, the natural logarithm of the property values is used instead.
+    If ``log=True``, the natural logarithm of the property values is used instead.
 
     """
     prop = prop.copy(value_type="double")
@@ -872,18 +872,18 @@ def prop_to_size(prop, mi=0, ma=5, log=False, power=0.5):
     return prop
 
 try:
-    from .cairo_draw import graph_draw, cairo_draw, get_hierarchy_control_points, default_cm
+    from . cairo_draw import graph_draw, cairo_draw, get_hierarchy_control_points, default_cm
 except ImportError:
     pass
 
 try:
-    from .cairo_draw import GraphWidget, GraphWindow, \
+    from . cairo_draw import GraphWidget, GraphWindow, \
         interactive_window, draw_hierarchy
     __all__ += ["interactive_window", "GraphWidget", "GraphWindow", "draw_hierarchy"]
 except ImportError:
     pass
 
 try:
-   from .graphviz_draw import graphviz_draw
+   from . graphviz_draw import graphviz_draw
 except ImportError:
    pass

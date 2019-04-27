@@ -560,7 +560,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be drawn.
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices.
     cr : :class:`~cairo.Context`
@@ -573,9 +573,9 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         Dictionary with the edge properties. Individual properties may also be
         given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
-    vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the vertices are drawn.
-    eorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the edges are drawn.
     nodesfirst : bool (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
@@ -585,7 +585,7 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
     ecmap : :class:`matplotlib.colors.Colormap` or tuple (optional, default: :obj:`~graph_tool.draw.default_cm`)
         Edge color map. Optionally, this may be a
         (:class:`matplotlib.colors.Colormap`, alpha) tuple.
-    loop_angle : float or :class:`~graph_tool.PropertyMap` (optional, default: ``nan``)
+    loop_angle : float or :class:`~graph_tool.EdgePropertyMap` (optional, default: ``nan``)
         Angle used to draw self-loops. If ``nan`` is given, they will be placed
         radially from the center of the layout.
     parallel_distance : float (optional, default: ``None``)
@@ -605,11 +605,11 @@ def cairo_draw(g, pos, cr, vprops=None, eprops=None, vorder=None, eorder=None,
         If nonnegative, this function will return an iterator that will perform
         part of the drawing at each step, so that each iteration takes at most
         ``max_render_time`` milliseconds.
-    vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
         ``vprops`` parameter.
-    edge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    edge_* : :class:`~graph_tool.EdgePropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``edge_<prop-name>`` specify the edge
         property with name ``<prop-name>``, as an alternative to the ``eprops``
         parameter.
@@ -761,7 +761,7 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be drawn.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices. If not given, it will be computed using :func:`sfdp_layout`.
     vprops : dict (optional, default: ``None``)
@@ -772,9 +772,9 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         Dictionary with the edge properties. Individual properties may also be
         given via the ``edge_<prop-name>`` parameters, where ``<prop-name>`` is
         the name of the property.
-    vorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    vorder : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the vertices are drawn.
-    eorder : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    eorder : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         If provided, defines the relative order in which the edges are drawn.
     nodesfirst : bool (optional, default: ``False``)
         If ``True``, the vertices are drawn first, otherwise the edges are.
@@ -804,11 +804,11 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
         guessed from the ``output`` parameter.
     bg_color : str or sequence (optional, default: ``None``)
         Background color. The default is transparent.
-    vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
         ``vprops`` parameter.
-    edge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    edge_* : :class:`~graph_tool.EdgePropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``edge_<prop-name>`` specify the edge
         property with name ``<prop-name>``, as an alternative to the ``eprops``
         parameter.
@@ -819,9 +819,9 @@ def graph_draw(g, pos=None, vprops=None, eprops=None, vorder=None, eorder=None,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         Vector vertex property map with the x and y coordinates of the vertices.
-    selected : :class:`~graph_tool.PropertyMap` (optional, only if ``output is None``)
+    selected : :class:`~graph_tool.VertexPropertyMap` (optional, only if ``output is None``)
         Boolean-valued vertex property map marking the vertices which were
         selected interactively.
 
@@ -1375,15 +1375,15 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True,
         to the leaves, and the vertices in ``t`` with index in the range
         :math:`[0, N-1]`, with :math:`N` being the number of vertices in ``g``,
         must correspond to the respective vertex in ``g``.
-    tpos : :class:`~graph_tool.PropertyMap`
+    tpos : :class:`~graph_tool.VertexPropertyMap`
         Vector-valued vertex property map containing the x and y coordinates of
         the vertices in graph ``t``.
-    beta : ``float`` (optional, default: ``0.8`` or :class:`~graph_tool.PropertyMap`)
+    beta : ``float`` (optional, default: ``0.8`` or :class:`~graph_tool.EdgePropertyMap`)
         Edge bundling strength. For ``beta == 0`` the edges are straight lines,
         and for ``beta == 1`` they strictly follow the hierarchy. This can be
         optionally an edge property map, which specified a different bundling
         strength for each edge.
-    cts : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    cts : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
         Edge property map of type ``vector<double>`` where the control points
         will be stored.
     is_tree : ``bool`` (optional, default: ``True``)
@@ -1397,7 +1397,7 @@ def get_hierarchy_control_points(g, t, tpos, beta=0.8, cts=None, is_tree=True,
     Returns
     -------
 
-    cts : :class:`~graph_tool.PropertyMap`
+    cts : :class:`~graph_tool.EdgePropertyMap`
         Vector-valued edge property map containing the Bézier spline control
         points for the edges in ``g``.
 
@@ -1584,15 +1584,15 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     ----------
     state : :class:`~graph_tool.inference.nested_blockmodel.NestedBlockState`
         Nested block state to be drawn.
-    pos : :class:`~graph_tool.PropertyMap` (optional, default: ``None``)
+    pos : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If supplied, this specifies a vertex property map with the positions of
         the vertices in the layout.
-    layout : ``str`` or :class:`~graph_tool.PropertyMap` (optional, default: ``"radial"``)
+    layout : ``str`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``"radial"``)
         If ``layout == "radial"`` :func:`~graph_tool.draw.radial_tree_layout`
         will be used. If ``layout == "sfdp"``, the hierarchy tree will be
         positioned using :func:`~graph_tool.draw.sfdp_layout`. If ``layout ==
         "bipartite"`` a bipartite layout will be used. If instead a
-        :class:`~graph_tool.PropertyMap` is provided, it must correspond to the
+        :class:`~graph_tool.VertexPropertyMap` is provided, it must correspond to the
         position of the hierarchy tree.
     beta : ``float`` (optional, default: ``.8``)
         Edge bundling strength.
@@ -1619,10 +1619,10 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     subsample_edges : ``int`` or list of :class:`~graph_tool.Edge` instances (optional, default: ``None``)
         If provided, only this number of random edges will be drawn. If the
         value is a list, it should include the edges that are to be drawn.
-    rel_order : ``str`` or ``None`` or :class:`~graph_tool.PropertyMap` (optional, default: ``"degree"``)
+    rel_order : ``str`` or ``None`` or :class:`~graph_tool.VertexPropertyMap` (optional, default: ``"degree"``)
         If ``degree``, the vertices will be ordered according to degree inside
         each group, and the relative ordering of the hierarchy branches. If
-        instead a :class:`~graph_tool.PropertyMap` is provided, its value will
+        instead a :class:`~graph_tool.VertexPropertyMap` is provided, its value will
         be used for the relative ordering.
     deg_size : ``bool`` (optional, default: ``True``)
         If ``True``, the (total) node degrees will be used for the default
@@ -1641,21 +1641,21 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
     empty_branches : ``bool`` (optional, default: ``False``)
         If ``empty_branches == False``, dangling branches at the upper layers
         will be pruned.
-    vertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    vertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``vertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
         ``vprops`` parameter. See :func:`~graph_tool.draw.graph_draw` for
         details.
-    edge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    edge_* : :class:`~graph_tool.EdgePropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``edge_<prop-name>`` specify the edge
         property with name ``<prop-name>``, as an alternative to the ``eprops``
         parameter. See :func:`~graph_tool.draw.graph_draw` for details.
-    hvertex_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    hvertex_* : :class:`~graph_tool.VertexPropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``hvertex_<prop-name>`` specify the
         vertex property with name ``<prop-name>``, as an alternative to the
         ``hvprops`` parameter. See :func:`~graph_tool.draw.graph_draw` for
         details.
-    hedge_* : :class:`~graph_tool.PropertyMap` or arbitrary types (optional, default: ``None``)
+    hedge_* : :class:`~graph_tool.EdgePropertyMap` or arbitrary types (optional, default: ``None``)
         Parameters following the pattern ``hedge_<prop-name>`` specify the edge
         property with name ``<prop-name>``, as an alternative to the ``heprops``
         parameter. See :func:`~graph_tool.draw.graph_draw` for details.
@@ -1665,12 +1665,12 @@ def draw_hierarchy(state, pos=None, layout="radial", beta=0.8, node_weight=None,
 
     Returns
     -------
-    pos : :class:`~graph_tool.PropertyMap`
+    pos : :class:`~graph_tool.VertexPropertyMap`
         This is a vertex property map with the positions of
         the vertices in the layout.
     t : :class:`~graph_tool.Graph`
         This is a the hierarchy tree used in the layout.
-    tpos : :class:`~graph_tool.PropertyMap`
+    tpos : :class:`~graph_tool.VertexPropertyMap`
         This is a vertex property map with the positions of
         the hierarchy tree in the layout.
 

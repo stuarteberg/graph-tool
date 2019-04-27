@@ -49,7 +49,7 @@ __all__ = ["find_vertex", "find_vertex_range", "find_edge", "find_edge_range"]
 
 def find_vertex(g, prop, match):
     """Find all vertices `v` for which `prop[v] = match`. The parameter prop
-    can be either a :class:`~graph_tool.PropertyMap` or string with value "in",
+    can be either a :class:`~graph_tool.VertexPropertyMap` or string with value "in",
     "out" or "total", representing a degree type."""
     if prop in ["in", "out", "total"]:
         val = int(match)
@@ -63,8 +63,8 @@ def find_vertex(g, prop, match):
 
 def find_vertex_range(g, prop, range):
     """Find all vertices `v` for which `range[0] <= prop[v] <= range[1]`. The
-    parameter prop can be either a :class:`~graph_tool.PropertyMap` or string
-    with value"in", "out" or "total", representing a degree type."""
+    parameter prop can be either a :class:`~graph_tool.VertexPropertyMap` or string
+    with value "in", "out" or "total", representing a degree type."""
     if prop in ["in", "out", "total"]:
         convert = lambda x: int(x)
     else:
@@ -77,7 +77,7 @@ def find_vertex_range(g, prop, range):
 
 def find_edge(g, prop, match):
     """Find all edges `e` for which `prop[e] = match`. The parameter prop
-    must be a :class:`~graph_tool.PropertyMap`."""
+    must be a :class:`~graph_tool.EdgePropertyMap`."""
     val = _converter(prop.value_type())(match)
     ret = libgraph_tool_util.\
           find_edge_range(g._Graph__graph, _prop("e", g, prop),
@@ -87,7 +87,7 @@ def find_edge(g, prop, match):
 
 def find_edge_range(g, prop, range):
     """Find all edges `e` for which `range[0] <= prop[e] <= range[1]`. The
-    parameter prop can be either a :class:`~graph_tool.PropertyMap`."""
+    parameter prop can be either a :class:`~graph_tool.EdgePropertyMap`."""
     convert = _converter(prop.value_type())
     ret = libgraph_tool_util.\
           find_edge_range(g._Graph__graph, _prop("e", g, prop),
