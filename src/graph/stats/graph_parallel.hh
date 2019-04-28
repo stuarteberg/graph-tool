@@ -20,6 +20,9 @@
 
 #include "hash_map_wrap.hh"
 #include "graph_util.hh"
+#include "idx_map.hh"
+
+#include <boost/range/adaptor/reversed.hpp>
 
 namespace graph_tool
 {
@@ -36,17 +39,18 @@ struct label_parallel_edges
         typedef typename graph_traits<Graph>::edge_descriptor edge_t;
         typename property_map<Graph, edge_index_t>::type eidx = get(edge_index, g);
 
-        parallel_vertex_loop
+        idx_map<vertex_t, edge_t> vset;
+        idx_map<size_t, bool> self_loops;
+
+        #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
+            firstprivate(vset) firstprivate(self_loops)
+        parallel_vertex_loop_no_spawn
             (g,
              [&](auto v)
              {
-                 gt_hash_map<vertex_t, edge_t> vset;
-                 gt_hash_map<size_t, bool> self_loops;
-
-                 typename graph_traits<Graph>::out_edge_iterator e, e_end;
-                 for (tie(e, e_end) = out_edges(v, g); e != e_end; ++e)
+                 for (auto e : out_edges_range(v, g))
                  {
-                     vertex_t u = target(*e, g);
+                     vertex_t u = target(e, g);
 
                      // do not visit edges twice in undirected graphs
                      if (!graph_tool::is_directed(g) && u < v)
@@ -54,29 +58,31 @@ struct label_parallel_edges
 
                      if (u == v)
                      {
-                         if (self_loops[eidx[*e]])
+                         if (self_loops[eidx[e]])
                              continue;
-                         self_loops[eidx[*e]] = true;
+                         self_loops[eidx[e]] = true;
                      }
 
                      auto iter = vset.find(u);
                      if (iter == vset.end())
                      {
-                         vset[u] = *e;
+                         vset[u] = e;
                      }
                      else
                      {
                          if (mark_only)
                          {
-                             parallel[*e] = true;
+                             parallel[e] = true;
                          }
                          else
                          {
-                             parallel[*e] = parallel[iter->second] + 1;
-                             vset[u] = *e;
+                             parallel[e] = parallel[iter->second] + 1;
+                             vset[u] = e;
                          }
                      }
                  }
+                 vset.clear();
+                 self_loops.clear();
              });
     }
 };
@@ -109,17 +115,21 @@ struct remove_labeled_edges
     template <class Graph, class LabelMap>
     void operator()(Graph& g, LabelMap label) const
     {
+        typedef typename graph_traits<Graph>::edge_descriptor edge_t;
+        vector<edge_t> r_edges;
         for (auto v : vertices_range(g))
         {
-            typedef typename graph_traits<Graph>::edge_descriptor edge_t;
-            vector<edge_t> r_edges;
             for (auto e : out_edges_range(v, g))
             {
                 if (label[e] > 0)
                     r_edges.push_back(e);
             }
-            for (size_t j = 0; j < r_edges.size(); ++j)
-                remove_edge(r_edges[j], g);
+
+            while (!r_edges.empty())
+            {
+                remove_edge(r_edges.back(), g);
+                r_edges.pop_back();
+            }
         }
     }
 };
