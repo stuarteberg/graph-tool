@@ -1006,6 +1006,11 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
             state["global_beta"] = beta
         self.__init__(**state, beta=beta)
 
+    def copy(self, **kwargs):
+        """Return a copy of the state."""
+        return type(self)(**dict(self.__getstate__(),
+                                 **dict(kwargs, beta=kwargs.get("beta", None))))
+
     def set_params(self, params):
         r"""Sets the model parameters via the dictionary ``params``."""
         self.params = dict(self.params, **params)
@@ -1013,6 +1018,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         beta = self.params["global_beta"]
         if beta is not None:
             self.x.fa = log1p(-beta)
+            self._state.reset_m()
 
     def get_x(self):
         """Return latent edge transmission probabilities."""
@@ -1040,10 +1046,10 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
 
         """
 
-        return super(EpidemicBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
-                                                          h=h, hstep=hstep,
-                                                          xstep=xstep,
-                                                          multiflip=multiflip)
+        return super(EpidemicsBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
+                                                           h=h, hstep=hstep,
+                                                           xstep=xstep,
+                                                           multiflip=multiflip)
 
     def _algo_sweep(self, algo, r=.5, p=.1, pstep=.1, h=.1, hstep=1,
                     xstep=.1, niter=1, **kwargs):
@@ -1066,8 +1072,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
                         ret = self._move_proposal("global_beta",
                                                   kwargs.get("beta", 1),
                                                   pstep, (0, 1),
-                                                  (lambda beta: log1p(-beta),
-                                                   lambda x: 1-exp(x)),
+                                                  None,
                                                   kwargs.get("entropy_args", {}))
                         dS += ret[0]
                         nt += ret[1]

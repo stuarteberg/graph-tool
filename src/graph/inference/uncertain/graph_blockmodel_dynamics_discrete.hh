@@ -103,6 +103,19 @@ public:
             _T.push_back(T);
         }
 
+        reset_m(s);
+        _m_temp.resize(_s.size());
+    };
+
+    template <class State>
+    void reset_m(State& s)
+    {
+        for (auto v : vertices_range(s._u))
+        {
+            for (auto& m : _m)
+                m[v].clear();
+        }
+
         auto xc = s._x.get_checked();
         for (auto v : vertices_range(s._u))
         {
@@ -145,8 +158,7 @@ public:
             }
 
         }
-        _m_temp.resize(_s.size());
-    };
+    }
 
     template <class State>
     bool check_m(State& s, size_t v)
@@ -597,9 +609,7 @@ public:
         if (n == -1 ||
             python::extract<double>(params["r"]).check())
         {
-            _beta.resize(_s.size());
             _r.resize(_s.size());
-            _log_p.resize(_s.size());
             for (size_t n = 0; n < _s.size(); ++n)
                 set_params(params, n);
 
@@ -635,11 +645,6 @@ public:
             _r[n] = python::extract<double>(params["r"][n]);
     }
 
-    double get_log_P(size_t m, double r, double beta)
-    {
-        return r + (1-r) * (1 - std::pow(1-beta, m));
-    }
-
     double log_P(size_t v, size_t n, double m, int s, int ns)
     {
         if (s != State::S)
@@ -667,15 +672,12 @@ public:
     hmap_t::unchecked_t _r_v;
 
 private:
-    std::vector<double> _beta;
     std::vector<double> _r;
     std::vector<typename amap_t::unchecked_t> _active;
     bool _has_r_v;
     bool _exposed;
     int _E;
     size_t _N;
-
-    std::vector<std::vector<std::pair<double, double>>> _log_p;
 };
 
 template <class T>

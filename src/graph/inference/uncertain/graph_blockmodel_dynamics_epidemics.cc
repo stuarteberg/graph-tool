@@ -101,7 +101,12 @@ void export_epidemics_state()
                                     get_xedges_prob(state, edges, probs, ea,
                                                     epsilon);
                                 })
-                          .def("set_params", &state_t::set_params);
+                          .def("set_params", &state_t::set_params)
+                          .def("reset_m",
+                               +[](state_t& state)
+                                {
+                                    state._dstate.reset_m(state);
+                                });
                   });
          });
 
