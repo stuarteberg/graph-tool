@@ -93,7 +93,7 @@ def load_koblenz_dir(dirname):
 
 def get_koblenz_network_data(name):
     with tempfile.TemporaryFile(mode='w+b') as ftemp:
-        response = urlopen('http://konect.cc/files/download.tsv.%s.tar.bz2' % name)
+        response = urlopen('http://konect.uni-koblenz.de/downloads/tsv/%s.tar.bz2' % name)
         buflen = 1 << 20
         while True:
             buf = response.read(buflen)
