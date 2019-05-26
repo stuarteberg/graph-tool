@@ -3285,7 +3285,7 @@ def load_graph(file_name, fmt="auto", ignore_vp=None, ignore_ep=None,
     g.load(file_name, fmt, ignore_vp, ignore_ep, ignore_gp)
     return g
 
-def load_graph_from_csv(file_name, directed=True, eprop_types=None,
+def load_graph_from_csv(file_name, directed=False, eprop_types=None,
                         eprop_names=None, string_vals=True, hashed=False,
                         skip_first=False, ecols=(0,1),
                         csv_options={"delimiter": ",","quotechar": '"'}):
