@@ -662,8 +662,10 @@ class MixedMeasuredBlockState(UncertainBaseState):
         if ``multiflip=True``.
         """
 
-        return super(MixedMeasuredBlockState, self).mcmc_sweep(r=r, multiflip=multiflip,
-                                                               h=h, hstep=hstep)
+        return super(MixedMeasuredBlockState, self).mcmc_sweep(r=r,
+                                                               multiflip=multiflip,
+                                                               h=h, hstep=hstep,
+                                                               **kwargs)
 
     def _algo_sweep(self, algo, r=.5, h=.1, hstep=1, niter=1, **kwargs):
         if numpy.random.random() < h:
@@ -697,7 +699,9 @@ class MixedMeasuredBlockState(UncertainBaseState):
                     self.set_hparams(*hs)
             return (dS, nt, nm)
         else:
-            return super(MixedMeasuredBlockState, self)._algo_sweep(algo, r, **kwargs)
+            return super(MixedMeasuredBlockState, self)._algo_sweep(algo, r,
+                                                                    niter=niter,
+                                                                    **kwargs)
 
     def _mcmc_sweep(self, mcmc_state):
         return libinference.mcmc_uncertain_sweep(mcmc_state,
@@ -1049,7 +1053,8 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         return super(EpidemicsBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
                                                            h=h, hstep=hstep,
                                                            xstep=xstep,
-                                                           multiflip=multiflip)
+                                                           multiflip=multiflip,
+                                                           **kwargs)
 
     def _algo_sweep(self, algo, r=.5, p=.1, pstep=.1, h=.1, hstep=1,
                     xstep=.1, niter=1, **kwargs):
@@ -1096,6 +1101,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
                                                                 xlog=True,
                                                                 xstep=xstep,
                                                                 xdefault=xdefault,
+                                                                niter=niter,
                                                                 **kwargs)
 
     def _mcmc_sweep(self, mcmc_state):
@@ -1230,7 +1236,8 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
         return super(IsingBaseBlockState, self).mcmc_sweep(r=r, p=p, pstep=p,
                                                            h=h, hstep=hstep,
                                                            xstep=xstep,
-                                                           multiflip=multiflip)
+                                                           multiflip=multiflip,
+                                                           **kwargs)
 
     def _algo_sweep(self, algo, r=.5, p=.1, pstep=1, h=.5, hstep=1, niter=1,
                     xstep=1, **kwargs):
@@ -1259,6 +1266,7 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
                                                                 xlog=False,
                                                                 xstep=xstep,
                                                                 xdefault=1,
+                                                                niter=niter,
                                                                 **kwargs)
 
 class IsingGlauberBlockState(IsingBaseBlockState):
