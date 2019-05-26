@@ -75,7 +75,7 @@ boost::python::object wrap_vector_owned(const std::vector<ValueType>& vec)
     }
     else
     {
-        ValueType* new_data = new ValueType[vec.size()];
+        ValueType* new_data = (ValueType*) malloc(sizeof(ValueType) * vec.size());
         memcpy(new_data, vec.data(), vec.size() * sizeof(ValueType));
         ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(1, size, val_type,
                                                              new_data);
@@ -118,7 +118,7 @@ boost::python::object wrap_vector_owned(const std::vector<std::array<ValueType, 
     }
     else
     {
-        ValueType* new_data = new ValueType[n];
+        ValueType* new_data = (ValueType*) malloc(sizeof(ValueType) * n);
         memcpy(new_data, vec.data(), n * sizeof(ValueType));
         npy_intp shape[2] = {int(vec.size()), int(Dim)};
         ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(Dim, shape,
@@ -153,7 +153,8 @@ template <class ValueType, size_t Dim>
 boost::python::object
 wrap_multi_array_owned(const boost::multi_array<ValueType,Dim>& array)
 {
-    ValueType* new_data = new ValueType[array.num_elements()];
+    ValueType* new_data =
+        (ValueType*) malloc(sizeof(ValueType) * array.num_elements());
     memcpy(new_data, array.data(), array.num_elements() * sizeof(ValueType));
     size_t val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp shape[Dim];
