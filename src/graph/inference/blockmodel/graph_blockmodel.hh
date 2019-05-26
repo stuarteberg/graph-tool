@@ -1537,7 +1537,7 @@ public:
                                 entropy_args_t& ea, std::vector<double>& dBdx,
                                 int dL)
     {
-        scoped_lock lock(_lock);
+        openmp_scoped_lock lock(_lock);
 
         size_t r = _b[u];
         size_t s = _b[v];
@@ -2396,7 +2396,7 @@ public:
 
     void enable_partition_stats()
     {
-        scoped_lock lock(_partition_lock);
+        openmp_scoped_lock lock(_partition_lock);
         if (_partition_stats.empty())
         {
             size_t E = 0;

@@ -531,7 +531,7 @@ struct Layers
 
             if (ea.adjacency || ea.recs || ea.edges_dl || _lcoupled_state != nullptr)
             {
-                scoped_lock lck(_llock);
+                openmp_scoped_lock lck(_llock);
 
                 entropy_args_t lea(ea);
                 lea.partition_dl = false;
@@ -1102,7 +1102,7 @@ struct Layers
 
         bool check_layers()
         {
-            scoped_lock lck(_llock);
+            openmp_scoped_lock lck(_llock);
             for (auto v : vertices_range(_g))
             {
                 auto r = _b[v];

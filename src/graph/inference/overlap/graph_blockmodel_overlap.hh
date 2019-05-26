@@ -875,7 +875,7 @@ public:
 
     void enable_partition_stats()
     {
-        scoped_lock lock(_partition_lock);
+        openmp_scoped_lock lock(_partition_lock);
         if (_partition_stats.empty())
         {
 

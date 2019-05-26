@@ -47,11 +47,11 @@ public:
 };
 #endif
 
-class scoped_lock
+class openmp_scoped_lock
 {
 public:
-    explicit scoped_lock(openmp_mutex& m) : _mut(m), _locked(true) { _mut.lock(); }
-    ~scoped_lock() { unlock(); }
+    explicit openmp_scoped_lock(openmp_mutex& m) : _mut(m), _locked(true) { _mut.lock(); }
+    ~openmp_scoped_lock() { unlock(); }
     void unlock()  { if(!_locked) return; _locked=false; _mut.unlock(); }
     void lock()    { if(_locked) return; _mut.lock(); _locked=true; }
 private:
@@ -59,8 +59,8 @@ private:
     bool _locked;
 
     // forbid copying
-    void operator=(const scoped_lock&);
-    scoped_lock(const scoped_lock&);
+    void operator=(const openmp_scoped_lock&);
+    openmp_scoped_lock(const openmp_scoped_lock&);
  };
 
 #endif // OPENMP_lOCK_HH
