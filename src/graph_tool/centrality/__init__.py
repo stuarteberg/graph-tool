@@ -620,7 +620,7 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
        >>> w.a = np.random.random(len(w.a)) * 42
        >>> ee, x = gt.eigenvector(g, w)
        >>> print(ee)
-       724.302745922...
+       724.302745...
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=x,
        ...               vertex_size=gt.prop_to_size(x, mi=5, ma=15),
        ...               vcmap=matplotlib.cm.gist_heat,

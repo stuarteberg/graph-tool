@@ -161,10 +161,10 @@ figure.
 
 .. note::
 
-   We emphasize that no constraints are imposed on what `kind` of
-   modular structure is allowed, as the matrix of edge counts :math:`e`
-   is unconstrained. Hence, we can detect the putatively typical pattern
-   of `"community structure"
+   With the SBM no constraints are imposed on what `kind` of modular
+   structure is allowed, as the matrix of edge counts :math:`e` is
+   unconstrained. Hence, we can detect the putatively typical pattern of
+   `"community structure"
    <https://en.wikipedia.org/wiki/Community_structure>`_, i.e. when
    nodes are connected mostly to other nodes of the same group, if it
    happens to be the most likely network description, but we can also

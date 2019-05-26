@@ -169,7 +169,8 @@ i.e. the posterior probability that a node belongs to a given group:
 
    def collect_marginals(s):
       global pv
-      pv = s.collect_vertex_marginals(pv)
+      b = gt.perfect_prop_hash([s.b])[0]
+      pv = s.collect_vertex_marginals(pv, b=b)
 
    # Now we collect the marginals for exactly 100,000 sweeps, at
    # intervals of 10 sweeps:

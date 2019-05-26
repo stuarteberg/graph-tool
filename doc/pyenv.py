@@ -13,7 +13,7 @@ font_size=14
 rcParams["backend"] = "PDF"
 rcParams["figure.figsize"] = (4, 3)
 rcParams["font.family"] = "Serif"
-rcParams["font.serif"] = ["Times"]
+#rcParams["font.serif"] = ["Times"]
 rcParams["font.size"] = font_size
 rcParams["axes.labelsize"] = font_size
 rcParams["xtick.labelsize"] = font_size - 2
@@ -36,7 +36,7 @@ rcParams["ps.usedistiller"] = "xpdf"
 rcParams["pdf.compression"] = 9
 rcParams["ps.useafm"] = True
 rcParams["path.simplify"] = True
-rcParams["text.latex.preamble"] = [r"\usepackage{times}",
+rcParams["text.latex.preamble"] = [#r"\usepackage{times}",
                                    #r"\usepackage{euler}",
                                    r"\usepackage{amssymb}",
                                    r"\usepackage{amsmath}"]

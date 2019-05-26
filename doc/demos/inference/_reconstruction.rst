@@ -13,6 +13,7 @@ the observed data, the network can be reconstructed according to the
 posterior distribution,
 
 .. math::
+   :label: posterior-reconstruction
 
    P(\boldsymbol A, \boldsymbol b | \boldsymbol{\mathcal{D}}) =
    \frac{P(\boldsymbol{\mathcal{D}} | \boldsymbol A)P(\boldsymbol A, \boldsymbol b)}{P(\boldsymbol{\mathcal{D}})}
@@ -111,14 +112,14 @@ In this situation the priors :math:`P(p|\alpha=1,\beta=1)` and
 
 .. note::
 
-   It is important to emphasize that since this approach makes use of
-   the *correlations* between edges to inform the reconstruction, as
-   described by the inferred SBM, this means it can also be used when
-   only single measurements have been performed, :math:`n_{ij}=1`, and
-   the error magnitudes :math:`p` and :math:`q` are unknown. Since every
-   arbitrary adjacency matrix can be cast in this setting, this method
-   can be used to reconstruct networks for which no error assessments of
-   any kind have been provided.
+   Since this approach also makes use of the *correlations* between
+   edges to inform the reconstruction, as described by the inferred SBM,
+   this means it can also be used when only single measurements have
+   been performed, :math:`n_{ij}=1`, and the error magnitudes :math:`p`
+   and :math:`q` are unknown. Since every arbitrary adjacency matrix can
+   be cast in this setting, this method can be used to reconstruct
+   networks for which no error assessments of any kind have been
+   provided.
 
 Below, we illustrate how the reconstruction can be performed with a
 simple example, using
@@ -173,7 +174,8 @@ simple example, using
       global pv, u, cs
       u = s.collect_marginal(u)
       bstate = s.get_block_state()
-      pv = bstate.levels[0].collect_vertex_marginals(pv)
+      b = gt.perfect_prop_hash([bstate.levels[0].b])[0] 
+      pv = bstate.levels[0].collect_vertex_marginals(pv, b=b)
       cs.append(gt.local_clustering(s.get_graph()).fa.mean())
 
    gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),
@@ -310,9 +312,9 @@ Which yields:
    
 .. testoutput:: measured
 
-   Posterior probability of edge (11, 36): 0.515651...
-   Posterior probability of non-edge (15, 73): 0.009000...
-   Estimated average local clustering: 0.571673 ± 0.003228...
+   Posterior probability of edge (11, 36): 0.967896...
+   Posterior probability of non-edge (15, 73): 0.038703...
+   Estimated average local clustering: 0.572129 ± 0.005409...
 
 The results are very similar to the ones obtained with the uniform model
 in this case, but can be quite different in situations where a large
@@ -423,7 +425,8 @@ inference:
       global pv, u, cs
       u = s.collect_marginal(u)
       bstate = s.get_block_state()
-      pv = bstate.levels[0].collect_vertex_marginals(pv)
+      b = gt.perfect_prop_hash([bstate.levels[0].b])[0] 
+      pv = bstate.levels[0].collect_vertex_marginals(pv, b=b)
       cs.append(gt.local_clustering(s.get_graph()).fa.mean())
 
    gt.mcmc_equilibrate(state, force_niter=10000, mcmc_args=dict(niter=10),

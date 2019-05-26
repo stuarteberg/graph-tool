@@ -2245,8 +2245,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_out_degrees([42, 666])
-        array([20, 38])
-
+        array([20, 39], dtype=uint64)
         """
         return libcore.get_degree_list(self.__graph,
                                        numpy.asarray(vs, dtype="uint64"),
@@ -2261,8 +2260,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_in_degrees([42, 666])
-        array([20, 39])
-
+        array([20, 38], dtype=uint64)
         """
         return libcore.get_degree_list(self.__graph,
                                        numpy.asarray(vs, dtype="uint64"),

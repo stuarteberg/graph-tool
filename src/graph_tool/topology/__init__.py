@@ -1394,7 +1394,7 @@ def vertex_percolation(g, vertices, second=False):
     Text(...)
     >>> ylabel("Size of largest component")
     Text(...)
-    >>> legend(loc="lower right")
+    >>> legend(loc="upper left")
     <...>
     >>> savefig("vertex-percolation.svg")
 

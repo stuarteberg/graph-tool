@@ -25,27 +25,33 @@ dl_import("from . import libgraph_tool_inference as libinference")
 
 from numpy import sqrt
 
-def latent_multigraph(g, epsilon=1e-8, max_niter=10000):
-    r"""
+def latent_multigraph(g, epsilon=1e-8, max_niter=0):
+    r"""Infer latent Poisson multigraph model given an "erased" simple graph.
+
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
+    epsilon : ``float`` (optional, default: ``1e-8``)
+        Convergence criterion.
+    max_niter : ``int`` (optional, default: ``0``)
+        Maximum number of iterations allowed (if ``0``, no maximum is assumed).
 
     Returns
     -------
-
-    Notes
-    -----
+    u : :class:`~graph_tool.Graph`
+        Latent graph.
+    w : :class:`~graph_tool.EdgePropertyMap`
+        Edge property map with inferred multiplicity parameter.
 
     Examples
     --------
-    >>> g = gt.collection.data["football"]
-    >>> gt.modularity(g, g.vp.value_tsevans)
-    0.5744393497...
-
-    References
-    ----------
+    >>> g = gt.collection.data["as-22july06"]
+    >>> gt.scalar_assortativity(g, "out")
+    (-0.198384..., 0.001338...)
+    >>> u, w = gt.latent_multigraph(g)
+    >>> scalar_assortativity(u, "out", eweight=w)
+    (-0.048426..., 0.034526...)
     """
 
     g = g.copy()

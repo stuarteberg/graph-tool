@@ -165,10 +165,10 @@ def global_clustering(g, weight=None):
        c = 3 \times \frac{\text{number of triangles}}
                           {\text{number of connected triples}}
 
-    If weights are given, the following definition is used
+    If weights are given, the following definition is used:
 
     .. math::
-       c = \frac{\operatorname{Tr}{{\boldsymbol A}^3}}{\sum_{i\ne j}[{\boldsymbol A}^2]_{ij}},
+       c = \frac{\mathrm{Tr}{{\boldsymbol A}^3}}{\sum_{i\ne j}[{\boldsymbol A}^2]_{ij}},
 
     where :math:`\boldsymbol A` is the weighted adjacency matrix, and it is
     assumed that the weights are normalized, i.e. :math:`A_{ij} \le 1`.
