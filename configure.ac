@@ -233,11 +233,13 @@ if test "$USING_CAIRO" = "yes"; then
    AC_SUBST(CAIROMM_CFLAGS)
    AC_SUBST(CAIROMM_LIBS)
    AX_PYTHON_MODULE(cairo)
+   PYCAIRO_INCLUDE=-I`${PYTHON} -c 'import cairo; print(cairo.get_include())'`
+   PYTHON_CPPFLAGS="${PYCAIRO_INCLUDE} ${PYTHON_CPPFLAGS}"
    PYTHON_VERSION_MAJOR=$(echo $PYTHON_VERSION | cut -d'.' -f1)
    if test "$PYTHON_VERSION_MAJOR" = "3"; then
-      [PYCAIRO_HEADER=pycairo/py3cairo.h]
+      [PYCAIRO_HEADER=py3cairo.h]
    else
-      [PYCAIRO_HEADER=pycairo/pycairo.h]
+      [PYCAIRO_HEADER=pycairo.h]
    fi
    [CPPFLAGS_TEMP="${CPPFLAGS}"]
    [CPPFLAGS="${CAIROMM_CPPFLAGS} ${CAIROMM_CFLAGS} ${PYTHON_CPPFLAGS} ${CPPFLAGS}"]
