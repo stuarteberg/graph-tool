@@ -91,8 +91,6 @@ struct get_eigenvector
             ++iter;
             if (max_iter > 0 && iter == max_iter)
                 break;
-            if (max_iter == 0 && delta >= prev_delta && iter > 100)
-                break;
         }
 
         if (iter % 2 != 0)
