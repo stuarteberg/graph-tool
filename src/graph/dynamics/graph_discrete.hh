@@ -310,7 +310,7 @@ public:
         }
 
         size_t w;
-        if constexpr (graph_tool::is_directed(g))
+        if (graph_tool::is_directed(g))
         {
             if (in_degreeS()(v, g) == 0)
                 return 0;
@@ -778,7 +778,7 @@ public:
         }
 
         size_t w;
-        if constexpr (graph_tool::is_directed(g))
+        if (graph_tool::is_directed(g))
         {
             if (in_degreeS()(v, g) == 0)
                 return 0;
@@ -873,7 +873,6 @@ private:
 
     fmap_t _f;
     double _r;
-    bool _default;
 };
 
 template <class Graph, class State, class RNG>
@@ -921,7 +920,7 @@ size_t discrete_iter_sync(Graph& g, State state, size_t niter, RNG& rng_)
 }
 
 template <class Graph, class State, class RNG>
-size_t discrete_iter_async(Graph& g, State& state, size_t niter, RNG& rng)
+size_t discrete_iter_async(Graph& g, State state, size_t niter, RNG& rng)
 {
     size_t nflips = 0;
 
