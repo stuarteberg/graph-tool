@@ -1008,7 +1008,7 @@ class EpidemicsBlockState(DynamicsBlockStateBase):
         beta = state.pop("beta", None)
         if "x" not in state:
             state["global_beta"] = beta
-        self.__init__(**state, beta=beta)
+        self.__init__(**dict(state, beta=beta))
 
     def copy(self, **kwargs):
         """Return a copy of the state."""
@@ -1206,7 +1206,7 @@ class IsingBaseBlockState(DynamicsBlockStateBase):
         beta = state.pop("beta", None)
         if "x" not in state:
             state["x"] = 1
-        self.__init__(**state, beta=beta)
+        self.__init__(**dict(state, beta=beta))
 
     def get_x(self):
         """Return edge couplings."""
