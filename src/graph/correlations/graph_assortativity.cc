@@ -25,6 +25,60 @@
 using namespace std;
 using namespace graph_tool;
 
+struct empty_object
+{};
+
+struct deleted_object
+{};
+
+namespace std
+{
+template <>
+struct hash<boost::python::object>
+{
+    size_t operator()(boost::python::object const& v) const
+    {
+        return boost::python::extract<size_t>(v.attr("__hash__")());
+    }
+};
+}
+
+template <>
+struct empty_key<boost::python::object>
+{
+    static boost::python::object get()
+    {
+        return boost::python::object(empty_object());
+    }
+};
+
+template <>
+struct empty_key<std::string>
+{
+    static std::string get()
+    {
+        return "___gt__empty___";
+    }
+};
+
+template <>
+struct deleted_key<boost::python::object>
+{
+    static boost::python::object get()
+    {
+        return boost::python::object(deleted_object());
+    }
+};
+
+template <>
+struct deleted_key<std::string>
+{
+    static std::string get()
+    {
+        return "___gt__deleted___";
+    }
+};
+
 pair<double,double>
 assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                           boost::any weight)
@@ -44,7 +98,7 @@ assortativity_coefficient(GraphInterface& gi, GraphInterface::deg_t deg,
                                 std::placeholders::_1, std::placeholders::_2,
                                 std::placeholders::_3,
                                 std::ref(a), std::ref(a_err)),
-                   scalar_selectors(), weight_props_t())
+                   all_selectors(), weight_props_t())
         (degree_selector(deg), weight);
     return make_pair(a, a_err);
 }
@@ -81,4 +135,7 @@ void export_assortativity()
 {
     def("assortativity_coefficient", &assortativity_coefficient);
     def("scalar_assortativity_coefficient", &scalar_assortativity_coefficient);
+
+    class_<empty_object>("empty_object");
+    class_<deleted_object>("deleted_object");
 }
