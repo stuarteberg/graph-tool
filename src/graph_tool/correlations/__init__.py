@@ -44,7 +44,7 @@ from __future__ import division, absolute_import, print_function
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_correlations")
 
-from .. import _degree, _prop
+from .. import _degree, _prop, _check_prop_scalar, VertexPropertyMap
 from numpy import *
 
 __all__ = ["assortativity", "scalar_assortativity", "corr_hist",
@@ -182,6 +182,8 @@ def scalar_assortativity(g, deg, eweight=None):
         Phys. Rev. E 67, 026126 (2003), :doi:`10.1103/PhysRevE.67.026126`
     .. _jackknife method: http://en.wikipedia.org/wiki/Resampling_%28statistics%29#Jackknife
     """
+    if isinstance(deg, VertexPropertyMap):
+        _check_prop_scalar(deg, name="deg")
     return libgraph_tool_correlations.\
            scalar_assortativity_coefficient(g._Graph__graph, _degree(g, deg),
                                             _prop("e", g, eweight))
