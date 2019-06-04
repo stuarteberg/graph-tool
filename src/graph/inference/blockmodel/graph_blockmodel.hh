@@ -1763,11 +1763,12 @@ public:
             if (_empty_blocks.empty())
                 add_block();
             s = uniform_sample(_empty_blocks, rng);
-            _bclabel[s] = _bclabel[_b[v]];
+            auto r = _b[v];
+            _bclabel[s] = _bclabel[r];
             if (_coupled_state != nullptr)
             {
                 auto& hb = _coupled_state->get_b();
-                hb[s] = hb[_b[v]];
+                hb[s] = hb[r];
             }
             return s;
         }

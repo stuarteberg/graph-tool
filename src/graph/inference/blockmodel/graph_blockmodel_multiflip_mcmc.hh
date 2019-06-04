@@ -154,7 +154,6 @@ struct MCMC
                 _groups.resize(t + 1);
                 _rpos.resize(t + 1);
             }
-
             assert(_state._wr[t] == 0);
             return t;
         }
@@ -199,11 +198,8 @@ struct MCMC
 
                 if (rt[1] == null_group)
                 {
-                    if (forward)
-                        rt[1] = sample_new_group(v, rng);
-                    else
-                        rt[1] = (_state.virtual_remove_size(v) == 0) ?
-                            r : sample_new_group(v, rng);
+                    rt[1] = (_state.virtual_remove_size(v) == 0) ?
+                        r : sample_new_group(v, rng);
                     dS += _state.virtual_move(v, _state._b[v], rt[1],
                                               _entropy_args);
                     if (forward)
