@@ -36,8 +36,6 @@ import warnings
 from .. import group_vector_property, ungroup_vector_property, Vector_size_t, \
     perfect_prop_hash
 
-from .. decorators import _wraps
-
 from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_inference as libinference")
 

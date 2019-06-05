@@ -143,7 +143,7 @@ else:
     def _to_str(x):
         return x
 
-from .decorators import _wraps, _require, _attrs, _limit_args, _copy_func
+from .decorators import _require, _attrs, _limit_args, _copy_func
 from inspect import ismethod
 
 __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",

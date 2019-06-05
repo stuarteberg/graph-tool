@@ -48,33 +48,36 @@ def exec_function(source, filename, global_map):
 ""","<exec_function>", "exec"))
 
 
-def _wraps(func):
-    """This decorator works like the functools.wraps meta-decorator, but
-    also preserves the function's argument signature. This uses eval, and is
-    thus a bit of a hack, but there no better way I know of to do this."""
-    def decorate(f):
-        argspec = inspect.getargspec(func)
-        ___wrap_defaults = defaults = argspec[-1]
-        if defaults is not None:
-            def_string = ["___wrap_defaults[%d]" % d for
-                          d in range(len(defaults))]
-            def_names = argspec[0][-len(defaults):]
-        else:
-            def_string = None
-            def_names = None
-        args_call = inspect.formatargspec(argspec[0], defaults=def_names)
-        argspec = inspect.formatargspec(argspec[0], defaults=def_string)
-        argspec = argspec.lstrip("(").rstrip(")")
-        wf = "def %s(%s):\n    return f%s\n" % \
-            (func.__name__, argspec, args_call)
-        if def_string is not None:
-            for d in def_string:
-                wf = wf.replace("'%s'" % d, "%s" % d)
-            for d in def_names:
-                wf = wf.replace("'%s'" % d, "%s" % d)
-        exec_function(wf, __file__, locals())
-        return functools.wraps(func)(locals()[func.__name__])
-    return decorate
+if sys.hexversion > 0x03000000:
+    _wraps = functools.wraps
+else:
+    def _wraps(func):
+        """This decorator works like the functools.wraps meta-decorator, but
+        also preserves the function's argument signature. This uses eval, and is
+        thus a bit of a hack, but there no better way I know of to do this."""
+        def decorate(f):
+            argspec = inspect.getargspec(func)
+            ___wrap_defaults = defaults = argspec[-1]
+            if defaults is not None:
+                def_string = ["___wrap_defaults[%d]" % d for
+                              d in range(len(defaults))]
+                def_names = argspec[0][-len(defaults):]
+            else:
+                def_string = None
+                def_names = None
+            args_call = inspect.formatargspec(argspec[0], defaults=def_names)
+            argspec = inspect.formatargspec(argspec[0], defaults=def_string)
+            argspec = argspec.lstrip("(").rstrip(")")
+            wf = "def %s(%s):\n    return f%s\n" % \
+                (func.__name__, argspec, args_call)
+            if def_string is not None:
+                for d in def_string:
+                    wf = wf.replace("'%s'" % d, "%s" % d)
+                for d in def_names:
+                    wf = wf.replace("'%s'" % d, "%s" % d)
+            exec_function(wf, __file__, locals())
+            return functools.wraps(func)(locals()[func.__name__])
+        return decorate
 
 
 def _attrs(**kwds):

@@ -69,8 +69,7 @@ Contents
 
 from __future__ import division, absolute_import, print_function
 
-from .. import _degree, _prop, Graph, GraphView, _limit_args, _get_rng, \
-    PropertyMap
+from .. import _degree, _prop, Graph, GraphView, _get_rng, PropertyMap
 from .. stats import label_self_loops
 import numpy
 import numpy.random
