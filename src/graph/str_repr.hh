@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <clocale>
+#include <sstream>
 #include <boost/lexical_cast.hpp>
 
 //
@@ -50,33 +51,18 @@ uint8_t lexical_cast<uint8_t,std::string>(const std::string& val)
     return uint8_t(lexical_cast<int>(val));
 }
 
-// float, double and long double should be printed in hexadecimal format to
+// float, double and long double should be printed with enough precision
 // preserve internal representation. (we also need to make sure the
 // representation is locale-independent).
 
-int print_float_dispatch(char*& str, float val)
-{
-    return asprintf(&str, "%a", val);
-}
-
-int print_float_dispatch(char*& str, double val)
-{
-    return asprintf(&str, "%la", val);
-}
-
-int print_float_dispatch(char*& str, long double val)
-{
-    return asprintf(&str, "%La", val);
-}
-
 template <class Val>
-int print_float(char*& str, Val val)
+std::string print_float(Val val)
 {
-    char* locale = setlocale(LC_NUMERIC, NULL);
-    setlocale(LC_NUMERIC, "C");
-    int retval = print_float_dispatch(str, val);
-    setlocale(LC_NUMERIC, locale);
-    return retval;
+    std::ostringstream s;
+    s.imbue(std::locale("C"));
+    s << std::setprecision(std::numeric_limits<Val>::max_digits10);
+    s << val;
+    return s.str();
 }
 
 int scan_float_dispatch(const char* str, float& val)
@@ -108,13 +94,7 @@ int scan_float(const char* str, Val& val)
 template <>
 std::string lexical_cast<std::string,float>(const float& val)
 {
-    char* str = 0;
-    int retval = print_float(str, val);
-    if (retval == -1)
-        throw bad_lexical_cast();
-    std::string ret = str;
-    free(str);
-    return ret;
+    return print_float(val);
 }
 
 template <>
@@ -130,13 +110,7 @@ float lexical_cast<float,std::string>(const std::string& val)
 template <>
 std::string lexical_cast<std::string,double>(const double& val)
 {
-    char* str = 0;
-    int retval = print_float(str, val);
-    if (retval == -1)
-        throw bad_lexical_cast();
-    std::string ret = str;
-    free(str);
-    return ret;
+    return print_float(val);
 }
 
 template <>
@@ -152,13 +126,7 @@ double lexical_cast<double,std::string>(const std::string& val)
 template <>
 std::string lexical_cast<std::string,long double>(const long double& val)
 {
-    char* str = 0;
-    int retval = print_float(str, val);
-    if (retval == -1)
-        throw bad_lexical_cast();
-    std::string ret = str;
-    free(str);
-    return ret;
+    return print_float(val);
 }
 
 template <>
