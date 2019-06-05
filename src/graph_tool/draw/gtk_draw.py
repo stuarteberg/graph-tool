@@ -22,9 +22,9 @@ from __future__ import division, absolute_import, print_function
 
 import numpy
 
-from .. import GraphView, PropertyMap, ungroup_vector_property,\
-     group_vector_property, infect_vertex_property, edge_endpoint_property, \
-     _prop
+from .. import GraphView, PropertyMap, VertexPropertyMap, \
+    ungroup_vector_property, group_vector_property, infect_vertex_property, \
+    edge_endpoint_property, _prop
 from .cairo_draw import *
 from .cairo_draw import _vdefaults, _edefaults
 from .. draw import sfdp_layout, random_layout, _avg_edge_distance, \
@@ -576,7 +576,7 @@ class GraphWidget(Gtk.DrawingArea):
         cr.paint()
         cr.restore()
 
-        if self.picked is not None or self.picked is not False:
+        if self.selected.fa.sum() > 0:
             # draw immediate neighborhood
             if self.selected.fa.sum() == 1:
                 vprops = dict(**self.vprops)
