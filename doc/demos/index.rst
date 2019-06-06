@@ -9,3 +9,4 @@ Contents:
 
    inference/inference
    animation/animation
+   cppextensions/cppextensions

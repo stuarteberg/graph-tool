@@ -1544,7 +1544,7 @@ def kcore_decomposition(g, vprop=None):
     The algorithm accepts graphs with parallel edges and self loops, in which
     case these edges contribute to the degree in the usual fashion.
 
-    This algorithm is described in [batagelk-algorithm]_ and runs in :math:`O(V + E)`
+    This algorithm is described in [batagelj-algorithm]_ and runs in :math:`O(V + E)`
     time.
 
     Examples
@@ -1569,7 +1569,7 @@ def kcore_decomposition(g, vprop=None):
     References
     ----------
     .. [k-core] http://en.wikipedia.org/wiki/Degeneracy_%28graph_theory%29
-    .. [batagelk-algorithm]  Vladimir Batagelj, Matjaž Zaveršnik, "Fast
+    .. [batagelj-algorithm]  Vladimir Batagelj, Matjaž Zaveršnik, "Fast
        algorithms for determining (generalized) core groups in social
        networks", Advances in Data Analysis and Classification
        Volume 5, Issue 2, pp 129-145 (2011), :DOI:`10.1007/s11634-010-0079-y`,
