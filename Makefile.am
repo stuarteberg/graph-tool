@@ -34,6 +34,11 @@ nobase_dist_graphtooldoc_DATA = \
 	doc/demos/index.rst \
 	doc/demos/animation/animation.rst \
 	doc/demos/inference/inference.rst \
+	doc/demos/cppextensions/Makefile \
+	doc/demos/cppextensions/cppextensions.rst \
+	doc/demos/cppextensions/kcore.cc \
+	doc/demos/cppextensions/kcore.hh \
+	doc/demos/cppextensions/kcore.py \
 	doc/sphinxext/comment_eater.py \
 	doc/sphinxext/phantom_import.py \
 	doc/sphinxext/compiler_unparse.py \

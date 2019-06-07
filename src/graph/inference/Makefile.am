@@ -104,14 +104,16 @@ libgraph_tool_inference_la_include_HEADERS = \
     layers/graph_blockmodel_layers.hh \
     layers/graph_blockmodel_layers_util.hh \
     uncertain/graph_blockmodel_dynamics.hh \
-    uncertain/graph_blockmodel_dynamics_discrete.hh \
     uncertain/graph_blockmodel_dynamics_continuous.hh \
+    uncertain/graph_blockmodel_dynamics_discrete.hh \
     uncertain/graph_blockmodel_dynamics_epidemics_mcmc_h.hh \
+    uncertain/graph_blockmodel_dynamics_mcmc.hh \
     uncertain/graph_blockmodel_dynamics_pseudo_ising_mcmc_h.hh \
     uncertain/graph_blockmodel_measured.hh \
     uncertain/graph_blockmodel_uncertain.hh \
     uncertain/graph_blockmodel_uncertain_marginal.hh \
     uncertain/graph_blockmodel_uncertain_mcmc.hh \
+    uncertain/graph_blockmodel_uncertain_util.hh \
     uncertain/graph_blockmodel_sample_edge.hh \
     loops/bundled_vacate_loop.hh \
     loops/exhaustive_loop.hh \
