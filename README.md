@@ -39,11 +39,11 @@ graph-tool follows the standard GNU installation procedure.  Please
 consult the INSTALL file in this distribution for more detailed
 instructions.
 
-Note that recent versions of GCC (5 or above) or clang, with good
-C++14 support, are required for compilation. Due to the heavy use of
-template metaprogramming techniques, **relatively large amounts of RAM
-are required during compilation**. You have been warned!  For this
-reason, pre-compiled packages are available in the website.
+Note that recent versions of GCC (7 or above) or clang (5 or above),
+with good C++17 support, are required for compilation. Due to the heavy
+use of template metaprogramming techniques, **relatively large amounts
+of RAM are required during compilation**. You have been warned!  For
+this reason, pre-compiled packages are available in the website.
 
 More information about graph-tool
 ---------------------------------
