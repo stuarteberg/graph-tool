@@ -1234,6 +1234,7 @@ def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
 
         if multigraph:
             x[x==1] = 0.999
+            x[x==0] = 0.001
             x = numpy.arctanh(2 * x - 1)
         else:
             x[x==0] = 1e-4
