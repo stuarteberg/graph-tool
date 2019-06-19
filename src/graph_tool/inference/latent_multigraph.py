@@ -25,7 +25,7 @@ dl_import("from . import libgraph_tool_inference as libinference")
 
 from numpy import sqrt
 
-def latent_multigraph(g, epsilon=1e-8, max_niter=0):
+def latent_multigraph(g, epsilon=1e-8, max_niter=0, verbose=False):
     r"""Infer latent Poisson multigraph model given an "erased" simple graph.
 
     Parameters
@@ -36,6 +36,8 @@ def latent_multigraph(g, epsilon=1e-8, max_niter=0):
         Convergence criterion.
     max_niter : ``int`` (optional, default: ``0``)
         Maximum number of iterations allowed (if ``0``, no maximum is assumed).
+    verbose : ``boolean`` (optional, default: ``False``)
+        If ``True``, display verbose information.
 
     Returns
     -------
@@ -69,6 +71,5 @@ def latent_multigraph(g, epsilon=1e-8, max_niter=0):
                                    _prop("e", g, w),
                                    _prop("v", g, theta_out),
                                    _prop("v", g, theta_in),
-                                   epsilon,
-                                   max_niter)
+                                   epsilon, max_niter, verbose)
     return g, w

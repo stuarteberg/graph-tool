@@ -34,7 +34,7 @@ using namespace boost;
 
 template <class Graph, class WMap, class TMap>
 void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
-                            double epsilon, size_t max_niter)
+                            double epsilon, size_t max_niter, bool verbose)
 {
     auto wc = w.get_checked();
     for (auto v : vertices_range(g))
@@ -101,6 +101,8 @@ void  get_latent_multigraph(Graph& g, WMap w, TMap theta_out, TMap theta_in,
                  }
              });
         niter++;
+        if (verbose)
+            cout << delta << endl;
     }
 };
 

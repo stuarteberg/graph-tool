@@ -25,7 +25,8 @@ using namespace boost;
 using namespace graph_tool;
 
 void latent_multigraph(GraphInterface& gi, boost::any aw, boost::any atheta_out,
-                       boost::any atheta_in, double epsilon, size_t max_niter)
+                       boost::any atheta_in, double epsilon, size_t max_niter,
+                       bool verbose)
 {
     typedef eprop_map_t<double>::type emap_t;
     typedef vprop_map_t<double>::type vmap_t;
@@ -35,7 +36,7 @@ void latent_multigraph(GraphInterface& gi, boost::any aw, boost::any atheta_out,
 
     run_action<>()
         (gi, [&](auto& g){ get_latent_multigraph(g, w, theta_out, theta_in,
-                                                 epsilon, max_niter); })();
+                                                 epsilon, max_niter, verbose); })();
 }
 
 using namespace boost::python;
