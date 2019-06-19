@@ -471,6 +471,18 @@ struct hash<std::vector<Value, Allocator>>
     }
 };
 
+template <class Value>
+struct hash<std::complex<Value>>
+{
+    size_t operator()(const std::complex<Value>& v) const
+    {
+        size_t seed = hash<Value>()(v.real());
+        std::_hash_combine(seed, hash<Value>()(v.imag()));
+        return seed;
+    }
+};
+
+
 }
 
 #endif // GRAPH_UTIL_HH

@@ -149,12 +149,14 @@ from inspect import ismethod
 __all__ = ["Graph", "GraphView", "Vertex", "Edge", "VertexBase", "EdgeBase",
            "Vector_bool", "Vector_int16_t", "Vector_int32_t", "Vector_int64_t",
            "Vector_double", "Vector_long_double", "Vector_string",
-           "Vector_size_t", "value_types", "load_graph", "load_graph_from_csv",
-           "VertexPropertyMap", "EdgePropertyMap", "GraphPropertyMap", "PropertyMap",
-           "PropertyArray", "group_vector_property", "ungroup_vector_property",
-           "map_property_values", "infect_vertex_property", "edge_endpoint_property",
-           "incident_edges_op", "perfect_prop_hash", "seed_rng", "show_config",
-           "openmp_enabled", "openmp_get_num_threads", "openmp_set_num_threads",
+           "Vector_size_t", "Vector_cdouble", "value_types", "load_graph",
+           "load_graph_from_csv", "VertexPropertyMap", "EdgePropertyMap",
+           "GraphPropertyMap", "PropertyMap", "PropertyArray",
+           "group_vector_property", "ungroup_vector_property",
+           "map_property_values", "infect_vertex_property",
+           "edge_endpoint_property", "incident_edges_op", "perfect_prop_hash",
+           "seed_rng", "show_config", "openmp_enabled",
+           "openmp_get_num_threads", "openmp_set_num_threads",
            "openmp_get_schedule", "openmp_set_schedule", "__author__",
            "__copyright__", "__URL__", "__version__"]
 
@@ -1560,8 +1562,8 @@ class PropertyDict(object):
 
 from .libgraph_tool_core import Vertex, EdgeBase, Vector_bool, Vector_int16_t, \
     Vector_int32_t, Vector_int64_t, Vector_double, Vector_long_double, \
-    Vector_string, Vector_size_t, new_vertex_property, new_edge_property, \
-    new_graph_property
+    Vector_string, Vector_size_t, Vector_cdouble, new_vertex_property, \
+    new_edge_property, new_graph_property
 
 
 class Graph(object):
@@ -3744,7 +3746,7 @@ def _vt_init(self, n=None, init=None):
         _vt_setstate(self, init)
 
 vector_types = [Vector_bool, Vector_int16_t, Vector_int32_t, Vector_int64_t,
-                Vector_double, Vector_long_double, Vector_size_t]
+                Vector_double, Vector_long_double, Vector_size_t, Vector_cdouble]
 
 for vt in vector_types:
     if not hasattr(vt, "__base_init__"):
