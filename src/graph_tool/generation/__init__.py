@@ -31,6 +31,8 @@ Summary
    random_graph
    random_rewire
    generate_sbm
+   generate_maxent_sbm
+   solve_sbm_fugacities
    predecessor_tree
    line_graph
    graph_union
@@ -55,14 +57,17 @@ from .. dl_import import dl_import
 dl_import("from . import libgraph_tool_generation")
 
 from .. import Graph, GraphView, _check_prop_scalar, _prop, _limit_args, \
-    _gt_type, _get_rng, _c_str, libcore
+    _gt_type, _get_rng, _c_str, libcore, Vector_double
 from .. stats import label_parallel_edges, label_self_loops
 import inspect
 import types
 import numpy
 import numpy.random
+import scipy.optimize
+import scipy.sparse
 
-__all__ = ["random_graph", "random_rewire", "generate_sbm", "predecessor_tree",
+__all__ = ["random_graph", "random_rewire", "generate_sbm",
+           "solve_sbm_fugacities", "generate_maxent_sbm", "predecessor_tree",
            "line_graph", "graph_union", "triangulation", "lattice",
            "geometric_graph", "price_network", "complete_graph",
            "circular_graph", "condensation_graph"]
@@ -833,8 +838,8 @@ def random_rewire(g, model="configuration", n_iter=1, edge_sweep=True,
                                                     _c_str(model),
                                                     n_iter, not edge_sweep,
                                                     self_loops, parallel_edges,
-                                                    configuration,
-                                                    traditional, micro, persist, corr,
+                                                    configuration, traditional,
+                                                    micro, persist, corr,
                                                     _prop("e", g, pin),
                                                     _prop("v", g, block_membership),
                                                     cache_probs,
@@ -1065,6 +1070,327 @@ def generate_sbm(b, probs, out_degs=None, in_degs=None, directed=False,
                                      micro_degs,
                                      _get_rng())
     return g
+
+def solve_sbm_fugacities(b, ers, out_degs=None, in_degs=None, multigraph=False,
+                         self_loops=False, epsilon=1e-8, iter_solve=True,
+                         max_iter=0, min_args={}, root_args={}, verbose=False):
+    r"""Obtain SBM fugacities, given expected degrees and edge counts between
+    groups.
+
+    Parameters
+    ----------
+    b : iterable or :class:`numpy.ndarray`
+        Group membership for each node.
+    ers : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
+        Matrix with expected edge counts between groups. The value ``ers[r,s]``
+        corresponds to the average number of edges between groups ``r`` and
+        ``s`` (or twice the average number if ``r == s`` and the graph is
+        undirected).
+    out_degs : iterable or :class:`numpy.ndarray`
+        Expected out-degree for each node.
+    in_degs : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
+        Expected in-degree for each node. If not given, the graph is assumed to
+        be undirected.
+    multigraph : ``bool`` (optional, default: ``False``)
+        Whether parallel edges are allowed.
+    self_loops : ``bool`` (optional, default: ``False``)
+        Whether self-loops are allowed.
+    epsilon : ``float`` (optional, default: ``1e-8``)
+        Whether self-loops are allowed.
+    iter_solve : ``bool`` (optional, default: ``True``)
+        Solve the system by simple iteration, not gradient-based
+        root-solving. Relevant only if ``multigraph == False``, otherwise
+        `iter_solve = True` is always assumed.
+    max_iter : ``int`` (optional, default: ``0``)
+        If non-zero, this will limit the maximum number of iterations.
+    min_args : ``{}`` (optional, default: ``{}``)
+        Options to be passed to :func:`scipy.optimize.minimize`. Only relevant
+        if ``iter_solve=False``.
+    root_args : ``{}`` (optional, default: ``{}``)
+        Options to be passed to :func:`scipy.optimize.root`. Only relevant
+        if ``iter_solve=False``.
+    verbose : ``bool`` (optional, default: ``False``)
+        If ``True``, verbose information will be displayed.
+
+    Returns
+    -------
+    mrs : :class:`scipy.sparse.spmatrix`
+        Edge count fugacities.
+    out_theta : :class:`numpy.ndarray`
+        Node out-degree fugacities.
+    in_theta : :class:`numpy.ndarray`
+        Node in-degree fugacities. Only returned if ``in_degs is not None``.
+
+    See Also
+    --------
+    generate_maxent_sbm: Generate maximum-entropy SBM graphs
+
+    Notes
+    -----
+
+    For simple directed graphs, the fugacities obey the following self-consistency equations:
+
+    .. math::
+
+        \theta^+_i &= \frac{k^+_i}{\sum_{j\ne i}\frac{\theta^-_j\mu_{b_i,b_j}}{1+\theta^+_i\theta^-_j\mu_{b_i,b_j}}}\\
+        \theta^-_i &= \frac{k^-_i}{\sum_{j\ne i}\frac{\theta^+_j\mu_{b_j,b_i}}{1+\theta^+_i\theta^-_j\mu_{b_j,b_i}}}\\
+        \mu_{rs} &= \frac{e_{rs}}{\sum_{i\ne j}\delta_{b_i,r}\delta_{b_j,s}\frac{\theta^+_i\theta^-_j}{1+\theta^+_i\theta^-_j\mu_{r,s}}}
+
+    For directed multigraphs, we have instead:
+
+    .. math::
+
+        \theta^+_i &= \frac{k^+_i}{\sum_{j\ne i}\frac{\theta^-_j\mu_{b_i,b_j}}{1-\theta^+_i\theta^-_j\mu_{b_i,b_j}}}\\
+        \theta^-_i &= \frac{k^-_i}{\sum_{j\ne i}\frac{\theta^+_j\mu_{b_j,b_i}}{1-\theta^+_i\theta^-_j\mu_{b_j,b_i}}}\\
+        \mu_{rs} &= \frac{e_{rs}}{\sum_{i\ne j}\delta_{b_i,r}\delta_{b_j,s}\frac{\theta^+_i\theta^-_j}{1-\theta^+_i\theta^-_j\mu_{r,s}}}
+
+    For undirected graphs, we have the above equations with
+    :math:`\theta^+_i=\theta^-_i=\theta_i`, and :math:`\mu_{rs} = \mu_{sr}`.
+
+    """
+
+    b = numpy.asarray(b, dtype="int32")
+    out_degs = numpy.asarray(out_degs, dtype="double")
+    directed = False
+    if in_degs is None:
+        in_degs = out_degs
+    else:
+        in_degs = numpy.asarray(in_degs, dtype="double")
+        directed = True
+
+    r, s = ers.nonzero()
+    ers = numpy.squeeze(numpy.array(ers[r, s]))
+    ers = numpy.asarray(ers, dtype="double")
+    r = numpy.asarray(r, dtype="int64")
+    s = numpy.asarray(s, dtype="int64")
+
+    if len(ers.shape) == 0: # B == 1 special case
+        ers = numpy.array([ers], dtype="double")
+
+    mrs = numpy.zeros(ers.shape)
+    in_theta = numpy.zeros(in_degs.shape)
+    out_theta = numpy.zeros(out_degs.shape)
+
+    state = libgraph_tool_generation.get_sbm_fugacities(r, s, ers, in_degs,
+                                                        out_degs, b, directed,
+                                                        multigraph, self_loops)
+
+    if not multigraph and iter_solve:
+        def new_x(x_):
+            nx = Vector_double(len(x_))
+            nx.a = x_
+            state.unpack(nx)
+            state.norm()
+            state.new_x(nx)
+            return nx.a.copy()
+
+        state.norm()
+        x = Vector_double()
+        state.pack(x)
+        x = x.a.copy()
+
+        niter = 0
+        delta = epsilon + 1
+        while delta > epsilon:
+            nx = new_x(x)
+            delta = abs(nx - x).max()
+            if verbose:
+                print(delta, x.min(), x.max(), nx.min(), nx.max())
+            x = nx
+
+            niter += 1
+            if max_iter > 0 and niter >= max_iter:
+                break
+    else:
+        def f(x_):
+            x = Vector_double(len(x_))
+            if multigraph:
+                x.a = (numpy.tanh(x_) + 1)/2
+            else:
+                x.a = numpy.exp(x_)
+            state.unpack(x)
+            fval = state.get_f()
+            return -fval
+        def diff(x_):
+            x = Vector_double(len(x_))
+            if multigraph:
+                x.a = (numpy.tanh(x_) + 1)/2
+            else:
+                x.a = numpy.exp(x_)
+            state.unpack(x)
+            d = Vector_double(len(x_))
+            state.get_diff(d)
+            if multigraph:
+                return -d.a * (1-numpy.tanh(x_)**2)/2
+            else:
+                return -d.a * x.a
+
+
+        if not multigraph:
+            state.norm()
+        x = Vector_double()
+        state.pack(x)
+        x = x.a.copy()
+
+        if multigraph:
+            x[x==1] = 0.999
+            x = numpy.arctanh(2 * x - 1)
+        else:
+            x[x==0] = 1e-4
+            x = numpy.log(x)
+            print(x)
+
+        sol = scipy.optimize.minimize(f, x, jac=diff,
+                                      **dict(dict(method="L-BFGS-B"),
+                                             **min_args))
+        x = sol.x
+
+        sol = scipy.optimize.root(diff, x, **dict(dict(method="krylov"),
+                                                  **root_args))
+        x = sol.x
+
+        if multigraph:
+            x = (numpy.tanh(x) + 1)/2
+        else:
+            x = numpy.exp(x)
+
+    x_ = Vector_double()
+    state.pack(x_)
+    x_.a = x
+    state.unpack(x_)
+
+    state.export_args(r, s, mrs, in_degs, out_degs, in_theta, out_theta, b)
+
+    mrs = scipy.sparse.coo_matrix((mrs, (r, s)))
+    mrs = mrs.tocsr()
+
+    if directed:
+        return mrs, out_theta, in_theta
+    else:
+        return mrs, out_theta
+
+def generate_maxent_sbm(b, mrs, out_theta, in_theta=None, directed=False,
+                        multigraph=False, self_loops=False):
+    r"""Generate a random graph by sampling from the maximum-entropy "canonical"
+    stochastic block model.
+
+    Parameters
+    ----------
+    b : iterable or :class:`numpy.ndarray`
+        Group membership for each node.
+    mrs : two-dimensional :class:`numpy.ndarray` or :class:`scipy.sparse.spmatrix`
+        Matrix with edge fugacities between groups.
+    out_theta : iterable or :class:`numpy.ndarray`
+        Out-degree fugacities for each node.
+    in_theta : iterable or :class:`numpy.ndarray` (optional, default: ``None``)
+        In-degree fugacities for each node. If not provided, will be identical to ``out_theta``.
+    directed : ``bool`` (optional, default: ``False``)
+        Whether the graph is directed.
+    multigraph : ``bool`` (optional, default: ``False``)
+        Whether parallel edges are allowed.
+    self_loops : ``bool`` (optional, default: ``False``)
+        Whether self-loops are allowed.
+
+    Returns
+    -------
+    g : :class:`~graph_tool.Graph`
+        The generated graph.
+
+    See Also
+    --------
+    solve_sbm_fugacities: Obtain SBM fugacities, given expected degrees and block constraints.
+    generate_sbm: Generate samples from the Poisson SBM
+
+    Notes
+    -----
+
+    The algorithm generates simple or multigraphs according to the
+    degree-corrected maximum-entropy stochastic block model (SBM), which
+    includes the non-degree-corrected SBM as a special case.
+
+    The simple graphs are generated with probability:
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol \theta},{\boldsymbol \mu},{\boldsymbol b})
+            = \prod_{i<j} \frac{\left(\theta_i\theta_j\mu_{b_i,b_j}\right)^{A_{ij}}}{1+\theta_i\theta_j\mu_{b_i,b_j}},
+
+    and the multigraphs with probability:
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol \theta},{\boldsymbol \mu},{\boldsymbol b})
+            = \prod_{i<j} \left(\theta_i\theta_j\mu_{b_i,b_j}\right)^{A_{ij}}(1-\theta_i\theta_j\mu_{b_i,b_j}).
+
+    In the above, :math:`\mu_{rs}` is the edge fugacity between groups :math:`r`
+    and :math:`s`, and :math:`\theta_i` is the edge fugacity of node i.
+
+    For directed graphs, the probabilities are analogous, i.e.
+
+    .. math::
+
+        P({\boldsymbol A}|{\boldsymbol \theta}^+,{\boldsymbol \theta}^-,{\boldsymbol \mu},{\boldsymbol b})
+            &= \prod_{i\ne j} \frac{\left(\theta_i^+\theta_j^-\mu_{b_i,b_j}\right)^{A_{ij}}}{1+\theta_i^+\theta_j^-\mu_{b_i,b_j}} & \quad\text{(simple graphs)},\\
+        P({\boldsymbol A}|{\boldsymbol \theta}^+,{\boldsymbol \theta}^-,{\boldsymbol \mu},{\boldsymbol b})
+            &= \prod_{i\ne j} \left(\theta_i^+\theta_j^-\mu_{b_i,b_j}\right)^{A_{ij}}(1-\theta_i^+\theta_j^-\mu_{b_i,b_j}) & \quad\text{(multigraphs)}.
+
+    Examples
+    --------
+
+    >>> g = gt.collection.data["polblogs"]
+    >>> g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
+    >>> g = gt.Graph(g, prune=True)
+    >>> gt.remove_self_loops(g)
+    >>> gt.remove_parallel_edges(g)
+    >>> state = gt.minimize_blockmodel_dl(g)
+    >>> ers = gt.adjacency(state.get_bg(), state.get_ers()).T
+    >>> out_degs = g.degree_property_map("out").a
+    >>> in_degs = g.degree_property_map("in").a
+    >>> mrs, theta_out, theta_in = gt.solve_sbm_fugacities(state.b.a, ers, out_degs, in_degs)
+    >>> u = gt.generate_maxent_sbm(state.b.a, mrs, theta_out, theta_in, directed=True)
+    >>> gt.graph_draw(g, g.vp.pos, output="polblogs-maxent-sbm.png")
+    <...>
+    >>> gt.graph_draw(u, u.own_property(g.vp.pos), output="polblogs-maxent-sbm-generated.png")
+    <...>
+
+    .. image:: polblogs-maxent-sbm.*
+        :width: 40%
+    .. image:: polblogs-maxent-sbm-generated.*
+        :width: 40%
+
+    *Left:* Political blogs network. *Right:* Sample from the maximum-entropy
+    degree-corrected SBM fitted to the original network.
+    """
+
+    g = Graph(directed=directed)
+    g.add_vertex(len(b))
+    b = g.new_vp("int", vals=b)
+    out_theta = g.new_vp("double", vals=out_theta)
+    if in_theta is not None:
+        in_theta = g.new_vp("double", vals=in_theta)
+    else:
+        in_theta = out_theta
+
+    r, s = mrs.nonzero()
+    if not directed:
+        idx = r <= s
+        r = r[idx]
+        s = s[idx]
+    mrs = numpy.squeeze(numpy.array(mrs[r, s]))
+    mrs = numpy.asarray(mrs, dtype="double")
+    r = numpy.asarray(r, dtype="int64")
+    s = numpy.asarray(s, dtype="int64")
+
+    if len(mrs.shape) == 0: # B == 1 special case
+        mrs = numpy.array([mrs], dtype="double")
+
+    libgraph_tool_generation.\
+        gen_maxent_sbm(g._Graph__graph, _prop("v", g, b), r, s, mrs,
+                       _prop("v", g, in_theta), _prop("v", g, out_theta),
+                       multigraph, self_loops, _get_rng())
+    return g
+
+
 
 def predecessor_tree(g, pred_map):
     """Return a graph from a list of predecessors given by the ``pred_map`` vertex property."""

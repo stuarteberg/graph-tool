@@ -122,6 +122,8 @@ void community_network_eavg(GraphInterface& gi, GraphInterface& cgi,
                             boost::any eweight, boost::python::list aeprops,
                             bool self_loops, bool parallel_edges);
 
+void export_maxent_sbm();
+
 using namespace boost::python;
 
 BOOST_PYTHON_MODULE(libgraph_tool_generation)
@@ -144,6 +146,7 @@ BOOST_PYTHON_MODULE(libgraph_tool_generation)
     def("community_network", &community_network);
     def("community_network_vavg", &community_network_vavg);
     def("community_network_eavg", &community_network_eavg);
+    export_maxent_sbm();
 
     class_<Sampler<int, boost::mpl::false_>>("Sampler",
                                              init<const vector<int>&, const vector<double>&>())

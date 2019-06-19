@@ -25,6 +25,7 @@ libgraph_tool_generation_la_SOURCES = \
     graph_geometric.cc \
     graph_lattice.cc \
     graph_line_graph.cc \
+    graph_maxent_sbm.cc \
     graph_predecessor.cc \
     graph_price.cc \
     graph_rewiring.cc \
@@ -42,6 +43,7 @@ libgraph_tool_generation_la_include_HEADERS = \
     graph_generation.hh \
     graph_geometric.hh \
     graph_lattice.hh \
+    graph_maxent_sbm.hh \
     graph_predecessor.hh \
     graph_price.hh \
     graph_rewiring.hh \

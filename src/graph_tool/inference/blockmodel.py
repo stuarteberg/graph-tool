@@ -26,7 +26,8 @@ if sys.version_info < (3,):
 from .. import _degree, _prop, Graph, GraphView, libcore, _get_rng, PropertyMap, \
     conv_pickle_state, Vector_size_t, Vector_double, group_vector_property, \
     perfect_prop_hash
-from .. generation import condensation_graph, random_rewire, generate_sbm
+from .. generation import condensation_graph, random_rewire, generate_sbm, \
+    solve_sbm_fugacities, generate_maxent_sbm
 from .. stats import label_self_loops, remove_parallel_edges, remove_self_loops
 from .. spectral import adjacency
 import random
@@ -2232,7 +2233,8 @@ class BlockState(object):
                                            "vertex_color",
                                            "edge_gradient"]))
 
-    def sample_graph(self, canonical=False, multigraph=True, self_loops=True):
+    def sample_graph(self, canonical=False, multigraph=True, self_loops=True,
+                     max_ent=False, n_iter=1000):
         r"""Sample a new graph from the fitted model.
 
         Parameters
@@ -2245,6 +2247,11 @@ class BlockState(object):
             If ``True``, parallel edges will be allowed.
         self-loops : ``bool`` (optional, default: ``True``)
             If ``True``, self-loops will be allowed.
+        max_ent : ``bool`` (optional, default: ``False``)
+            If ``True``, maximum-entropy model variants will be used.
+        n_iter : ``int`` (optional, default: ``1000``)
+            Number of iterations used (only relevant if ``canonical == False``
+            and ``max_ent == True``).
 
         Returns
         -------
@@ -2290,15 +2297,42 @@ class BlockState(object):
             else:
                 in_degs = None
         probs = adjacency(self.bg, weight=self.mrs).T
-        g = generate_sbm(b=self.b.fa, probs=probs,
-                         in_degs=in_degs, out_degs=out_degs,
-                         directed=self.g.is_directed(),
-                         micro_ers=not canonical,
-                         micro_degs=not canonical and self.deg_corr)
-        if not multigraph:
-            remove_parallel_edges(g)
-        if not self_loops:
-            remove_self_loops(g)
+        if not max_ent:
+            g = generate_sbm(b=self.b.fa, probs=probs,
+                             in_degs=in_degs, out_degs=out_degs,
+                             directed=self.g.is_directed(),
+                             micro_ers=not canonical,
+                             micro_degs=not canonical and self.deg_corr)
+            if not multigraph:
+                remove_parallel_edges(g)
+            if not self_loops:
+                remove_self_loops(g)
+        else:
+            if canonical:
+                ret = solve_sbm_fugacities(self.b.fa, probs, out_degs, in_degs,
+                                           multigraph=multigraph,
+                                           self_loops=self_loops)
+                if in_degs is None:
+                    mrs, theta_out = ret
+                    theta_in = None
+                else:
+                    mrs, theta_out, theta_in = ret
+                g = generate_maxent_sbm(self.b.fa, mrs, theta_out, theta_in,
+                                        directed=self.g.is_directed(),
+                                        multigraph=multigraph,
+                                        self_loops=self_loops)
+            else:
+                g = self.g.copy()
+                if self.deg_corr:
+                    random_rewire(g, model="constrained-configuration",
+                                  block_membership=g.own_property(self.b),
+                                  configuration=False, parallel_edges=multigraph,
+                                  self_loops=self_loops, n_iter=n_iter)
+                else:
+                    random_rewire(g, model="blockmodel-micro",
+                                  block_membership=g.own_property(self.b),
+                                  configuration=False, parallel_edges=multigraph,
+                                  self_loops=self_loops, n_iter=n_iter)
         return g
 
 def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
