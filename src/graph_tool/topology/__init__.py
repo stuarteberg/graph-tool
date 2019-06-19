@@ -1134,7 +1134,6 @@ def label_largest_component(g, directed=None):
 
     label = g.new_vertex_property("bool")
     c, h = label_components(g, directed=directed)
-    vfilt, inv = g.get_vertex_filter()
     label.fa = c.fa == h.argmax()
     return label
 
