@@ -52,11 +52,9 @@ struct get_eigenvector
 
         t_type norm = 0;
         t_type delta = epsilon + 1;
-        t_type prev_delta = delta + 1;
         size_t iter = 0;
         while (delta >= epsilon)
         {
-            prev_delta = delta;
             norm = 0;
             #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
                 reduction(+:norm)
