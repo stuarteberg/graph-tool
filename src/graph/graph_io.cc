@@ -555,7 +555,7 @@ void GraphInterface::write_to_file(string file, boost::python::object pfile,
                 dynamic_property_map* pmap =
                     any_cast<dynamic_property_map*>
                     (boost::python::extract<boost::any>
-                     (props[i][1].attr("get_dynamic_map")()));
+                     (props[i][1].attr("get_dynamic_map")())());
                 dp.insert(boost::python::extract<string>(props[i][0]),
                           DP_SMART_PTR<dynamic_property_map>(pmap));
             }

@@ -617,7 +617,7 @@ public:
             if (active != python::object())
             {
                 for (int i = 0; i < python::len(active); ++i)
-                    _active.push_back(boost::any_cast<amap_t>(python::extract<boost::any>(active[i].attr("_get_any")())).get_unchecked());
+                    _active.push_back(boost::any_cast<amap_t>(python::extract<boost::any>(active[i].attr("_get_any")())()).get_unchecked());
             }
         }
         else
@@ -631,7 +631,7 @@ public:
         _has_r_v = false;
         if (params["r_v"] != python::object())
         {
-            _r_v = boost::any_cast<hmap_t>(python::extract<boost::any>(params["r_v"].attr("_get_any")())).get_unchecked();
+            _r_v = boost::any_cast<hmap_t>(python::extract<boost::any>(params["r_v"].attr("_get_any")())()).get_unchecked();
             _has_r_v = true;
         }
     }
@@ -744,9 +744,9 @@ public:
             _beta[n] = python::extract<double>(params["beta"][n]);
 
         if (hasattr(params["h"], "_get_any"))
-            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"].attr("_get_any")())).get_unchecked();
+            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"].attr("_get_any")())()).get_unchecked();
         else
-            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"][n].attr("_get_any")())).get_unchecked();
+            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"][n].attr("_get_any")())()).get_unchecked();
     }
 
     double log_P(size_t v, size_t n, double m, int s)

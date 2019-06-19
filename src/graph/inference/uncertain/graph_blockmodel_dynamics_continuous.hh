@@ -277,9 +277,9 @@ public:
             _beta[n] = python::extract<double>(params["beta"][n]);
 
         if (hasattr(params["h"], "_get_any"))
-            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"].attr("_get_any")())).get_unchecked();
+            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"].attr("_get_any")())()).get_unchecked();
         else
-            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"][n].attr("_get_any")())).get_unchecked();
+            _h[n] = boost::any_cast<hmap_t>(python::extract<boost::any>(params["h"][n].attr("_get_any")())()).get_unchecked();
     }
 
     double log_P(size_t v, size_t n, double m, double s)
