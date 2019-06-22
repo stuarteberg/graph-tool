@@ -25,80 +25,81 @@ namespace graph_tool
 using namespace std;
 using namespace boost;
 
-template <class Graph, class Vertex, class Mark>
-double dice(Vertex u, Vertex v, bool self_loop, Mark& mark, Graph& g)
+template <class Graph, class Vertex, class Mark, class Weight>
+double dice(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
 {
-    size_t count = 0;
-    for (auto w : adjacent_vertices_range(u, g))
-        mark[w] = true;
-    if (self_loop)
-        mark[u] = true;
-    for (auto w : adjacent_vertices_range(v, g))
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    for (auto e : out_edges_range(u, g))
     {
-        if (mark[w])
-            count++;
+        auto w = weight[e];
+        mark[target(e, g)] += w;
+        ku += w;
+    }
+    for (auto e : out_edges_range(v, g))
+    {
+        auto w = weight[e];
+        auto dw = std::min(w, mark[target(e, g)]);
+        mark[target(e, g)] -= dw;
+        count += dw;
+        kv += w;
     }
     for (auto w : adjacent_vertices_range(u, g))
-        mark[w] = false;
-    if (self_loop)
-        mark[u] = false;
-    return 2 * count / double(out_degree(u, g) + out_degree(v, g));
+        mark[w] = 0;
+    return 2 * count / double(ku + kv);
 }
 
-template <class Graph, class Vertex, class Mark>
-double jaccard(Vertex u, Vertex v, bool self_loop, Mark& mark, Graph& g)
+template <class Graph, class Vertex, class Mark, class Weight>
+double jaccard(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
 {
-    size_t count = 0, total = 0;
-    for (auto w : adjacent_vertices_range(u, g))
+    typename property_traits<Weight>::value_type count = 0, total = 0;
+    for (auto e : out_edges_range(u, g))
     {
-        mark[w] = true;
-        total++;
+        auto w = weight[e];
+        mark[target(e, g)] += w;
+        total += w;
     }
 
-    if (self_loop)
-        mark[u] = true;
-
-    for (auto w : adjacent_vertices_range(v, g))
+    for (auto e : out_edges_range(v, g))
     {
-        if (mark[w])
-            count++;
-        else
-            total++;
+       auto w = weight[e];
+       auto dw = std::min(w, mark[target(e, g)]);
+       count += dw;
+       mark[target(e, g)] -= dw;
+       total += w - dw;
     }
 
     for (auto w : adjacent_vertices_range(u, g))
-        mark[w] = false;
-    if (self_loop)
-        mark[u] = false;
+        mark[w] = 0;
     return count / double(total);
 }
 
-template <class Graph, class Vertex, class Mark>
-double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Graph& g)
+template <class Graph, class Vertex, class Mark, class Weight>
+double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
 {
     double count = 0;
-    for (auto w : adjacent_vertices_range(u, g))
-        mark[w] = true;
+    for (auto e : out_edges_range(u, g))
+        mark[target(e, g)] += weight[e];
     for (auto w : adjacent_vertices_range(v, g))
     {
-        if (mark[w])
+        if (mark[w] > 0)
         {
             if (graph_tool::is_directed(g))
-                count += 1. / log(in_degreeS()(w, g));
+                count += mark[w] / log(in_degreeS()(w, g, weight));
             else
-                count += 1. / log(out_degree(w, g));
+                count += mark[w] / log(out_degreeS()(w, g, weight));
         }
     }
     for (auto w : adjacent_vertices_range(u, g))
-        mark[w] = false;
+        mark[w] = 0;
     return count;
 }
 
 
-template <class Graph, class VMap, class Sim>
-void all_pairs_similarity(Graph& g, VMap s, Sim&& f)
+template <class Graph, class VMap, class Sim, class Weight>
+void all_pairs_similarity(Graph& g, VMap s, Sim&& f, Weight& weight)
 {
-    vector<bool> mask(num_vertices(g), false);
+    vector<typename property_traits<Weight>::value_type>
+        mask(num_vertices(g));
     #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
         firstprivate(mask)
     parallel_vertex_loop_no_spawn
@@ -107,23 +108,25 @@ void all_pairs_similarity(Graph& g, VMap s, Sim&& f)
          {
              s[v].resize(num_vertices(g));
              for (auto w : vertices_range(g))
-                 s[v][w] = f(v, w, mask);
+                 s[v][w] = f(v, w, mask, weight);
          });
 }
 
-template <class Graph, class Vlist, class Slist, class Sim>
-void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f)
+template <class Graph, class Vlist, class Slist, class Sim, class Weight>
+void some_pairs_similarity(Graph& g, Vlist& vlist, Slist& slist, Sim&& f,
+                           Weight& weight)
 {
-    vector<bool> mask(num_vertices(g), false);
+    vector<typename property_traits<Weight>::value_type>
+        mark(num_vertices(g));
     #pragma omp parallel if (num_vertices(g) > OPENMP_MIN_THRESH) \
-        firstprivate(mask)
+        firstprivate(mark)
     parallel_loop_no_spawn
         (vlist,
          [&](size_t i, const auto& val)
          {
              size_t u = val[0];
              size_t v = val[1];
-             slist[i] = f(u, v, mask);
+             slist[i] = f(u, v, mark, weight);
          });
 }
 

@@ -25,107 +25,135 @@ using namespace std;
 using namespace boost;
 using namespace graph_tool;
 
-void get_dice_similarity(GraphInterface& gi, boost::any as, bool self_loop)
+typedef UnityPropertyMap<uint8_t, GraphInterface::edge_t> ecmap_t;
+typedef boost::mpl::push_back<edge_scalar_properties, ecmap_t>::type
+        weight_props_t;
+
+
+void get_dice_similarity(GraphInterface& gi, boost::any as, boost::any weight)
 {
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g, auto& s)
+        ([&](auto& g, auto& s, auto& w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask)
+                                  [&](auto u, auto v, auto& mask, auto& w)
                                   {
-                                      return dice(u, v, self_loop, mask, g);
-                                  });
+                                      return dice(u, v, mask, w, g);
+                                  }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties())
-        (gi.get_graph_view(), as);
+         all_graph_views(), vertex_floating_vector_properties(),
+         weight_props_t())
+        (gi.get_graph_view(), as, weight);
 }
 
 void get_dice_similarity_pairs(GraphInterface& gi, python::object opairs,
-                               python::object osim, bool self_loop)
+                               python::object osim, boost::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g)
+        ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask)
+                                   [&](auto u, auto v, auto& mask, auto& w)
                                    {
-                                       return dice(u, v, self_loop, mask, g);
-                                   });
+                                       return dice(u, v, mask, w, g);
+                                   }, w);
          },
-         all_graph_views())
-        (gi.get_graph_view());
+         all_graph_views(), weight_props_t())
+        (gi.get_graph_view(), weight);
 }
 
-void get_jaccard_similarity(GraphInterface& gi, boost::any as, bool self_loop)
+void get_jaccard_similarity(GraphInterface& gi, boost::any as, boost::any weight)
 {
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g, auto& s)
+        ([&](auto& g, auto& s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask)
+                                  [&](auto u, auto v, auto& mask, auto w)
                                   {
-                                      return jaccard(u, v, self_loop, mask, g);
-                                  });
+                                      return jaccard(u, v, mask, w, g);
+                                  }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties())
-        (gi.get_graph_view(), as);
+         all_graph_views(), vertex_floating_vector_properties(),
+         weight_props_t())
+        (gi.get_graph_view(), as, weight);
 }
 
 void get_jaccard_similarity_pairs(GraphInterface& gi, python::object opairs,
-                                  python::object osim, bool self_loop)
+                                  python::object osim, boost::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g)
+        ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask)
+                                   [&](auto u, auto v, auto& mask, auto w)
                                    {
-                                       return jaccard(u, v, self_loop, mask, g);
-                                   });
+                                       return jaccard(u, v, mask, w, g);
+                                   }, w);
          },
-         all_graph_views())
-        (gi.get_graph_view());
+         all_graph_views(), weight_props_t())
+        (gi.get_graph_view(), weight);
 }
 
-void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as)
+void get_inv_log_weight_similarity(GraphInterface& gi, boost::any as,
+                                   boost::any weight)
 {
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g, auto& s)
+        ([&](auto& g, auto& s, auto w)
          {
              all_pairs_similarity(g, s,
-                                  [&](auto u, auto v, auto& mask)
+                                  [&](auto u, auto v, auto& mask, auto w)
                                   {
-                                      return inv_log_weighted(u, v, mask, g);
-                                  });
+                                      return inv_log_weighted(u, v, mask, w, g);
+                                  }, w);
          },
-         all_graph_views(), vertex_floating_vector_properties())
-        (gi.get_graph_view(), as);
+         all_graph_views(), vertex_floating_vector_properties(),
+         weight_props_t())
+        (gi.get_graph_view(), as, weight);
 }
 
 void get_inv_log_weight_similarity_pairs(GraphInterface& gi,
                                          python::object opairs,
-                                         python::object osim)
+                                         python::object osim,
+                                         boost::any weight)
 {
     multi_array_ref<int64_t,2> pairs = get_array<int64_t,2>(opairs);
     multi_array_ref<double,1> sim = get_array<double,1>(osim);
 
+    if (weight.empty())
+        weight = ecmap_t();
+
     gt_dispatch<>()
-        ([&](auto& g)
+        ([&](auto& g, auto w)
          {
              some_pairs_similarity(g, pairs, sim,
-                                   [&](auto u, auto v, auto& mask)
+                                   [&](auto u, auto v, auto& mask, auto w)
                                    {
-                                       return inv_log_weighted(u, v,  mask, g);
-                                   });
+                                       return inv_log_weighted(u, v, mask, w, g);
+                                   }, w);
          },
-         all_graph_views())
-        (gi.get_graph_view());
+         all_graph_views(), weight_props_t())
+        (gi.get_graph_view(), weight);
 }
 
 

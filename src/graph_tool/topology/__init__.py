@@ -264,7 +264,7 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
     return s
 
 @_limit_args({"sim_type": ["dice", "jaccard", "inv-log-weight"]})
-def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
+def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
                       sim_map=None):
     r"""Return the similarity between pairs of vertices.
 
@@ -278,9 +278,8 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
     vertex_pairs : iterable of pairs of integers (optional, default: ``None``)
         Pairs of vertices to compute the similarity. If omitted, all pairs will
         be considered.
-    self_loops : bool (optional, default: ``True``)
-        If ``True``, vertices will be considered adjacent to themselves for the
-        purpose of the similarity computation.
+    eweight : :class:`~graph_tool.EdgePropertyMap` (optional, default: ``None``)
+        Edge weights.
     sim_map : :class:`~graph_tool.VertexPropertyMap` (optional, default: ``None``)
         If provided, and ``vertex_pairs is None``, the vertex similarities will
         be stored in this vector-valued property. Otherwise, a new one will be
@@ -296,33 +295,58 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
 
     Notes
     -----
-    According to ``sim_type``, this function computes the following similarities:
+    According to ``sim_type``, this function computes one of the following
+    similarities:
 
     ``sim_type == "dice"``
 
-       The Sørensen–Dice similarity [sorensen-dice]_ is twice the number of
-       common neighbors between two vertices divided by the sum of their
-       degrees.
+       The Sørensen–Dice similarity [sorensen-dice]_ of vertices :math:`u` and
+       :math:`v` is defined as
+
+       .. math::
+
+           \frac{2|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)|+|\Gamma(v)},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
     ``sim_type == "jaccard"``
 
-       The Jaccard similarity [jaccard]_ is the number of common neighbors
-       between two vertices divided by the size of the set of all neighbors to
-       both vertices.
+       The Jaccard similarity [jaccard]_ of vertices :math:`u` and
+       :math:`v` is defined as
+
+       .. math::
+
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)\cup\Gamma(v)},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
     ``sim_type == "inv-log-weight"``
 
-       The inverse log weighted similarity [adamic-friends-2003]_ is the sum of
-       the weights of common neighbors between two vertices, where the weights
-       are computed as :math:`1/\log(k)`, with :math:`k` being the degree of the
-       vertex.
+       The inverse log weighted similarity [adamic-friends-2003]_ of vertices
+       :math:`u` and :math:`v` is defined as
 
+       .. math::
+
+           \sum_{w \in \Gamma(u)\cap\Gamma(v)}\frac{1}{\log |\Gamma(w)|},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
     For directed graphs, only out-neighbors are considered in the above
     algorthms (for "inv-log-weight", the in-degrees are used to compute the
     weights). To use the in-neighbors instead, a :class:`~graph_tool.GraphView`
     should be used to reverse the graph, e.g. ``vertex_similarity(GraphView(g,
     reversed=True))``.
+
+    For weighted or multigraphs, in the above equations it is assumed the
+    following:
+
+    .. math::
+
+        |\Gamma(u)\cap\Gamma(v)| &= \sum_w \operatorname{min}(A_{wv}, A_{wu}),\\
+        |\Gamma(u)\cup\Gamma(v)| &= \sum_w \operatorname{max}(A_{wv}, A_{wu}),\\
+        |\Gamma(u)| &= \sum_w A_{wu},
+
+    where :math:`A_{wu}` is the weighted adjacency matrix.
 
     The algorithm runs with complexity :math:`O(\left<k\right>N^2)` if
     ``vertex_pairs is None``, otherwise with :math:`O(\left<k\right>P)` where
@@ -371,7 +395,13 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
        "The link-prediction problem for social networks", Journal of the
        American Society for Information Science and Technology, Volume 58, Issue
        7, pages 1019–1031 (2007), :doi:`10.1002/asi.20591`
+
     """
+
+    if eweight is None:
+        eweight = libcore.any()
+    else:
+        eweight = _prop("e", g, eweight)
 
     if vertex_pairs is None:
         if sim_map is None:
@@ -381,29 +411,30 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, self_loops=True,
         if sim_type == "dice":
             libgraph_tool_topology.dice_similarity(g._Graph__graph,
                                                    _prop("v", g, s),
-                                                   self_loops)
+                                                   eweight)
         elif sim_type == "jaccard":
             libgraph_tool_topology.jaccard_similarity(g._Graph__graph,
                                                       _prop("v", g, s),
-                                                      self_loops)
+                                                      eweight)
         elif sim_type == "inv-log-weight":
             libgraph_tool_topology.inv_log_weight_similarity(g._Graph__graph,
-                                                             _prop("v", g, s))
+                                                             _prop("v", g, s),
+                                                             eweight)
     else:
         vertex_pairs = numpy.asarray(vertex_pairs, dtype="int64")
         s = numpy.zeros(vertex_pairs.shape[0], dtype="double")
         if sim_type == "dice":
             libgraph_tool_topology.dice_similarity_pairs(g._Graph__graph,
                                                          vertex_pairs,
-                                                         s, self_loops)
+                                                         s, eweight)
         elif sim_type == "jaccard":
             libgraph_tool_topology.jaccard_similarity_pairs(g._Graph__graph,
                                                             vertex_pairs,
-                                                            s, self_loops)
+                                                            s, eweight)
         elif sim_type == "inv-log-weight":
             libgraph_tool_topology.\
                 inv_log_weight_similarity_pairs(g._Graph__graph, vertex_pairs,
-                                                s)
+                                                s, eweight)
     return s
 
 
