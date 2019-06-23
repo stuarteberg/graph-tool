@@ -26,7 +26,7 @@ using namespace std;
 using namespace boost;
 
 template <class Graph, class Vertex, class Mark, class Weight>
-double dice(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+auto common_neighbors(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
 {
     typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
     for (auto e : out_edges_range(u, g))
@@ -45,7 +45,47 @@ double dice(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
     }
     for (auto w : adjacent_vertices_range(u, g))
         mark[w] = 0;
+    return std::make_tuple(count, ku, kv);
+}
+
+template <class Graph, class Vertex, class Mark, class Weight>
+double dice(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    std::tie(count, ku, kv) = common_neighbors(u, v, mark, weight, g);
     return 2 * count / double(ku + kv);
+}
+
+template <class Graph, class Vertex, class Mark, class Weight>
+double salton(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    std::tie(count, ku, kv) = common_neighbors(u, v, mark, weight, g);
+    return count / sqrt(ku * kv);
+}
+
+template <class Graph, class Vertex, class Mark, class Weight>
+double hub_promoted(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    std::tie(count, ku, kv) = common_neighbors(u, v, mark, weight, g);
+    return count / double(std::max(ku, kv));
+}
+
+template <class Graph, class Vertex, class Mark, class Weight>
+double hub_suppressed(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    std::tie(count, ku, kv) = common_neighbors(u, v, mark, weight, g);
+    return count / double(std::min(ku, kv));
+}
+
+template <class Graph, class Vertex, class Mark, class Weight>
+double leicht_holme_newman(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    typename property_traits<Weight>::value_type count = 0, ku = 0, kv = 0;
+    std::tie(count, ku, kv) = common_neighbors(u, v, mark, weight, g);
+    return count / double(ku * kv);
 }
 
 template <class Graph, class Vertex, class Mark, class Weight>
@@ -79,21 +119,47 @@ double inv_log_weighted(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g
     double count = 0;
     for (auto e : out_edges_range(u, g))
         mark[target(e, g)] += weight[e];
-    for (auto w : adjacent_vertices_range(v, g))
+    for (auto e : out_edges_range(v, g))
     {
-        if (mark[w] > 0)
-        {
-            if (graph_tool::is_directed(g))
-                count += mark[w] / log(in_degreeS()(w, g, weight));
-            else
-                count += mark[w] / log(out_degreeS()(w, g, weight));
-        }
+       auto w = weight[e];
+       auto dw = std::min(w, mark[target(e, g)]);
+       if (mark[target(e, g)] > 0)
+       {
+           if (graph_tool::is_directed(g))
+               count += dw / log(in_degreeS()(target(e, g), g, weight));
+           else
+               count += dw / log(out_degreeS()(target(e, g), g, weight));
+       }
+       mark[target(e, g)] -= dw;
     }
     for (auto w : adjacent_vertices_range(u, g))
         mark[w] = 0;
     return count;
 }
 
+template <class Graph, class Vertex, class Mark, class Weight>
+double r_allocation(Vertex u, Vertex v, Mark& mark, Weight& weight, Graph& g)
+{
+    double count = 0;
+    for (auto e : out_edges_range(u, g))
+        mark[target(e, g)] += weight[e];
+    for (auto e : out_edges_range(v, g))
+    {
+       auto w = weight[e];
+       auto dw = std::min(w, mark[target(e, g)]);
+       if (mark[target(e, g)] > 0)
+       {
+           if (graph_tool::is_directed(g))
+               count += dw / double(in_degreeS()(target(e, g), g, weight));
+           else
+               count += dw / double(out_degreeS()(target(e, g), g, weight));
+       }
+       mark[target(e, g)] -= dw;
+    }
+    for (auto w : adjacent_vertices_range(u, g))
+        mark[w] = 0;
+    return count;
+}
 
 template <class Graph, class VMap, class Sim, class Weight>
 void all_pairs_similarity(Graph& g, VMap s, Sim&& f, Weight& weight)

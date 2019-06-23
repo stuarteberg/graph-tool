@@ -263,7 +263,9 @@ def similarity(g1, g2, eweight1=None, eweight2=None, label1=None, label2=None,
         return s / E
     return s
 
-@_limit_args({"sim_type": ["dice", "jaccard", "inv-log-weight"]})
+@_limit_args({"sim_type": ["dice", "salton", "hub-promoted", "hub-suppressed",
+                           "jaccard", "inv-log-weight", "resource-allocation",
+                           "leicht-holme-newman"]})
 def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
                       sim_map=None):
     r"""Return the similarity between pairs of vertices.
@@ -273,8 +275,9 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
     g : :class:`~graph_tool.Graph`
         The graph to be used.
     sim_type : ``str`` (optional, default: ``"jaccard"``)
-        Type of similarity to use. This must be one of ``"dice"``, ``"jaccard"``
-        or ``"inv-log-weight"``.
+        Type of similarity to use. This must be one of ``"dice"``, ``"salton"``,
+        ``"hub-promoted"``, ``"hub-suppressed"``, ``"jaccard"``,
+        ``"inv-log-weight"``, ``"resource-allocation"`` or ``"leicht-holme-newman"``.
     vertex_pairs : iterable of pairs of integers (optional, default: ``None``)
         Pairs of vertices to compute the similarity. If omitted, all pairs will
         be considered.
@@ -305,7 +308,40 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
 
        .. math::
 
-           \frac{2|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)|+|\Gamma(v)},
+           \frac{2|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)|+|\Gamma(v)|},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
+
+    ``sim_type == "salton"``
+
+       The Salton (or cosine) similarity [salton]_ of vertices :math:`u` and
+       :math:`v` is defined as
+
+       .. math::
+
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{\sqrt{|\Gamma(u)||\Gamma(v)|}},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
+
+    ``sim_type == "hub-promoted"``
+
+       The "hub promoted" similarity [ravasz_hierarchical_2002]_ of vertices
+       :math:`u` and :math:`v` is defined as
+
+       .. math::
+
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{\max(|\Gamma(u)|,|\Gamma(v)|)},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
+
+    ``sim_type == "hub-suppressed"``
+
+       The "hub suppressed" similarity of vertices :math:`u` and
+       :math:`v` is defined as
+
+       .. math::
+
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{\min(|\Gamma(u)|,|\Gamma(v)|)},
 
        where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
@@ -316,7 +352,7 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
 
        .. math::
 
-           \frac{|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)\cup\Gamma(v)},
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)\cup\Gamma(v)|},
 
        where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
@@ -331,6 +367,28 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
 
        where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
 
+    ``sim_type == "resource-allocation"``
+
+       The resource allocation similarity [zhou-predicting-2009]_ of vertices
+       :math:`u` and :math:`v` is defined as
+
+       .. math::
+
+           \sum_{w \in \Gamma(u)\cap\Gamma(v)}\frac{1}{|\Gamma(w)|},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
+
+    ``sim_type == "leicht-holme-newman"``
+
+       The Leicht-Holme-Newman similarity [leicht_vertex_2006]_ of vertices
+       :math:`u` and :math:`v` is defined as
+
+       .. math::
+
+           \frac{|\Gamma(u)\cap\Gamma(v)|}{|\Gamma(u)||\Gamma(v)|},
+
+       where :math:`\Gamma(u)` is the set of neighbors of vertex :math:`u`.
+
     For directed graphs, only out-neighbors are considered in the above
     algorthms (for "inv-log-weight", the in-degrees are used to compute the
     weights). To use the in-neighbors instead, a :class:`~graph_tool.GraphView`
@@ -342,8 +400,8 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
 
     .. math::
 
-        |\Gamma(u)\cap\Gamma(v)| &= \sum_w \operatorname{min}(A_{wv}, A_{wu}),\\
-        |\Gamma(u)\cup\Gamma(v)| &= \sum_w \operatorname{max}(A_{wv}, A_{wu}),\\
+        |\Gamma(u)\cap\Gamma(v)| &= \sum_w \min(A_{wv}, A_{wu}),\\
+        |\Gamma(u)\cup\Gamma(v)| &= \sum_w \max(A_{wv}, A_{wu}),\\
         |\Gamma(u)| &= \sum_w A_{wu},
 
     where :math:`A_{wu}` is the weighted adjacency matrix.
@@ -387,7 +445,16 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
     References
     ----------
     .. [sorensen-dice] https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient
+    .. [salton] G. Salton, M. J. McGill, "Introduction to Modern Informa-tion Retrieval",
+       (MuGraw-Hill, Auckland, 1983).
+    .. [ravasz_hierarchical_2002] Ravasz, E., Somera, A. L., Mongru, D. A.,
+       Oltvai, Z. N., & Barabási, A. L., "Hierarchical organization of
+       modularity in metabolic networks", Science, 297(5586), 1551-1555,
+       (2002). :doi:`10.1126/science.1073374`
     .. [jaccard] https://en.wikipedia.org/wiki/Jaccard_index
+    .. [leicht_vertex_2006] E. A. Leicht, Petter Holme, and M. E. J. Newman,
+       "Vertex similarity in networks", Phys. Rev. E 73, 026120 (2006),
+       :doi:`10.1103/PhysRevE.73.026120`, :arxiv:`physics/0510143`
     .. [adamic-friends-2003] Lada A. Adamic and Eytan Adar, "Friends and neighbors
        on the Web", Social Networks Volume 25, Issue 3, Pages 211–230 (2003)
        :doi:`10.1016/S0378-8733(03)00009-1`
@@ -395,6 +462,10 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
        "The link-prediction problem for social networks", Journal of the
        American Society for Information Science and Technology, Volume 58, Issue
        7, pages 1019–1031 (2007), :doi:`10.1002/asi.20591`
+    .. [zhou-predicting-2009] Zhou, Tao, Linyuan Lü, and Yi-Cheng Zhang,
+       "Predicting missing links via local information", The European Physical
+       Journal B 71, no. 4: 623-630 (2009), :doi:`10.1140/epjb/e2009-00335-8`,
+       :arxiv:`0901.0553`
 
     """
 
@@ -412,6 +483,18 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
             libgraph_tool_topology.dice_similarity(g._Graph__graph,
                                                    _prop("v", g, s),
                                                    eweight)
+        elif sim_type == "salton":
+            libgraph_tool_topology.salton_similarity(g._Graph__graph,
+                                                     _prop("v", g, s),
+                                                     eweight)
+        elif sim_type == "hub-promoted":
+            libgraph_tool_topology.hub_promoted_similarity(g._Graph__graph,
+                                                           _prop("v", g, s),
+                                                           eweight)
+        elif sim_type == "hub-suppressed":
+            libgraph_tool_topology.hub_suppressed_similarity(g._Graph__graph,
+                                                             _prop("v", g, s),
+            eweight)
         elif sim_type == "jaccard":
             libgraph_tool_topology.jaccard_similarity(g._Graph__graph,
                                                       _prop("v", g, s),
@@ -420,6 +503,14 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
             libgraph_tool_topology.inv_log_weight_similarity(g._Graph__graph,
                                                              _prop("v", g, s),
                                                              eweight)
+        elif sim_type == "resource-allocation":
+            libgraph_tool_topology.r_allocation_similarity(g._Graph__graph,
+                                                           _prop("v", g, s),
+                                                           eweight)
+        elif sim_type == "leicht-holme-newman":
+            libgraph_tool_topology.leicht_holme_newman_similarity(g._Graph__graph,
+                                                           _prop("v", g, s),
+                                                           eweight)
     else:
         vertex_pairs = numpy.asarray(vertex_pairs, dtype="int64")
         s = numpy.zeros(vertex_pairs.shape[0], dtype="double")
@@ -427,6 +518,18 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
             libgraph_tool_topology.dice_similarity_pairs(g._Graph__graph,
                                                          vertex_pairs,
                                                          s, eweight)
+        elif sim_type == "salton":
+            libgraph_tool_topology.salton_similarity_pairs(g._Graph__graph,
+                                                           vertex_pairs,
+                                                           s, eweight)
+        elif sim_type == "hub-promoted":
+            libgraph_tool_topology.hub_promoted_similarity_pairs(g._Graph__graph,
+                                                                 vertex_pairs,
+                                                                 s, eweight)
+        elif sim_type == "hub-suppressed":
+            libgraph_tool_topology.hub_suppressed_similarity_pairs(g._Graph__graph,
+                                                                   vertex_pairs,
+                                                                   s, eweight)
         elif sim_type == "jaccard":
             libgraph_tool_topology.jaccard_similarity_pairs(g._Graph__graph,
                                                             vertex_pairs,
@@ -435,6 +538,14 @@ def vertex_similarity(g, sim_type="jaccard", vertex_pairs=None, eweight=None,
             libgraph_tool_topology.\
                 inv_log_weight_similarity_pairs(g._Graph__graph, vertex_pairs,
                                                 s, eweight)
+        elif sim_type == "resource-allocation":
+            libgraph_tool_topology.\
+                r_allocation_similarity_pairs(g._Graph__graph, vertex_pairs,
+                                              s, eweight)
+        elif sim_type == "leicht-holme-newman":
+            libgraph_tool_topology.\
+                leicht_holme_newman_similarity_pairs(g._Graph__graph, vertex_pairs,
+                                              s, eweight)
     return s
 
 
