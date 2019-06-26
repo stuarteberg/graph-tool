@@ -3334,13 +3334,13 @@ def load_graph_from_csv(file_name, directed=False, eprop_types=None,
     if isinstance(file_name, (str, unicode)):
         if file_name.endswith(".xz"):
             try:
-                file_name = lzma.open(file_name, mode="r")
+                file_name = lzma.open(file_name, mode="rt")
             except ImportError:
                 raise NotImplementedError("lzma compression is only available in Python >= 3.3")
         elif file_name.endswith(".gz"):
-            file_name = gzip.open(file_name, mode="r")
+            file_name = gzip.open(file_name, mode="rt")
         elif file_name.endswith(".bz2"):
-            file_name = bz2.open(file_name, mode="r")
+            file_name = bz2.open(file_name, mode="rt")
         else:
             file_name = open(file_name, "r")
     _csv_options = {"delimiter": ",", "quotechar": '"'}
