@@ -68,18 +68,9 @@ boost::python::object wrap_vector_owned(const std::vector<ValueType>& vec)
     size_t val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp size[1];
     size[0] = vec.size();
-    PyArrayObject* ndarray;
-    if (vec.empty())
-    {
-        ndarray = (PyArrayObject*) PyArray_SimpleNew(1, size, val_type);
-    }
-    else
-    {
-        ValueType* new_data = (ValueType*) malloc(sizeof(ValueType) * vec.size());
-        memcpy(new_data, vec.data(), vec.size() * sizeof(ValueType));
-        ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(1, size, val_type,
-                                                             new_data);
-    }
+    PyArrayObject* ndarray = (PyArrayObject*) PyArray_SimpleNew(1, size, val_type);
+    if (!vec.empty())
+        memcpy(PyArray_DATA(ndarray), vec.data(), vec.size() * sizeof(ValueType));
     PyArray_ENABLEFLAGS(ndarray, NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS |
                         NPY_ARRAY_OWNDATA | NPY_ARRAY_WRITEABLE);
     boost::python::handle<> x((PyObject*) ndarray);
@@ -118,12 +109,10 @@ boost::python::object wrap_vector_owned(const std::vector<std::array<ValueType, 
     }
     else
     {
-        ValueType* new_data = (ValueType*) malloc(sizeof(ValueType) * n);
-        memcpy(new_data, vec.data(), n * sizeof(ValueType));
         npy_intp shape[2] = {int(vec.size()), int(Dim)};
-        ndarray = (PyArrayObject*) PyArray_SimpleNewFromData(Dim, shape,
-                                                             val_type,
-                                                             new_data);
+        ndarray = (PyArrayObject*) PyArray_SimpleNew(Dim, shape,
+                                                     val_type);
+        memcpy(PyArray_DATA(ndarray), vec.data(), n * sizeof(ValueType));
     }
     PyArray_ENABLEFLAGS(ndarray, NPY_ARRAY_ALIGNED | NPY_ARRAY_F_CONTIGUOUS |
                         NPY_ARRAY_OWNDATA | NPY_ARRAY_WRITEABLE);
@@ -153,16 +142,13 @@ template <class ValueType, size_t Dim>
 boost::python::object
 wrap_multi_array_owned(const boost::multi_array<ValueType,Dim>& array)
 {
-    ValueType* new_data =
-        (ValueType*) malloc(sizeof(ValueType) * array.num_elements());
-    memcpy(new_data, array.data(), array.num_elements() * sizeof(ValueType));
     size_t val_type = boost::mpl::at<numpy_types,ValueType>::type::value;
     npy_intp shape[Dim];
     for (size_t i = 0; i < Dim; ++i)
         shape[i] = array.shape()[i];
     PyArrayObject* ndarray =
-        (PyArrayObject*) PyArray_SimpleNewFromData(Dim, shape, val_type,
-                                                   new_data);
+        (PyArrayObject*) PyArray_SimpleNew(Dim, shape, val_type);
+    memcpy(PyArray_DATA(ndarray), array.data(), array.num_elements() * sizeof(ValueType));
     PyArray_ENABLEFLAGS(ndarray, NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS |
                         NPY_ARRAY_OWNDATA | NPY_ARRAY_WRITEABLE);
     boost::python::handle<> x((PyObject*) ndarray);
