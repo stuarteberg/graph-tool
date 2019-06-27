@@ -64,6 +64,7 @@ void export_diam();
 void export_random_matching();
 void export_maximal_vertex_set();
 void export_vertex_similarity();
+void export_max_cliques();
 
 
 BOOST_PYTHON_MODULE(libgraph_tool_topology)
@@ -94,4 +95,5 @@ BOOST_PYTHON_MODULE(libgraph_tool_topology)
     export_random_matching();
     export_maximal_vertex_set();
     export_vertex_similarity();
+    export_max_cliques();
 }

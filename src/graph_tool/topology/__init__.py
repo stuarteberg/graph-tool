@@ -40,6 +40,7 @@ Summary
    isomorphism
    subgraph_isomorphism
    mark_subgraph
+   max_cliques
    max_cardinality_matching
    max_independent_vertex_set
    min_spanning_tree
@@ -80,7 +81,7 @@ from .. import _prop, Vector_int32_t, _check_prop_writable, \
 from .. stats import label_self_loops
 import random, sys, numpy, collections
 
-__all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph",
+__all__ = ["isomorphism", "subgraph_isomorphism", "mark_subgraph", "max_cliques",
            "max_cardinality_matching", "max_independent_vertex_set",
            "min_spanning_tree", "random_spanning_tree", "dominator_tree",
            "topological_sort", "transitive_closure", "tsp_tour",
@@ -797,6 +798,76 @@ def mark_subgraph(g, sub, vmap, vmask=None, emask=None):
 
     return vmask, emask
 
+def max_cliques(g, iterator=True):
+    """Return an iterator over the maximal cliques of the graph.
+
+    Parameters
+    ----------
+    g : :class:`~graph_tool.Graph`
+        Graph to be used.
+    iterator : ``boolean`` (optional, default: ``True``)
+        If ``False``, a list is returned instead of an iterator.
+
+    Returns
+    -------
+    max_cliques : iterator or list over :class:`numpy.ndarray` instances
+        Iterator (or list) over lists of vertices corresponding to the maximal
+        cliques.
+
+    Notes
+    -----
+
+    This implements the Bron-Kerbosh algorithm [bron_algorithm_1973]_
+    [bron-kerbosh-wiki]_ with pivoting [tomita_worst-case_2006]_
+    [cazals_note_2008]_.
+
+    The worst-case complexity of this algorithm is :math:`O(3^{V/3})` for a
+    graph of :math:`V` vertices, but for sparse graphs it is typically much
+    faster.
+
+    Examples
+    --------
+
+    >>> g = gt.collection.data["polblogs"]
+    >>> for i, c in enumerate(gt.max_cliques(g)):
+    ...     print(c)
+    ...     if i == 9:
+    ...         break
+    [   0 1434 1244]
+    [   0  643  433 1244]
+    [   0   20 1244]
+    [   0  640 1130  366  567]
+    [  0 640 322  67  54 154]
+    [  0 640  67 114  54 154]
+    [  0 640 322 240  84  54 154]
+    [  0 640 433 114  84  54 154]
+    [  0 640 641  20  54 154]
+    [  0 640 322  20  54 154]
+
+
+    References
+    ----------
+    .. [bron_algorithm_1973] Coen Bron and Joep Kerbosch, "Algorithm 457:
+       finding all cliques of an undirected graph", Commun. ACM 16, 9, 575-577
+       (1973), :doi:`10.1145/362342.362367`
+    .. [tomita_worst-case_2006] Etsuji Tomita, Akira Tanaka, and Haruhisa
+       Takahashi. "The worst-case time complexity for generating all maximal
+       cliques and computational experiments." Theoretical Computer Science 363.1
+       28-42 (2006), :doi:`10.1016/j.tcs.2006.06.015`
+    .. [cazals_note_2008] Frédéric Cazals, and Chinmay Karande, "A note on the
+       problem of reporting maximal cliques." Theoretical Computer Science 407.1-3
+       564-568 (2008), :doi:`10.1016/j.tcs.2008.05.010`
+    .. [bron-kerbosh-wiki] https://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
+
+    """
+
+    if g.is_directed():
+        g = GraphView(g, directed=False)
+
+    if iterator:
+        return libgraph_tool_topology.max_cliques(g._Graph__graph)
+
+    return libgraph_tool_topology.max_cliques_list(g._Graph__graph)
 
 def min_spanning_tree(g, weights=None, root=None, tree_map=None):
     """
