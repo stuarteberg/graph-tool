@@ -183,11 +183,12 @@ AC_CHECK_LIB(gmp, __gmpz_init, ,
 dnl CGAL
 AX_LIB_CGAL_CORE([], AC_MSG_ERROR([CGAL library not found.]))
 [CGAL_FLAGS="-frounding-math"]
-AC_MSG_CHECKING(whether to enable cgal debbuging with valgrind)
-AC_ARG_ENABLE([cgal-valgrind], [AS_HELP_STRING([--enable-cgal-valgrind],[enable CGAL valgrind debugging [default=disabled] ])],
+AC_MSG_CHECKING(whether to enable debbuging with valgrind)
+AC_ARG_ENABLE([valgrind], [AS_HELP_STRING([--enable-valgrind],[enable valgrind debugging [default=disabled] ])],
               if test $enableval = yes; then
                  [AC_MSG_RESULT(yes)]
                  [CGAL_FLAGS="${CGAL_FLAGS} -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON"]
+                 [CPPFLAGS="${CPPFLAGS} -DBOOST_USE_VALGRIND"]
               else
                  [AC_MSG_RESULT(no)]    
               fi,
