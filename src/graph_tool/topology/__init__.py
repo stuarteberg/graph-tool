@@ -864,10 +864,8 @@ def max_cliques(g, iterator=True):
     if g.is_directed():
         g = GraphView(g, directed=False)
 
-    if iterator:
-        return libgraph_tool_topology.max_cliques(g._Graph__graph)
-
-    return libgraph_tool_topology.max_cliques_list(g._Graph__graph)
+    for c in libgraph_tool_topology.max_cliques(g._Graph__graph):
+        yield c
 
 def min_spanning_tree(g, weights=None, root=None, tree_map=None):
     """
@@ -2296,7 +2294,8 @@ def all_shortest_paths(g, source, target, weights=None, negative_weights=False,
                                                       int(source),
                                                       int(target),
                                                       _prop("v", g, all_preds_map))
-    return path_iterator
+    for p in path_iterator:
+        yield p
 
 def all_paths(g, source, target, cutoff=None, edges=False):
     """Return an iterator over all paths from `source` to `target`.
@@ -2353,7 +2352,8 @@ def all_paths(g, source, target, cutoff=None, edges=False):
                                                          cutoff,
                                                          _prop("v", g, visited),
                                                          edges)
-    return path_iterator
+    for p in path_iterator:
+        yield p
 
 def all_circuits(g, unique=False):
     """Return an iterator over all the cycles in a directed graph.

@@ -38,8 +38,7 @@ boost::python::object get_max_cliques(GraphInterface& gi)
                                  [&](auto& s)
                                  {
                                      std::vector<size_t> v(s.begin(), s.end());
-                                     auto c = wrap_vector_owned(v);
-                                     yield(c);
+                                     yield(wrap_vector_owned(v));
                                  });
                  })();
         };
@@ -49,26 +48,7 @@ boost::python::object get_max_cliques(GraphInterface& gi)
 #endif // HAVE_BOOST_COROUTINE
 }
 
-boost::python::list get_max_cliques_list(GraphInterface& gi)
-{
-    boost::python::list cliques;
-    run_action<>()
-        (gi,
-         [&](auto& g)
-         {
-             max_cliques(g,
-                         [&](auto& s)
-                         {
-                             std::vector<size_t> v(s.begin(), s.end());
-                             cliques.append(wrap_vector_owned(v));
-                         });
-         })();
-    return cliques;
-}
-
-
 void export_max_cliques()
 {
     boost::python::def("max_cliques", &get_max_cliques);
-    boost::python::def("max_cliques_list", &get_max_cliques_list);
 };
