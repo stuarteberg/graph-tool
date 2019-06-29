@@ -798,21 +798,18 @@ def mark_subgraph(g, sub, vmap, vmask=None, emask=None):
 
     return vmask, emask
 
-def max_cliques(g, iterator=True):
+def max_cliques(g):
     """Return an iterator over the maximal cliques of the graph.
 
     Parameters
     ----------
     g : :class:`~graph_tool.Graph`
         Graph to be used.
-    iterator : ``boolean`` (optional, default: ``True``)
-        If ``False``, a list is returned instead of an iterator.
 
     Returns
     -------
-    max_cliques : iterator or list over :class:`numpy.ndarray` instances
-        Iterator (or list) over lists of vertices corresponding to the maximal
-        cliques.
+    max_cliques : iterator over :class:`numpy.ndarray` instances
+        Iterator over lists of vertices corresponding to the maximal cliques.
 
     Notes
     -----
