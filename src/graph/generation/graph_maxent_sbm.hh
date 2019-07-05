@@ -263,6 +263,8 @@ public:
                         double n = nout * ((s != r || tout != tc.first) ? tc.second : tc.second - 1);
                         if (!_directed)
                             n /= 2;
+                        if (_self_loops && !_directed && s == r && tout == tc.first)
+                            n += tc.second;
                         double p = tout * tc.first * _mrs[r][s];
                         if (!_multigraph)
                             L -= log1p(p) * n;
@@ -294,14 +296,18 @@ public:
                     auto s = m.first;
                     for (auto& tc : _rtheta_out[s])
                     {
-                        double n = (s == r && tin == tc.first && !_self_loops)
-                            ? tc.second - 1 : tc.second;
                         double p;
                         if (!_multigraph)
-                            p = (tc.first * m.second * n) / (1. + tin * tc.first * m.second);
+                            p = (tc.first * m.second) / (1. + tin * tc.first * m.second);
                         else
-                            p = (tc.first * m.second * n) / (1. - tin * tc.first * m.second);
-                        S += p;
+                            p = (tc.first * m.second) / (1. - tin * tc.first * m.second);
+
+                        double n;
+                        if (s == r && tin == tc.first)
+                            n = (!_self_loops) ? tc.second - 1 : (_directed ? tc.second : tc.second + 1);
+                        else
+                            n = tc.second;
+                        S += p * n;
                     }
                 }
                 diff_rtheta_in[r][i].first =  _rdegs_in[r][i] / tin - S;
@@ -316,14 +322,19 @@ public:
                     auto s = m.first;
                     for (auto& tc : _rtheta_in[s])
                     {
-                        double n = (s == r && tout == tc.first && !_self_loops)
-                            ? tc.second - 1 : tc.second;
                         double p;
                         if (!_multigraph)
-                            p = (tc.first * m.second * n) / (1. + tout * tc.first * m.second);
+                            p = (tc.first * m.second) / (1. + tout * tc.first * m.second);
                         else
-                            p = (tc.first * m.second * n) / (1. - tout * tc.first * m.second);
-                        S += p;
+                            p = (tc.first * m.second) / (1. - tout * tc.first * m.second);
+
+                        double n;
+                        if (s == r && tout == tc.first)
+                            n = (!_self_loops) ? tc.second - 1 : (_directed ? tc.second : tc.second + 1);
+                        else
+                            n = tc.second;
+
+                        S += p * n;
                     }
                 }
                 diff_rtheta_out[r][i].first = _rdegs_out[r][i] / tout - S;
@@ -343,6 +354,9 @@ public:
                                     && !_self_loops) ?
                             tc_out.second * (tc_in.second - 1) :
                             tc_out.second * tc_in.second;
+                        if (_self_loops && !_directed && s == r &&
+                            tc_out.first == tc_in.first)
+                            n += tc_in.second;
                         double p = tc_out.first * tc_in.first;
                         if (!_multigraph)
                             p = p * n / (1. + p * m.second);
@@ -559,12 +573,11 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                 size_t n;
                 if (r == s && vout.first == vin.first)
                 {
-                    if (!self_loops)
-                        n = vout.second.size() * (vin.second.size() - 1);
-                    else
-                        n = vout.second.size() * vin.second.size();
+                    n = vout.second.size() * (vin.second.size() - 1);
                     if (!graph_tool::is_directed(g))
                         n /= 2;
+                    if (self_loops)
+                        n += vin.second.size();
                 }
                 else
                 {
@@ -582,7 +595,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                          if (!graph_tool::is_directed(g) && u > v)
                              std::swap(u, v);
                     }
-                    while ((u == v && self_loops) ||
+                    while ((u == v && !self_loops) ||
                            sampled.find({u,v}) != sampled.end());
 
                     add_edge(u, v, g);
