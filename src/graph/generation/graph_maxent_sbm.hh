@@ -540,13 +540,16 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
 
     std::vector<gt_hash_map<double, std::vector<size_t>>> vertices_in(B),
         vertices_out(B);
+    gt_hash_set<std::tuple<double, double>> theta_l;
 
     for (auto v : vertices_range(g))
     {
+        auto r = b[v];
         if (theta_in[v] > 0)
-            vertices_in[b[v]][theta_in[v]].push_back(v);
+            vertices_in[r][theta_in[v]].push_back(v);
         if (theta_out[v] > 0)
-            vertices_out[b[v]][theta_out[v]].push_back(v);
+            vertices_out[r][theta_out[v]].push_back(v);
+        theta_l.insert({theta_out[v], theta_in[v]});
     }
 
     gt_hash_set<std::pair<size_t, size_t>> sampled;
@@ -571,7 +574,7 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                     throw GraphException("Invalid probability: " + lexical_cast<string>(p));
 
                 size_t n;
-                if (r == s && vout.first == vin.first)
+                if (r == s && theta_l.find({vout.first, vin.first}) != theta_l.end())
                 {
                     n = vout.second.size() * (vin.second.size() - 1);
                     if (!graph_tool::is_directed(g))
@@ -583,8 +586,10 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                 {
                     n = vout.second.size() * vin.second.size();
                 }
+
                 std::binomial_distribution<size_t> d(n, p);
                 size_t nedges = d(rng);
+
                 for (size_t i = 0; i < nedges; ++i)
                 {
                     size_t u,v;
