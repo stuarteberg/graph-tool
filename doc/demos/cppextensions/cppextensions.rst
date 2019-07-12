@@ -107,8 +107,7 @@ organized, we create a :download:`Makefile <Makefile>`:
    :language: make
    :linenos:
 
-(If you use MacOS, the file object file should be named
-``libkcore.dylib``, and you may want to use a different compiler such as
+(If you use MacOS, you may want to use a different compiler such as
 ``clang++``.) After compiling by typing ``make``, we can import and use
 the ``kcore.py`` module:
 

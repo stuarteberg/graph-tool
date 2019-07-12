@@ -1,5 +1,6 @@
-# We import the C++ module (usually called libkcore.so or libkcore.dylib)
+import graph_tool
 
+# We import the C++ module (called libkcore.so)
 import libkcore
 
 # The function below is what will be used from Python, and dispatch to the the
