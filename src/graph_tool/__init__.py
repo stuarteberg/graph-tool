@@ -2081,10 +2081,14 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_all_edges(66, [g.edge_index])
-        array([[  8687,     66, 179681],
+        array([[    66,     63,   5266],
+               [    66,  20369,   5267],
+               [    66,  13980,   5268],
+               [    66,   8687,   5269],
+               [    66,  38674,   5270],
+               [  8687,     66, 179681],
                [ 20369,     66, 255033],
                [ 38674,     66, 300230]])
-
         """
         edges = libcore.get_all_edge_list(self.__graph, int(v),
                                           [ep._get_any() for ep in eprops])
@@ -2216,7 +2220,7 @@ class Graph(object):
 
     def get_all_neighbors(self, v, vprops=[]):
         """Return a :class:`numpy.ndarray` containing the in-neighbors and
-        out-neighbours of vertex ``v``, and optional vertex properties list
+        out-neighbors of vertex ``v``, and optional vertex properties list
         ``vprops``. If ``vprops`` is not empty, the shape of the array will be
         ``(V, 1 + len(eprops))``, where ``V`` is the number of vertices, and
         each line will contain a vertex and its property values.
@@ -2225,8 +2229,7 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_all_neighbors(66)
-        array([ 8687, 20369, 38674])
-
+        array([   63, 20369, 13980,  8687, 38674,  8687, 20369, 38674])
         """
         vertices = libcore.get_all_neighbors_list(self.__graph, int(v),
                                                  [vp._get_any() for vp in vprops])
@@ -2247,11 +2250,11 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_out_degrees([42, 666])
-        array([20, 39], dtype=uint64)
+        array([20, 38], dtype=uint64)
         """
         return libcore.get_degree_list(self.__graph,
                                        numpy.asarray(vs, dtype="uint64"),
-                                       _prop("e", self, eweight), True)
+                                       _prop("e", self, eweight), 0)
 
     def get_in_degrees(self, vs, eweight=None):
         """Return a :class:`numpy.ndarray` containing the in-degrees of vertex list
@@ -2262,11 +2265,27 @@ class Graph(object):
         --------
         >>> g = gt.collection.data["pgp-strong-2009"]
         >>> g.get_in_degrees([42, 666])
-        array([20, 38], dtype=uint64)
+        array([20, 39], dtype=uint64)
         """
         return libcore.get_degree_list(self.__graph,
                                        numpy.asarray(vs, dtype="uint64"),
-                                       _prop("e", self, eweight), False)
+                                       _prop("e", self, eweight), 1)
+
+    def get_total_degrees(self, vs, eweight=None):
+        """Return a :class:`numpy.ndarray` containing the total degrees (i.e. in- plus
+        out-degree) of vertex list ``vs``. If supplied, the degrees will be
+        weighted according to the edge :class:`~graph_tool.EdgePropertyMap`
+        ``eweight``.
+
+        Examples
+        --------
+        >>> g = gt.collection.data["pgp-strong-2009"]
+        >>> g.get_total_degrees([42, 666])
+        array([40, 77], dtype=uint64)
+        """
+        return libcore.get_degree_list(self.__graph,
+                                       numpy.asarray(vs, dtype="uint64"),
+                                       _prop("e", self, eweight), 2)
 
     def add_vertex(self, n=1):
         """Add a vertex to the graph, and return it. If ``n != 1``, ``n``

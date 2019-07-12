@@ -29,10 +29,13 @@
     .. automethod:: get_edges
     .. automethod:: get_out_edges
     .. automethod:: get_in_edges
+    .. automethod:: get_all_edges
     .. automethod:: get_out_neighbors
     .. automethod:: get_in_neighbors
+    .. automethod:: get_all_neighbors
     .. automethod:: get_out_degrees
     .. automethod:: get_in_degrees
+    .. automethod:: get_total_degrees
 
     .. container:: sec_title
 

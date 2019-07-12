@@ -634,7 +634,7 @@ python::object get_degree_list(GraphInterface& gi, python::object ovlist,
     case 1:
         get_degs(in_degreeS());
         break;
-    case 3:
+    case 2:
         get_degs(total_degreeS());
         break;
     }
