@@ -26,7 +26,7 @@ if sys.version_info < (3,):
 import os.path
 import tempfile
 if sys.version_info < (3,):
-    from urllib2 import urlopen
+    from urllib2 import urlopen, URLError
     import shutil
     class TemporaryDirectory(object):
         def __init__(self, suffix="", prefix="", dir=None):
@@ -38,7 +38,7 @@ if sys.version_info < (3,):
         def __exit__(self, exc, value, tb):
             shutil.rmtree(self.name)
 else:
-    from urllib.request import urlopen
+    from urllib.request import urlopen, URLError
     from tempfile import TemporaryDirectory
 import tarfile
 import warnings
@@ -51,14 +51,14 @@ def load_koblenz_dir(dirname):
     g.gp.meta = g.new_graph_property("string")
     g.gp.readme = g.new_graph_property("string")
     for root, dirs, files in os.walk(dirname):
-        for file in files:
-            if file.startswith("README"):
-                g.gp.readme = open(os.path.join(root,file)).read()
-            if file.startswith("meta."):
-                g.gp.meta = open(os.path.join(root,file)).read()
-            if file.startswith("out."):
-                edges = numpy.loadtxt(os.path.join(root,file), comments="%")
-                line = next(open(os.path.join(root,file)))
+        for f in files:
+            if f.startswith("README"):
+                g.gp.readme = open(os.path.join(root, f)).read()
+            if f.startswith("meta."):
+                g.gp.meta = open(os.path.join(root, f)).read()
+            if f.startswith("out."):
+                edges = numpy.loadtxt(os.path.join(root, f), comments="%")
+                line = next(open(os.path.join(root, f)))
                 if "asym" not in line:
                     g.set_directed(False)
                 edges[:,:2] -= 1  # we need zero-based indexing
@@ -71,13 +71,13 @@ def load_koblenz_dir(dirname):
                 if edges.shape[1] > 3:
                     g.ep.time = g.new_edge_property("int")
                     g.ep.time.a = edges[:,3]
-        for file in files:
-            if file.startswith("ent."):
+        for f in files:
+            if f.startswith("ent."):
                 try:
                     g.vp.meta = g.new_vertex_property("string")
                     meta = g.vp.meta
                     count = 0
-                    for line in open(os.path.join(root,file)):
+                    for line in open(os.path.join(root, f)):
                         vals = line.split()
                         if len(vals) == 1 and vals[0] == "%":
                             continue
@@ -93,7 +93,10 @@ def load_koblenz_dir(dirname):
 
 def get_koblenz_network_data(name):
     with tempfile.TemporaryFile(mode='w+b') as ftemp:
-        response = urlopen('http://konect.uni-koblenz.de/downloads/tsv/%s.tar.bz2' % name)
+        try:
+            response = urlopen('http://konect.cc/files/download.tsv.%s.tar.bz2' % name)
+        except URLError:
+            response = urlopen('http://konect.uni-koblenz.de/downloads/tsv/%s.tar.bz2' % name)
         buflen = 1 << 20
         while True:
             buf = response.read(buflen)
