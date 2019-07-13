@@ -25,8 +25,8 @@ we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   Non-degree-corrected DL:     8524.911216...
-   Degree-corrected DL:         8274.075603...
+   Non-degree-corrected DL:	 8470.198169...
+   Degree-corrected DL:	 8273.840277...
    
 Since it yields the smallest description length, the degree-corrected
 fit should be preferred. The statistical significance of the choice can
@@ -52,14 +52,15 @@ fits. In our particular case, we have
 .. testoutput:: model-selection
    :options: +NORMALIZE_WHITESPACE
 
-   ln Λ:  -250.835612...
+   ln Λ:  -196.357892...
 
 The precise threshold that should be used to decide when to `reject a
 hypothesis <https://en.wikipedia.org/wiki/Hypothesis_testing>`_ is
 subjective and context-dependent, but the value above implies that the
-particular degree-corrected fit is around :math:`\mathrm{e}^{251} \approx 10^{109}`
-times more likely than the non-degree corrected one, and hence it can be
-safely concluded that it provides a substantially better fit.
+particular degree-corrected fit is around :math:`\mathrm{e}^{196}
+\approx 10^{85}` times more likely than the non-degree corrected one,
+and hence it can be safely concluded that it provides a substantially
+better fit.
 
 Although it is often true that the degree-corrected model provides a
 better fit for many empirical networks, there are also exceptions. For

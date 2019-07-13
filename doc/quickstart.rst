@@ -363,10 +363,13 @@ done with the :meth:`~graph_tool.Graph.get_vertices`,
 :meth:`~graph_tool.Graph.get_edges`,
 :meth:`~graph_tool.Graph.get_out_edges`,
 :meth:`~graph_tool.Graph.get_in_edges`,
+:meth:`~graph_tool.Graph.get_all_edges`,
 :meth:`~graph_tool.Graph.get_out_neighbors`,
 :meth:`~graph_tool.Graph.get_in_neighbors`,
-:meth:`~graph_tool.Graph.get_out_degrees` and
-:meth:`~graph_tool.Graph.get_in_degrees` methods, which return
+:meth:`~graph_tool.Graph.get_all_neighbors`,
+:meth:`~graph_tool.Graph.get_out_degrees`,
+:meth:`~graph_tool.Graph.get_in_degrees` and
+:meth:`~graph_tool.Graph.get_total_degrees` methods, which return
 :class:`numpy.ndarray` instances instead of iterators.
 
 For example, using this interface we can get the out-degree of each node via:
@@ -377,7 +380,7 @@ For example, using this interface we can get the out-degree of each node via:
 
 .. testoutput::
 
-   [0 1 0 1 0 0 0 0 0 0 0 0]
+   [1 0 1 0 0 0 0 0 0 0 0 0]
 
 or the sum of the product of the in and out-degrees of the endpoints of
 each edge with:
@@ -385,11 +388,13 @@ each edge with:
 .. testcode::
 
    edges = g.get_edges()
-   print((edges[:,0] * edges[:,1]).sum())
+   in_degs = g.get_in_degrees(g.get_vertices())
+   out_degs = g.get_out_degrees(g.get_vertices())
+   print((out_degs[edges[:,0]] * in_degs[edges[:,1]]).sum())
 
 .. testoutput::
 
-   6
+   2
    
 .. _sec_property_maps:
 

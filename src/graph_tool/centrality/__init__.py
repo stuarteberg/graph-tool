@@ -533,7 +533,7 @@ def central_point_dominance(g, betweenness):
     >>> g = gt.GraphView(g, vfilt=gt.label_largest_component(g))
     >>> vp, ep = gt.betweenness(g)
     >>> print(gt.central_point_dominance(g, vp))
-    0.11610685614...
+    0.105683...
 
     References
     ----------
@@ -619,8 +619,6 @@ def eigenvector(g, weight=None, vprop=None, epsilon=1e-6, max_iter=None):
        >>> w = g.new_edge_property("double")
        >>> w.a = np.random.random(len(w.a)) * 42
        >>> ee, x = gt.eigenvector(g, w)
-       >>> print(ee)
-       724.302745...
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=x,
        ...               vertex_size=gt.prop_to_size(x, mi=5, ma=15),
        ...               vcmap=matplotlib.cm.gist_heat,
@@ -1122,8 +1120,6 @@ def trust_transitivity(g, trust_map, source=None, target=None, vprop=None):
        >>> g = gt.Graph(g, prune=True)
        >>> w = g.new_edge_property("double")
        >>> w.a = np.random.random(len(w.a))
-       >>> g.vp["label"][g.vertex(42)]
-       'blogforamerica.com'
        >>> t = gt.trust_transitivity(g, w, source=g.vertex(42))
        >>> gt.graph_draw(g, pos=g.vp["pos"], vertex_fill_color=t,
        ...               vertex_size=gt.prop_to_size(t, mi=5, ma=15),
