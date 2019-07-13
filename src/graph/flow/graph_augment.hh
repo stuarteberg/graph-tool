@@ -40,9 +40,11 @@ void augment_graph(Graph& g, AugmentedMap augmented, CapacityMap capacity,
         }
         else
         {
+            if (augmented[e] != false)
+                continue;
             for (auto ae : out_edges_range(target(e, g), g))
             {
-                if (target(ae, g) == source(e, g) && augmented[e] == false)
+                if (target(ae, g) == source(e, g) && augmented[ae] == false)
                 {
                     augmented[e] = augmented[ae] = 2;
                     rmap[e] = ae;
