@@ -312,9 +312,7 @@ class GraphWidget(Gtk.DrawingArea):
             self.g = self.cg
             self.pos = self.cpos
             self.layout_step = self.layout_K
-            self.selected = self.g.own_property(self.selected)
-            self.highlight = self.g.own_property(self.highlight)
-            self.sel_edge_filt = self.g.own_property(self.sel_edge_filt)
+            self._own_props()
         else:
             self.cg = None
 
@@ -392,6 +390,17 @@ class GraphWidget(Gtk.DrawingArea):
         self.layout_step = self.layout_init_step
         self.layout_callback_id = gobject.idle_add(self.layout_callback)
 
+    def _own_props(self):
+        self.selected = self.g.own_property(self.selected)
+        self.highlight = self.g.own_property(self.highlight)
+        self.sel_edge_filt = self.g.own_property(self.sel_edge_filt)
+        for k, vp in self.vprops.items():
+            if isinstance(vp, PropertyMap):
+                self.vprops[k] = self.g.own_property(vp)
+        for k, ep in self.eprops.items():
+            if isinstance(ep, PropertyMap):
+                self.eprops[k] = self.g.own_property(ep)
+
     def layout_callback(self):
         """Perform one step of the layout algorithm."""
         if self.layout_callback_id is None or self.g.num_vertices() == 0:
@@ -425,9 +434,7 @@ class GraphWidget(Gtk.DrawingArea):
                     self.layout_K *= 0.75
                     self.g = self.cg
                     self.pos = self.cpos
-                    self.selected = self.g.own_property(self.selected)
-                    self.highlight = self.g.own_property(self.highlight)
-                    self.sel_edge_filt = self.g.own_property(self.sel_edge_filt)
+                    self._own_props()
                     self.layout_step = max(self.layout_K,
                                            _avg_edge_distance(self.g,
                                                               self.pos) / 10)
@@ -443,9 +450,7 @@ class GraphWidget(Gtk.DrawingArea):
                 except StopIteration:
                     self.g = self.ag
                     self.pos = self.apos
-                    self.selected = self.g.own_property(self.selected)
-                    self.highlight = self.g.own_property(self.highlight)
-                    self.sel_edge_filt = self.g.own_property(self.sel_edge_filt)
+                    self._own_props()
                     self.g.copy_property(self.cpos, self.pos)
                     if self.vertex_matrix is not None:
                         self.vertex_matrix = VertexMatrix(self.g, self.pos)
