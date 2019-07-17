@@ -1867,7 +1867,7 @@ def shortest_distance(g, source=None, target=None, weights=None,
         If ``True``, assume that the graph is a Directed Acyclic Graph (DAG),
         which will be faster if ``weights`` are given, in which case they are
         also allowed to contain negative values (irrespective of the parameter
-        ``negative_weights``).
+        ``negative_weights``). Ignored if ``source`` is ``None``.
 
     Returns
     -------
@@ -1901,8 +1901,9 @@ def shortest_distance(g, source=None, target=None, weights=None,
     If source is specified, the algorithm runs in :math:`O(V + E)` time, or
     :math:`O(V \log V)` if weights are given (if ``dag == True`` this improves
     to :math:`O(V+E)`). If ``negative_weights == True``, the complexity is
-    :math:`O(VE)`. If source is not specified, it runs in :math:`O(VE\log V)`
-    time, or :math:`O(V^3)` if dense == True.
+    :math:`O(VE)`. If source is not specified, the algorithm runs in parallel
+    with complexity :math:`O(V (V + E))`, if weights are given it runs
+    in :math:`O(VE\log V)` time, or :math:`O(V^3)` if dense == True.
 
     Examples
     --------
