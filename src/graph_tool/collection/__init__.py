@@ -37,7 +37,7 @@ This module contains an assortment of useful networks.
 
     Dictionary containing :class:`~graph_tool.Graph` objects, indexed by the
     name of the graph, fetched from the `Koblenz Network Collection
-    <http://konect.uni-koblenz.de/>`_. See the website for a list of available
+    <http://konect.cc/>`_. See the website for a list of available
     data. The key of the dictionary must correspond to the name of the file
     minus the ``.tar.bz2`` part.  This is a "lazy" dictionary, i.e. it only
     downloads the graphs from the web when the items are accessed for the first
