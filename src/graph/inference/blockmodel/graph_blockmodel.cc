@@ -176,8 +176,7 @@ void export_blockmodel_state()
         .value("real_normal", weight_type::REAL_NORMAL)
         .value("discrete_geometric", weight_type::DISCRETE_GEOMETRIC)
         .value("discrete_poisson", weight_type::DISCRETE_POISSON)
-        .value("discrete_binomial", weight_type::DISCRETE_BINOMIAL)
-        .value("delta_t", weight_type::DELTA_T);
+        .value("discrete_binomial", weight_type::DISCRETE_BINOMIAL);
 
     def("make_block_state", &make_block_state);
 

@@ -102,8 +102,6 @@ typedef mpl::vector1<std::false_type> rmap_tr;
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
     ((epsilon, &, std::vector<double>&, 0))                                    \
-    ((ignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))                \
-    ((bignore_degrees,, typename vprop_map_t<uint8_t>::type, 0))               \
     ((allow_empty,, bool, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
@@ -272,19 +270,6 @@ public:
             BlockState::add_partition_node(v, r);
         else
             BlockState::remove_partition_node(v, r);
-
-        if (!_rec_types.empty() &&
-            _rec_types[1] == weight_type::DELTA_T) // waiting times
-        {
-            if (_ignore_degrees[v] > 0)
-            {
-                auto dt = out_degreeS()(v, _g, _rec[1]);
-                if (Add)
-                    _brecsum[r] += dt;
-                else
-                    _brecsum[r] -= dt;
-            }
-        }
     }
 
     bool allow_move(size_t v, size_t r, size_t nr, bool allow_empty = true)
@@ -317,17 +302,6 @@ public:
 
         BlockState::remove_partition_node(v, r);
         BlockState::add_partition_node(v, nr);
-
-        if (!_rec_types.empty() &&
-            _rec_types[1] == weight_type::DELTA_T) // waiting times
-        {
-            if (_ignore_degrees[v] > 0)
-            {
-                auto dt = out_degreeS()(v, _g, _rec[1]);
-                _brecsum[r] -= dt;
-                _brecsum[nr] += dt;
-            }
-        }
     }
 
     // move a vertex from its current block to block nr
@@ -1167,7 +1141,6 @@ public:
         add_element(_empty_blocks, _empty_pos, r);
         for (auto& p : _partition_stats)
             p.add_block();
-        _bignore_degrees.resize(num_vertices(_bg));
         if (!_egroups.empty())
             _egroups.init(_b, _eweight, _g, _bg);
         if (_coupled_state != nullptr)
@@ -1182,7 +1155,6 @@ public:
         _bfield.resize(num_vertices(_g));
         init_vertex_weight(v);
         _pclabel.resize(num_vertices(_g));
-        _ignore_degrees.resize(num_vertices(_g));
         resize_degs(_degs);
         _neighbor_sampler.resize(num_vertices(_g));
     }
@@ -1985,27 +1957,19 @@ public:
 
     double get_deg_entropy(size_t v, const simple_degs_t&)
     {
-        if (_ignore_degrees[v] == 1)
-            return 0;
         auto kin = in_degreeS()(v, _g, _eweight);
         auto kout = out_degreeS()(v, _g, _eweight);
-        if (_ignore_degrees[v] == 2)
-            kout = 0;
         double S = -lgamma_fast(kin + 1) - lgamma_fast(kout + 1);
         return S * _vweight[v];
     }
 
     double get_deg_entropy(size_t v, const typename degs_map_t::unchecked_t& degs)
     {
-        if (_ignore_degrees[v] == 1)
-            return 0;
         double S = 0;
         for (auto& ks : degs[v])
         {
             auto kin = get<0>(ks);
             auto kout = get<1>(ks);
-            if (_ignore_degrees[v] == 2)
-                kout = 0;
             int n = get<2>(ks);
             S -= n * (lgamma_fast(kin + 1) + lgamma_fast(kout + 1));
         }
@@ -2422,8 +2386,7 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _vweight, _eweight, _degs,
-                                              _ignore_degrees, _bmap,
-                                              _allow_empty);
+                                              _bmap, _allow_empty);
 
             for (auto r : vertices_range(_bg))
                 _partition_stats[rc[r]].get_r(r);

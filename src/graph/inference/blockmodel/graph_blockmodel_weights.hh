@@ -32,8 +32,7 @@ enum weight_type
     REAL_NORMAL,
     DISCRETE_GEOMETRIC,
     DISCRETE_POISSON,
-    DISCRETE_BINOMIAL,
-    DELTA_T
+    DISCRETE_BINOMIAL
 };
 
 // exponential
@@ -193,14 +192,6 @@ std::tuple<double,double> rec_entropy(State& state, entropy_args_t& ea)
                 S += -positive_w_log_P(state._B_E_D, state._recdx[i], wp[2],
                                        wp[3], state._epsilon[i]);
             }
-            break;
-        case weight_type::DELTA_T: // waiting times
-            // for (auto r : vertices_range(state._bg))
-            // {
-            //     if (state._bignore_degrees[r] > 0)
-            //         S += -positive_w_log_P(state._mrp[r], state._brecsum[r], wp[0],
-            //                                wp[1], state._epsilon[i]);
-            // }
             break;
         }
     }
@@ -428,30 +419,6 @@ std::tuple<double, double> rec_entries_dS(State& state, MEntries& m_entries,
                     }
                 }
             }
-            break;
-        case weight_type::DELTA_T: // waiting times
-            // auto r = m_entries.get_move().first;
-            // auto nr = m_entries.get_move().second;
-            // if (state._ignore_degrees[v] > 0)
-            // {
-            //     auto dt = out_degreeS()(v, state._g, state._rec[i]);
-            //     int k = out_degreeS()(v, state._g, state._eweight);
-
-            //     dS -= -positive_w_log_P(state._mrp[r], state._brecsum[r],
-            //                             wp[0], wp[1],
-            //                             state._epsilon[i]);
-            //     dS += -positive_w_log_P(state._mrp[r] - k,
-            //                             state._brecsum[r] - dt,
-            //                             wp[0], wp[1],
-            //                             state._epsilon[i]);
-            //     dS -= -positive_w_log_P(state._mrp[nr], state._brecsum[nr],
-            //                             wp[0], wp[1],
-            //                             state._epsilon[i]);
-            //     dS += -positive_w_log_P(state._mrp[nr] + k,
-            //                             state._brecsum[nr] + dt,
-            //                             wp[0], wp[1],
-            //                             state._epsilon[i]);
-            // }
             break;
         }
     }

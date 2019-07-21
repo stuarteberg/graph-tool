@@ -432,12 +432,6 @@ class BlockState(object):
         self.use_hash = self.B > self.max_BE
         self.use_rmap = kwargs.pop("use_rmap", False)
 
-        self.ignore_degrees = kwargs.pop("ignore_degrees", None)
-        if self.ignore_degrees is None:
-            self.ignore_degrees = self.g.new_vp("bool", False)
-        else:
-            self.ignore_degrees = self.g.own_property(self.ignore_degrees).copy("bool")
-
         self.merge_map = kwargs.pop("merge_map",
                                     self.g.vertex_index.copy("int"))
         self.merge_map = self.g.own_property(self.merge_map)
@@ -512,24 +506,13 @@ class BlockState(object):
                 rt = libinference.rec_type.discrete_poisson
             elif rec_type == "discrete-binomial":
                 rt = libinference.rec_type.discrete_binomial
-            elif rec_type == "delta_t":
-                rt = libinference.rec_type.delta_t
             else:
                 rt = rec_type
             self.rec_types.append(rt)
 
         self.brec = [self.bg.own_property(p) for p in self.bg.gp.rec]
         self.bdrec = [self.bg.own_property(p) for p in self.bg.gp.drec]
-
-        if (len(self.rec_types) > 0 and
-            self.rec_types[0] == libinference.rec_type.delta_t): # waiting times
-            self.brecsum = self.bg.degree_property_map("out", self.brec)
-            mem = self.ignore_degrees.copy()
-            self.bignore_degrees = self.get_bclabel(clabel=mem).copy("bool")
-            self.brecsum.a[self.bignore_degrees.a == 0] = 0
-        else:
-            self.brecsum = self.bg.new_vp("double")
-            self.bignore_degrees = self.bg.new_vp("bool")
+        self.brecsum = self.bg.new_vp("double")
 
         self.rec_params = rec_params = list(rec_params)
         while len(rec_params) < len(self.rec_types):
@@ -575,9 +558,6 @@ class BlockState(object):
                     defaults = OrderedDict([("N", self.rec[i].fa.max()),
                                             ("alpha", numpy.nan),
                                             ("beta", numpy.nan)])
-            else: # delta_t
-                defaults = OrderedDict([("alpha", 1),
-                                        ("beta", self.rec[i].fa.mean())])
 
             ks = list(defaults.keys())
             if rec_params[i] != "microcanonical":
@@ -648,8 +628,6 @@ class BlockState(object):
                                rec_types=kwargs.pop("rec_types", self.rec_types),
                                rec_params=kwargs.pop("rec_params",
                                                      self.rec_params),
-                               ignore_degrees=kwargs.pop("ignore_degrees",
-                                                         self.ignore_degrees),
                                allow_empty=kwargs.pop("allow_empty",
                                                       self.allow_empty),
                                Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
@@ -701,7 +679,6 @@ class BlockState(object):
                      drec=self.drec,
                      rec_types=self.rec_types,
                      rec_params=self.rec_params,
-                     ignore_degrees=self.ignore_degrees.copy("int"),
                      merge_map=self.merge_map)
         return state
 
@@ -816,8 +793,6 @@ class BlockState(object):
                            recs=recs,
                            drec=drec,
                            rec_params=rec_params,
-                           ignore_degrees=kwargs.pop("ignore_degrees",
-                                                     self.get_bclabel(clabel=self.ignore_degrees)),
                            clabel=kwargs.pop("clabel", self.get_bclabel()),
                            pclabel=kwargs.pop("pclabel", self.get_bpclabel()),
                            max_BE=self.max_BE,
@@ -1789,7 +1764,8 @@ class BlockState(object):
            :arxiv:`cond-mat/0011174`
         """
 
-        kwargs["sequential"] = False
+        if not multiflip:
+            kwargs["sequential"] = False
         kwargs["beta"] = 1
 
         args = dmask(locals(), ["self", "kwargs"])

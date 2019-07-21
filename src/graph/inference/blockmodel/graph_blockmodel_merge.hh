@@ -128,7 +128,6 @@ struct Merge
         void perform_merge(size_t r, size_t s)
         {
             assert(_state._bclabel[r] == _state._bclabel[s]);
-            assert(_state._ignore_degrees[r] == _state._ignore_degrees[s]);
             _state.move_vertex(r, s);
             _state.merge_vertices(r, s);
         }

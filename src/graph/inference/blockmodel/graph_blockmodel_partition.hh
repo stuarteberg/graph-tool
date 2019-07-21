@@ -68,11 +68,10 @@ public:
     typedef gt_hash_map<pair<size_t,size_t>, int> map_t;
 
     template <class Graph, class Vprop, class VWprop, class Eprop, class Degs,
-              class Mprop, class Vlist>
+              class Vlist>
     partition_stats(Graph& g, Vprop& b, Vlist& vlist, size_t E, size_t B,
                     VWprop& vweight, Eprop& eweight, Degs& degs,
-                    const Mprop& ignore_degree, std::vector<size_t>& bmap,
-                    bool allow_empty)
+                    std::vector<size_t>& bmap, bool allow_empty)
         : _bmap(bmap), _N(0), _E(E), _total_B(B), _allow_empty(allow_empty)
     {
         if (!use_rmap)
@@ -89,21 +88,13 @@ public:
                 continue;
 
             auto r = get_r(b[v]);
-            if (v >= _ignore_degree.size())
-                _ignore_degree.resize(v + 1, 0);
-            _ignore_degree[v] = ignore_degree[v];
 
             degs_op(v, vweight, eweight, degs, g,
                     [&](auto kin, auto kout, auto n)
                     {
-                        if (_ignore_degree[v] == 2)
-                            kout = 0;
-                        if (_ignore_degree[v] != 1)
-                        {
-                            _hist[r][make_pair(kin, kout)] += n;
-                            _em[r] += kin * n;
-                            _ep[r] += kout * n;
-                        }
+                        _hist[r][make_pair(kin, kout)] += n;
+                        _em[r] += kin * n;
+                        _ep[r] += kout * n;
                         _total[r] += n;
                         _N += n;
                     });
@@ -371,7 +362,7 @@ public:
     double get_delta_deg_dl(size_t v, size_t r, size_t nr, VProp& vweight,
                             EProp& eweight, Degs& degs, Graph& g, int kind)
     {
-        if (r == nr || _ignore_degree[v] == 1 || vweight[v] == 0)
+        if (r == nr || vweight[v] == 0)
             return 0;
         if (r != null_group)
             r = get_r(r);
@@ -381,19 +372,8 @@ public:
         auto dop =
             [&](auto&& f)
             {
-                if (_ignore_degree[v] == 2)
-                {
-                    degs_op(v, vweight, eweight, degs, g,
-                            [&](auto kin, auto, auto n)
-                            {
-                                f(kin, 0, n);
-                            });
-                }
-                else
-                {
-                    degs_op(v, vweight, eweight, degs, g,
-                            [&](auto... k) { f(k...); });
-                }
+                degs_op(v, vweight, eweight, degs, g,
+                        [&](auto... k) { f(k...); });
             };
 
         double dS = 0;
@@ -407,15 +387,15 @@ public:
             break;
         case deg_dl_kind::UNIFORM:
             if (r != null_group)
-                dS += get_delta_deg_dl_uniform_change(v, r,  dop, -1);
+                dS += get_delta_deg_dl_uniform_change(r,  dop, -1);
             if (nr != null_group)
-                dS += get_delta_deg_dl_uniform_change(v, nr, dop, +1);
+                dS += get_delta_deg_dl_uniform_change(nr, dop, +1);
             break;
         case deg_dl_kind::DIST:
             if (r != null_group)
-                dS += get_delta_deg_dl_dist_change(v, r,  dop, -1);
+                dS += get_delta_deg_dl_dist_change(r,  dop, -1);
             if (nr != null_group)
-                dS += get_delta_deg_dl_dist_change(v, nr, dop, +1);
+                dS += get_delta_deg_dl_dist_change(nr, dop, +1);
             break;
         default:
             dS = numeric_limits<double>::quiet_NaN();
@@ -455,8 +435,7 @@ public:
     }
 
     template <class DegOP>
-    double get_delta_deg_dl_uniform_change(size_t v, size_t r, DegOP&& dop,
-                                           int diff)
+    double get_delta_deg_dl_uniform_change(size_t r, DegOP&& dop, int diff)
     {
         auto get_Se = [&](int dn, int dkin, int dkout)
             {
@@ -471,8 +450,7 @@ public:
         dop([&](auto kin, auto kout, int nk)
             {
                 tkin += kin * nk;
-                if (_ignore_degree[v] != 2)
-                    tkout += kout * nk;
+                tkout += kout * nk;
                 n += nk;
             });
 
@@ -482,8 +460,7 @@ public:
     }
 
     template <class DegOP>
-    double get_delta_deg_dl_dist_change(size_t v, size_t r, DegOP&& dop,
-                                        int diff)
+    double get_delta_deg_dl_dist_change(size_t r, DegOP&& dop, int diff)
     {
         auto get_Se = [&](int delta, int kin, int kout)
             {
@@ -517,8 +494,7 @@ public:
         dop([&](size_t kin, size_t kout, int nk)
             {
                 tkin += kin * nk;
-                if (_ignore_degree[v] != 2)
-                    tkout += kout * nk;
+                tkout += kout * nk;
                 n += nk;
 
                 auto deg = make_pair(kin, kout);
@@ -554,14 +530,12 @@ public:
 
         assert(_total[r] >= 0);
 
-        if (deg_corr && _ignore_degree[v] != 1)
+        if (deg_corr)
         {
             degs_op(v, vweight, eweight, degs, g,
                     [&](auto kin, auto kout, auto n)
                     {
                         int dk = diff * n;
-                        if (_ignore_degree[v] == 2)
-                            kout = 0;
                         auto& h = _hist[r];
                         auto deg = make_pair(kin, kout);
                         auto iter = h.insert({deg, 0}).first;
@@ -608,10 +582,8 @@ public:
 
         assert(_total[r] >= 0);
 
-        if (deg_corr && _ignore_degree[v] != 1)
+        if (deg_corr)
         {
-            if (_ignore_degree[v] == 2)
-                kout = 0;
             auto deg = make_pair(kin, kout);
             auto iter = _hist[r].insert({deg, 0}).first;
             iter->second += diff * vweight;
@@ -703,7 +675,6 @@ private:
     vector<int> _total;
     vector<int> _ep;
     vector<int> _em;
-    vector<uint8_t> _ignore_degree;
 };
 
 } //namespace graph_tool

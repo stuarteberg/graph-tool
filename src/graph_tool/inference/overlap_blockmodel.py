@@ -281,8 +281,6 @@ class OverlapBlockState(BlockState):
         if eweight != "unity":
             kwargs["eweight"] = eweight
 
-        self.ignore_degrees = kwargs.pop("ignore_degrees", self.g.new_vp("bool"))
-
         if len(kwargs) > 0:
             warnings.warn("unrecognized keyword arguments: " +
                           str(list(kwargs.keys())))
