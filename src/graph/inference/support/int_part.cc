@@ -86,7 +86,7 @@ double q_rec_memo(int n, int k)
 
 double log_q_approx_big(size_t n, size_t k)
 {
-    double C = M_PI * sqrt(2/3.);
+    constexpr double C = M_PI * sqrt(2/3.);
     double S = C * sqrt(n) - log(4 * sqrt(3) * n);
     if (k < n)
     {
