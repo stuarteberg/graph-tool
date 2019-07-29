@@ -223,13 +223,13 @@ class UncertainBaseState(object):
         return self.mcmc_sweep(multiflip=True, **kwargs)
 
     def get_edge_prob(self, u, v, entropy_args={}, epsilon=1e-8):
-        r"""Return conditional posterior probability of edge :math:`(u,v)`."""
+        r"""Return conditional posterior log-probability of edge :math:`(u,v)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
         ea = get_uentropy_args(entropy_args)
         return self._state.get_edge_prob(u, v, ea, epsilon)
 
     def get_edges_prob(self, elist, entropy_args={}, epsilon=1e-8):
-        r"""Return conditional posterior probability of an edge list, with
+        r"""Return conditional posterior log-probability of an edge list, with
         shape :math:`(E,2)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
         ea = get_uentropy_args(entropy_args)
@@ -836,7 +836,7 @@ class DynamicsBlockStateBase(UncertainBaseState):
         return self.x
 
     def get_edge_prob(self, u, v, x, entropy_args={}, epsilon=1e-8):
-        r"""Return conditional posterior probability of edge :math:`(u,v)`."""
+        r"""Return conditional posterior log-probability of edge :math:`(u,v)`."""
         entropy_args = dict(self.bstate._entropy_args, **entropy_args)
         ea = get_uentropy_args(entropy_args)
         return self._state.get_edge_prob(u, v, x, ea, epsilon)
