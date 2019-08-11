@@ -77,13 +77,14 @@ struct get_avg_correlation
         s_sum2.gather();
         s_count.gather();
 
-        for (size_t i = 0; i < sum.get_array().size(); ++i)
+        auto& asum = sum.get_array();
+        auto& asum2 = sum2.get_array();
+        auto& acount = count.get_array();
+        for (size_t i = 0; i < asum.size(); ++i)
         {
-            sum.get_array()[i] /= count.get_array()[i];
-            sum2.get_array()[i] =
-                sqrt(abs(sum2.get_array()[i]/count.get_array()[i] -
-                         sum.get_array()[i] * sum.get_array()[i])) /
-                sqrt(count.get_array()[i]);
+            asum[i] /= acount[i];
+            asum2[i] = sqrt(abs(asum2[i] / acount[i] -
+                                asum[i] * asum[i])) / sqrt(acount[i]);
         }
 
         bins = sum.get_bins();

@@ -46,11 +46,10 @@ public:
         typename Hist::point_t k;
         typedef typename Hist::point_t::value_type val_t;
         k[0] = val_t(deg1(v, g));
-        typename graph_traits<Graph>::out_edge_iterator e, e_end;
-        for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
+        for (auto e : out_edges_range(v, g))
         {
-            k[1] = deg2(target(*e,g),g);
-            hist.put_value(k, get(weight, *e));
+            k[1] = deg2(target(e, g),g);
+            hist.put_value(k, get(weight, e));
         }
     }
 
@@ -63,13 +62,13 @@ public:
         typename Sum::point_t k1;
         k1[0] = deg1(v, g);
         typename Sum::count_type k2;
-        typename graph_traits<Graph>::out_edge_iterator e, e_end;
-        for (tie(e,e_end) = out_edges(v, g); e != e_end; ++e)
+        for (auto e : out_edges_range(v, g))
         {
-            k2 = deg2(target(*e,g),g)*get(weight, *e);
-            sum.put_value(k1, k2);
-            sum2.put_value(k1, k2*k2);
-            count.put_value(k1, get(weight, *e));
+            k2 = deg2(target(e, g), g);
+            auto w = get(weight, e);
+            sum.put_value(k1, k2 * w);
+            sum2.put_value(k1, k2 * k2 * w);
+            count.put_value(k1, w);
         }
     }
 };
