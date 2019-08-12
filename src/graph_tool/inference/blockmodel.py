@@ -342,9 +342,7 @@ class BlockState(object):
             if B is None:
                 B = int(self.b.fa.max()) + 1
 
-        if self.b.fa.max() >= B:
-            raise ValueError("Maximum value of b is larger or equal to B! (%d vs %d)" %
-                             (self.b.fa.max(), B))
+        self.B = B = max(B, self.b.fa.max() + 1)
 
         self.rec = [self.g.own_property(p) for p in recs]
         for i in range(len(self.rec)):
@@ -392,8 +390,6 @@ class BlockState(object):
             self.mrm = self.bg.degree_property_map("in", weight=self.mrs)
         else:
             self.mrm = self.mrp
-
-        self.B = B
 
         if pclabel is not None:
             if isinstance(pclabel, PropertyMap):
@@ -1519,7 +1515,7 @@ class BlockState(object):
 
 
     def multiflip_mcmc_sweep(self, beta=1., c=1., a1=.95, psplit=.5,
-                             d=0.01, gibbs_sweeps=0, niter=1, entropy_args={},
+                             d=0.01, gibbs_sweeps=10, niter=1, entropy_args={},
                              verbose=False, **kwargs):
         r"""Perform ``niter`` sweeps of a Metropolis-Hastings acceptance-rejection
         sampling MCMC with multiple simultaneous moves to sample network
@@ -1543,7 +1539,7 @@ class BlockState(object):
         d : ``float`` (optional, default: ``.01``)
             Probability of selecting a new (i.e. empty) group for a given
             single-node move.
-        gibbs_sweeps : ``int`` (optional, default: ``0``)
+        gibbs_sweeps : ``int`` (optional, default: ``10``)
             Number of sweeps of Gibbs sampling to be performed (i.e. each node
             is attempted once per sweep) to refine a split proposal.
         niter : ``int`` (optional, default: ``1``)
@@ -1798,6 +1794,88 @@ class BlockState(object):
 
         try:
             S, nattempts, nmoves = self._multicanonical_sweep_dispatch(multi_state)
+        finally:
+            self.B = self.bg.num_vertices()
+
+        if _bm_test() and kwargs.pop("test", True):
+            assert self._check_clabel(), "invalid clabel after sweep"
+            Sf = self.entropy(**entropy_args)
+            assert math.isclose(S, Sf, abs_tol=1e-8), \
+                "inconsistent entropy after sweep %g (%g): %s" % \
+                (S, Sf, str(entropy_args))
+
+        return S, nattempts, nmoves
+
+    def _multicanonical_B_sweep_dispatch(self, multicanonical_state):
+        return libinference.multicanonical_B_multiflip_sweep(multicanonical_state,
+                                                             self._state,
+                                                             _get_rng())
+
+    def multicanonical_B_sweep(self, m_state, **kwargs):
+        r"""Perform ``niter`` sweeps of a non-Markovian multicanonical sampling using the
+        Wang-Landau algorithm.
+
+        Parameters
+        ----------
+        m_state : :class:`~graph_tool.inference.mcmc.MulticanonicalState`
+            :class:`~graph_tool.inference.mcmc.MulticanonicalState` instance
+            containing the current state of the Wang-Landau run.
+        multiflip : ``bool`` (optional, default: ``False``)
+            If ``True``, ``multiflip_mcmc_sweep()`` will be used, otherwise
+            ``mcmc_sweep()``.
+        **kwargs : Keyword parameter list
+            The remaining parameters will be passed to
+            ``multiflip_mcmc_sweep()`` or ``mcmc_sweep()``.
+
+        Returns
+        -------
+        dS : ``float``
+            Entropy difference after the sweeps.
+        nattempts : ``int``
+            Number of vertex moves attempted.
+        nmoves : ``int``
+            Number of vertices moved.
+
+        Notes
+        -----
+        This algorithm has an :math:`O(E)` complexity, where :math:`E` is the
+        number of edges (independent of the number of blocks).
+
+        References
+        ----------
+        .. [wang-efficient-2001] Fugao Wang, D. P. Landau, "An efficient, multiple
+           range random walk algorithm to calculate the density of states", Phys.
+           Rev. Lett. 86, 2050 (2001), :doi:`10.1103/PhysRevLett.86.2050`,
+           :arxiv:`cond-mat/0011174`
+        """
+
+        kwargs["beta"] = 1
+
+        args = dmask(locals(), ["self", "kwargs"])
+        multi_state = DictState(args)
+
+        entropy_args = kwargs.get("entropy_args", {})
+
+        mcmc_state = self.multiflip_mcmc_sweep(dispatch=False, **kwargs)
+
+        multi_state.update(mcmc_state)
+
+        multi_state.S = self.entropy(**entropy_args)
+        multi_state.state = self._state
+
+        multi_state.f = m_state._f
+        multi_state.B_min = m_state._B_min
+        multi_state.B_max = m_state._B_max
+        multi_state.hist = m_state._hist
+        multi_state.dens = m_state._density
+
+        B = self.get_nonempty_B()
+        if (B < multi_state.B_min or B > multi_state.B_max):
+            raise ValueError("initial number of groups %d out of bounds (%d, %d)" %
+                             (B, multi_state.B_min, multi_state.B_max))
+
+        try:
+            S, nattempts, nmoves = self._multicanonical_B_sweep_dispatch(multi_state)
         finally:
             self.B = self.bg.num_vertices()
 
