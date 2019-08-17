@@ -34,7 +34,7 @@ template <class Edge, class Graph>
 inline typename graph_traits<Graph>::vertex_descriptor
 get_source(const Edge& e, const Graph &g)
 {
-    if (graph_tool::is_directed(g))
+    if constexpr (is_directed_::apply<Graph>::type::value)
         return source(e, g);
     return std::min(source(e, g), target(e, g));
 }
@@ -43,7 +43,7 @@ template <class Edge, class Graph>
 inline typename graph_traits<Graph>::vertex_descriptor
 get_target(const Edge& e, const Graph &g)
 {
-    if (graph_tool::is_directed(g))
+    if constexpr (is_directed_::apply<Graph>::type::value)
         return target(e, g);
     return std::max(source(e, g), target(e, g));
 }
@@ -221,7 +221,7 @@ public:
         // update the half-edge lists
         for (auto e : out_edges_range(v, g))
             remove_edge(e, b, g);
-        if (graph_tool::is_directed(g))
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
             for (auto e : in_edges_range(v, g))
                 remove_edge(e, b, g);
@@ -236,7 +236,7 @@ public:
         //update the half-edge lists
         for (auto e : out_edges_range(v, g))
             insert_edge(e, eweight[e], b, g);
-        if (graph_tool::is_directed(g))
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
             for (auto e : in_edges_range(v, g))
                 insert_edge(e, eweight[e], b, g);

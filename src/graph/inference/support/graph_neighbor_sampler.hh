@@ -68,14 +68,14 @@ public:
             {
                 if (!self_loops)
                     continue;
-                if (!graph_tool::is_directed(g))
+                if constexpr (!is_directed_::apply<Graph>::type::value)
                     w /= 2;
             }
 
             insert(v, u, w, e);
         }
 
-        if (graph_tool::is_directed(g))
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
 
             for (auto e : in_edges_range(v, g))
@@ -112,14 +112,14 @@ public:
             {
                 if (!self_loops)
                     continue;
-                if (!graph_tool::is_directed(g))
+                if constexpr (!is_directed_::apply<Graph>::type::value)
                     w /= 2;
             }
             us.emplace_back(u, 0);
             probs.push_back(w);
         }
 
-        if (graph_tool::is_directed(g))
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
             for (auto e : in_edges_range(v, g))
             {

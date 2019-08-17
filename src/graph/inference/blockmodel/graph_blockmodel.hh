@@ -131,7 +131,6 @@ public:
     {
         _empty_blocks.clear();
         _candidate_blocks.clear();
-        _candidate_blocks.push_back(null_group);
         for (auto r : vertices_range(_bg))
         {
             if (_wr[r] == 0)
@@ -811,7 +810,7 @@ public:
             if (_deg_corr)
             {
                 get<1>(_degs[u].front())++;
-                if (graph_tool::is_directed(_g))
+                if constexpr (is_directed_::apply<g_t>::type::value)
                     get<0>(_degs[v].front())++;
                 else
                     get<1>(_degs[v].front())++;
@@ -828,7 +827,7 @@ public:
             if (_deg_corr)
             {
                 get<1>(_degs[u].front())--;
-                if (graph_tool::is_directed(_g))
+                if constexpr (is_directed_::apply<g_t>::type::value)
                     get<0>(_degs[v].front())--;
                 else
                     get<1>(_degs[v].front())--;
@@ -983,7 +982,7 @@ public:
             if (t == u)
             {
                 t = v;
-                if (!graph_tool::is_directed(_g))
+                if constexpr (!is_directed_::apply<g_t>::type::value)
                 {
                     assert(w % 2 == 0);
                     w /= 2;
@@ -1022,7 +1021,7 @@ public:
             }
         }
 
-        if (graph_tool::is_directed(_g))
+        if constexpr (is_directed_::apply<g_t>::type::value)
         {
             ns_u.clear();
             ns_v.clear();
@@ -1183,7 +1182,7 @@ public:
 
         size_t kout = out_degreeS()(v, _g, _eweight);
         size_t kin = kout;
-        if (graph_tool::is_directed(_g))
+        if constexpr (is_directed_::apply<g_t>::type::value)
             kin = in_degreeS()(v, _g, _eweight);
 
         int dwr = _vweight[v];
@@ -1195,7 +1194,7 @@ public:
         auto vt = [&](auto mrp, auto mrm, auto nr)
             {
                 assert(mrp >= 0 && mrm >=0 && nr >= 0);
-                if (exact)
+                if constexpr (exact)
                     return vterm_exact(mrp, mrm, nr, _deg_corr, _bg);
                 else
                     return vterm(mrp, mrm, nr, _deg_corr, _bg);
@@ -1249,11 +1248,11 @@ public:
             else
                 deltap[s] += _eweight[e];
         }
-        if (!graph_tool::is_directed(_g))
+        if constexpr (!is_directed_::apply<g_t>::type::value)
             deltal /= 2;
 
         vector<int> deltam(num_vertices(_bg), 0);
-        if (graph_tool::is_directed(_g))
+        if (is_directed_::apply<g_t>::type::value)
         {
             for (auto e : in_edges_range(v, _g))
             {
@@ -1289,7 +1288,7 @@ public:
             int ers = (r != null_group) ? get_beprop(r, s, _mrs, _emat) : 0;
             int enrs = (nr != null_group) ? get_beprop(nr, s, _mrs, _emat) : 0;
 
-            if (!graph_tool::is_directed(_g))
+            if (!is_directed_::apply<g_t>::type::value)
             {
                 if (s != nr && s != r)
                 {
@@ -1727,10 +1726,10 @@ public:
     // Sample node placement
     size_t sample_block(size_t v, double c, double d, rng_t& rng)
     {
-        // attempt random block
+        // attempt new block
         size_t s;
         std::bernoulli_distribution new_r(d);
-        if (d > 0 && new_r(rng) && (_candidate_blocks.size() - 1 < num_vertices(_g)))
+        if (d > 0 && new_r(rng) && (_candidate_blocks.size() < num_vertices(_g)))
         {
             if (_empty_blocks.empty())
                 add_block();
@@ -1752,8 +1751,8 @@ public:
             double p_rand = 0;
             if (c > 0)
             {
-                size_t B = _candidate_blocks.size() - 1;
-                if (graph_tool::is_directed(_g))
+                size_t B = _candidate_blocks.size();
+                if (is_directed_::apply<g_t>::type::value)
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
                     p_rand = c * B / double(_mrp[t] + c * B);
@@ -1773,16 +1772,12 @@ public:
             }
             else
             {
-                s = uniform_sample(_candidate_blocks.begin() + 1,
-                                   _candidate_blocks.end(),
-                                   rng);
+                s = uniform_sample(_candidate_blocks, rng);
             }
         }
         else
         {
-            s = uniform_sample(_candidate_blocks.begin() + 1,
-                               _candidate_blocks.end(),
-                               rng);
+            s = uniform_sample(_candidate_blocks, rng);
         }
 
         return s;
@@ -1800,7 +1795,7 @@ public:
     double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
-        size_t B = _candidate_blocks.size() - 1;
+        size_t B = _candidate_blocks.size();
 
         if (reverse)
         {
@@ -1828,13 +1823,13 @@ public:
 
         size_t kout = 0, kin = 0;
         degs_op(v, _vweight, _eweight, _degs, _g,
-                [&] (size_t din, size_t dout, auto c)
+                [&] ([[maybe_unused]] size_t din, size_t dout, auto c)
                 {
                     kout += dout * c;
-                    if (graph_tool::is_directed(this->_g))
+                    if constexpr (is_directed_::apply<g_t>::type::value)
                         kin += din * c;
                 });
-        if (!graph_tool::is_directed(_g))
+        if constexpr (!is_directed_::apply<g_t>::type::value)
             kin = kout;
 
         m_entries.get_mes(_emat);
@@ -1855,7 +1850,7 @@ public:
                 int mst = mts;
                 int mtm = mtp;
 
-                if (graph_tool::is_directed(_g))
+                if constexpr (is_directed_::apply<g_t>::type::value)
                 {
                     mst = 0;
                     const auto& me = m_entries.get_me(s, t, _emat);
@@ -1868,7 +1863,7 @@ public:
                 {
                     int dts = m_entries.get_delta(t, s);
                     int dst = dts;
-                    if (graph_tool::is_directed(_g))
+                    if constexpr (is_directed_::apply<g_t>::type::value)
                         dst = m_entries.get_delta(s, t);
 
                     mts += dts;
@@ -1887,7 +1882,7 @@ public:
                     }
                 }
 
-                if (graph_tool::is_directed(_g))
+                if constexpr (is_directed_::apply<g_t>::type::value)
                 {
                     p += ew * ((mts + mst + c) / (mtp + mtm + c * B));
                 }
@@ -1907,7 +1902,7 @@ public:
             sum_prob(e, target(e, _g));
         }
 
-        if (graph_tool::is_directed(_g))
+        if constexpr (is_directed_::apply<g_t>::type::value)
         {
             for (auto e : in_edges_range(v, _g))
             {
@@ -2131,7 +2126,7 @@ public:
                 auto& m = uc.second;
                 if (m > 1)
                 {
-                    if (u == v && !graph_tool::is_directed(_g))
+                    if (u == v && !is_directed_::apply<g_t>::type::value)
                     {
                         assert(m % 2 == 0);
                         S += lgamma_fast(m/2 + 1) + m * log(2) / 2;
@@ -2181,7 +2176,7 @@ public:
                             }
                             else
                             {
-                                if (!graph_tool::is_directed(this->_g))
+                                if constexpr (!is_directed_::apply<g_t>::type::value)
                                 {
                                     if (Add)
                                         degs[1] = {kin, kout + 2};
@@ -2210,7 +2205,7 @@ public:
                             [&] (size_t kin, size_t kout, auto)
                             {
                                 degs[0] = {kin, kout};
-                                if (!graph_tool::is_directed(this->_g))
+                                if constexpr (!is_directed_::apply<g_t>::type::value)
                                 {
                                     if (Add)
                                         degs[1] = {kin, kout + 1};
@@ -2250,7 +2245,7 @@ public:
                         {
                             degs[2] = {kin, kout};
 
-                            if (!graph_tool::is_directed(this->_g))
+                            if constexpr (!is_directed_::apply<g_t>::type::value)
                             {
                                 if (Add)
                                     degs[3] = {kin, kout + 1};

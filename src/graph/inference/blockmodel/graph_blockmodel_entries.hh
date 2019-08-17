@@ -131,7 +131,7 @@ public:
     {
         _r_out_field.resize(B, _null);
         _nr_out_field.resize(B, _null);
-        if (is_directed_::apply<Graph>::type::value)
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
             _r_in_field.resize(B, _null);
             _nr_in_field.resize(B, _null);
@@ -146,7 +146,7 @@ public:
         {
             _r_out_field.resize(B, _null);
             _nr_out_field.resize(B, _null);
-            if (is_directed_::apply<Graph>::type::value)
+            if constexpr (is_directed_::apply<Graph>::type::value)
             {
                 _r_in_field.resize(B, _null);
                 _nr_in_field.resize(B, _null);
@@ -160,7 +160,7 @@ public:
     size_t& get_field_rnr(size_t s, size_t t)
     {
         auto& out_field = First ? _r_out_field : _nr_out_field;
-        if (is_directed_::apply<Graph>::type::value)
+        if constexpr (is_directed_::apply<Graph>::type::value)
         {
             auto& in_field = (First ? _r_in_field : _nr_in_field);
             return (Source || s == t) ? out_field[t] : in_field[s];
@@ -192,7 +192,7 @@ public:
             f = _entries.size();
             _entries.emplace_back(s, t);
             _delta.emplace_back();
-            if (sizeof...(delta) > 0)
+            if constexpr (sizeof...(delta) > 0)
                 _edelta.emplace_back();
         }
 
@@ -315,7 +315,7 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
     typedef typename graph_traits<Graph>::vertex_descriptor vertex_t;
     auto& eself_weight = m_entries._self_eweight;
     int self_weight = 0;
-    if (!graph_tool::is_directed(g) && sizeof...(Eprops) > 0)
+    if constexpr (!is_directed_::apply<Graph>::type::value && sizeof...(Eprops) > 0)
     {
         tuple_apply([&](auto&... vals)
                     {
@@ -350,7 +350,7 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
                     (nr, s, ew, make_vadapter(eprops, e)...);
         }
 
-        if ((u == v || is_loop(v)) && !graph_tool::is_directed(g))
+        if ((u == v || is_loop(v)) && !is_directed_::apply<Graph>::type::value)
         {
             self_weight += ew;
             tuple_op(eself_weight, [&](auto&& x, auto&& val){ x += val; },
@@ -358,9 +358,9 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
         }
     }
 
-    if (self_weight > 0 && self_weight % 2 == 0 && !graph_tool::is_directed(g))
+    if (self_weight > 0 && self_weight % 2 == 0 && !is_directed_::apply<Graph>::type::value)
     {
-        if (sizeof...(Eprops) > 0)
+        if constexpr (sizeof...(Eprops) > 0)
         {
             tuple_apply([&](auto&... vals)
                         {
@@ -378,16 +378,16 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
         }
         else
         {
-            if (Add)
+            if constexpr (Add)
                 m_entries.template insert_delta_rnr<false, true, false>
                     (nr, nr, self_weight / 2);
-            if (Remove)
+            if constexpr (Remove)
                 m_entries.template insert_delta_rnr<true, true, true>
                     (r, r, self_weight / 2);
         }
     }
 
-    if (graph_tool::is_directed(g))
+    if constexpr (is_directed_::apply<Graph>::type::value)
     {
         for (auto e : in_edges_range(v, g))
         {
@@ -399,10 +399,10 @@ void modify_entries(Vertex v, Vertex r, Vertex nr, Vprop& _b, Graph& g,
             vertex_t s = _b[u];
             int ew = eweights[e];
 
-            if (Remove)
+            if constexpr (Remove)
                 m_entries.template insert_delta_rnr<true, false, false>
                     (s, r, ew, make_vadapter(eprops, e)...);
-            if (Add)
+            if constexpr (Add)
             {
                 if (s != r)
                     m_entries.template insert_delta_rnr<false, false, true>
@@ -496,7 +496,7 @@ double entries_dS(MEntries& m_entries, Eprop& mrs, EMat& emat, BGraph& bg)
                    if (me != emat.get_null_edge())
                        ers = mrs[me];
                    assert(int(ers) + d >= 0);
-                   if (exact)
+                   if constexpr (exact)
                        dS += eterm_exact(r, s, ers + d, bg) - eterm_exact(r, s, ers, bg);
                    else
                        dS += eterm(r, s, ers + d, bg) - eterm(r, s, ers, bg);
