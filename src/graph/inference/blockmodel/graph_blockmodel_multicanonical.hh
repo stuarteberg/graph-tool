@@ -41,7 +41,6 @@ using namespace std;
     ((S_max, , double, 0))                                                     \
     ((f, , double, 0))                                                         \
     ((S, , double, 0))                                                         \
-    ((E,, size_t, 0))                                                          \
     ((verbose,, bool, 0))
 
 

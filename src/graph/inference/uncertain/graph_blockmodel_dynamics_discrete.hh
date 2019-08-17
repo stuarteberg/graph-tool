@@ -594,8 +594,7 @@ public:
     SIState(S& s, python::dict params)
         : DiscreteStateBase<SIState, true, true, true>(s),
           _exposed(python::extract<bool>(params["exposed"])),
-          _E(_exposed ? State::E : State::I),
-          _N(num_vertices(s._u))
+          _E(_exposed ? State::E : State::I)
     {
         set_params(params);
     };
@@ -677,7 +676,6 @@ private:
     bool _has_r_v;
     bool _exposed;
     int _E;
-    size_t _N;
 };
 
 template <class T>
