@@ -101,8 +101,7 @@ typedef mpl::vector1<std::false_type> rmap_tr;
     ((wparams, &, std::vector<std::vector<double>>&, 0))                       \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
-    ((epsilon, &, std::vector<double>&, 0))                                    \
-    ((allow_empty,, bool, 0))
+    ((epsilon, &, std::vector<double>&, 0))
 
 GEN_STATE_BASE(BlockStateBase, BLOCK_STATE_params)
 
@@ -271,7 +270,7 @@ public:
             BlockState::remove_partition_node(v, r);
     }
 
-    bool allow_move(size_t v, size_t r, size_t nr, bool allow_empty = true)
+    bool allow_move(size_t v, size_t r, size_t nr)
     {
         if (_coupled_state != nullptr && is_last(v))
         {
@@ -280,10 +279,7 @@ public:
                 return false;
         }
 
-        if (allow_empty)
-            return ((_bclabel[r] == _bclabel[nr]) || (_wr[nr] == 0));
-        else
-            return _bclabel[r] == _bclabel[nr];
+        return _bclabel[r] == _bclabel[nr];
     }
 
     template <class EFilt>
@@ -1665,8 +1661,6 @@ public:
                 enable_partition_stats();
                 for (auto& ps : _partition_stats)
                     actual_B += ps.get_actual_B();
-                if (_allow_empty)
-                    actual_B = num_vertices(_bg);
                 size_t E = _partition_stats.front().get_E();
                 dS -= get_edges_dl(actual_B, E, _g);
                 dS += get_edges_dl(actual_B + dr + ds, E, _g);
@@ -2051,8 +2045,6 @@ public:
             size_t actual_B = 0;
             for (auto& ps : _partition_stats)
                 actual_B += ps.get_actual_B();
-            if (_allow_empty)
-                actual_B = num_vertices(_bg);
             S_dl += get_edges_dl(actual_B, _partition_stats.front().get_E(), _g);
         }
 
@@ -2381,7 +2373,7 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _vweight, _eweight, _degs,
-                                              _bmap, _allow_empty);
+                                              _bmap);
 
             for (auto r : vertices_range(_bg))
                 _partition_stats[rc[r]].get_r(r);

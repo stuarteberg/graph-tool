@@ -92,9 +92,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         be assumed, otherwise the traditional variant will be used.
     overlap : ``bool`` (optional, default: ``False``)
         If ``True``, the overlapping version of the model will be used.
-    allow_empty : ``bool`` (optional, default: ``True``)
-        If ``True``, partition description length computed will allow for empty
-        groups.
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this value, a sparse matrix is used for
         the block graph. Otherwise a dense matrix will be used.
@@ -103,8 +100,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
 
     def __init__(self, g, ec, eweight=None, vweight=None, recs=[], rec_types=[],
                  rec_params=[], b=None, B=None, clabel=None, pclabel=False,
-                 layers=False, deg_corr=True, overlap=False, allow_empty=False,
-                 **kwargs):
+                 layers=False, deg_corr=True, overlap=False, **kwargs):
 
         kwargs = kwargs.copy()
 
@@ -152,7 +148,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                    eweight=eweight, vweight=vweight, recs=recs,
                                    rec_types=rec_types, rec_params=rec_params,
                                    clabel=clabel, pclabel=pclabel,
-                                   deg_corr=deg_corr, allow_empty=allow_empty,
+                                   deg_corr=deg_corr,
                                    max_BE=max_BE, degs=tdegs,
                                    Lrecdx=self.Lrecdx[0],
                                    use_rmap=True,
@@ -164,7 +160,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                           rec_types=rec_types,
                                           rec_params=rec_params, clabel=clabel,
                                           pclabel=pclabel, deg_corr=deg_corr,
-                                          allow_empty=allow_empty, max_BE=max_BE,
+                                          max_BE=max_BE,
                                           Lrecdx=self.Lrecdx[0],
                                           **dmask(kwargs, ["degs", "lweights",
                                                            "gs", "bfield"]))
@@ -189,8 +185,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             self.is_weighted = agg_state.is_weighted
         else:
             self.is_weighted = False
-
-        self.allow_empty = agg_state.allow_empty
 
         self.rec = agg_state.rec
         self.drec = agg_state.drec
@@ -286,9 +280,10 @@ class LayeredBlockState(OverlapBlockState, BlockState):
         self.epsilon = agg_state.epsilon
         self._entropy_args = agg_state._entropy_args
         self.recdx = agg_state.recdx
-        if not self.overlap:
-            self.empty_blocks = agg_state.empty_blocks
-            self.empty_pos = agg_state.empty_pos
+        self.candidate_blocks = agg_state.candidate_blocks
+        self.candidate_pos = agg_state.candidate_pos
+        self.empty_blocks = agg_state.empty_blocks
+        self.empty_pos = agg_state.empty_pos
 
         self._coupled_state = None
 
@@ -375,7 +370,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                vweight=u.vp["weight"],
                                deg_corr=self.deg_corr,
                                degs=degs,
-                               allow_empty=self.allow_empty,
                                max_BE=self.max_BE,
                                use_rmap=True)
         else:
@@ -394,7 +388,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                       max_BE=self.max_BE)
         state.block_rmap = u.vp["brmap"]
         state.vmap = u.vp["vmap"]
-        state.free_blocks = Vector_size_t()
         return state
 
     def __getstate__(self):
@@ -412,8 +405,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                      clabel=self.clabel,
                      pclabel=self.pclabel,
                      bfield=self.bfield,
-                     deg_corr=self.deg_corr,
-                     allow_empty=self.allow_empty)
+                     deg_corr=self.deg_corr)
         return state
 
     def __setstate__(self, state):
@@ -480,8 +472,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   bfield=self.bfield if bfield is None else bfield,
                                   deg_corr=self.deg_corr if deg_corr is None else deg_corr,
                                   overlap=self.overlap if overlap is None else overlap,
-                                  allow_empty=kwargs.pop("allow_empty",
-                                                         self.allow_empty),
                                   layers=self.layers if layers is None else layers,
                                   base_g=self.base_g if self.overlap else None,
                                   half_edges=self.agg_state.half_edges if self.overlap else None,
@@ -498,8 +488,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
                                                       vweight="nonempty",
-                                                      Lrecdx=state.Lrecdx,
-                                                      allow_empty=False),
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
@@ -682,8 +671,6 @@ class LayeredBlockState(OverlapBlockState, BlockState):
                                   b=bg.vertex_index.copy("int") if b is None else b,
                                   deg_corr=deg_corr,
                                   overlap=overlap,
-                                  allow_empty=kwargs.pop("allow_empty",
-                                                         self.allow_empty),
                                   max_BE=self.max_BE,
                                   layers=self.layers if layers is None else layers,
                                   ec_done=True,
@@ -700,8 +687,7 @@ class LayeredBlockState(OverlapBlockState, BlockState):
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
                                                       vweight="nonempty",
-                                                      Lrecdx=state.Lrecdx,
-                                                      allow_empty=False),
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
 
         return state

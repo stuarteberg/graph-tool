@@ -50,7 +50,10 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((mrm,, vmap_t, 0))                                                        \
     ((wr,, vmap_t, 0))                                                         \
     ((b,, vmap_t, 0))                                                          \
+    ((empty_blocks, & ,std::vector<size_t>&, 0))                               \
+    ((empty_pos,, vmap_t, 0))                                                  \
     ((candidate_blocks, &, std::vector<size_t>&, 0))                           \
+    ((candidate_pos,, vmap_t, 0))                                              \
     ((bclabel,, vmap_t, 0))                                                    \
     ((pclabel,, vmap_t, 0))                                                    \
     ((deg_corr,, bool, 0))                                                     \
@@ -63,8 +66,7 @@ typedef mpl::vector2<std::true_type, std::false_type> use_hash_tr;
     ((wparams,, std::vector<std::vector<double>>, 0))                          \
     ((recdx, &, std::vector<double>&, 0))                                      \
     ((Lrecdx, &, std::vector<double>&, 0))                                     \
-    ((epsilon, &, std::vector<double>&, 0))                                    \
-    ((allow_empty,, bool, 0))
+    ((epsilon, &, std::vector<double>&, 0))
 
 GEN_STATE_BASE(OverlapBlockStateVirtualBase, OVERLAP_BLOCK_STATE_params)
 
@@ -88,8 +90,17 @@ public:
           _overlap_stats(_g, _b, _half_edges, _node_index, num_vertices(_bg)),
           _coupled_state(nullptr)
     {
+        _empty_blocks.clear();
+        _candidate_blocks.clear();
         for (auto r : vertices_range(_bg))
+        {
             _wr[r] = _overlap_stats.get_block_size(r);
+            if (_wr[r] == 0)
+                add_element(_empty_blocks, _empty_pos, r);
+            else
+                add_element(_candidate_blocks, _candidate_pos, r);
+        }
+
         for (auto& p : _brec)
         {
             _c_brec.push_back(p.get_checked());
@@ -163,6 +174,12 @@ public:
     template <bool Add>
     void modify_vertex(size_t v, size_t r)
     {
+        if (Add && _wr[r] == 0)
+        {
+            remove_element(_empty_blocks, _empty_pos, r);
+            add_element(_candidate_blocks, _candidate_pos, r);
+        }
+
         if (Add)
             get_move_entries(v, null_group, r, _m_entries);
         else
@@ -183,7 +200,14 @@ public:
             if (!_egroups.empty() && _egroups_enabled)
                 _egroups.remove_vertex(v, _b, _g);
         }
+
         _wr[r] = _overlap_stats.get_block_size(r);
+
+        if (!Add && _wr[r] == 0)
+        {
+            remove_element(_candidate_blocks, _candidate_pos, r);
+            add_element(_empty_blocks, _empty_pos, r);
+        }
     }
 
     size_t get_B_E()
@@ -206,14 +230,16 @@ public:
         modify_vertex<true>(v, r);
     }
 
-    bool allow_move(size_t, size_t r, size_t nr)
+    bool allow_move(size_t v, size_t r, size_t nr)
     {
-        return (_bclabel[r] == _bclabel[nr]);
-    }
+        if (_coupled_state != nullptr && is_last(v))
+        {
+            auto& bh = _coupled_state->get_b();
+            if (bh[r] != bh[nr])
+                return false;
+        }
 
-    bool allow_move(size_t v, size_t r, size_t nr, bool)
-    {
-        return allow_move(v, r, nr);
+        return _bclabel[r] == _bclabel[nr];
     }
 
     // move a vertex from its current block to block nr
@@ -508,10 +534,10 @@ public:
             {
                 if (r_vacate)
                     dS += _coupled_state->get_delta_partition_dl(r, bh[r], null_group,
-                                                             _coupled_entropy_args);
+                                                                 _coupled_entropy_args);
                 if (nr_occupy)
                     dS += _coupled_state->get_delta_partition_dl(nr, null_group, bh[nr],
-                                                             _coupled_entropy_args);
+                                                                 _coupled_entropy_args);
             }
         }
         return dS;
@@ -519,10 +545,27 @@ public:
 
     // Sample node placement
     template <class RNG>
-    size_t sample_block(size_t v, double c, double, RNG& rng)
+    size_t sample_block(size_t v, double c, double d, RNG& rng)
     {
         // attempt random block
         size_t s = uniform_sample(_candidate_blocks, rng);
+
+        // attempt new block
+        std::bernoulli_distribution new_r(d);
+        if (d > 0 && new_r(rng) && (_candidate_blocks.size() < num_vertices(_g)))
+        {
+            if (_empty_blocks.empty())
+                add_block();
+            s = uniform_sample(_empty_blocks, rng);
+            auto r = _b[v];
+            _bclabel[s] = _bclabel[r];
+            if (_coupled_state != nullptr)
+            {
+                auto& hb = _coupled_state->get_b();
+                hb[s] = hb[r];
+            }
+            return s;
+        }
 
         if (!std::isinf(c))
         {
@@ -536,7 +579,7 @@ public:
             double p_rand = 0;
             if (c > 0)
             {
-                size_t B = num_vertices(_bg);
+                size_t B = _candidate_blocks.size();
                 if (graph_tool::is_directed(_g))
                     p_rand = c * B / double(_mrp[t] + _mrm[t] + c * B);
                 else
@@ -554,16 +597,6 @@ public:
                     s = _b[source(e, _g)];
             }
         }
-
-        // if (_wr[s] == 0 && _coupled_state != nullptr)
-        // {
-        //     auto& hb = _coupled_state->get_b();
-        //     do
-        //     {
-        //         hb[s] = _coupled_state->sample_block(_b[v], std::numeric_limits<double>::infinity(), d, rng);
-        //     }
-        //     while (!_coupled_state->allow_move(hb[_b[v]], hb[s], _allow_empty));
-        // }
 
         return s;
     }
@@ -594,11 +627,32 @@ public:
 
     // Computes the move proposal probability
     template <class MEntries>
-    double get_move_prob(size_t v, size_t r, size_t s, double c, double,
+    double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
                          bool reverse, MEntries& m_entries)
     {
+        size_t B = _candidate_blocks.size();
+
+        if (reverse)
+        {
+            if (_overlap_stats.virtual_remove_size(v, s) == 0)
+                return d;
+            if (_wr[r] == 0)
+                B++;
+        }
+        else
+        {
+            if (_wr[s] == 0)
+                return d;
+        }
+
+        if (B == num_vertices(_g))
+            d = 0;
+
+        if (std::isinf(c))
+            return (1. - d) / B;
+
+
         typedef typename graph_traits<g_t>::vertex_descriptor vertex_t;
-        size_t B = num_vertices(_bg);
         double p = 0;
         size_t w = 0;
 
@@ -676,9 +730,9 @@ public:
             }
         }
         if (w > 0)
-            return p / w;
+            return (1. - d) * p / w;
         else
-            return 1. / B;
+            return (1. - d) / B;
     }
 
     double get_move_prob(size_t v, size_t r, size_t s, double c, double d,
@@ -793,8 +847,6 @@ public:
             size_t actual_B = 0;
             for (auto& ps : _partition_stats)
                 actual_B += ps.get_actual_B();
-            if (_allow_empty)
-                actual_B = num_vertices(_bg);
             S_dl += get_edges_dl(actual_B, _partition_stats.front().get_E(), _g);
         }
 
@@ -898,7 +950,7 @@ public:
             for (size_t c = 0; c < C; ++c)
                 _partition_stats.emplace_back(_g, _b, vcs[c], E, B,
                                               _eweight, _overlap_stats,
-                                              _bmap, _vmap, _allow_empty);
+                                              _bmap, _vmap);
 
             for (size_t r = 0; r < num_vertices(_bg); ++r)
                 _partition_stats[rc[r]].get_r(r);
@@ -1070,7 +1122,9 @@ public:
         _mrp.resize(num_vertices(_bg));
         _wr[r] = _mrm[r] = _mrp[r] = 0;
         _bclabel.resize(num_vertices(_bg));
-        _candidate_blocks.push_back(r);
+        _empty_pos.resize(num_vertices(_bg));
+        _candidate_pos.resize(num_vertices(_bg));
+        add_element(_empty_blocks, _empty_pos, r);
         _overlap_stats.add_block();
         for (auto& p : _partition_stats)
             p.add_block();
@@ -1224,8 +1278,6 @@ public:
 
     UnityPropertyMap<int,GraphInterface::edge_t> _eweight;
     UnityPropertyMap<int,GraphInterface::vertex_t> _vweight;
-
-    std::array<size_t, 0> _empty_blocks;
 
     BlockStateVirtualBase* _coupled_state;
     entropy_args_t _coupled_entropy_args;

@@ -77,8 +77,7 @@ class NestedBlockState(object):
             recs = self.state_args.get("recs", None)
             if recs is not None:
                 self.state_args["rec_params"] = ["microcanonical"] * len(recs)
-        self.hstate_args = dict(dict(deg_corr=False, vweight="nonempty",
-                                     allow_empty=False),
+        self.hstate_args = dict(dict(deg_corr=False, vweight="nonempty"),
                                 **hstate_args)
         self.hstate_args["Lrecdx"] = self.Lrecdx
         self.sampling = sampling

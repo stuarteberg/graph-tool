@@ -38,7 +38,7 @@ rec_p = g.new_ep("double", random(g.num_edges()))
 rec_s = g.new_ep("double", normal(0, 10, g.num_edges()))
 
 
-def _gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
+def _gen_state(directed, deg_corr, layers, overlap, rec, rec_type):
     u = GraphView(g, directed=directed)
     if layers != False:
         base_type = graph_tool.inference.LayeredBlockState
@@ -48,8 +48,7 @@ def _gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
                           recs=[rec] if rec is not None else [],
                           rec_types=[rec_type] if rec is not None else [],
                           overlap=overlap,
-                          layers=layers == True,
-                          allow_empty=allow_empty)
+                          layers=layers == True)
     elif overlap:
         base_type = graph_tool.inference.OverlapBlockState
         state_args = dict(B=2 * u.num_edges(),
@@ -61,8 +60,7 @@ def _gen_state(directed, deg_corr, layers, overlap, rec, rec_type, allow_empty):
         state_args = dict(B=u.num_vertices(),
                           recs=[rec] if rec is not None else [],
                           rec_types=[rec_type] if rec is not None else [],
-                          deg_corr=deg_corr,
-                          allow_empty=allow_empty)
+                          deg_corr=deg_corr)
     return u, base_type, state_args
 
 
@@ -71,9 +69,8 @@ def gen_state(*args):
     return base_type(u, **state_args)
 
 def gen_nested_state(*args):
-    u, base_type, state_args = _gen_state(*args, False)
+    u, base_type, state_args = _gen_state(*args)
     B = state_args.pop("B")
-    state_args.pop("allow_empty", None)
     return NestedBlockState(u,
                             bs=[numpy.arange(B)] + [numpy.zeros(1)] * 6,
                             base_type=base_type, state_args=state_args,
@@ -87,7 +84,6 @@ pranges = [("directed", [False, True]),
            ("deg_corr", [False, True]),
            ("dl", [False, True]),
            ("degree_dl_kind", ["uniform", "distributed", "entropy"]),
-           ("allow_empty", [False, True]),
            ("exact", [True, False])]
 
 pranges = OrderedDict(pranges)
@@ -120,7 +116,7 @@ for pvals in iter_ranges(pranges):
         rec_ = rec_s
 
     print("\t mcmc (unweighted)", file=out)
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
 
     print("\t\t",
           state.mcmc_sweep(beta=0,
@@ -138,7 +134,7 @@ for pvals in iter_ranges(pranges):
               state.get_nonempty_B(), file=out)
 
     print("\t mcmc (unweighted, multiflip)", file=out)
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
     print("\t\t",
           state.multiflip_mcmc_sweep(beta=0,
                                      entropy_args=dict(dl=dl,
@@ -147,7 +143,7 @@ for pvals in iter_ranges(pranges):
           state.get_nonempty_B(), file=out)
 
     print("\t gibbs (unweighted)", file=out)
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
 
     print("\t\t",
           state.gibbs_sweep(beta=0,
@@ -157,7 +153,7 @@ for pvals in iter_ranges(pranges):
           state.get_nonempty_B(), file=out)
 
     if not overlap:
-        state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+        state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
 
         print("\t mcmc", file=out)
         bstate = state.get_block_state(vweight=True,  deg_corr=deg_corr)
@@ -185,7 +181,7 @@ for pvals in iter_ranges(pranges):
 
     print("\t merge", file=out)
 
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
 
     if not overlap:
         bstate = state.get_block_state(vweight=True, deg_corr=deg_corr)
@@ -223,7 +219,7 @@ for pvals in iter_ranges(pranges):
 
     print("\t shrink", file=out)
 
-    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec, allow_empty)
+    state = gen_state(directed, deg_corr, layered, overlap, rec_, rec)
     state = state.shrink(B=5, entropy_args=dict(dl=dl,
                                                 degree_dl_kind=degree_dl_kind,
                                                 multigraph=False,

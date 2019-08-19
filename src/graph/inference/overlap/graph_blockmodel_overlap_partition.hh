@@ -88,10 +88,8 @@ struct overlap_partition_stats_t
     overlap_partition_stats_t(Graph& g, Vprop& b, Vlist& vlist, size_t E,
                               size_t B, Eprop& eweight, overlap_stats_t& ostats,
                               std::vector<size_t>& bmap,
-                              std::vector<size_t>& vmap,
-                              bool allow_empty)
+                              std::vector<size_t>& vmap)
         : _overlap_stats(ostats), _bmap(bmap), _vmap(vmap),
-          _allow_empty(allow_empty),
           _directed(graph_tool::is_directed(g))
 
     {
@@ -222,11 +220,7 @@ struct overlap_partition_stats_t
             int nd = _dhist[d];
             if (nd == 0)
                 continue;
-            double x;
-            if (_allow_empty)
-                x = lbinom_fast(_total_B, d);
-            else
-                x = lbinom_fast(_actual_B, d);
+            double x = lbinom_fast(_actual_B, d);
             double ss = lbinom_careful((exp(x) + nd) - 1, nd); // not fast
             if (std::isinf(ss) || std::isnan(ss))
                 ss = nd * x - lgamma_fast(nd + 1);
@@ -522,18 +516,14 @@ struct overlap_partition_stats_t
                 int nd = int(_dhist[d_i]) + delta;
                 if (nd == 0)
                     return 0.;
-                double x;
-                if (_allow_empty)
-                    x = lbinom_fast(_total_B + dB, d_i);
-                else
-                    x = lbinom_fast(_actual_B + dB, d_i);
+                double x = lbinom_fast(_actual_B + dB, d_i);
                 double S = lbinom_careful(exp(x) + nd - 1, nd); // not fast
                 if (std::isinf(S) || std::isnan(S))
                     S = nd * x - lgamma_fast(nd + 1);
                 return S;
             };
 
-        if (dB == 0 || _allow_empty)
+        if (dB == 0)
         {
             if (n_d != d)
             {
@@ -589,7 +579,7 @@ struct overlap_partition_stats_t
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, size_t actual_B,
                               const Graph& g)
     {
-        if (r == nr || _allow_empty)
+        if (r == nr)
             return 0;
 
         double S_b = 0, S_a = 0;
@@ -1042,7 +1032,6 @@ private:
     size_t _actual_B;
     size_t _total_B;
     size_t _D;
-    bool _allow_empty;
     bool _directed;
     vector<int> _dhist;        // d-histogram
     vector<int> _r_count;      // m_r

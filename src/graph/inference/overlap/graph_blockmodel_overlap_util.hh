@@ -453,6 +453,8 @@ public:
             d = 0;
         for (auto& d : _edelta)
             d = std::tuple<EVals...>();
+        for (auto& e : _entries)
+            e.first = e.second = 0;
         _pos = 0;
         _mes_pos = 0;
     }

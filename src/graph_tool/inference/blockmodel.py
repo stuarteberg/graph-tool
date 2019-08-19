@@ -252,9 +252,6 @@ class BlockState(object):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    allow_empty : ``bool`` (optional, default: ``False``)
-        If ``True``, partition description length computed will allow for empty
-        groups.
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this value, a sparse matrix is used for
         the block graph. Otherwise a dense matrix will be used.
@@ -263,8 +260,7 @@ class BlockState(object):
 
     def __init__(self, g, b=None, B=None, eweight=None, vweight=None, recs=[],
                  rec_types=[], rec_params=[], clabel=None, pclabel=None,
-                 bfield=None, Bfield=None, deg_corr=True, allow_empty=False,
-                 max_BE=1000, **kwargs):
+                 bfield=None, Bfield=None, deg_corr=True, max_BE=1000, **kwargs):
         kwargs = kwargs.copy()
 
         # initialize weights to unity, if necessary
@@ -462,7 +458,6 @@ class BlockState(object):
         else:
             self.Bfield = Vector_double(len(Bfield))
             self.Bfield.a = Bfield
-        self.allow_empty = allow_empty
         self._abg = self.bg._get_any()
         self._avweight = self.vweight._get_any()
         self._aeweight = self.eweight._get_any()
@@ -624,8 +619,6 @@ class BlockState(object):
                                rec_types=kwargs.pop("rec_types", self.rec_types),
                                rec_params=kwargs.pop("rec_params",
                                                      self.rec_params),
-                               allow_empty=kwargs.pop("allow_empty",
-                                                      self.allow_empty),
                                Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                epsilon=kwargs.pop("epsilon",self.epsilon.copy()),
                                **kwargs)
@@ -642,8 +635,6 @@ class BlockState(object):
                                       clabel=self.clabel if clabel is None else clabel,
                                       pclabel=self.pclabel if pclabel is None else pclabel,
                                       deg_corr=self.deg_corr if deg_corr is None else deg_corr,
-                                      allow_empty=kwargs.pop("allow_empty",
-                                                             self.allow_empty),
                                       max_BE=self.max_BE if max_BE is None else max_BE,
                                       Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                       epsilon=kwargs.pop("epsilon",self.epsilon.copy()),
@@ -653,8 +644,7 @@ class BlockState(object):
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
                                                       vweight="nonempty",
-                                                      Lrecdx=state.Lrecdx,
-                                                      allow_empty=False),
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
@@ -669,7 +659,6 @@ class BlockState(object):
                      pclabel=self.pclabel,
                      bfield=self.bfield,
                      deg_corr=self.deg_corr,
-                     allow_empty=self.allow_empty,
                      max_BE=self.max_BE,
                      recs=self.rec,
                      drec=self.drec,
@@ -782,8 +771,6 @@ class BlockState(object):
                            vweight=vweight,
                            b=bg.vertex_index.copy("int") if b is None else b,
                            deg_corr=deg_corr,
-                           allow_empty=kwargs.pop("allow_empty",
-                                                  self.allow_empty),
                            degs=degs,
                            rec_types=rec_types,
                            recs=recs,
@@ -800,8 +787,7 @@ class BlockState(object):
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       copy_bg=False,
                                                       vweight="nonempty",
-                                                      Lrecdx=state.Lrecdx,
-                                                      allow_empty=False),
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
@@ -2389,7 +2375,7 @@ class BlockState(object):
                                   self_loops=self_loops, n_iter=n_iter)
         return g
 
-def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
+def model_entropy(B, N, E, directed=False, nr=None):
     r"""Computes the amount of information necessary for the parameters of the
     traditional blockmodel ensemble, for ``B`` blocks, ``N`` vertices, ``E``
     edges, and either a directed or undirected graph.
@@ -2429,14 +2415,9 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
 
     .. math::
 
-       -\ln P(\boldsymbol{b}) = \ln\left(\!\!{B \choose N}\!\!\right) + \ln N! - \sum_r \ln n_r!,
-
-    where :math:`n_r` is the number of nodes in block :math:`r`. If we forbid
-    empty groups, with ``allow_empty == False``, this changes slightly to
-
-    .. math::
-
        -\ln P(\boldsymbol{b}) = \ln {N - 1 \choose B - 1} + \ln N! - \sum_r \ln n_r!.
+
+    where :math:`n_r` is the number of nodes in block :math:`r`.
 
     The total information necessary to describe the model is then,
 
@@ -2467,7 +2448,7 @@ def model_entropy(B, N, E, directed=False, nr=None, allow_empty=True):
     if nr is False:
         L = lbinom(x + E - 1, E)
     else:
-        L = lbinom(x + E - 1, E) + partition_entropy(B, N, nr, allow_empty)
+        L = lbinom(x + E - 1, E) + partition_entropy(B, N, nr)
     return L
 
 def bethe_entropy(g, p):

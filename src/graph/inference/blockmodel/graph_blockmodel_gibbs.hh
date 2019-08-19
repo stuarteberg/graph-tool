@@ -95,7 +95,7 @@ struct Gibbs
         {
             if (nr == null_group)
             {
-                if (!_allow_new_group || _state._allow_empty)
+                if (!_allow_new_group)
                     return numeric_limits<double>::infinity();
                 if (_state._empty_blocks.empty())
                     _state.add_block();

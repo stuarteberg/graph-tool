@@ -71,8 +71,8 @@ public:
               class Vlist>
     partition_stats(Graph& g, Vprop& b, Vlist& vlist, size_t E, size_t B,
                     VWprop& vweight, Eprop& eweight, Degs& degs,
-                    std::vector<size_t>& bmap, bool allow_empty)
-        : _bmap(bmap), _N(0), _E(E), _total_B(B), _allow_empty(allow_empty)
+                    std::vector<size_t>& bmap)
+        : _bmap(bmap), _N(0), _E(E), _total_B(B)
     {
         if (!use_rmap)
         {
@@ -134,10 +134,7 @@ public:
     double get_partition_dl()
     {
         double S = 0;
-        if (_allow_empty)
-            S += lbinom(_total_B + _N - 1, _N);
-        else
-            S += lbinom(_N - 1, _actual_B - 1);
+        S += lbinom(_N - 1, _actual_B - 1);
         S += lgamma_fast(_N + 1);
         for (auto nr : _total)
             S -= lgamma_fast(nr + 1);
@@ -304,7 +301,7 @@ public:
         if (nr != null_group && _total[nr] == 0)
             dB++;
 
-        if ((dN != 0 || dB != 0) && !_allow_empty)
+        if ((dN != 0 || dB != 0))
         {
             S_b += lbinom_fast(_N - 1, _actual_B - 1);
             S_a += lbinom_fast(_N - 1 + dN, _actual_B + dB - 1);
@@ -323,7 +320,7 @@ public:
     double get_delta_edges_dl(size_t v, size_t r, size_t nr, VProp& vweight,
                               size_t actual_B, Graph& g)
     {
-        if (r == nr || _allow_empty)
+        if (r == nr)
             return 0;
 
         if (r != null_group)
@@ -670,7 +667,6 @@ private:
     size_t _E;
     size_t _actual_B;
     size_t _total_B;
-    bool _allow_empty;
     vector<map_t> _hist;
     vector<int> _total;
     vector<int> _ep;

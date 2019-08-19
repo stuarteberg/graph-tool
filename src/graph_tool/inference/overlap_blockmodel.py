@@ -75,9 +75,6 @@ class OverlapBlockState(BlockState):
     deg_corr : ``bool`` (optional, default: ``True``)
         If ``True``, the degree-corrected version of the blockmodel ensemble will
         be assumed, otherwise the traditional variant will be used.
-    allow_empty : ``bool`` (optional, default: ``False``)
-        If ``True``, partition description length computed will allow for empty
-        groups.
     max_BE : ``int`` (optional, default: ``1000``)
         If the number of blocks exceeds this number, a sparse representation of
         the block graph is used, which is slightly less efficient, but uses less
@@ -85,8 +82,8 @@ class OverlapBlockState(BlockState):
     """
 
     def __init__(self, g, b=None, B=None, recs=[], rec_types=[], rec_params=[],
-                 clabel=None, pclabel=None, deg_corr=True, allow_empty=False,
-                 max_BE=1000, **kwargs):
+                 clabel=None, pclabel=None, deg_corr=True, max_BE=1000,
+                 **kwargs):
 
         kwargs = kwargs.copy()
 
@@ -212,7 +209,9 @@ class OverlapBlockState(BlockState):
         self.B = B
 
         self.candidate_blocks = Vector_size_t()
-        self.candidate_blocks.extend(arange(self.B, dtype="int"))
+        self.candidate_pos = self.bg.new_vp("int")
+        self.empty_blocks = Vector_size_t()
+        self.empty_pos = self.bg.new_vp("int")
 
         if pclabel is not None:
             if isinstance(pclabel, PropertyMap):
@@ -255,8 +254,6 @@ class OverlapBlockState(BlockState):
         self.max_BE = max_BE
 
         self.use_hash = self.B > self.max_BE
-
-        self.allow_empty = True
 
         self._abg = self.bg._get_any()
         self._state = libinference.make_overlap_block_state(self, _get_rng())
@@ -331,8 +328,6 @@ class OverlapBlockState(BlockState):
                                   Lrecdx=kwargs.pop("Lrecdx", self.Lrecdx.copy()),
                                   epsilon=kwargs.pop("epsilon",
                                                      self.epsilon.copy()),
-                                  allow_empty=kwargs.pop("allow_empty",
-                                                         self.allow_empty),
                                   **dmask(kwargs, ["half_edges", "node_index",
                                                    "eindex", "base_g", "drec",
                                                    "max_BE"]))
@@ -340,8 +335,7 @@ class OverlapBlockState(BlockState):
             state._couple_state(state.get_block_state(b=state.get_bclabel(),
                                                       vweight="nonempty",
                                                       copy_bg=False,
-                                                      Lrecdx=state.Lrecdx,
-                                                      allow_empty=False),
+                                                      Lrecdx=state.Lrecdx),
                                 self._coupled_state[1])
         return state
 
