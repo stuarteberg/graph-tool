@@ -32,6 +32,7 @@
 #include <boost/graph/properties.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "transform_iterator.hh"
 
@@ -449,9 +450,9 @@ public:
         std::for_each(_edges.begin(), _edges.end(),
                       [](auto &es){es.second.shrink_to_fit();});
         auto erange = boost::edges(*this);
-        auto iter = std::max_element(erange.first, erange.second,
-                                     [](const auto &a, const auto& b) -> bool
-                                     {return a.idx < b.idx;});
+        auto iter = boost::first_max_element(erange.first, erange.second,
+                                             [](const auto &a, const auto& b) -> bool
+                                             {return a.idx < b.idx;});
         if (iter == erange.second)
             _edge_index_range = 0;
         else

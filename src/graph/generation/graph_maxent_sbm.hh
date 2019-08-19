@@ -22,6 +22,7 @@
 #include <iostream>
 #include <boost/functional/hash.hpp>
 #include <boost/multi_array.hpp>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "graph.hh"
 #include "graph_filtering.hh"
@@ -51,7 +52,7 @@ public:
 
         size_t N = degs_in.size();
         double E2 = 0;
-        _B = *std::max_element(b.begin(), b.end()) + 1;
+        _B = *boost::first_max_element(b.begin(), b.end()) + 1;
         for (size_t i = 0; i < rs.size(); ++i)
         {
             size_t r = rs[i];
@@ -535,8 +536,8 @@ void gen_maxent_sbm(Graph& g, VProp b, IVec&& rs, IVec&& ss, MVec& mrs,
                     VDProp theta_in, VDProp theta_out, bool self_loops,
                     RNG& rng)
 {
-    size_t B = std::max(*std::max_element(rs.begin(), rs.end()),
-                        *std::max_element(ss.begin(), ss.end())) + 1;
+    size_t B = std::max(*boost::first_max_element(rs.begin(), rs.end()),
+                        *boost::first_max_element(ss.begin(), ss.end())) + 1;
 
     std::vector<gt_hash_map<double, std::vector<size_t>>> vertices_in(B),
         vertices_out(B);

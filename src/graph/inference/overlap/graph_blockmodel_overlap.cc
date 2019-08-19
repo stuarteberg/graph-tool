@@ -19,6 +19,7 @@
 #include "random.hh"
 
 #include <boost/python.hpp>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "graph_blockmodel_overlap_util.hh"
 #include "graph_blockmodel_overlap.hh"
@@ -269,7 +270,7 @@ void export_overlap_blockmodel_state()
                                                      continue;
                                                  }
                                                  auto& c = bc_total[v];
-                                                 auto pos = std::max_element(c.begin(), c.end());
+                                                 auto pos = boost::first_max_element(c.begin(), c.end());
                                                  auto r = *(bv[v].begin() + (pos - c.begin()));
                                                  b[v] = r;
                                              }

@@ -18,6 +18,8 @@
 #ifndef GRAPH_DISCRETE_HH
 #define GRAPH_DISCRETE_HH
 
+#include <boost/algorithm/minmax_element.hpp>
+
 #include "graph.hh"
 #include "graph_filtering.hh"
 #include "graph_util.hh"
@@ -361,9 +363,9 @@ public:
         if (_m.empty())
             return 0;
 
-        auto qmax = std::max_element(_m.begin(), _m.end(),
-                                     [&](auto& a, auto& b)
-                                     { return a.second < b.second; })->second;
+        auto qmax = boost::first_max_element(_m.begin(), _m.end(),
+                                             [&](auto& a, auto& b)
+                                             { return a.second < b.second; })->second;
 
         for (auto qc : _m)
         {
@@ -652,7 +654,7 @@ public:
                 _m[r] += _w[e] * _f[r][s];
         }
 
-        double mmax = *std::max_element(_m.begin(), _m.end());
+        double mmax = *boost::first_max_element(_m.begin(), _m.end());
 
         for (int r = 0; r < _q; ++r)
         {

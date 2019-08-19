@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <vector>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "../support/graph_state.hh"
 
@@ -160,7 +161,7 @@ public:
     template <class Vec>
     void normalize(Vec& vec)
     {
-        auto max_x = *std::max_element(vec.begin(), vec.end());
+        auto max_x = *boost::first_max_element(vec.begin(), vec.end());
         std::for_each(vec.begin(), vec.end(),
                       [&](auto& x){ x = (std::isinf(x)) ? 1. : x / max_x; });
         auto S = std::accumulate(vec.begin(), vec.end(), 0.);
@@ -336,7 +337,7 @@ public:
         for (auto v : vertices_range(_g))
         {
             auto& p = _vm[v];
-            vmap[v] = int(std::max_element(p.begin(), p.end()) - p.begin());
+            vmap[v] = int(boost::first_max_element(p.begin(), p.end()) - p.begin());
         }
     }
 

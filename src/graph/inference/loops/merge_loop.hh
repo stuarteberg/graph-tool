@@ -24,6 +24,7 @@
 #include <queue>
 
 #include <tuple>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "hash_map_wrap.hh"
 #include "parallel_rng.hh"
@@ -46,8 +47,8 @@ auto merge_sweep(MergeState state, RNG& rng_)
     typedef std::tuple<size_t, size_t, double> merge_t;
 
     std::vector<merge_t>
-        best_merge(*std::max_element(state._available.begin(),
-                                     state._available.end()) + 1,
+        best_merge(*boost::first_max_element(state._available.begin(),
+                                             state._available.end()) + 1,
                    make_tuple(size_t(0), size_t(0),
                               numeric_limits<double>::max()));
 

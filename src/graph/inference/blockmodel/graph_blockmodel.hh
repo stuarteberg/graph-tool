@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <vector>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "../support/graph_state.hh"
 #include "graph_blockmodel_util.hh"
@@ -2405,10 +2406,10 @@ public:
                 E += _eweight[e];
             size_t B = num_vertices(_bg);
 
-            auto vi = std::max_element(vertices(_g).first, vertices(_g).second,
-                                       [&](auto u, auto v)
-                                       { return (this->_pclabel[u] <
-                                                 this->_pclabel[v]); });
+            auto vi = boost::first_max_element(vertices(_g).first, vertices(_g).second,
+                                               [&](auto u, auto v)
+                                               { return (this->_pclabel[u] <
+                                                         this->_pclabel[v]); });
             size_t C = _pclabel[*vi] + 1;
 
             vector<vector<size_t>> vcs(C);

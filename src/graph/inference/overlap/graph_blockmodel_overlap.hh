@@ -20,10 +20,12 @@
 
 #include "config.h"
 #include <tuple>
+#include <boost/algorithm/minmax_element.hpp>
 
 #include "../support/graph_state.hh"
 #include "../blockmodel/graph_blockmodel_util.hh"
 #include "graph_blockmodel_overlap_util.hh"
+
 
 namespace graph_tool
 {
@@ -882,9 +884,9 @@ public:
             size_t E = num_vertices(_g) / 2;
             size_t B = num_vertices(_bg);
 
-            auto vi = std::max_element(vertices(_g).first, vertices(_g).second,
-                                       [&](auto u, auto v)
-                                       { return this->_pclabel[u] < this->_pclabel[v];});
+            auto vi = boost::first_max_element(vertices(_g).first, vertices(_g).second,
+                                               [&](auto u, auto v)
+                                               { return this->_pclabel[u] < this->_pclabel[v];});
             size_t C = _pclabel[*vi] + 1;
 
             vector<gt_hash_set<size_t>> vcs(C);
