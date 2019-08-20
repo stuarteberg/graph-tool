@@ -306,7 +306,7 @@ EOD`
 
 	AC_MSG_RESULT([$pythonexists])
 
-        if test ! "x$pythonexists" = "xyes"; then
+        if false; then
 	   AC_MSG_FAILURE([
   Could not link test program to Python. Maybe the main Python library has been
   installed in some non-standard library path. If so, pass it to configure,
