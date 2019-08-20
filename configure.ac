@@ -145,10 +145,12 @@ AC_SUBST(MOD_DIR)
 
 dnl boost
 AX_BOOST_BASE([[1.55.0]])
-AX_BOOST_PYTHON
+#AX_BOOST_PYTHON
 if test "$BOOST_PYTHON_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::python found])
 fi
+AC_DEFINE([HAVE_BOOST_PYTHON], [1], "Boost Python is available")
+
 AX_BOOST_IOSTREAMS
 if test "$BOOST_IOSTREAMS_LIB" = ""; then
    AC_MSG_ERROR([No usable boost::iostreams found])
